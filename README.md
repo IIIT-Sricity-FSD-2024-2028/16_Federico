@@ -1,158 +1,87 @@
-# Hospital Administrative Operations System (Federico)
+# Federico – Hospital Administrative Operations System
 
-## Domain Vision Statement
-To simplify hospital administrative operations by managing **patient check-ins, resource allocation, inventory tracking, and billing** through a unified, non-clinical system.
+## 1. Problem Statement
 
----
+Hospitals today face critical challenges in maintaining efficient administrative workflows:
 
-## 1. Introduction
+- **Fragmented Operations:** Appointment booking, patient admission, bed allocation, and billing operate in silos without unified data flow
+- **Resource Inefficiency:** No centralized visibility into bed availability and inventory tracking, leading to underutilization and bottlenecks
+- **Poor Patient Experience:** Lack of real-time confirmation and transparent communication from appointment to discharge
+- **Long Waiting Periods:** Patients experience delays due to manual processes and lack of centralized coordination
+- **Billing Opacity:** Patients don't know what charges are applied; manual, error-prone billing processes without clear itemization and verification
+- **Data Inconsistency:** Multiple systems handling patient information increase the risk of duplication, errors, and compliance violations
 
-### 1.1 Purpose
-Federico is a **non-clinical hospital operations system** designed to provide a **single source of reference for patient administrative data**—from appointment booking to inpatient stay and final billing.  
-This system does **not** handle clinical workflows such as diagnosis, treatment, or prescriptions.
+**Federico addresses these challenges** by providing a single, unified administrative hub that manages patient check-ins, resource allocation, inventory tracking, and billing—enabling seamless workflows from appointment scheduling through final billing.
 
-### 1.2 Problem Statement
-Hospitals often face challenges in maintaining a **consistent administrative flow**:
-- Appointment booking
-- Admission and bed allocation
-- Inventory management
-- Billing and payment processing
+> **Scope:** Federico is a **non-clinical system** and does not handle diagnosis, treatment, prescriptions, lab reports, or clinical decision support.
 
-Federico resolves these issues by providing **structured workflows and centralized management**.
-
-### 1.3 Project Scope
-**Included:**
-- Appointment scheduling
-- Patient admission & discharge tracking
-- Bed and ward management
-- Non-clinical inventory tracking
-- Billing and payment processing
-- HIS integrations
-
-**Excluded:**
-- Clinical diagnosis and treatment
-- Prescriptions and lab reports
-- Clinical decision support
-- Advanced insurance claim processing (Future Scope)
-- EMR Integration (Optional)
-
-### 1.4 FFSD Context
-Developed under the **Fundamentals of Full Stack Development (FFSD)** curriculum, focusing on:
-- OPD appointment workflows
-- IPD admission and bed allocation
-- Patient stay tracking
-- Inventory usage logging
-- Transparent billing generation
-
-### 1.5 Definitions and Acronyms
-
-| Term | Meaning |
-|------|---------|
-| EMR  | Electronic Medical Record |
-| HIS  | Hospital Information System |
-| IPD  | In-Patient Department |
-| OPD  | Out-Patient Department |
-| PII  | Personally Identifiable Information |
-| EARS | Easy Approach to Requirements Syntax |
 ---
 
 ## 2. System Overview
 
-### 2.1 User Needs
-- **Efficiency:** Seamless workflow from appointment to billing  
-- **Visibility:** Real-time bed and inventory tracking  
-- **Clarity:** Transparent, itemized billing for patients  
+**Purpose:** To simplify hospital administrative operations by managing patient check-ins, resource allocation, inventory tracking, and billing through a unified, non-clinical system.
 
-### 2.2 Assumptions and Dependencies
+**Target Environment:** Web-based system for hospitals with 50–100 beds, accessible via Chrome, Edge, and Firefox.
 
-**Business:**
-- Clinical decisions are external
-- Billing policies are centralized
-- Admin staff input accurate data
-
-**Operational:**
-- Communication may occur outside the system
-- Stable internet and power supply
-- Target hospitals: 50–100 beds
-
-**Technical:**
-- Web-based system (Chrome, Edge, Firefox)
-- Relational database (MySQL/PostgreSQL)
-- Optional SMS/Email notifications (Future Scaling)
+**Core Capabilities:**
+- Appointment scheduling and confirmation
+- Patient admission and discharge tracking
+- Real-time bed and ward management
+- Non-clinical inventory tracking and usage logging
+- Transparent billing and payment processing
 
 ---
 
-## 3. System Actors
+## 3. Identified Actors and Features
 
-**Patient**
+### 3.1 Patient
+
+**Role:** End-user seeking medical services with transparent administrative support
+
+**Features:**
 - Book appointments online
-- Check slot availability
-- Provide insurance details
-- Receive confirmation and booking receipt
-
-**Patient-Relation-Executive**
-- Generate and Verify patient uhid and appointment
-- Confirm check-in
-- Generate encounter token
-
-**Hospital Operations Manager**
-- Track bed availability
-- Manage admissions & discharges
-- Monitor inventory and suppliers
-
-**Finance Associate**
-- Enter charges
-- Verify insurance claims
-- Process payments and issue receipts
+- View available slots
+- Receive appointment confirmations
+- Enter insurance details
+- View dynamic billing summary
+- Access payment link
 
 ---
 
-## 4. Functional Requirements
+### 3.2 Patient-Relation-Executive (PRE)
 
-**Core Features**
-- Slot preference capture
-- Appointment matching dashboard
-- Admission trigger post-consultation
-- Real-time bed registry
-- Automated daily room charges
-- Inventory-ledger integration
-- Consolidated billing summary
+**Role:** Bridge between patients and hospital systems; manages appointment verification and admission workflows
 
-**EARS Requirements**
-- Notify patient when receptionist confirms appointment
-- Mark bed as occupied upon patient admission
-- Finalize billing upon discharge
-- Generate payment link once billing is approved
-
-**Error Handling**
-- Block admission if no bed is available
-- Prevent discharge if billing is incomplete
-- Lock finalized billing records
+**Features:**
+- Generate and verify patient UHID (Unique Health Identifier)
+- Verify appointment details
+- Confirm patient check-in
+- Generate encounter token for billing
+- Send appointment notifications to patients
 
 ---
 
-## 5. Non-Functional Requirements
+### 3.3 Hospital Operations Manager
 
-**Performance:** Response time < 1.5s, 500 appointments/hour  
-**Security:** Role-based access, PII protection  
-**Reliability:** 99.9% uptime, read-only mode on failure, audit logs  
-**Usability:** Consistent UI, desktop browser compatibility  
+**Role:** Oversees resource allocation and patient flow; ensures operational efficiency
 
----
-
-## 6. UML Diagrams
-
-**Use Case Diagrams:** Show actor interactions for functions like booking appointments, confirming check-in, allocating beds, processing payments.  
-
-**Activity Diagrams:** Illustrate workflows, including:
-1. Appointment: Select department → Choose slot → Confirm → Receive notification  
-2. Admission: Check bed → Allocate bed → Admit patient → Update system  
-3. Billing: Enter charges → Verify insurance → Calculate total → Issue receipt  
-
-**Sequence Diagrams:** Depict actor-system interactions over time:
-- Appointment Booking: Patient → System → Patient-Relation Executive → Notification → Patient  
-- Discharge & Billing: Admin → Finance Associate → System → Payment → Patient  
-
-> All diagrams are attached in the Software Requirements Specification (SRS) document.
+**Features:**
+- View real-time bed availability
+- Allocate beds to patients
+- Track patient admissions and discharges
+- Monitor inventory usage
+- Manage daily room charges
 
 ---
+
+### 3.4 Finance Associate
+
+**Role:** Ensures transparent and accurate billing; handles payment verification and compliance
+
+**Features:**
+- Enter itemized charges
+- Verify insurance details
+- Generate billing statements
+- Approve and finalize billing
+- Process patient payments
+- Issue receipts
