@@ -4,9 +4,7 @@ domain:
 
 terms:
 
-  # ============================================
-  # SYSTEM ACTORS
-  # ============================================
+  # System Actors
   
   - name: Patient
     definition: An individual who seeks medical treatment or services at the hospital and is registered in the system with a unique Medical Record Number (MRN).
@@ -16,7 +14,6 @@ terms:
     aliases:
       - Subject of Care
       - Person receiving treatment
-      - Hospital visitor
 
   - name: Doctor / Healthcare Provider
     definition: A qualified medical professional (doctor, nurse, specialist) who provides clinical diagnosis, treatment, and prescribes medications or medical services to patients.
@@ -26,8 +23,6 @@ terms:
     aliases:
       - Healthcare Provider
       - Medical Staff
-      - Physician
-      - Clinician
 
   - name: Patient-Relation Executive
     definition: A hospital staff member responsible for managing patient intake, registration, appointment scheduling, and initial patient engagement. Acts as the first point of contact for patients and gathers essential information to create and maintain patient records.
@@ -43,15 +38,13 @@ terms:
     aliases:
       - Reception Staff
       - Patient Intake Coordinator
-      - Registration Executive
-      - Patient Services Representative
+
 
   - name: Hospital Operations Manager
     definition: A senior operational staff member who oversees the day-to-day hospital operations, including inpatient bed management, stay monitoring, inventory management, and procurement of medical supplies. Ensures smooth coordination across hospital departments and maintains operational efficiency.
     examples:
       - The Operations Manager allocated a bed in the ICU ward to the newly admitted patient.
       - The Manager monitored the inpatient's stay and coordinated with the pharmacy for medication availability.
-      - The Manager initiated a procurement request for 500 units of insulin when inventory dropped below threshold.
     responsibilities:
       - Manage inpatient bed allocation and ward assignments
       - Monitor inpatient stays and coordinate care transitions
@@ -62,8 +55,6 @@ terms:
     aliases:
       - Hospital Administrator
       - Operations Lead
-      - Facilities & Operations Manager
-      - Administrative Manager
 
   - name: Finance Associate
     definition: A hospital finance staff member responsible for recording all billable services provided to patients during their stay, generating itemized invoices, processing payments, handling insurance claims and verifications. Manages the revenue cycle from service documentation to payment collection.
@@ -83,12 +74,8 @@ terms:
     aliases:
       - Billing Clerk
       - Billing Manager
-      - Revenue Cycle Specialist
-      - Finance Officer
 
-  # ============================================
-  # PATIENT RELATED TERMS
-  # ============================================
+  # Patient Related Terms
 
   - name: Appointment
     definition: A booked time slot when a patient will come to the hospital to see a doctor or receive a medical service.
@@ -98,12 +85,8 @@ terms:
     aliases:
       - Booking
       - Consult Slot
-      - Doctor's appointment
-      - Scheduled visit
 
-  # ============================================
-  # ADMISSION & STAY TERMS
-  # ============================================
+  # Admission and Stay terms
 
   - name: Registration
     definition: The initial process when a patient arrives at the hospital where the Patient-Relation Executive collects their basic information (name, age, address, contact number, etc.) and assigns them a unique patient ID number (MRN).
@@ -113,8 +96,6 @@ terms:
     aliases:
       - Intake
       - MPI Creation
-      - Patient sign-up
-      - Check-in process
 
   - name: Inpatient Admission
     definition: The process of accepting a patient into the hospital for an overnight or extended stay to receive treatment or be under observation, involving bed allocation and care coordination.
@@ -124,8 +105,6 @@ terms:
     aliases:
       - Check-in
       - Hospital admission
-      - Patient entry
-      - Bed assignment
 
   - name: Inpatient Stay
     definition: The period of time a patient remains in the hospital for treatment, observation, or recovery, from admission to discharge.
@@ -135,8 +114,6 @@ terms:
     aliases:
       - Hospital Stay
       - Length of Stay (LOS)
-      - Admission period
-      - Care period
 
   - name: Ward
     definition: A section or floor of the hospital where patients with similar conditions are grouped to stay and receive care, managed by the Hospital Operations Manager.
@@ -146,8 +123,6 @@ terms:
     aliases:
       - Department
       - Hospital Section
-      - Floor
-      - Care unit
 
   - name: Bed Allocation
     definition: The process of assigning a specific bed in a ward, hospital section, or room to a patient who is being admitted, managed by the Hospital Operations Manager.
@@ -157,12 +132,9 @@ terms:
     aliases:
       - Bed Assignment
       - Room assignment
-      - Bed reservation
-      - Capacity management
 
-  # ============================================
-  # BILLING & PAYMENT TERMS
-  # ============================================
+  # Billing & Payment Terms
+
 
   - name: Service Item
     definition: A specific hospital service that the patient receives and must pay for, such as X-Ray, doctor visit, hospital bed charge, medicine, laboratory test, or surgery. Each service is recorded and charged to the patient's bill.
@@ -172,9 +144,6 @@ terms:
     aliases:
       - Charge Code
       - Billable Item
-      - Healthcare service
-      - Medical procedure
-      - Charge item
 
   - name: Invoice
     definition: A comprehensive document prepared by the Finance Associate that lists all the services and charges a patient received during their hospital stay or visit, specifying the total amount owed.
@@ -184,9 +153,6 @@ terms:
     aliases:
       - Bill
       - Statement
-      - Hospital bill
-      - Billing document
-      - Itemized bill
 
   - name: Guarantor
     definition: A person or organization (such as an insurance company, employer, or family member) who promises to pay the patient's hospital bill if the patient cannot pay.
@@ -196,9 +162,6 @@ terms:
     aliases:
       - Payer
       - Insurance Provider
-      - Bill payer
-      - Sponsor
-      - Responsible party
 
   - name: Payment Transaction
     definition: The record of money that the patient or someone paying on their behalf (guarantor) gives to the hospital to pay their bill, documented and tracked in the system.
@@ -208,9 +171,6 @@ terms:
     aliases:
       - Transaction
       - Receipt
-      - Settlement
-      - Payment record
-      - Transaction receipt
 
   - name: Insurance Verification
     definition: The process performed by the Finance Associate to confirm a patient's insurance coverage, eligibility, co-pays, deductibles, and pre-authorization requirements before or during treatment.
@@ -220,8 +180,6 @@ terms:
     aliases:
       - Coverage verification
       - Eligibility check
-      - Pre-authorization
-      - Benefits verification
 
   - name: Insurance Claim
     definition: An official request submitted by the Finance Associate to the patient's insurance company seeking reimbursement for the services provided and charges incurred during the hospital stay.
@@ -231,12 +189,8 @@ terms:
     aliases:
       - Claim submission
       - Reimbursement request
-      - Claims processing
-      - Claim filing
 
-  # ============================================
   # OPERATIONAL TERMS
-  # ============================================
 
   - name: Medical Record Number (MRN)
     definition: A unique identifier assigned to each patient during registration by the Patient-Relation Executive to ensure all their medical and billing information is correctly connected to them.
@@ -246,8 +200,6 @@ terms:
     aliases:
       - Patient ID
       - Hospital ID
-      - Registration Number
-      - Unique Patient ID
 
   - name: Procurement
     definition: The administrative process managed by the Hospital Operations Manager of ordering and acquiring new inventory items and medical supplies from external vendors to maintain adequate stock levels.
@@ -257,8 +209,6 @@ terms:
     aliases:
       - Purchasing
       - Reordering
-      - Supply Acquisition
-      - Purchase Order
 
   - name: Inventory Item
     definition: Any physical supply or equipment that the hospital owns and tracks, such as medicines, bandages, surgical tools, syringes, or oxygen, managed by the Hospital Operations Manager.
@@ -269,9 +219,6 @@ terms:
       - Stock
       - SKU (Stock Keeping Unit)
       - Hospital supply
-      - Medical equipment
-      - Consumable
-      - Inventory stock
 
   - name: Dispense
     definition: The process managed by the Hospital Operations Manager of providing prescribed medications or medical supplies to patients, coordinated with pharmacy records and patient prescriptions.
@@ -281,5 +228,4 @@ terms:
     aliases:
       - Medication dispensing
       - Supply dispensing
-      - Pharmacy fulfillment
-      - Supply distribution
+
