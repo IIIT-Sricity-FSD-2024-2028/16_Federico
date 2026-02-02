@@ -1,5 +1,5 @@
 domain:
-  name: Hospital Administrative Operations
+  name: Healthcare Administration (Non-clinical)
   visionStatement: To make it easier for the hospital to manage patient check-ins, assign resources, track supplies, and handle billing and payments.
 
 terms:
@@ -85,6 +85,15 @@ terms:
     aliases:
       - Booking
       - Consult Slot
+
+  - name: PII (Personally Identifiable Information)
+    definition:  Information that can be used to identify an individual patient directly or indirectly within the hospital administrative system, including personal, contact, and identification details used for registration, billing, and insurance coordination.
+    examples:
+      - The Patient-Relation Executive verified the patient's PII during registration to avoid duplicate UHID creation.
+      - PII such as name, mobile number, and government ID was used to validate insurance eligibility and billing records.
+    aliases:
+      - Personal data
+      - Identifying information
 
   # Admission and Stay terms
 
@@ -225,3 +234,4 @@ terms:
     aliases:
       - Medication dispensing
       - Supply dispensing
+
