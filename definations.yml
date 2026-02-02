@@ -124,17 +124,8 @@ terms:
       - Department
       - Hospital Section
 
-  - name: Bed Allocation
-    definition: The process of assigning a specific bed in a ward, hospital section, or room to a patient who is being admitted, managed by the Hospital Operations Manager.
-    examples:
-      - The Operations Manager could not assign a bed to the patient because the General Ward was full.
-      - The system automatically allocated bed number 5 in Ward A to the newly admitted patient.
-    aliases:
-      - Bed Assignment
-      - Room assignment
 
   # Billing & Payment Terms
-
 
   - name: Service Item
     definition: A specific hospital service that the patient receives and must pay for, such as X-Ray, doctor visit, hospital bed charge, medicine, laboratory test, or surgery. Each service is recorded and charged to the patient's bill.
@@ -145,14 +136,15 @@ terms:
       - Charge Code
       - Billable Item
 
-  - name: Invoice
+  - name: Biliing Summary
     definition: A comprehensive document prepared by the Finance Associate that lists all the services and charges a patient received during their hospital stay or visit, specifying the total amount owed.
     examples:
-      - The Finance Associate created the invoice showing all charges for the patient's 3-day hospital stay.
-      - The invoice was sent to the insurance company for reimbursement review.
+      - The Finance Associate created the Biliing Summary showing all charges for the patient's 3-day hospital stay.
+      - The Biliing Summary was sent to the insurance company for reimbursement review.
     aliases:
       - Bill
       - Statement
+      - invoice
 
   - name: Guarantor
     definition: A person or organization (such as an insurance company, employer, or family member) who promises to pay the patient's hospital bill if the patient cannot pay.
@@ -162,15 +154,6 @@ terms:
     aliases:
       - Payer
       - Insurance Provider
-
-  - name: Payment Transaction
-    definition: The record of money that the patient or someone paying on their behalf (guarantor) gives to the hospital to pay their bill, documented and tracked in the system.
-    examples:
-      - The patient's payment could not go through because the bank declined the transaction.
-      - The payment transaction was recorded in the system and a receipt was issued.
-    aliases:
-      - Transaction
-      - Receipt
 
   - name: Insurance Verification
     definition: The process performed by the Finance Associate to confirm a patient's insurance coverage, eligibility, co-pays, deductibles, and pre-authorization requirements before or during treatment.
@@ -192,14 +175,28 @@ terms:
 
   # OPERATIONAL TERMS
 
-  - name: Medical Record Number (MRN)
-    definition: A unique identifier assigned to each patient during registration by the Patient-Relation Executive to ensure all their medical and billing information is correctly connected to them.
+  - name: Unique Health Identifier (UHID)
+    definition: A unique, permanent identifier assigned to each patient upon their first registration. UHID is hospital-wide and remains constant across all branches and future visits, enabling unified patient records across the entire hospital network.
     examples:
-      - The Finance Associate searched for the patient's invoice using their MRN.
-      - The doctor used the MRN to access the patient's complete medical history.
+    - The PRE generated UHID 'UH-2026-00145' for a new patient during first registration.
+    - The Operations Manager searched across all hospital branches using the patient's UHID to view their complete admission history.
+    - The Finance Associate retrieved all billing records across multiple branches using the patient's UHID.
     aliases:
-      - Patient ID
-      - Hospital ID
+    - Universal Patient ID
+    - Hospital Network ID
+    - Permanent Patient Identifier
+
+  - name: Medical Record Number (MRN)
+    definition: A unique identifier assigned to each patient for a specific hospital branch during admission or visit. MRN is branch-specific and used to manage medical and billing information within that particular branch location.
+    examples:
+    - The PRE generated MRN 'MRN-BRANCH01-2026-00145' for the patient's admission at the Hyderabad branch.
+    - The Finance Associate searched for the patient's invoice at the specific branch using their branch MRN.
+    - The Operations Manager tracked the patient's bed allocation and stay details at that particular branch using the MRN.
+    aliases:
+    - Branch Patient ID
+    - Branch Medical ID
+    - Visit Record Number
+
 
   - name: Procurement
     definition: The administrative process managed by the Hospital Operations Manager of ordering and acquiring new inventory items and medical supplies from external vendors to maintain adequate stock levels.
@@ -228,4 +225,3 @@ terms:
     aliases:
       - Medication dispensing
       - Supply dispensing
-
