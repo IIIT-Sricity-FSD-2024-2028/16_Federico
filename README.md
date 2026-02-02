@@ -1,6 +1,6 @@
 # Federico – Hospital Administrative Operations System
 
-## 1. Problem Statement
+## 1. Problem Statement : Hospital Administrative Operations System
 
 Hospitals today face critical challenges in maintaining efficient administrative workflows:
 
@@ -43,8 +43,10 @@ Hospitals today face critical challenges in maintaining efficient administrative
 - View available slots
 - Receive appointment confirmations
 - Enter insurance details
+- Cancel / Reschedule Appointments
 - View dynamic billing summary
 - Access payment link
+- Download receipts and discharge summaries
 
 ---
 
@@ -54,10 +56,12 @@ Hospitals today face critical challenges in maintaining efficient administrative
 
 **Features:**
 - Generate and verify patient UHID (Unique Health Identifier)
+- MRN Generation / Management
 - Verify appointment details
 - Confirm patient check-in
 - Generate encounter token for billing
 - Send appointment notifications to patients
+- Resolve appointment conflicts and reschedule if needed
 
 ---
 
@@ -66,11 +70,13 @@ Hospitals today face critical challenges in maintaining efficient administrative
 **Role:** Oversees resource allocation and patient flow; ensures operational efficiency
 
 **Features:**
-- View real-time bed availability
+- Track real-time bed availability
 - Allocate beds to patients
 - Track patient admissions and discharges
-- Monitor inventory usage
+- Monitor inventory usage for non-clinical supplies
 - Manage daily room charges
+- Request procurement for non-clinical inventory
+
 
 ---
 
@@ -79,9 +85,20 @@ Hospitals today face critical challenges in maintaining efficient administrative
 **Role:** Ensures transparent and accurate billing; handles payment verification and compliance
 
 **Features:**
-- Enter itemized charges
-- Verify insurance details
-- Generate billing statements
+- Itemized charges entry
+- Verify insurance details and coverage
+- Generate discharge billing summary
 - Approve and finalize billing
 - Process patient payments
 - Issue receipts
+
+
+## 4. Use-Cases
+
+- Schedule Online Appointment
+- Process Patient Registration
+- Manage Inpatient Bed Allocation
+- Monitor Inpatient Stay
+- Manage Inventory and Procurement
+- Record Service Charges
+- Generate Bill and Process Payment
