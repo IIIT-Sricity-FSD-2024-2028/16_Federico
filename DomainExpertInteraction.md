@@ -43,10 +43,10 @@
 
 - **Pre-patient registration**
     - *Trigger/start condition:* Doctor approval must be given first
+    - Patient can either book online /or call hospital
     - *Steps Involved:*
-        -Patient can either book online /or call hospital
-        -Primary details of Patient are taken such as phone no and name 
-        -Once the patient comes to the hospital , confirm the pre -patient to original patient by taking extra details 
+        - Primary details of Patient are taken such as phone no and name 
+        - Once the patient comes to the hospital , confirm the pre-patient to original patient by taking extra details 
     - *Outcome / End condition:* The patient is officially registered in the system and ready for medical services
 
 - **Discharging patient**
@@ -63,12 +63,12 @@
 - **Emergency Services(24/7)**
     - *Trigger/start condition:* A patient arrives at the hospital in an emergency state
     - *Steps Involved:*
-    - Patient is not registered and immediately moved to ward
-    - Ward staff will contact HOD of required specialist when necessary
-    - If HOD cannot lift the call , Assistant HOD will be called
-    - A doctor should usually be available in 10- 15 mins
-    - If junior doctor cannot handle it , it is then coordinated on call to switch to senior doctor depending requirement 
-    - Patient details will be registered to the HIS later by ward members 
+        - Patient is not registered and immediately moved to ward
+        - Ward staff will contact HOD of required specialist when necessary
+        - If HOD cannot lift the call , Assistant HOD will be called
+        - A doctor should usually be available in 10- 15 mins
+        - If junior doctor cannot handle it , it is then coordinated on call to switch to senior doctor depending requirement 
+        - Patient details will be registered to the HIS later by ward members 
     - *Outcome / End condition:* The emergency patient is stabilized and their administrative records are finalized in the system.
 
 
@@ -111,3 +111,4 @@
 - **Open questions that need follow-up**
     - How exactly does the interaction between the hospital billing department and external insurance companies occur within the HIS?
     - How does communication occur between OPD and IPD Information Systems ?
+
