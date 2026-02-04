@@ -43,7 +43,6 @@ Hospitals today face critical challenges in maintaining efficient administrative
 - View available slots
 - Receive appointment confirmations
 - Enter insurance details
-- Cancel / Reschedule Appointments
 - View dynamic billing summary
 - Access payment link
 - Download receipts and discharge summaries
@@ -56,7 +55,6 @@ Hospitals today face critical challenges in maintaining efficient administrative
 
 **Features:**
 - Generate and verify patient UHID (Unique Health Identifier)
-- MRN Generation / Management
 - Verify appointment details
 - Confirm patient check-in
 - Generate encounter token for billing
@@ -77,7 +75,6 @@ Hospitals today face critical challenges in maintaining efficient administrative
 - Manage daily room charges
 - Request procurement for non-clinical inventory
 
-
 ---
 
 ### 3.4 Finance Associate
@@ -92,6 +89,7 @@ Hospitals today face critical challenges in maintaining efficient administrative
 - Process patient payments
 - Issue receipts
 
+---
 
 ## 4. Use-Cases
 
