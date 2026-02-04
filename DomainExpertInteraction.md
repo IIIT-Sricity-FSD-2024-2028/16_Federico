@@ -11,7 +11,7 @@
     Experience in the domain : Operations Executive at CARE HOSPITALS.Pursued MBA at University of Hyderabad in Healthcare and Hospital Management
     Nature of work: Operational | Administrative
 ## Domain Context and Terminology
-    The purpose of this platform is streamline non-clinical hospital operations. By centralizing bed management, insurance coordination, and department communication,our platform aims to reduce administrative bottlenecks that currently delay patient care and discharge.
+The purpose of this platform is streamline non-clinical hospital operations. By centralizing bed management, insurance coordination, and department communication,our platform aims to reduce administrative bottlenecks that currently delay patient care and discharge.
 
 - **Primary goals**
     - Appointment finalization
@@ -73,11 +73,11 @@
 
 
 ## Rules, Constraints, and Exceptions
-- **rules**
-    -Patient safety and stabilization always override administrative registration 
-    -Patient data is stored with confidentiality
-    -Billing updates are performed continuously in-between procedures to maintain accurate real-time records.
-    -All records must be tied to a UHID for Medical Record Department (MRD) standards
+- **Rules**
+    - Patient safety and stabilization always override administrative registration 
+    - Patient data is stored with confidentiality
+    - Billing updates are performed continuously in-between procedures to maintain accurate real-time records.
+    - All records must be tied to a UHID for Medical Record Department (MRD) standards
 - **Constraint**
     - Service is limited by the current physical bed availability
     - Insurance claims depend strictly on the specific procedure type and patient's policy coverage
@@ -97,7 +97,7 @@
 ## Assumptions & Clarifications
 - **Assumptions** 
     - The 4 actor generalisation was mostly accurate 
-    - The workflows presented for patient and 
+    - The workflows presented for all actors were accurate
     - Coordination between Receptionists and Doctors regarding specific slot availability or medical admission decisions occurs outside the system
     - Receptionist handles only booking appointments 
     - Considering hospital Admin as one entity 
@@ -105,10 +105,16 @@
 - **Clarifications** 
     - The 4 actor classification works for now and can be expanded later
     - Co-ordination for slot availability is also managed by the system with Healthcare Executive
-    - Special role exists called patient-relation executive deals specifically with patient-HIS interaction such as keeping track of medical records
+    - Special role exists called patient-relation executive deals specifically with patient-HIS interaction such as keeping track of medical records and updating the hospital admin
     - Hospital admin can be separated into 2 for opd and ipd to deal with different types of patients 
-    - It is handled through the HIS automatically 
+    - It is handled through the HIS automatically
+- **Qusetions we asked**
+    - On non-clinical side of hospital what types of inventory need to be tracked, beyond medications?
+    - How does usual discharge workflow occur , from doctor's approval to patient exit to billing ?
+    - What kind of patient information is typically collected and stored in hospital records for admin and billing purposes ?
+    - How is patient information sent from one department to other for various services?
+    - For emergency patients entering the hospital, can you walk us through the admin  workflow from arrival to  registration to bed assignment to  and department hand-off , how does it work in those scenarios ?
+    - After a doctor's OPD consultation (like hand fracture), how is the admission decision communicated to admin for ward/bed allocation?
 - **Open questions that need follow-up**
     - How exactly does the interaction between the hospital billing department and external insurance companies occur within the HIS?
     - How does communication occur between OPD and IPD Information Systems ?
-
