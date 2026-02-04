@@ -30,14 +30,10 @@ The purpose of this platform is streamline non-clinical hospital operations. By 
 ## Actors and Responsibilities
 | Actor / Role | Responsibilities |
 |---|---|
-| Patient | Person who takes services from hospital | 
-|  Doctor | Doctor from different specialities to deal with patient problems |
-| Patient-Relation executive | Register patients to the hospital information system, keep track of patient stay, also responsible for co-ordinating multiple patients |
-| Call center (24/7) | Appointment scheduling and have access to Doctor timings updated by receptionist | 
-| Ip-ward  | Medicators(doctors/ nurses), beds being used , handle patient discharge process | 
-| Billing  center |  Keep track of all billed prcedures and times , Deal with insurance Approval ,Final payment procedures handled by them |
-| Healthcare executive  | Will contact with doctor to see when they are available(usually tracked one month before in excel sheet) |
-| Insurance Department | Deals with insurance companies that are used by patient |
+| Patient | Books appointments, provides registration/insurance details, and receives final billing notifications | 
+| Patient-Relation executive |  Verifies patient IDs, confirms check-ins, and manages the initial patient intake and registration process |
+| Hospital Operations Manager  | Manages bed allocation, tracks patient stays, and oversees inventory and procurement logistics |
+| Finance Associate | Records service charges, verifies insurance claims, and processes final payments to issue receipts |
 
 ## Core workflows
 
@@ -104,9 +100,9 @@ The purpose of this platform is streamline non-clinical hospital operations. By 
     - Interaction with reception and admin was thought as manual 
 - **Clarifications** 
     - The 4 actor classification works for now and can be expanded later
-    - Co-ordination for slot availability is also managed by the system with Healthcare Executive
+    - Co-ordination for slot availability is also managed by the system with Patient Relation Executive
     - Special role exists called patient-relation executive deals specifically with patient-HIS interaction such as keeping track of medical records and updating the hospital admin
-    - Hospital admin can be separated into 2 for opd and ipd to deal with different types of patients 
+    - Hospital Operations Manager can be separated into 2 for opd and ipd to deal with different types of patients 
     - It is handled through the HIS automatically
 - **Qusetions we asked**
     - On non-clinical side of hospital what types of inventory need to be tracked, beyond medications?
@@ -118,3 +114,4 @@ The purpose of this platform is streamline non-clinical hospital operations. By 
 - **Open questions that need follow-up**
     - How exactly does the interaction between the hospital billing department and external insurance companies occur within the HIS?
     - How does communication occur between OPD and IPD Information Systems ?
+
