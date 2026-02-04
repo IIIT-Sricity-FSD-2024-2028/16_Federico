@@ -1,6 +1,6 @@
-# Federico – Hospital Administrative Operations System
+# Federico – Hospital Administrative Operations Platform
 
-## 1. Problem Statement : Hospital Administrative Operations System
+## 1. Problem Statement : Hospital Administrative Operations Platform
 
 Hospitals today face critical challenges in maintaining efficient administrative workflows:
 
