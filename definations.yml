@@ -15,14 +15,6 @@ terms:
       - Subject of Care
       - Person receiving treatment
 
-  - name: Doctor / Healthcare Provider
-    definition: A qualified medical professional (doctor, nurse, specialist) who provides clinical diagnosis, treatment, and prescribes medications or medical services to patients.
-    examples:
-      - The doctor examined the patient during the appointment and issued a digital prescription.
-      - The healthcare provider reviewed the patient's medical history before treatment.
-    aliases:
-      - Healthcare Provider
-      - Medical Staff
 
   - name: Patient-Relation Executive
     definition: A hospital staff member responsible for managing patient intake, registration, appointment scheduling, and initial patient engagement. Acts as the first point of contact for patients and gathers essential information to create and maintain patient records.
@@ -193,19 +185,14 @@ terms:
     aliases:
     - Universal Patient ID
     - Hospital Network ID
-    - Permanent Patient Identifier
 
-  - name: Medical Record Number (MRN)
-    definition: A unique identifier assigned to each patient for a specific hospital branch during admission or visit. MRN is branch-specific and used to manage medical and billing information within that particular branch location.
+  - name: Patient ID
+    definition: A unique identifier assigned to each confirmed appointment (episode of care) for a patient. Each new appointment generates a new Patient ID, which links that specific visit’s schedule, room, and billing details to the patient’s master records (UHID). It is appointment-specific and used to track one visit from booking until completion.
     examples:
-    - The PRE generated MRN 'MRN-BRANCH01-2026-00145' for the patient's admission at the Hyderabad branch.
-    - The Finance Associate searched for the patient's invoice at the specific branch using their branch MRN.
-    - The Operations Manager tracked the patient's bed allocation and stay details at that particular branch using the MRN.
+    - After the PRE confirmed the cardiology appointment for next Monday, the system generated Patient ID PID-2026-02-05-00087 for that visit.
+    - The Reception staff used the Patient ID to quickly pull up the exact appointment slot and consulting doctor when the patient arrived at the hospital.
     aliases:
-    - Branch Patient ID
-    - Branch Medical ID
-    - Visit Record Number
-
+    - Appointment ID
 
   - name: Procurement
     definition: The administrative process managed by the Hospital Operations Manager of ordering and acquiring new inventory items and medical supplies from external vendors to maintain adequate stock levels.
@@ -235,3 +222,13 @@ terms:
       - Medication dispensing
       - Supply dispensing
 
+  - name: Discharge Process
+    definition: Workflow to close patient visit after treatment, clearance, and billing settlement, generating discharge summary and marking all identifiers (UHID, MRN, Patient ID) as "discharged".
+    examples:
+      - Doctor clears patient, Finance confirms payment, PRE completes Discharge Process with final summary.
+      - Operations verifies bed availability post-Discharge Process for Patient ID PID-2026-02-04-00123.
+      - Pharmacy confirms medications dispensed during Discharge Process.
+    aliases:
+      - Patient Release
+      - Checkout Workflow
+      - Episode Closure
