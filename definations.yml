@@ -19,12 +19,10 @@ terms:
   - name: Patient-Relation Executive
     definition: A hospital staff member responsible for managing patient intake, registration, appointment scheduling, and initial patient engagement. Acts as the first point of contact for patients and gathers essential information to create and maintain patient records.
     examples:
-      - The Patient-Relation Executive processed the new patient's registration and assigned them an MRN.
       - The Executive scheduled the patient's appointment with the available doctor slot.
     responsibilities:
       - Schedule and manage patient appointments online
       - Process patient registration and collect demographic information
-      - Assign Medical Record Numbers (MRN) to new patients
       - Update patient contact and insurance details
       - Manage appointment changes and cancellations
     aliases:
@@ -232,3 +230,4 @@ terms:
       - Patient Release
       - Checkout Workflow
       - Episode Closure
+
