@@ -7,7 +7,7 @@ terms:
   # System Actors
   
   - name: Patient
-    definition: An individual who seeks medical treatment or services at the hospital and is registered in the system with a unique Medical Record Number (MRN).
+    definition: An individual who seeks medical treatment or services at the hospital and is registered in the system with a Unique Health Identifier (UHID)
     examples:
       - The patient scheduled an online appointment for a doctor consultation.
       - The patient was admitted to the hospital and assigned a bed in the General Ward.
@@ -88,7 +88,7 @@ terms:
   # Admission and Stay terms
 
   - name: Registration
-    definition: The initial process when a patient arrives at the hospital where the Patient-Relation Executive collects their basic information (name, age, address, contact number, etc.) and assigns them a unique patient ID number (MRN).
+    definition: The initial process when a patient arrives at the hospital where the Patient-Relation Executive collects their basic information (name, age, address, contact number, etc.) and assigns them a unique patient id
     examples:
       - The patient must complete registration before being admitted to the hospital.
       - During registration, the Executive updated the patient's insurance details and emergency contact.
@@ -211,17 +211,8 @@ terms:
       - SKU (Stock Keeping Unit)
       - Hospital supply
 
-  - name: Dispense
-    definition: The process managed by the Hospital Operations Manager of providing prescribed medications or medical supplies to patients, coordinated with pharmacy records and patient prescriptions.
-    examples:
-      - The pharmacist dispensed the prescribed medication to the patient after the doctor's digital order.
-      - Dispense records are tracked to ensure accurate billing for medication charges.
-    aliases:
-      - Medication dispensing
-      - Supply dispensing
-
   - name: Discharge Process
-    definition: Workflow to close patient visit after treatment, clearance, and billing settlement, generating discharge summary and marking all identifiers (UHID, MRN, Patient ID) as "discharged".
+    definition: Workflow to close patient visit after treatment, clearance, and billing settlement, generating discharge summary and marking all identifiers (UHID, Patient ID) as "discharged".
     examples:
       - Doctor clears patient, Finance confirms payment, PRE completes Discharge Process with final summary.
       - Operations verifies bed availability post-Discharge Process for Patient ID PID-2026-02-04-00123.
@@ -230,4 +221,5 @@ terms:
       - Patient Release
       - Checkout Workflow
       - Episode Closure
+
 
