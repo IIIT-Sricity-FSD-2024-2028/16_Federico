@@ -38,8 +38,7 @@ The purpose of this platform is streamline non-clinical hospital operations. By 
 ## Core workflows
 
 - **Pre-patient registration**
-    - *Trigger/start condition:* Doctor approval must be given first
-    - Patient can either book online /or call hospital
+    - *Trigger/start condition:* Patient can either book online /or call hospital
     - *Steps Involved:*
         - Primary details of Patient are taken such as phone no and name 
         - Once the patient comes to the hospital , confirm the pre-patient to original patient by taking extra details 
@@ -114,4 +113,5 @@ The purpose of this platform is streamline non-clinical hospital operations. By 
 - **Open questions that need follow-up**
     - How exactly does the interaction between the hospital billing department and external insurance companies occur within the HIS?
     - How does communication occur between OPD and IPD Information Systems ?
+
 
