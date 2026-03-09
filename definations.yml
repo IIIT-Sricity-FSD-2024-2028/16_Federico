@@ -1,225 +1,343 @@
 domain:
   name: Healthcare Administration (Non-clinical)
-  visionStatement: To make it easier for the hospital to manage patient check-ins, assign resources, track supplies, and handle billing and payments.
+  visionStatement: >
+    To make it easier for the hospital to manage patient check-ins, assign
+    resources, track supplies, and handle billing and payments.
 
 terms:
 
-  # System Actors
-  
   - name: Patient
-    definition: An individual who seeks medical treatment or services at the hospital and is registered in the system with a Unique Health Identifier (UHID)
+    definition: >
+      An individual who seeks medical treatment at the hospital and is
+      registered in the system with a Unique Health Identifier (UHID).
+      Every patient has a login account with the role "patient".
     examples:
       - The patient scheduled an online appointment for a doctor consultation.
       - The patient was admitted to the hospital and assigned a bed in the General Ward.
     aliases:
       - Subject of Care
-      - Person receiving treatment
+      - Person Receiving Treatment
 
+  - name: Doctor
+    definition: >
+      A licensed medical professional registered in the system who consults
+      patients during booked appointments. Their available time slots are
+      managed through availability records linked to their profile.
+    examples:
+      - The doctor confirmed availability for Tuesday 10 AM–1 PM.
+      - After the consultation, the doctor updated the appointment status to COMPLETED.
+    aliases:
+      - Physician
+      - Consulting Doctor
 
   - name: Patient-Relation Executive
-    definition: A hospital staff member responsible for managing patient intake, registration, appointment scheduling, and initial patient engagement. Acts as the first point of contact for patients and gathers essential information to create and maintain patient records.
+    definition: >
+      A hospital staff member who handles patient registration, appointment
+      scheduling, and initial patient engagement. They are the first point
+      of contact and create appointments on the patient's behalf.
     examples:
-      - The Executive scheduled the patient's appointment with the available doctor slot.
-    responsibilities:
-      - Schedule and manage patient appointments online
-      - Process patient registration and collect demographic information
-      - Update patient contact and insurance details
-      - Manage appointment changes and cancellations
+      - The Executive scheduled the patient's appointment against an available doctor slot.
+      - The PRE registered a new patient and generated their UHID.
     aliases:
+      - PRE
       - Reception Staff
-      - Patient Intake Coordinator
-
 
   - name: Hospital Operations Manager
-    definition: A senior operational staff member who oversees the day-to-day hospital operations, including inpatient bed management, stay monitoring, inventory management, and procurement of medical supplies. Ensures smooth coordination across hospital departments and maintains operational efficiency.
+    definition: >
+      A senior staff member who oversees bed management, inpatient stays,
+      inventory tracking, and procurement of medical supplies. Initiates
+      purchase requests when stock falls below the reorder level.
     examples:
       - The Operations Manager allocated a bed in the ICU ward to the newly admitted patient.
-      - The Manager monitored the inpatient's stay and coordinated with the pharmacy for medication availability.
-    responsibilities:
-      - Manage inpatient bed allocation and ward assignments
-      - Monitor inpatient stays and coordinate care transitions
-      - Track and manage hospital inventory and medical supplies
-      - Process procurement orders with external vendors
-      - Ensure resource availability and operational bottlenecks are resolved
-      - Oversee inventory management and dispense coordination
+      - The Manager raised a purchase request for 500 units of insulin after a low-stock alert.
     aliases:
       - Hospital Administrator
       - Operations Lead
 
   - name: Finance Associate
-    definition: A hospital finance staff member responsible for recording all billable services provided to patients during their stay, generating itemized invoices, processing payments, handling insurance claims and verifications. Manages the revenue cycle from service documentation to payment collection.
+    definition: >
+      A hospital finance staff member who records billable services, generates
+      itemized invoices, processes payments, and manages insurance claim
+      records linked to a patient's admission.
     examples:
-      - The Finance Associate recorded all service charges (bed, meds, tests) for the patient's 3-day stay.
-      - The Associate generated a comprehensive bill totaling all hospital services and submitted it to the insurance company.
-      - The Associate verified the patient's insurance coverage and processed the payment transaction.
-    responsibilities:
-      - Record all service items provided to patients
-      - Gather and compile charges from multiple departments
-      - Generate itemized bills and invoices
-      - Verify insurance coverage and eligibility
-      - Submit insurance claims and follow up on denials
-      - Process patient payments and payment transactions
-      - Maintain accounts receivable and billing records
-      - Handle insurance verification and claims processing
+      - The Finance Associate added bed charges, medicines, and lab tests as ledger entries for a 3-day stay.
+      - The Associate updated the insurance claim status to APPROVED after receiving confirmation.
     aliases:
       - Billing Clerk
       - Billing Manager
 
-  # Patient Related Terms
-
-  - name: Appointment
-    definition: A booked time slot when a patient will come to the hospital to see a doctor or receive a medical service.
+  - name: Role
+    definition: >
+      A classification assigned to every user account that determines their
+      permissions and access level in the system. The five roles are:
+      patient, doctor, patient_relation_executive, operations_manager, and finance_associate.
     examples:
-      - The patient booked their appointment online through the hospital portal.
-      - The Patient-Relation Executive changed the appointment time because the doctor was not available.
+      - A user account with role "patient" can only book appointments and view their own records.
+      - A user account with role "finance_associate" can create ledger entries and process payments.
     aliases:
-      - Booking
-      - Consult Slot
+      - User Role
+      - Access Level
+
+  - name: System User Account
+    definition: >
+      A login account representing any person who can authenticate in the
+      system. Every actor — patient, doctor, PRE, operations manager, or
+      finance associate — has exactly one user account linked to their role.
+    examples:
+      - When a new patient is registered, a user account is created first and then linked to their patient profile.
+      - The PRE's user account ID is recorded on every appointment they create.
+    aliases:
+      - User Account
+      - Login Account
+
+  - name: Unique Health Identifier (UHID)
+    definition: >
+      A unique, permanent ID assigned to each patient upon first registration.
+      It stays constant across all visits and admissions.
+      Format — FED-YYYY-NNNNN.
+    examples:
+      - The PRE generated UHID FED-2026-00042 for a new patient during first registration.
+      - The Finance Associate retrieved all billing records for the patient using their UHID.
+    aliases:
+      - Universal Patient ID
+      - Hospital Network ID
 
   - name: PII (Personally Identifiable Information)
-    definition:  Information that can be used to identify an individual patient directly or indirectly within the hospital administrative system, including personal, contact, and identification details used for registration, billing, and insurance coordination.
+    definition: >
+      Information that can identify a patient directly or indirectly, including
+      name, phone, alternate phone, date of birth, address, gender, blood group,
+      and emergency contact details.
     examples:
-      - The Patient-Relation Executive verified the patient's PII during registration to avoid duplicate UHID creation.
-      - PII such as name, mobile number, and government ID was used to validate insurance eligibility and billing records.
+      - The PRE verified the patient's PII during registration to avoid duplicate UHID creation.
+      - PII such as mobile number and emergency contact was collected at intake.
     aliases:
-      - Personal data
-      - Identifying information
-
-  # Admission and Stay terms
+      - Personal Data
+      - Identifying Information
 
   - name: Registration
-    definition: The initial process when a patient arrives at the hospital where the Patient-Relation Executive collects their basic information (name, age, address, contact number, etc.) and assigns them a unique patient id
+    definition: >
+      The initial process where the PRE creates a login account and a patient
+      profile, then generates a UHID. The patient can afterwards log in and
+      manage their own profile and insurance details.
     examples:
-      - The patient must complete registration before being admitted to the hospital.
-      - During registration, the Executive updated the patient's insurance details and emergency contact.
+      - The patient must complete registration before booking an appointment.
+      - During registration, the PRE collected emergency contact and blood group details.
     aliases:
       - Intake
       - MPI Creation
 
-  - name: Inpatient Admission
-    definition: The process of accepting a patient into the hospital for an overnight or extended stay to receive treatment or be under observation, involving bed allocation and care coordination.
+  - name: Patient Insurance Policy
+    definition: >
+      The insurance coverage a patient holds, linked one-to-one with their
+      profile. Stores provider name, policy number, member ID, coverage type,
+      and validity dates. Uploaded card images are stored separately (max 3 files).
     examples:
-      - The patient was admitted to the hospital at 2:00 PM and assigned to Ward A.
-      - The admission was approved by the doctor after initial assessment.
+      - The patient uploaded their insurance card front and back during profile setup.
+      - The Finance Associate checked the patient's insurance policy before creating the admission claim.
     aliases:
-      - Check-in
-      - Hospital admission
+      - Insurance Policy
+      - Coverage Record
 
-  - name: Inpatient Stay
-    definition: The period of time a patient remains in the hospital for treatment, observation, or recovery, from admission to discharge.
+  - name: Doctor Availability Slot
+    definition: >
+      A time block defined by a doctor specifying a date, start time, and end
+      time during which they are available for consultations. Appointments can
+      only be booked against an open slot.
     examples:
-      - The patient's inpatient stay lasted 5 days.
-      - During the inpatient stay, the patient received daily treatment and monitoring.
+      - The doctor created availability slots for every Monday and Wednesday 9 AM–12 PM.
+      - The PRE could not book the appointment because the selected slot was already filled.
     aliases:
-      - Hospital Stay
-      - Length of Stay (LOS)
+      - Availability Slot
+      - Consult Window
+
+  - name: Appointment
+    definition: >
+      A booking that links a patient to a specific doctor availability slot.
+      Each appointment has a visit type (OPD, EMERGENCY, or FOLLOWUP) and a
+      status that moves from PENDING → CONFIRMED → COMPLETED or CANCELLED.
+    examples:
+      - The patient requested an OPD appointment; the PRE confirmed it by selecting an available slot.
+      - The appointment status was updated to COMPLETED after the doctor finished the consultation.
+    aliases:
+      - Booking
+      - Consult Slot
+
+  - name: Visit Type
+    definition: >
+      A classification on an appointment identifying the nature of the visit.
+      Allowed values are OPD (routine outpatient), EMERGENCY (urgent unplanned),
+      and FOLLOWUP (returning for an ongoing condition).
+    examples:
+      - A patient coming in for a routine checkup for the first time is booked as OPD.
+      - A patient returning after surgery for a wound check is booked as FOLLOWUP.
+    aliases:
+      - Appointment Type
+      - Consultation Type
 
   - name: Ward
-    definition: A section or floor of the hospital where patients with similar conditions are grouped to stay and receive care, managed by the Hospital Operations Manager.
+    definition: >
+      A named section of the hospital that groups beds of a similar type,
+      managed by the Hospital Operations Manager. Each ward has a defined
+      total bed capacity.
     examples:
       - The patient was transferred to the General Ward for recovery.
-      - The pediatric ward is on the third floor with specialized equipment.
+      - The ICU ward has a capacity of 10 beds, all currently occupied.
     aliases:
       - Department
       - Hospital Section
 
+  - name: Bed
+    definition: >
+      An individual physical bed within a ward, tracked with a bed number
+      and a status of either AVAILABLE or OCCUPIED. A bed is assigned to
+      a patient at the time of admission.
+    examples:
+      - Bed B-04 in the General Ward was marked AVAILABLE after the previous patient was discharged.
+      - The Operations Manager assigned Bed ICU-02 to the newly admitted patient.
+    aliases:
+      - Hospital Bed
+      - Inpatient Bed
 
-  # Billing & Payment Terms
+  - name: Inpatient Admission
+    definition: >
+      The process of accepting a patient into the hospital for an overnight
+      or extended stay. An admission links the triggering appointment, the
+      patient, and the assigned bed, and tracks admit time, discharge time, and status.
+    examples:
+      - The patient was admitted at 2:00 PM and assigned to Bed G-07 in the General Ward.
+      - The admission status was updated to DISCHARGED after the patient was cleared.
+    aliases:
+      - Check-in
+      - Hospital Admission
+
+  - name: Inpatient Stay
+    definition: >
+      The period from admit time to discharge time during which the patient
+      receives care. All billable services used during this period are recorded
+      against the patient's ledger.
+    examples:
+      - The patient's inpatient stay lasted 5 days.
+      - All bed charges, medicines, and lab tests during the stay were added as ledger entries.
+    aliases:
+      - Hospital Stay
+      - Length of Stay (LOS)
+
+  - name: Discharge Process
+    definition: >
+      The workflow to close a patient's admission after treatment is complete
+      and the bill is settled. The admission status is set to DISCHARGED and
+      a discharge summary is generated with notes, final amount, and a PDF file.
+    examples:
+      - The Finance Associate confirmed payment and the system generated the discharge summary.
+      - The patient received the discharge summary PDF before leaving the ward.
+    aliases:
+      - Patient Release
+      - Episode Closure
+
+  - name: Discharge Summary
+    definition: >
+      A record generated at the end of an admission containing discharge
+      notes, the final billed amount, and a path to the downloadable summary
+      PDF. One discharge summary is created per admission.
+    examples:
+      - The patient received the discharge summary PDF with the full breakdown of their 5-day stay.
+      - The Finance Associate generated the discharge summary after confirming the final payment.
+    aliases:
+      - Discharge Document
+      - Discharge Report
 
   - name: Service Item
-    definition: A specific hospital service that the patient receives and must pay for, such as X-Ray, doctor visit, hospital bed charge, medicine, laboratory test, or surgery. Each service is recorded and charged to the patient's bill.
+    definition: >
+      A hospital service in the catalogue with a name and a base cost, such
+      as a bed charge, lab test, or medicine. Finance Associates reference
+      service items when adding billable entries to a patient's ledger.
     examples:
-      - When the patient uses medical equipment like a stent, the system automatically adds it as a chargeable service.
-      - Each service item (bed charge, medicine, tests) is recorded separately in the patient's invoice.
+      - "Bed Charge (General)" is a service item with a base cost of ₹1,200/day.
+      - When the patient received an X-Ray, the Finance Associate added it as a ledger entry referencing the X-Ray service item.
     aliases:
       - Charge Code
       - Billable Item
 
-  - name: Biliing Summary
-    definition: A comprehensive document prepared by the Finance Associate that lists all the services and charges a patient received during their hospital stay or visit, specifying the total amount owed.
+  - name: Ledger
+    definition: >
+      A billing account created automatically for every admission that acts
+      as the container for all billable line items and payment transactions
+      for that stay. Status moves from OPEN to SETTLED once fully paid.
     examples:
-      - The Finance Associate created the Biliing Summary showing all charges for the patient's 3-day hospital stay.
-      - The Biliing Summary was sent to the insurance company for reimbursement review.
+      - As soon as the patient was admitted, the system created an open ledger for the stay.
+      - The Finance Associate reviewed the ledger before generating the billing summary.
+    aliases:
+      - Patient Account
+      - Billing Account
+
+  - name: Ledger Entry
+    definition: >
+      A single billable line item in a patient's ledger recording the service,
+      quantity, unit price, and total amount at the time of service. A ledger
+      entry cannot exist without a parent ledger (weak entity).
+    examples:
+      - The Finance Associate added an entry for 3 days of bed charges at ₹1,200/day.
+      - A lab test costing ₹800 was added as a separate ledger entry at the time of testing.
+    aliases:
+      - Billing Line Item
+      - Charge Entry
+
+  - name: Billing Summary
+    definition: >
+      A compiled view of all ledger entries for an admission showing the
+      total amount owed by the patient. The final version is captured in
+      the discharge summary when the patient is discharged.
+    examples:
+      - The Finance Associate generated the billing summary showing all charges for the 3-day stay.
+      - The billing summary was reviewed by the patient before final payment.
     aliases:
       - Bill
-      - Statement
-      - invoice
-
-  - name: Guarantor
-    definition: A person or organization (such as an insurance company, employer, or family member) who promises to pay the patient's hospital bill if the patient cannot pay.
-    examples:
-      - The insurance company is the guarantor for this patient's treatment.
-      - The patient's employer agreed to be the guarantor for the medical expenses.
-    aliases:
-      - Payer
-      - Insurance Provider
-
-  - name: Insurance Verification
-    definition: The process performed by the Finance Associate to confirm a patient's insurance coverage, eligibility, co-pays, deductibles, and pre-authorization requirements before or during treatment.
-    examples:
-      - The Finance Associate verified the patient's insurance coverage before scheduling the procedure.
-      - Insurance verification confirmed that the treatment was covered with a $50 co-pay.
-    aliases:
-      - Coverage verification
-      - Eligibility check
+      - Invoice
 
   - name: Insurance Claim
-    definition: An official request submitted by the Finance Associate to the patient's insurance company seeking reimbursement for the services provided and charges incurred during the hospital stay.
+    definition: >
+      An admission-level record that links an admission to the patient's
+      insurance policy and records the coverage percentage applied and the
+      current claim status — PENDING, APPROVED, or REJECTED.
     examples:
-      - The Finance Associate submitted the insurance claim for the patient's 3-day hospitalization.
-      - The claim was denied due to missing pre-authorization, so the Associate initiated an appeal.
+      - The Finance Associate created an insurance claim record when the patient was admitted, referencing their active policy.
+      - The claim status was updated to APPROVED after the insurance company confirmed coverage.
     aliases:
-      - Claim submission
-      - Reimbursement request
+      - Claim Record
+      - Admission Insurance Record
 
-  # OPERATIONAL TERMS
-
-  - name: Unique Health Identifier (UHID)
-    definition: A unique, permanent identifier assigned to each patient upon their first registration. UHID is hospital-wide and remains constant across all branches and future visits, enabling unified patient records across the entire hospital network.
+  - name: Payment
+    definition: >
+      A transaction record linked to a ledger capturing the amount paid,
+      payment mode (CASH, CARD, UPI, etc.), and timestamp. Multiple partial
+      payments can be made against a single ledger.
     examples:
-    - The PRE generated UHID 'UH-2026-00145' for a new patient during first registration.
-    - The Operations Manager searched across all hospital branches using the patient's UHID to view their complete admission history.
-    - The Finance Associate retrieved all billing records across multiple branches using the patient's UHID.
+      - The patient made a partial payment of ₹5,000 by card on Day 2 of their stay.
+      - The final payment cleared the ledger balance and triggered the discharge process.
     aliases:
-    - Universal Patient ID
-    - Hospital Network ID
+      - Transaction
+      - Payment Record
 
-  - name: Patient ID
-    definition: A unique identifier assigned to each confirmed appointment (episode of care) for a patient. Each new appointment generates a new Patient ID, which links that specific visit’s schedule, room, and billing details to the patient’s master records (UHID). It is appointment-specific and used to track one visit from booking until completion.
+  - name: Inventory Item
+    definition: >
+      Any physical supply or equipment tracked by the hospital such as
+      medicines, bandages, or surgical tools. Each item has a stock quantity
+      and a reorder level that triggers a procurement request when breached.
     examples:
-    - After the PRE confirmed the cardiology appointment for next Monday, the system generated Patient ID PID-2026-02-05-00087 for that visit.
-    - The Reception staff used the Patient ID to quickly pull up the exact appointment slot and consulting doctor when the patient arrived at the hospital.
+      - The stock quantity of insulin dropped below the reorder level of 100 units.
+      - The inventory item was deducted from stock when dispensed to a patient.
     aliases:
-    - Appointment ID
+      - Stock Item
+      - Hospital Supply
 
   - name: Procurement
-    definition: The administrative process managed by the Hospital Operations Manager of ordering and acquiring new inventory items and medical supplies from external vendors to maintain adequate stock levels.
+    definition: >
+      The process of raising a purchase request to restock an inventory item
+      from an external vendor. Initiated by the Hospital Operations Manager
+      when stock is low. Tracks item, quantity needed, requesting user, and status.
     examples:
-      - The Operations Manager initiated a procurement request for 500 units of insulin when stock was running low.
-      - The procurement team negotiates prices with suppliers to get the best deals on medical equipment.
+      - The Operations Manager raised a procurement request for 500 units of insulin.
+      - The purchase request was approved and the new stock was updated in inventory.
     aliases:
       - Purchasing
       - Reordering
-
-  - name: Inventory Item
-    definition: Any physical supply or equipment that the hospital owns and tracks, such as medicines, bandages, surgical tools, syringes, or oxygen, managed by the Hospital Operations Manager.
-    examples:
-      - The number of bandages in storage has dropped below the minimum required amount, triggering a reorder.
-      - The inventory item was used during the patient's surgery and deducted from stock.
-    aliases:
-      - Stock
-      - SKU (Stock Keeping Unit)
-      - Hospital supply
-
-  - name: Discharge Process
-    definition: Workflow to close patient visit after treatment, clearance, and billing settlement, generating discharge summary and marking all identifiers (UHID, Patient ID) as "discharged".
-    examples:
-      - Doctor clears patient, Finance confirms payment, PRE completes Discharge Process with final summary.
-      - Operations verifies bed availability post-Discharge Process for Patient ID PID-2026-02-04-00123.
-      - Pharmacy confirms medications dispensed during Discharge Process.
-    aliases:
-      - Patient Release
-      - Checkout Workflow
-      - Episode Closure
-
-
