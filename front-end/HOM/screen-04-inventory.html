@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory | Federico Hospital HOM</title>
+    <link rel="stylesheet" href="global.css">
+    <style>
+        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
+        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
+        
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+        .metric-card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+        @media (min-width: 1024px) { .main-grid { grid-template-columns: 2fr 1fr; } }
+
+        .table-container { overflow-x: auto; width: 100%; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th { padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .data-table td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9; }
+        .data-table tr:hover td { background-color: #F8FAFC; }
+
+        .stepper-btn { width: 44px; height: 44px; border-radius: var(--radius-base); border: 1px solid var(--border); background: white; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 18px; }
+        .stepper-btn:hover { background: var(--neutral-bg); }
+        .stepper-input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-base); text-align: center; font-size: 14px; color: var(--text-primary); outline: none; }
+        .stepper-input:focus { border-color: var(--primary); }
+
+        .alert-card { background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-base); padding: 12px; margin-bottom: 12px; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+        .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; z-index: 10; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Non-Clinical Inventory Management</h1>
+                <p class="body-text">Track and manage all non-clinical supplies and allocations</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="text" class="input" placeholder="Search inventory" style="width: 240px;" id="inventory-search">
+                <button class="btn btn-primary btn-default" onclick="openRestockModal('')">Request Restock</button>
+                <button class="btn btn-secondary btn-default" onclick="openLogUsageModal()">Log Usage</button>
+            </div>
+        </div>
+
+        <div class="metrics-grid" id="metrics-container">
+            </div>
+
+        <div class="main-grid">
+            
+            <div class="card" style="overflow: hidden;">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Stock</th>
+                                <th>Unit Cost</th>
+                                <th>Used/Month</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-tbody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="flex-col" style="gap: 24px;">
+                
+                <div class="card" style="padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h2 class="h2" style="font-size: 18px;">⚠ Low Stock Alerts</h2>
+                        <span id="low-stock-badge"></span>
+                    </div>
+                    <div id="low-stock-list">
+                        </div>
+                </div>
+
+                <div class="card" style="padding: 24px;">
+                    <h2 class="h2" style="font-size: 18px; margin-bottom: 16px;">Post Usage to Patient</h2>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <input type="text" class="input" id="sidebar-uhid" placeholder="Patient UHID (e.g. FED-2026-8901)" oninput="lookupSidebarPatient(this.value)">
+                        <div id="sidebar-patient-name" style="font-size: 12px; color: var(--primary); font-weight: 500; height: 16px;"></div>
+                        
+                        <select class="input" id="sidebar-item-select" style="appearance: auto;" onchange="updateSidebarCost()">
+                            <option value="">Select item...</option>
+                        </select>
+                        
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="stepper-btn" onclick="updateSidebarQty(-1)">−</button>
+                            <input type="number" class="stepper-input" id="sidebar-qty" value="1" readonly>
+                            <button class="stepper-btn" onclick="updateSidebarQty(1)">+</button>
+                        </div>
+                        
+                        <div style="background: var(--neutral-bg); padding: 12px; border-radius: var(--radius-base); font-size: 14px; color: var(--text-secondary);">
+                            Cost preview: <span id="sidebar-cost-preview">₹0</span>
+                        </div>
+                        <div id="sidebar-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
+                        <button class="btn btn-primary btn-default" style="width: 100%;" onclick="submitSidebarUsage()">Post to Ledger</button>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h2 class="h2" style="font-size: 18px;">Pending Orders</h2>
+                        <span id="pending-orders-badge"></span>
+                    </div>
+                    <div id="pending-orders-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="modal-log-usage">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="h2" style="font-size: 20px;">Log Inventory Usage</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Item</label>
+                    <select class="input" id="modal-item-select" style="appearance: auto;" onchange="handleModalItemChange(this.value)">
+                        <option value="">Select item...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Patient UHID</label>
+                    <input type="text" class="input" id="modal-uhid" placeholder="Enter UHID (e.g., FED-2026-8901)" oninput="lookupModalPatient(this.value)">
+                </div>
+
+                <div id="modal-patient-box" style="display: none; background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius-base); padding: 12px;">
+                    <p style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin: 0;" id="modal-patient-name">Patient: </p>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Quantity</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="stepper-btn" onclick="updateModalQty(-1)">−</button>
+                        <input type="number" class="stepper-input" id="modal-qty" value="1" readonly>
+                        <button class="stepper-btn" onclick="updateModalQty(1)">+</button>
+                    </div>
+                </div>
+
+                <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                    <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">
+                        Cost preview: <span id="modal-calc-text">₹0 × 1 =</span> <span style="font-weight: 600; color: var(--text-primary);" id="modal-total-cost">₹0</span>
+                    </p>
+                </div>
+                
+                <div style="background: var(--info-bg); border-radius: var(--radius-base); padding: 12px;">
+                    <p style="font-size: 12px; color: var(--info-text); margin: 0;">This charge will be posted to patient's administrative ledger.</p>
+                </div>
+                <div id="modal-usage-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Cancel</button>
+                <button class="btn btn-primary btn-default" onclick="submitModalUsage()">Post to Ledger</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-request-restock">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="h2" style="font-size: 20px;">Request Restock / Purchase Order</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Item</label>
+                    <select class="input" id="restock-item-select" style="appearance: auto;" onchange="handleRestockItemChange(this.value)">
+                        <option value="">Select item...</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Quantity</label>
+                    <input type="number" class="input" id="restock-qty" value="20" min="1" step="1" oninput="updateRestockCalc()">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Supplier</label>
+                    <select class="input" id="restock-supplier" style="appearance: auto;">
+                        <option value="">Select supplier...</option>
+                        <option>MediSupply Co.</option>
+                        <option>Global Health Logistics</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Priority</label>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-primary btn-default" id="btn-priority-normal" style="flex: 1;" onclick="setRestockPriority('normal')">Normal</button>
+                        <button class="btn btn-outline btn-default" id="btn-priority-urgent" style="flex: 1;" onclick="setRestockPriority('urgent')">Urgent</button>
+                    </div>
+                </div>
+                <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                    <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">
+                        Estimated cost: <span id="restock-calc-text">₹0 × 20 = </span> <span style="font-weight: 600; color: var(--text-primary);" id="restock-total-cost">₹0</span>
+                    </p>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Notes (Optional)</label>
+                    <textarea class="input" id="restock-notes" style="height: 80px; padding: 12px; resize: none;" placeholder="Add any additional notes..."></textarea>
+                </div>
+                <div id="restock-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Cancel</button>
+                <button class="btn btn-primary btn-default" onclick="submitRestock()">Submit PO Request</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/canonical-seed.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="storage.js"></script>
+    
+    <script>
+        window.UI = {
+            cn: (...classes) => classes.filter(Boolean).join(' '),
+            Badge: ({ children, variant = 'neutral', className = '' }) => {
+                const baseClass = 'badge';
+                const variantClass = `badge-${variant}`;
+                return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
+            },
+            Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
+                const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
+                const idAttr = id ? `id="${id}"` : '';
+                const disabledAttr = disabled ? 'disabled' : '';
+                const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
+                const onClickAttr = onClick ? `onclick="${onClick}"` : '';
+                return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
+            }
+        };
+    </script>
+
+    <script src="shared-nav.js"></script>
+    <script src="inventory.js"></script>
+</body>
+</html>

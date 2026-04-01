@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Flow | Federico Hospital HOM</title>
+    <link rel="stylesheet" href="global.css">
+    <style>
+        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
+        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
+        
+        /* Table Styles */
+        .table-container { overflow-x: auto; width: 100%; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th { padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .data-table td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9; }
+        .data-table tr:hover td { background-color: #F8FAFC; }
+
+        /* Filter Bar */
+        .filter-bar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 24px; display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .filter-input { flex: 1; min-width: 200px; }
+        .filter-dropdown { height: 44px; padding: 0 16px; border-radius: var(--radius-base); border: 1px solid var(--border); background: #fff; color: var(--text-secondary); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .filter-dropdown:hover { background: #F8FAFC; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; }
+        .modal-header { padding: 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: #fff; z-index: 10; }
+        .modal-body { padding: 24px; flex: 1; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+
+        /* Detail Modal Specifics */
+        .avatar-circle { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; }
+        .modal-tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--border); }
+        .modal-tab { padding: 8px 16px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none;}
+        .modal-tab:hover { color: var(--text-primary); }
+        .modal-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content-panel { display: none; }
+        .tab-content-panel.active { display: block; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Patient Flow & Admissions</h1>
+                <p class="body-text">Track all inpatients from admission to discharge</p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <input type="text" class="input filter-input" placeholder="Search patients" id="patient-flow-search">
+                <button class="btn btn-secondary btn-default" id="patient-flow-export">Export</button>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <input type="text" class="input filter-input" placeholder="Search UHID, Name, Department" id="patient-flow-filter-search">
+            <select class="input filter-dropdown" id="patient-flow-department" style="appearance: auto;">
+                <option value="">All Departments</option>
+            </select>
+            <select class="input filter-dropdown" id="patient-flow-status" style="appearance: auto;">
+                <option value="">All Statuses</option>
+                <option value="Admitted">Admitted</option>
+                <option value="Pending Discharge">Pending Discharge</option>
+                <option value="Critical">Critical</option>
+                <option value="Discharged">Discharged</option>
+            </select>
+            <select class="input filter-dropdown" id="patient-flow-date-range" style="appearance: auto;">
+                <option value="">All Dates</option>
+                <option value="today">Admitted Today</option>
+                <option value="last3">Last 3 Days</option>
+                <option value="last7">Last 7 Days</option>
+                <option value="older">Older Than 7 Days</option>
+            </select>
+            <button class="btn btn-outline btn-default" style="height: 44px;" id="patient-flow-clear">Clear Filters</button>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>UHID</th>
+                        <th>Patient</th>
+                        <th>Department</th>
+                        <th>Assigned Bed</th>
+                        <th>Physician</th>
+                        <th>Admitted</th>
+                        <th>Days Stay</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="patients-table-body">
+                    </tbody>
+            </table>
+            
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                <p class="text-small">Showing 1–8 of 186 patients</p>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary btn-sm" style="width: 32px; padding: 0;">1</button>
+                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">2</button>
+                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">3</button>
+                    <span style="color: var(--text-secondary); padding: 0 4px;">...</span>
+                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">24</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="modal-patient-detail">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <div class="avatar-circle" id="pd-avatar">RK</div>
+                        <div>
+                            <h2 class="h2" style="font-size: 20px;" id="pd-name">Rajesh Kumar</h2>
+                            <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 14px;">
+                                <span style="color: var(--text-secondary);" id="pd-uhid">FED-2026-8901</span>
+                                <span style="color: var(--border);">·</span>
+                                <span id="pd-status-badge"></span>
+                                <span style="color: var(--border);">·</span>
+                                <span style="color: var(--text-secondary);" id="pd-dept">Cardiology</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+                </div>
+                
+                <div class="modal-tabs">
+                    <button class="modal-tab active" onclick="switchTab('overview')" id="tab-overview">Overview</button>
+                    <button class="modal-tab" onclick="switchTab('bed')" id="tab-bed">Bed & Stay Info</button>
+                    <button class="modal-tab" onclick="switchTab('supply')" id="tab-supply">Supply Charges</button>
+                    <button class="modal-tab" onclick="switchTab('timeline')" id="tab-timeline">Timeline</button>
+                </div>
+            </div>
+            
+            <div class="modal-body">
+                <div class="tab-content-panel active" id="content-overview">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                        <div><div class="label">Age / Gender</div><div style="font-weight: 500; margin-top: 4px;" id="pd-age">58M</div></div>
+                        <div><div class="label">Contact Number</div><div style="font-weight: 500; margin-top: 4px;">+91 98765 43210</div></div>
+                        <div><div class="label">Admission Date</div><div style="font-weight: 500; margin-top: 4px;" id="pd-admitted">2026-03-05</div></div>
+                        <div><div class="label">Days in Hospital</div><div style="font-weight: 500; margin-top: 4px;" id="pd-days">3 days</div></div>
+                        <div><div class="label">Department</div><div style="font-weight: 500; margin-top: 4px;" id="pd-dept-detail">Cardiology</div></div>
+                        <div><div class="label">Assigned Bed</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed">CCU-04</div></div>
+                        <div><div class="label">Physician</div><div style="font-weight: 500; margin-top: 4px;" id="pd-physician">Dr. Arjun Sharma</div></div>
+                        <div><div class="label">Blood Group</div><div style="font-weight: 500; margin-top: 4px;">O+</div></div>
+                    </div>
+                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                        <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Current Medications</h3>
+                        <ul style="margin:0; padding-left: 20px; color: var(--text-secondary); font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
+                            <li>Aspirin 75mg - Once daily</li>
+                            <li>Atorvastatin 40mg - Once daily at bedtime</li>
+                            <li>Metoprolol 50mg - Twice daily</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="tab-content-panel" id="content-bed">
+                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                        <h3 class="h3" style="font-size: 14px; margin-bottom: 16px;">Bed Information</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                            <div><div class="label">Bed Number</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed-info">CCU-04</div></div>
+                            <div><div class="label">Daily Rate</div><div style="font-weight: 500; margin-top: 4px;" id="pd-rate">₹4,500 / day</div></div>
+                            <div><div class="label">Total Room Charges</div><div style="font-weight: 500; margin-top: 4px;" id="pd-room-total">₹13,500</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content-panel" id="content-supply">
+                    <table class="data-table" style="border: 1px solid var(--border); border-radius: var(--radius-base); overflow: hidden;">
+                        <thead>
+                            <tr><th>Item</th><th>Qty</th><th>Total Cost</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>IV Cannula (18G)</td><td>4</td><td>₹180</td></tr>
+                            <tr><td>Oxygen Cylinder</td><td>2</td><td>₹2,400</td></tr>
+                        </tbody>
+                    </table>
+                    <div style="text-align: right; margin-top: 16px; font-weight: 600; font-size: 16px;">Total Supplies: <span id="pd-supply-total" style="color: var(--primary);">₹2,580</span></div>
+                </div>
+
+                <div class="tab-content-panel" id="content-timeline">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; gap: 12px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 6px;"></div><div><p style="margin:0; font-size:14px;">Medication administered - Aspirin</p><p style="margin:0; font-size:12px; color:var(--text-muted);">2 hours ago</p></div></div>
+                        <div style="display: flex; gap: 12px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 6px;"></div><div><p style="margin:0; font-size:14px;">Vital signs checked - All normal</p><p style="margin:0; font-size:12px; color:var(--text-muted);">5 hours ago</p></div></div>
+                        <div style="display: flex; gap: 12px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 6px;"></div><div><p style="margin:0; font-size:14px;">Admission completed</p><p style="margin:0; font-size:12px; color:var(--text-muted);">2 days ago</p></div></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Close</button>
+                <button class="btn btn-outline btn-default" data-flow="goto-billing" onclick="openBillingFromDetail()">View Billing</button>
+                <button class="btn btn-primary btn-default" onclick="openDischargeFromDetail()" id="btn-pd-discharge">Initiate Discharge</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-initiate-discharge">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 class="h2" style="font-size: 20px;" id="discharge-title">Initiate Discharge</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px; position: absolute; right: 24px; top: 24px;" onclick="closeModals()">✕</button>
+            </div>
+            
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
+                <div style="background: var(--warning-bg); border: 1px solid #FDE68A; border-radius: var(--radius-base); padding: 16px;">
+                    <p style="color: var(--warning-text); font-size: 14px; margin: 0;">⚠ Initiating discharge will freeze the billing ledger and free the bed.</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div><div class="label">Patient</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-patient"></div></div>
+                    <div><div class="label">UHID</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-uhid"></div></div>
+                    <div><div class="label">Bed</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-bed"></div></div>
+                    <div><div class="label">Days Stay</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-days"></div></div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Discharge Type</label>
+                    <select class="input" id="discharge-type" style="appearance: auto;">
+                        <option value="">Select discharge type...</option>
+                        <option value="Regular Discharge">Regular Discharge</option>
+                        <option value="Transfer to another facility">Transfer to another facility</option>
+                        <option value="Leave Against Medical Advice (LAMA)">Leave Against Medical Advice (LAMA)</option>
+                    </select>
+                </div>
+
+                <div style="background: var(--primary-light); padding: 16px; border-radius: var(--radius-base);">
+                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Billing Summary Preview</h3>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;"><span style="color: var(--text-secondary);" id="d-room-label">Room Charges</span><span style="font-weight: 500;" id="d-room-cost"></span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;"><span style="color: var(--text-secondary);">Supply Charges</span><span style="font-weight: 500;" id="d-supply-cost"></span></div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--primary);"><span style="font-weight: 600; font-size: 14px;">Total</span><span style="font-weight: 600; font-size: 18px; color: var(--primary);" id="d-total-cost"></span></div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Discharge Notes</label>
+                    <textarea class="input" id="discharge-notes" style="height: 80px; padding: 12px; resize: none;" placeholder="Add any discharge notes or instructions..."></textarea>
+                </div>
+                <div id="discharge-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Cancel</button>
+                <button class="btn btn-primary btn-default" onclick="confirmDischarge()">Confirm Discharge</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/canonical-seed.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="storage.js"></script>
+    
+    <script>
+        window.UI = {
+            cn: (...classes) => classes.filter(Boolean).join(' '),
+            Badge: ({ children, variant = 'neutral', className = '' }) => {
+                const baseClass = 'badge';
+                const variantClass = `badge-${variant}`;
+                return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
+            },
+            Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '' }) => {
+                const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
+                const idAttr = id ? `id="${id}"` : '';
+                const disabledAttr = disabled ? 'disabled' : '';
+                const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
+                return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr}>${children}</button>`;
+            }
+        };
+    </script>
+
+    <script src="shared-nav.js"></script>
+    <script src="patient-flow.js"></script>
+</body>
+</html>

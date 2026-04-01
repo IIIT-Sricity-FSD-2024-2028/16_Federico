@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bed Management | Federico Hospital HOM</title>
+    <link rel="stylesheet" href="global.css">
+    <style>
+        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
+        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
+        
+        /* Filter Bar */
+        .filter-bar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .tab-group { display: flex; align-items: center; gap: 8px; }
+        .tab-btn { padding: 8px 16px; border-radius: var(--radius-base); font-size: 14px; font-weight: 500; color: var(--text-secondary); background: transparent; border: none; cursor: pointer; transition: all 0.2s; }
+        .tab-btn:hover { background: var(--neutral-bg); }
+        .tab-btn.active { background: var(--primary); color: #fff; }
+        
+        .pill-group { display: flex; align-items: center; gap: 8px; }
+        .pill-btn { padding: 6px 12px; border-radius: var(--radius-full); font-size: 12px; font-weight: 500; color: var(--neutral-text); background: var(--neutral-bg); border: none; cursor: pointer; transition: all 0.2s; }
+        .pill-btn:hover { background: var(--border); }
+        .pill-btn.active { background: var(--primary); color: #fff; }
+
+        /* Stats Row */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+        .stat-label { font-size: 14px; color: var(--text-secondary); }
+        .stat-value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+
+        /* Bed Grid */
+        .ward-section { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; }
+        .ward-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .bed-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+        .bed-card { width: 120px; height: 80px; border-radius: 8px; border: 2px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; cursor: pointer; transition: box-shadow 0.2s; background: transparent; }
+        .bed-card:hover { box-shadow: var(--shadow-md); }
+        .bed-card-title { font-size: 14px; font-weight: 600; }
+        .bed-card-subtitle { font-size: 12px; margin-top: 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+        .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; z-index: 10; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Bed Management & Allocation</h1>
+                <p class="body-text">Real-time view of all beds, wards, and patient assignments</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="text" class="input" placeholder="Search by UHID or bed number" style="width: 280px;" id="bed-search">
+                <button class="btn btn-primary btn-default" onclick="openAssignModal()">+ Allocate Bed</button>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="tab-group" id="ward-tabs">
+                </div>
+            <div class="pill-group" id="status-filters">
+                </div>
+        </div>
+
+        <div class="stats-grid" id="stats-container">
+            </div>
+
+        <div id="wards-container">
+            </div>
+    </main>
+
+    <div class="modal-overlay" id="modal-assign-bed">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="h2" style="font-size: 20px;">Assign Bed to Patient</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
+                <div id="assign-patient-picker" style="position: relative;">
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Search Patient</label>
+                    <input type="text" class="input" id="assign-patient-search" placeholder="Enter UHID or patient name (e.g. FED-2026-9001)" oninput="handleAssignPatientSearch(this.value)" autocomplete="off">
+                    <div id="assign-patient-dropdown" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 8px); background: #fff; border: 1px solid var(--border); border-radius: var(--radius-base); box-shadow: var(--shadow-md); max-height: 240px; overflow-y: auto; z-index: 30;"></div>
+                    <div id="assign-patient-hint" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary); min-height: 16px;"></div>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 12px;">Select Available Bed</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;" id="modal-available-beds">
+                        </div>
+                </div>
+                <div id="assign-bed-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Cancel</button>
+                <button class="btn btn-primary btn-default" onclick="confirmBedAllocation()">Confirm Admission</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-bed-detail">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="h2" style="font-size: 20px;" id="detail-title">Bed Details</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <span id="detail-badge"></span>
+                    <span style="font-size: 14px; color: var(--text-secondary);">Since: March 6, 2026</span>
+                </div>
+                
+                <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Patient Information</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div><div class="label">Patient Name</div><div style="font-weight: 500;" id="detail-patient"></div></div>
+                        <div><div class="label">UHID</div><div style="font-weight: 500;" id="detail-uhid"></div></div>
+                        <div><div class="label">Department</div><div style="font-weight: 500;" id="detail-dept"></div></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Bed Information</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div><div class="label">Ward</div><div style="font-weight: 500;" id="detail-ward"></div></div>
+                        <div><div class="label">Physician</div><div style="font-weight: 500;" id="detail-physician"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Close</button>
+                <button class="btn btn-primary btn-default" onclick="initiateDischargeFromModal()">Initiate Discharge</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/canonical-seed.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="storage.js"></script>
+    <script src="ui-template.js"></script>
+    <script src="shared-nav.js"></script>
+    <script src="beds.js"></script>
+</body>
+</html>

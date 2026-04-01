@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing Summary | Federico Hospital HOM</title>
+    <link rel="stylesheet" href="global.css">
+    <style>
+        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
+        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+        
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+        .metric-card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        
+        .table-container { overflow-x: auto; width: 100%; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th { padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .data-table td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9; }
+        .data-table tr:hover td { background-color: #F8FAFC; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+        .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; z-index: 10; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+
+        .summary-bar { background: var(--neutral-bg); border-radius: var(--radius-base); padding: 16px; display: flex; align-items: center; justify-content: space-between; }
+        .summary-divider { width: 1px; height: 40px; background: var(--border); }
+        
+        .breakdown-table th { padding: 8px 16px; font-size: 12px; }
+        .breakdown-table td { padding: 8px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
+        .breakdown-table tr:last-child td { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Patient Billing Ledger</h1>
+                <p class="body-text">Administrative billing overview — Room charges and supply costs</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="text" class="input" placeholder="Search billing" style="width: 240px;" id="billing-search">
+                <button class="btn btn-secondary btn-default" id="billing-export">Export Ledger</button>
+            </div>
+        </div>
+
+        <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: var(--radius-base); padding: 16px; margin-bottom: 24px;">
+            <p style="color: #92400E; font-size: 14px; margin: 0;">
+                ℹ You have view-only access. Contact Finance Associate to finalize or modify billing records.
+            </p>
+        </div>
+
+        <div class="metrics-grid" id="metrics-container">
+            </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>UHID</th>
+                        <th>Department</th>
+                        <th>Bed</th>
+                        <th>Daily Rate</th>
+                        <th>Days</th>
+                        <th>Supply Charges</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="billing-tbody">
+                    </tbody>
+            </table>
+            
+            <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
+                <p class="text-small" id="pagination-text">Showing ledgers</p>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary btn-sm" style="width: 32px; padding: 0;">1</button>
+                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">2</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="modal-billing-detail">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="h2" style="font-size: 20px;" id="bd-title">Billing Details</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+            </div>
+            
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
+                
+                <div class="summary-bar">
+                    <div style="display: flex; gap: 32px; align-items: center;">
+                        <div><div class="label">UHID</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="bd-uhid"></div></div>
+                        <div class="summary-divider"></div>
+                        <div><div class="label">Department</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="bd-dept"></div></div>
+                        <div class="summary-divider"></div>
+                        <div><div class="label">Bed</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="bd-bed"></div></div>
+                        <div class="summary-divider"></div>
+                        <div><div class="label">Status</div><div style="margin-top: 4px;" id="bd-status"></div></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="h3" style="font-size: 18px; margin-bottom: 16px;">Charges Breakdown</h3>
+                    
+                    <div style="border: 1px solid var(--border); border-radius: var(--radius-base); margin-bottom: 16px; overflow: hidden;">
+                        <div style="background: var(--neutral-bg); padding: 12px 16px; border-bottom: 1px solid var(--border);">
+                            <h4 class="h4" style="font-size: 14px;">Room Charges</h4>
+                        </div>
+                        <table class="w-full breakdown-table" style="width: 100%; text-align: left;">
+                            <thead>
+                                <tr>
+                                    <th style="color: var(--text-secondary);">Description</th>
+                                    <th style="text-align: right; color: var(--text-secondary);">Days</th>
+                                    <th style="text-align: right; color: var(--text-secondary);">Rate/Day</th>
+                                    <th style="text-align: right; color: var(--text-secondary);">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td id="bd-room-desc">Room Charge</td>
+                                    <td style="text-align: right; color: var(--text-secondary);" id="bd-days">0</td>
+                                    <td style="text-align: right; color: var(--text-secondary);" id="bd-rate">₹0</td>
+                                    <td style="text-align: right; font-weight: 500;" id="bd-room-amount">₹0</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr style="border-top: 1px solid var(--border);">
+                                    <td colspan="3" style="padding: 12px 16px; font-weight: 600;">Subtotal</td>
+                                    <td style="padding: 12px 16px; text-align: right; font-weight: 600;" id="bd-room-subtotal">₹0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div style="border: 1px solid var(--border); border-radius: var(--radius-base); overflow: hidden;">
+                        <div style="background: var(--neutral-bg); padding: 12px 16px; border-bottom: 1px solid var(--border);">
+                            <h4 class="h4" style="font-size: 14px;">Supply Charges</h4>
+                        </div>
+                        <table class="w-full breakdown-table" style="width: 100%; text-align: left;">
+                            <thead>
+                                <tr>
+                                    <th style="color: var(--text-secondary);">Item</th>
+                                    <th style="text-align: right; color: var(--text-secondary);">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Consolidated Inventory & Pharmacy Supplies</td>
+                                    <td style="text-align: right; font-weight: 500;" id="bd-supply-amount">₹0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius-base); padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 18px; font-weight: 600;">Administrative Total</span>
+                    <span style="font-size: 24px; font-weight: 600; color: var(--primary);" id="bd-total">₹0</span>
+                </div>
+
+                <div>
+                    <h3 class="h3" style="font-size: 14px; margin-bottom: 8px;">Payment History</h3>
+                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                        <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No payments recorded yet</p>
+                    </div>
+                </div>
+                
+                <div style="background: #E0F2FE; border-radius: var(--radius-base); padding: 12px;">
+                    <p style="font-size: 14px; color: #075985; margin: 0;">
+                        <strong>Note:</strong> Clinical charges handled by Finance Associate
+                    </p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Close</button>
+                <button class="btn btn-outline btn-default" onclick="window.location.href='screen-03-patient-flow.html'">View Full Patient Record</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/canonical-seed.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="storage.js"></script>
+    
+    <script>
+        window.UI = {
+            cn: (...classes) => classes.filter(Boolean).join(' '),
+            Badge: ({ children, variant = 'neutral', className = '' }) => {
+                const baseClass = 'badge';
+                const variantClass = `badge-${variant}`;
+                return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
+            },
+            Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
+                const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
+                const idAttr = id ? `id="${id}"` : '';
+                const disabledAttr = disabled ? 'disabled' : '';
+                const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
+                const onClickAttr = onClick ? `onclick="${onClick}"` : '';
+                return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
+            }
+        };
+    </script>
+
+    <script src="shared-nav.js"></script>
+    <script src="billing.js"></script>
+</body>
+</html>
