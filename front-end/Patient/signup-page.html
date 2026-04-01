@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Federico Signup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="signup-page.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">F</div>
+            <div class="brand-name">Federico</div>
+        </div>
+
+        <button class="login-shortcut" type="button">Already have an account? Login</button>
+    </header>
+
+    <main class="signup-wrapper">
+        <section class="signup-card">
+            <div class="card-logo">F</div>
+
+            <h1>Create your account</h1>
+            <p class="subtext">Register as a patient at Federico Hospital</p>
+            <div class="pill">Patient Registration</div>
+
+            <form class="signup-form">
+                <div class="form-section">
+                    <div class="section-title">Personal Information</div>
+
+                    <div class="grid-two">
+                        <div class="form-group">
+                            <label for="first-name">First Name</label>
+                            <input id="first-name" type="text" placeholder="Hamiz" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="last-name">Last Name</label>
+                            <input id="last-name" type="text" placeholder="Ahmed" />
+                        </div>
+                    </div>
+
+                    <div class="grid-two">
+                        <div class="form-group">
+                            <label for="dob">Date of Birth</label>
+                            <input id="dob" type="date" />
+                            <span class="field-error hidden" id="error-dob"
+                                style="color: var(--danger); font-size: 10px; font-weight: 700; margin-top: 4px; display: block;"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gender">Gender</label>
+                            <select id="gender">
+                                <option selected disabled>Select gender</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">Contact Details</div>
+
+                    <div class="grid-one">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input id="email" type="email" placeholder="chad_HamizAhmed@Gmail.com" />
+                        </div>
+                    </div>
+
+                    <div class="grid-two">
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input id="phone" type="text" placeholder="+91 8074017604" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="blood-group">Blood Group</label>
+                            <select id="blood-group">
+                                <option selected disabled>Select blood group</option>
+                                <option>A+</option>
+                                <option>A-</option>
+                                <option>B+</option>
+                                <option>O+</option>
+                                <option>AB+</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">Security</div>
+
+                    <div class="grid-two">
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input id="password" type="password" placeholder="Create password" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm-password">Confirm Password</label>
+                            <input id="confirm-password" type="password" placeholder="Repeat your password" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title with-badge">
+                        <span>Insurance Information</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+
+                    <div class="grid-two">
+                        <div class="form-group">
+                            <label for="provider">Insurance Provider</label>
+                            <input id="provider" type="text" placeholder="eg: star health" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="coverage">Coverage Type</label>
+                            <select id="coverage">
+                                <option selected disabled>Select coverage</option>
+                                <option>Individual</option>
+                                <option>Family</option>
+                                <option>Corporate</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-two">
+                        <div class="form-group">
+                            <label for="policy-number">Policy Number</label>
+                            <input id="policy-number" type="text" placeholder="e.g. POL-2026-XXXXXX" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="member-id">Member / Card ID</label>
+                            <input id="member-id" type="text" placeholder="e.g. MEM-XXXXXXX" />
+                        </div>
+                    </div>
+
+                    <div class="grid-two">
+                        <div class="form-group">
+                            <label for="valid-from">Valid From</label>
+                            <input id="valid-from" type="text" placeholder="DD/MM/YYYY" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="valid-to">Valid To (Expiry)</label>
+                            <input id="valid-to" type="text" placeholder="DD/MM/YYYY" />
+                        </div>
+                    </div>
+
+                    <div class="grid-two uploads-grid">
+                        <div class="form-group">
+                            <label>Upload Insurance Card</label>
+                            <div class="mini-label">Card Image <span>Front</span></div>
+                            <button class="upload-box" type="button">
+                                <strong>Drop or browse</strong>
+                                <small>Front side of card</small>
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <div class="mini-label">Card Image <span>Back</span></div>
+                            <button class="upload-box" type="button">
+                                <strong>Drop or browse</strong>
+                                <small>Front side of card</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="terms-row">
+                    <input type="checkbox" />
+                    <span>
+                        I agree to Federico Hospital's
+                        <a href="#">Terms of Service</a>
+                        and
+                        <a href="#">Privacy Policy</a>
+                    </span>
+                </label>
+
+                <button class="create-btn" type="button">Create Account</button>
+
+                <div class="bottom-login">
+                    <span>Already registered?</span>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="signup-page.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Federico Landing Page</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="landing-page.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">F</div> 
+            <div class="brand-text">Federico</div>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="hero-section">
+            <div class="hero-card">
+                <span class="hero-badge">24/7 Support Available</span>
+
+                <h1>
+                    Your hospital services,
+                    <span>all in one place</span>
+                </h1>
+
+                <p>
+                    Access appointments, billing, hospital updates, and emergency
+                    support from one clean digital dashboard — no paperwork, no delays.
+                </p>
+
+                <div class="hero-actions">
+                    <button class="primary-btn" type="button">Login to Portal</button>
+                    <button class="secondary-btn" type="button">Create Account</button>
+                </div>
+            </div>
+
+            <div class="side-panels">
+                <article class="info-card emergency-card">
+                    <h2>Emergency Help</h2>
+                    <p>
+                        For urgent support, tap the button below to connect with the
+                        hospital immediately.
+                    </p>
+                    <button class="call-btn" type="button">Call 112</button>
+                </article>
+
+                <article class="info-card locations-card">
+                    <h2>Nearest Locations</h2>
+
+                    <div class="location-item">
+                        <div class="location-head">
+                            <h3>Federico Hospital — Attapur Branch</h3>
+                            <span class="status-badge">Open</span>
+                        </div>
+                        <p>Attapur, Hyderabad, Telangana</p>
+                        <div class="location-foot">
+                            
+                            <a href="#" class="branch-directions-btn" data-address="Federico Hospital, Attapur, Hyderabad, Telangana">Get Directions →</a>
+                        </div>
+                    </div>
+
+                    <div class="location-item">
+                        <div class="location-head">
+                            <h3>Federico Hospital — Tolichowki Branch</h3>
+                            <span class="status-badge">Open</span>
+                        </div>
+                        <p>Tolichowki, Hyderabad, Telangana</p>
+                        <div class="location-foot">
+                            
+                            <a href="#" class="branch-directions-btn" data-address="Federico Hospital, Tolichowki, Hyderabad, Telangana">Get Directions →</a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="why-section">
+            <span class="section-badge">Why Federico</span>
+
+            <h2>    
+                Software, not
+                <span>hard paper</span>
+            </h2>
+
+            <p class="section-text">
+                We replaced slow paper-based processes with smart digital systems —
+                making registration, appointments, staff coordination, and billing
+                faster, cleaner, and easier for everyone.
+            </p>
+
+            <div class="features-grid">
+                <article class="feature-card">
+                    <h3>Faster Patient Flow</h3>
+                    <p>
+                        Digital registration and check-in reduces wait times. Patients move
+                        through appointments and billing without manual form filling or
+                        delays.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <h3>Better Coordination</h3>
+                    <p>
+                        Doctors, PREs, operations, and finance teams all work from one
+                        system — updates happen instantly across departments.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <h3>Zero Paperwork</h3>
+                    <p>
+                        Records, bills, and inventory are managed digitally — cleaner, more
+                        accurate, and accessible at any time from any branch.
+                    </p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script src="../shared/rbac.js"></script>
+    <script src="landing-page.js"></script>
+</body>
+
+</html>

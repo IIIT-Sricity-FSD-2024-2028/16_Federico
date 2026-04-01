@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Federico Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="login-page.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">F</div>
+            <div class="brand-name">Federico</div>
+        </div>
+
+    </header>
+
+    <main class="login-wrapper">
+        <section class="login-header">
+            <div class="logo-mark">F</div>
+            <h1>Federico</h1>
+        </section>
+
+        <section class="login-card">
+            <div class="role-tabs">
+                <button class="role-tab active" type="button">Patient</button>
+                <button class="role-tab" type="button">PRE</button>
+                <button class="role-tab" type="button">HOM</button>
+                <button class="role-tab" type="button">FA</button>
+            </div>
+
+            <form id="login-form" class="login-form">
+                <div id="login-error" class="login-error" aria-live="polite"></div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input id="email" type="email" placeholder="Enter your mail" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" placeholder="Enter your password" />
+                </div>
+
+                <div class="form-row">
+                    <label class="checkbox-wrap">
+                        <input type="checkbox" />
+                        <span>Remember me</span>
+                    </label>
+
+                    <a href="#" class="forgot-link">Forgot Password?</a>
+                </div>
+            </form>
+
+            <div class="demo-credential-card">
+                <div class="demo-credential-title">Demo Access</div>
+                <div class="demo-credential-copy">Use the exact email and password for the selected role.</div>
+                <div id="login-credential-helper" class="demo-credential-list"></div>
+            </div>
+        </section>
+
+        <div class="login-action">
+            <button class="login-btn" type="submit" form="login-form">Login</button>
+        </div>
+
+        <footer class="login-footer">
+            <a href="#">Need help ?</a>
+            <a href="#">Support us</a>
+        </footer>
+    </main>
+
+    <script src="../shared/canonical-seed.js"></script>
+    <script src="../shared/rbac.js"></script>
+    <script src="login-page.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Bills – Federico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="patient-billing.css" />
+    <script src="../shared/rbac.js"></script>
+    <script src="js/auth-guard.js"></script>
+</head>
+
+<body>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">F</div>
+            <div class="brand-text">
+                <strong>Federico</strong>
+                <span>Hospital Admin</span>
+            </div>
+        </div>
+
+        <nav class="main-nav">
+            <button class="nav-link" type="button" id="nav-dashboard">Dashboard</button>
+            <button class="nav-link" type="button" id="nav-book">Book Appointment</button>
+            <button class="nav-link active" type="button" id="nav-bill">My Bill</button>
+            <button class="nav-link" type="button" id="nav-profile">My Profile</button>
+        </nav>
+
+        <div class="topbar-right">
+            <button class="logout-btn" type="button" id="logout-btn">LOG OUT</button>
+            <button class="user-chip" type="button" id="profile-chip" aria-label="Go to My Profile">
+                <div class="user-avatar">HA</div>
+                <div class="user-meta">
+                    <strong>Hamiz</strong>
+                    <span>Patient</span>
+                </div>
+            </button>    
+        </div>
+    </header>
+
+    <main class="billing-page">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <div>
+                <h1>My Bills</h1>
+                <p>View, track, and manage all your billing records and payment history.</p>
+            </div>
+        </div>
+
+        <!-- SUMMARY KPI CARDS -->
+        <section class="kpi-grid">
+            <article class="kpi-card">
+                <p class="kpi-label">Total Outstanding</p>
+                <h2 class="kpi-value danger">₹2,450</h2>
+                <span class="kpi-sub warning-text">2 bills due</span>
+            </article>
+
+            <article class="kpi-card">
+                <p class="kpi-label">Paid This Year</p>
+                <h2 class="kpi-value success">₹8,200</h2>
+                <span class="kpi-sub">6 payments made</span>
+            </article>
+
+            <article class="kpi-card">
+                <p class="kpi-label">Insurance Covered</p>
+                <h2 class="kpi-value primary">₹12,500</h2>
+                <span class="kpi-sub">Star Health – Active</span>
+            </article>
+
+            <article class="kpi-card">
+                <p class="kpi-label">Next Due Date</p>
+                <h2 class="kpi-value">Mar 15</h2>
+                <span class="kpi-sub warning-text">In 7 days</span>
+            </article>
+        </section>
+
+        <!-- INSURANCE SUMMARY BANNER -->
+        <section class="insurance-banner">
+            <div class="ins-left">
+                <span class="ins-badge">Verified</span>
+                <div>
+                    <strong>Star Health Insurance</strong>
+                    <p>Policy POL-2026-STAR01 &nbsp;·&nbsp; Coverage ₹5,00,000 &nbsp;·&nbsp; Valid till Mar 2027</p>
+                </div>
+            </div>
+            <div class="ins-breakdown">
+                <div class="ins-item">
+                    <span>Total Billed</span>
+                    <strong>₹23,150</strong>
+                </div>
+                <div class="ins-item">
+                    <span>Insurance Paid</span>
+                    <strong class="success">₹12,500</strong>
+                </div>
+                <div class="ins-item">
+                    <span>You Owe</span>
+                    <strong class="danger">₹2,450</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="insurance-banner" id="patient-documents-banner">
+            <div class="ins-left">
+                <span class="ins-badge">HOM</span>
+                <div>
+                    <strong>Shared Documents</strong>
+                    <p>Discharge summary, payment links, and final receipts sent by HOM appear here.</p>
+                </div>
+            </div>
+            <div class="ins-breakdown" id="patient-documents-links">
+                <div class="ins-item">
+                    <span>No documents yet</span>
+                    <strong>--</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- BILLS TABLE SECTION -->
+        <section class="bills-section">
+            <div class="bills-header">
+                <h2>All Bills</h2>
+
+                <div class="bills-controls">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" type="button" data-filter="all">All</button>
+                        <button class="filter-tab" type="button" data-filter="pending">Pending</button>
+                        <button class="filter-tab" type="button" data-filter="paid">Paid</button>
+                        <button class="filter-tab" type="button" data-filter="overdue">Overdue</button>
+                    </div>
+
+                    <input class="search-input" type="text" placeholder="Search by bill ID or department…"
+                        id="bill-search" />
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table id="bills-table">
+                    <thead>
+                        <tr>
+                            <th>Bill ID</th>
+                            <th>Date</th>
+                            <th>Department</th>
+                            <th>Description</th>
+                            <th>Total</th>
+                            <th>Insurance</th>
+                            <th>You Pay</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-status="pending">
+                            <td class="bill-id">#B-2026-001</td>
+                            <td>Mar 2, 2026</td>
+                            <td>Cardiology</td>
+                            <td>Follow-up Consultation</td>
+                            <td>₹2,500</td>
+                            <td class="success">₹700</td>
+                            <td><strong>₹1,800</strong></td>
+                            <td class="warn-text">Mar 15, 2026</td>
+                            <td><span class="status pending">Pending</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-view" type="button" data-bill="B-2026-001">View</button>
+                                    <button class="btn-dispute" type="button">Dispute</button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr data-status="pending">
+                            <td class="bill-id">#B-2026-002</td>
+                            <td>Feb 20, 2026</td>
+                            <td>Diagnostics</td>
+                            <td>Blood Test Panel</td>
+                            <td>₹1,000</td>
+                            <td class="success">₹350</td>
+                            <td><strong>₹650</strong></td>
+                            <td class="warn-text">Mar 20, 2026</td>
+                            <td><span class="status pending">Pending</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-view" type="button" data-bill="B-2026-002">View</button>
+                                    <button class="btn-dispute" type="button">Dispute</button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr data-status="overdue">
+                            <td class="bill-id">#B-2026-003</td>
+                            <td>Jan 10, 2026</td>
+                            <td>Orthopedics</td>
+                            <td>X-Ray and Review</td>
+                            <td>₹3,200</td>
+                            <td class="success">₹1,200</td>
+                            <td><strong>₹2,000</strong></td>
+                            <td class="danger-text">Feb 10, 2026</td>
+                            <td><span class="status overdue">Overdue</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-view" type="button" data-bill="B-2026-003">View</button>
+                                    <button class="btn-dispute" type="button">Dispute</button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr data-status="paid">
+                            <td class="bill-id">#B-2025-041</td>
+                            <td>Dec 5, 2025</td>
+                            <td>General</td>
+                            <td>Annual Health Check-up</td>
+                            <td>₹5,500</td>
+                            <td class="success">₹4,000</td>
+                            <td><strong>₹1,500</strong></td>
+                            <td>Dec 20, 2025</td>
+                            <td><span class="status paid">Paid</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-download" type="button">Receipt</button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr data-status="paid">
+                            <td class="bill-id">#B-2025-039</td>
+                            <td>Nov 18, 2025</td>
+                            <td>Neurology</td>
+                            <td>Consultation + MRI</td>
+                            <td>₹8,700</td>
+                            <td class="success">₹5,400</td>
+                            <td><strong>₹3,300</strong></td>
+                            <td>Dec 5, 2025</td>
+                            <td><span class="status paid">Paid</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-download" type="button">Receipt</button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr data-status="paid">
+                            <td class="bill-id">#B-2025-030</td>
+                            <td>Oct 3, 2025</td>
+                            <td>Cardiology</td>
+                            <td>ECG + Consultation</td>
+                            <td>₹2,250</td>
+                            <td class="success">₹950</td>
+                            <td><strong>₹1,300</strong></td>
+                            <td>Oct 20, 2025</td>
+                            <td><span class="status paid">Paid</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-download" type="button">Receipt</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-empty hidden" id="empty-state">
+                <p>No bills found matching your filter.</p>
+            </div>
+        </section>
+
+        <!-- BILL DETAIL MODAL -->
+        <div class="modal-overlay hidden" id="bill-modal">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+                <div class="modal-head">
+                    <h2 id="modal-title">Bill Details</h2>
+                    <button class="modal-close" type="button" id="modal-close" aria-label="Close">✕</button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="modal-meta-row">
+                        <div class="modal-meta">
+                            <span>Bill ID</span>
+                            <strong id="m-bill-id">#B-2026-001</strong>
+                        </div>
+                        <div class="modal-meta">
+                            <span>Date</span>
+                            <strong>Mar 2, 2026</strong>
+                        </div>
+                        <div class="modal-meta">
+                            <span>Department</span>
+                            <strong>Cardiology</strong>
+                        </div>
+                        <div class="modal-meta">
+                            <span>Status</span>
+                            <span class="status pending">Pending</span>
+                        </div>
+                    </div>
+
+                    <table class="itemized-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Consultation Fee</td>
+                                <td>1</td>
+                                <td>₹1,200</td>
+                                <td>₹1,200</td>
+                            </tr>
+                            <tr>
+                                <td>ECG Test</td>
+                                <td>1</td>
+                                <td>₹800</td>
+                                <td>₹800</td>
+                            </tr>
+                            <tr>
+                                <td>Medication (prescribed)</td>
+                                <td>3</td>
+                                <td>₹167</td>
+                                <td>₹500</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3"><strong>Subtotal</strong></td>
+                                <td><strong>₹2,500</strong></td>
+                            </tr>
+                            <tr class="ins-row">
+                                <td colspan="3">Insurance Covered (Star Health)</td>
+                                <td class="success">– ₹700</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td colspan="3"><strong>Amount Due</strong></td>
+                                <td><strong class="danger">₹1,800</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="modal-actions">
+                        <button class="modal-btn-secondary" type="button" id="modal-close-btn">Close</button>
+                        <button class="modal-btn-dispute" type="button">Raise Dispute</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- patient-billing.html -->
+    <script src="../shared/canonical-seed.js" defer></script>
+    <script src="js/patient-store.js" defer></script>
+    <script src="patient-billing.js" defer></script>
+</body>
+
+</html>

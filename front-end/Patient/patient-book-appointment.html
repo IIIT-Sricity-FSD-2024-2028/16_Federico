@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Book Appointment – Federico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="patient-book-appointment.css" />
+    <script src="../shared/rbac.js"></script>
+    <script src="js/auth-guard.js"></script>
+</head>
+
+<body>
+
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">F</div>
+            <div class="brand-text">
+                <strong>Federico</strong>
+                <span>Hospital Admin</span>
+            </div>
+        </div>
+
+        <nav class="main-nav">
+            <button class="nav-link" type="button" id="nav-dashboard">Dashboard</button>
+            <button class="nav-link active" type="button" id="nav-book">Book Appointment</button>
+            <button class="nav-link" type="button" id="nav-bill">My Bill</button>
+            <button class="nav-link" type="button" id="nav-profile">My Profile</button>
+        </nav>
+
+        <div class="topbar-right">
+            <button class="logout-btn" type="button" id="logout-btn">LOG OUT</button>
+            <button class="user-chip" type="button" id="profile-chip" aria-label="Go to My Profile">
+                <div class="user-avatar" id="topbar-initials">HA</div>
+                <div class="user-meta">
+                    <strong id="topbar-name">Hamiz</strong>
+                    <span>Patient</span>
+                </div>
+            </button>
+        </div>
+    </header>
+
+    <main class="page">
+
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <button type="button" class="breadcrumb-link" id="breadcrumb-home">Dashboard</button>
+            <span aria-hidden="true">›</span>
+            <span>Book Appointment</span>
+        </nav>
+
+        <section class="page-heading">
+            <h1>Book Appointment</h1>
+            <p>Select a department, date, visit type, and available time slot to schedule your visit.</p>
+        </section>
+
+        <section class="layout">
+
+            <div class="main-column">
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Search Filters</h2>
+                    </div>
+                    <div class="filter-grid">
+
+                        <div class="form-group">
+                            <label for="appointment-date">Appointment Date</label>
+                            <input id="appointment-date" type="date" />
+                            <span class="field-error hidden" id="error-date">Please select a date.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="visit-type">Visit Type</label>
+                            <select id="visit-type">
+                                <option value="Consultation" selected>Consultation</option>
+                                <option value="Follow-up">Follow-up</option>
+                                <option value="Review">Review</option>
+                                <option value="Check-up">Check-up</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="department">Department</label>
+                            <select id="department">
+                                <option value="" disabled selected>Select department</option>
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Neurology">Neurology</option>
+                                <option value="Orthopedics">Orthopedics</option>
+                                <option value="General">General</option>
+                                <option value="Diagnostics">Diagnostics</option>
+                            </select>
+                            <span class="field-error hidden" id="error-dept">Please select a department.</span>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Related Medical Files</h2>
+                        <span class="muted-tag">Optional</span>
+                    </div>
+                    <div class="file-section">
+                        <label class="section-label">Upload Previous Reports / Prescriptions</label>
+                        <label class="upload-box" for="file-upload" id="upload-label">
+                            <strong id="upload-label-text">Choose files to attach</strong>
+                            <small>Previous appointments, prescriptions, lab reports, or related medical
+                                documents</small>
+                            <input type="file" id="file-upload" accept=".pdf,.jpg,.jpeg,.png" multiple
+                                style="display:none;" />
+                        </label>
+                        <div class="form-group note-group">
+                            <label for="short-note">Short Note</label>
+                            <textarea id="short-note" rows="3"
+                                placeholder="Example: I am having COVID-19 symptoms"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head panel-head-between">
+                        <h2>Available Time Slots</h2>
+                        <span class="panel-meta" id="slot-meta">Select a date and department</span>
+                    </div>
+
+                    <span class="field-error hidden" id="error-slot" style="padding: 0 20px 12px; display:block;">
+                        Please select a time slot.
+                    </span>
+
+                    <div class="slots-wrapper">
+
+                        <div class="slot-block">
+                            <p class="slot-period">Morning (9:00 AM – 1:00 PM)</p>
+                            <div class="slots-grid">
+                                <button class="slot available" type="button" data-time="9:00 AM" data-slot-id="SLT-001">
+                                    <strong>9:00 AM</strong><span>Available</span>
+                                </button>
+                                <button class="slot available" type="button" data-time="9:30 AM" data-slot-id="SLT-002">
+                                    <strong>9:30 AM</strong><span>Available</span>
+                                </button>
+                                <button class="slot booked" type="button" data-time="10:00 AM" data-slot-id="SLT-003"
+                                    disabled>
+                                    <strong>10:00 AM</strong><span>Booked</span>
+                                </button>
+                                <button class="slot limited" type="button" data-time="10:30 AM" data-slot-id="SLT-004">
+                                    <strong>10:30 AM</strong><span>Few Slots</span>
+                                </button>
+                                <button class="slot available" type="button" data-time="11:00 AM"
+                                    data-slot-id="SLT-005">
+                                    <strong>11:00 AM</strong><span>Available</span>
+                                </button>
+                                <button class="slot booked" type="button" data-time="11:30 AM" data-slot-id="SLT-006"
+                                    disabled>
+                                    <strong>11:30 AM</strong><span>Booked</span>
+                                </button>
+                                <button class="slot available" type="button" data-time="12:00 PM"
+                                    data-slot-id="SLT-007">
+                                    <strong>12:00 PM</strong><span>Available</span>
+                                </button>
+                                <button class="slot limited" type="button" data-time="12:30 PM" data-slot-id="SLT-008">
+                                    <strong>12:30 PM</strong><span>Few Slots</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="slot-block">
+                            <p class="slot-period">Afternoon (2:00 PM – 6:00 PM)</p>
+                            <div class="slots-grid">
+                                <button class="slot available" type="button" data-time="2:00 PM" data-slot-id="SLT-009">
+                                    <strong>2:00 PM</strong><span>Available</span>
+                                </button>
+                                <button class="slot booked" type="button" data-time="2:30 PM" data-slot-id="SLT-010"
+                                    disabled>
+                                    <strong>2:30 PM</strong><span>Booked</span>
+                                </button>
+                                <button class="slot available" type="button" data-time="3:00 PM" data-slot-id="SLT-011">
+                                    <strong>3:00 PM</strong><span>Available</span>
+                                </button>
+                                <button class="slot limited" type="button" data-time="3:30 PM" data-slot-id="SLT-012">
+                                    <strong>3:30 PM</strong><span>Few Slots</span>
+                                </button>
+                                <button class="slot available" type="button" data-time="4:00 PM" data-slot-id="SLT-013">
+                                    <strong>4:00 PM</strong><span>Available</span>
+                                </button>
+                                <button class="slot booked" type="button" data-time="4:30 PM" data-slot-id="SLT-014"
+                                    disabled>
+                                    <strong>4:30 PM</strong><span>Booked</span>
+                                </button>
+                                <button class="slot available" type="button" data-time="5:00 PM" data-slot-id="SLT-015">
+                                    <strong>5:00 PM</strong><span>Available</span>
+                                </button>
+                                <button class="slot available" type="button" data-time="5:30 PM" data-slot-id="SLT-016">
+                                    <strong>5:30 PM</strong><span>Available</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+            </div>
+
+            <aside class="side-column">
+
+                <section class="panel side-panel">
+                    <div class="panel-head">
+                        <h2>Patient Details</h2>
+                    </div>
+                    <div class="profile-head">
+                        <div class="profile-avatar" id="sidebar-initials">HA</div>
+                        <div class="profile-meta">
+                            <strong id="sidebar-name">Hamiz Ahmed</strong>
+                            <span id="sidebar-uhid">UHID: FED-2026-5432</span>
+                        </div>
+                    </div>
+                    <div class="details-grid">
+                        <div class="label">Age / Gender</div>
+                        <div class="value" id="sidebar-age-gender">19 yrs / Male</div>
+                        <div class="label">Blood Group</div>
+                        <div class="value" id="sidebar-blood">B+</div>
+                        <div class="label">Contact</div>
+                        <div class="value" id="sidebar-phone">+91 98123 45678</div>
+                        <div class="label">Insurance</div>
+                        <div class="value"><span class="verify-badge" id="sidebar-ins-status">Verified</span></div>
+                        <div class="label">Provider</div>
+                        <div class="value" id="sidebar-ins-provider">Star Health</div>
+                    </div>
+                </section>
+
+                <section class="panel side-panel selected-slot">
+                    <div class="panel-head">
+                        <h2>Selected Slot</h2>
+                    </div>
+                    <div class="details-grid">
+                        <div class="label">Date</div>
+                        <div class="value" id="slot-date">—</div>
+                        <div class="label">Time</div>
+                        <div class="value" id="slot-time">—</div>
+                        <div class="label">Department</div>
+                        <div class="value" id="slot-dept">—</div>
+                        <div class="label">Visit Type</div>
+                        <div class="value" id="slot-visit">Consultation</div>
+                    </div>
+                    <div class="fee-row">
+                        <span>Consultation Fee</span>
+                        <strong>₹500</strong>
+                    </div>
+                </section>
+
+                <div class="action-stack">
+                    <button class="confirm-btn" type="button" id="confirm-booking">Confirm Booking</button>
+                    <button class="draft-btn" type="button" id="save-draft">Save as Draft</button>
+                </div>
+
+            </aside>
+        </section>
+    </main>
+
+    <script src="../shared/canonical-seed.js" defer></script>
+    <script src="js/patient-store.js" defer></script>
+    <script src="patient-book-appointment.js" defer></script>
+</body>
+
+</html>
