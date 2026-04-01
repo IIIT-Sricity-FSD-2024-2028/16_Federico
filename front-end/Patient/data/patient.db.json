@@ -1,0 +1,391 @@
+{
+    "patient": {
+        "id": "USR-001",
+        "name": "Hamiz Ahmed",
+        "firstName": "Hamiz",
+        "initials": "HA",
+        "uhid": "UHID-882110",
+        "age": 19,
+        "gender": "Male",
+        "bloodGroup": "B+",
+        "phone": "+91 98123 45678",
+        "email": "hamiz.ahmed@gmail.com",
+        "address": "12-A, Sector 4, Hyderabad, Telangana - 500001",
+        "dob": "05/03/2007",
+        "insurance": {
+            "verified": true,
+            "provider": "HDFC Ergo",
+            "policyNumber": "POL-UHID-882110",
+            "memberId": "MEM-703",
+            "coverage": 5000,
+            "validFrom": "01/04/2025",
+            "validTo": "31/03/2027",
+            "coverageType": "Individual"
+        }
+    },
+    "appointments": [
+        {
+            "id": "APT-001",
+            "date": "2026-03-08",
+            "displayDate": "Mar 8, 2026",
+            "time": "9:00 AM",
+            "department": "Cardiology",
+            "type": "Follow-up",
+            "status": "Confirmed",
+            "doctorId": "DOC-001"
+        },
+        {
+            "id": "APT-002",
+            "date": "2026-03-10",
+            "displayDate": "Mar 10, 2026",
+            "time": "11:00 AM",
+            "department": "Neurology",
+            "type": "Consultation",
+            "status": "Scheduled",
+            "doctorId": "DOC-002"
+        },
+        {
+            "id": "APT-003",
+            "date": "2026-03-15",
+            "displayDate": "Mar 15, 2026",
+            "time": "2:00 PM",
+            "department": "Orthopedics",
+            "type": "Review",
+            "status": "Pending",
+            "doctorId": "DOC-003"
+        },
+        {
+            "id": "APT-004",
+            "date": "2026-03-20",
+            "displayDate": "Mar 20, 2026",
+            "time": "10:30 AM",
+            "department": "Cardiology",
+            "type": "Check-up",
+            "status": "Scheduled",
+            "doctorId": "DOC-001"
+        },
+        {
+            "id": "APT-005",
+            "date": "2026-04-03",
+            "displayDate": "Apr 3, 2026",
+            "time": "9:00 AM",
+            "department": "General",
+            "type": "Annual Check",
+            "status": "Pending",
+            "doctorId": "DOC-004"
+        }
+    ],
+    "visits": [
+        {
+            "id": "VIS-001",
+            "description": "Cardiology Consultation",
+            "date": "Mar 2, 2026",
+            "isoDate": "2026-03-02",
+            "department": "Cardiology"
+        },
+        {
+            "id": "VIS-002",
+            "description": "Blood Test – Diagnostics",
+            "date": "Feb 20, 2026",
+            "isoDate": "2026-02-20",
+            "department": "Diagnostics"
+        },
+        {
+            "id": "VIS-003",
+            "description": "General Check-up",
+            "date": "Jan 15, 2026",
+            "isoDate": "2026-01-15",
+            "department": "General"
+        },
+        {
+            "id": "VIS-004",
+            "description": "Neurology Consultation",
+            "date": "Dec 10, 2025",
+            "isoDate": "2025-12-10",
+            "department": "Neurology"
+        },
+        {
+            "id": "VIS-005",
+            "description": "Orthopedics Follow-up",
+            "date": "Nov 28, 2025",
+            "isoDate": "2025-11-28",
+            "department": "Orthopedics"
+        },
+        {
+            "id": "VIS-006",
+            "description": "Cardiology – ECG Test",
+            "date": "Oct 5, 2025",
+            "isoDate": "2025-10-05",
+            "department": "Cardiology"
+        },
+        {
+            "id": "VIS-007",
+            "description": "Annual Health Screening",
+            "date": "Sep 14, 2025",
+            "isoDate": "2025-09-14",
+            "department": "General"
+        }
+    ],
+    "bills": [
+        {
+            "id": "BILL-001",
+            "billNo": "#B-2026-001",
+            "date": "Mar 2, 2026",
+            "department": "Cardiology",
+            "description": "Follow-up Consultation",
+            "total": 2500,
+            "insuranceCovered": 700,
+            "youPay": 1800,
+            "dueDate": "Mar 15, 2026",
+            "dueDateISO": "2026-03-15",
+            "status": "pending",
+            "disputed": false,
+            "items": [
+                {
+                    "name": "Consultation Fee",
+                    "qty": 1,
+                    "unitPrice": 1200,
+                    "total": 1200
+                },
+                {
+                    "name": "ECG Test",
+                    "qty": 1,
+                    "unitPrice": 800,
+                    "total": 800
+                },
+                {
+                    "name": "Medication",
+                    "qty": 3,
+                    "unitPrice": 167,
+                    "total": 500
+                }
+            ]
+        },
+        {
+            "id": "BILL-002",
+            "billNo": "#B-2026-002",
+            "date": "Feb 20, 2026",
+            "department": "Diagnostics",
+            "description": "Blood Test Panel",
+            "total": 1000,
+            "insuranceCovered": 350,
+            "youPay": 650,
+            "dueDate": "Mar 20, 2026",
+            "dueDateISO": "2026-03-20",
+            "status": "pending",
+            "disputed": false,
+            "items": [
+                {
+                    "name": "Blood Test Panel",
+                    "qty": 1,
+                    "unitPrice": 1000,
+                    "total": 1000
+                }
+            ]
+        },
+        {
+            "id": "BILL-003",
+            "billNo": "#B-2026-003",
+            "date": "Jan 10, 2026",
+            "department": "Orthopedics",
+            "description": "X-Ray and Review",
+            "total": 3200,
+            "insuranceCovered": 1200,
+            "youPay": 2000,
+            "dueDate": "Feb 10, 2026",
+            "dueDateISO": "2026-02-10",
+            "status": "overdue",
+            "disputed": false,
+            "items": [
+                {
+                    "name": "X-Ray",
+                    "qty": 2,
+                    "unitPrice": 800,
+                    "total": 1600
+                },
+                {
+                    "name": "Doctor Review",
+                    "qty": 1,
+                    "unitPrice": 1600,
+                    "total": 1600
+                }
+            ]
+        },
+        {
+            "id": "BILL-004",
+            "billNo": "#B-2025-041",
+            "date": "Dec 5, 2025",
+            "department": "General",
+            "description": "Annual Health Check-up",
+            "total": 5500,
+            "insuranceCovered": 4000,
+            "youPay": 1500,
+            "dueDate": "Dec 20, 2025",
+            "dueDateISO": "2025-12-20",
+            "status": "paid",
+            "disputed": false,
+            "items": [
+                {
+                    "name": "Health Screening Package",
+                    "qty": 1,
+                    "unitPrice": 5500,
+                    "total": 5500
+                }
+            ]
+        },
+        {
+            "id": "BILL-005",
+            "billNo": "#B-2025-039",
+            "date": "Nov 18, 2025",
+            "department": "Neurology",
+            "description": "Consultation + MRI",
+            "total": 8700,
+            "insuranceCovered": 5400,
+            "youPay": 3300,
+            "dueDate": "Dec 5, 2025",
+            "dueDateISO": "2025-12-05",
+            "status": "paid",
+            "disputed": false,
+            "items": [
+                {
+                    "name": "Neurology Consultation",
+                    "qty": 1,
+                    "unitPrice": 1500,
+                    "total": 1500
+                },
+                {
+                    "name": "MRI Scan",
+                    "qty": 1,
+                    "unitPrice": 7200,
+                    "total": 7200
+                }
+            ]
+        },
+        {
+            "id": "BILL-006",
+            "billNo": "#B-2025-030",
+            "date": "Oct 3, 2025",
+            "department": "Cardiology",
+            "description": "ECG + Consultation",
+            "total": 2250,
+            "insuranceCovered": 950,
+            "youPay": 1300,
+            "dueDate": "Oct 20, 2025",
+            "dueDateISO": "2025-10-20",
+            "status": "paid",
+            "disputed": false,
+            "items": [
+                {
+                    "name": "ECG Test",
+                    "qty": 1,
+                    "unitPrice": 800,
+                    "total": 800
+                },
+                {
+                    "name": "Cardiology Consultation",
+                    "qty": 1,
+                    "unitPrice": 1450,
+                    "total": 1450
+                }
+            ]
+        }
+    ],
+    "slots": [
+        {
+            "id": "SLT-001",
+            "time": "9:00 AM",
+            "period": "morning",
+            "status": "available"
+        },
+        {
+            "id": "SLT-002",
+            "time": "9:30 AM",
+            "period": "morning",
+            "status": "available"
+        },
+        {
+            "id": "SLT-003",
+            "time": "10:00 AM",
+            "period": "morning",
+            "status": "booked"
+        },
+        {
+            "id": "SLT-004",
+            "time": "10:30 AM",
+            "period": "morning",
+            "status": "limited"
+        },
+        {
+            "id": "SLT-005",
+            "time": "11:00 AM",
+            "period": "morning",
+            "status": "available"
+        },
+        {
+            "id": "SLT-006",
+            "time": "11:30 AM",
+            "period": "morning",
+            "status": "booked"
+        },
+        {
+            "id": "SLT-007",
+            "time": "12:00 PM",
+            "period": "morning",
+            "status": "available"
+        },
+        {
+            "id": "SLT-008",
+            "time": "12:30 PM",
+            "period": "morning",
+            "status": "limited"
+        },
+        {
+            "id": "SLT-009",
+            "time": "2:00 PM",
+            "period": "afternoon",
+            "status": "available"
+        },
+        {
+            "id": "SLT-010",
+            "time": "2:30 PM",
+            "period": "afternoon",
+            "status": "booked"
+        },
+        {
+            "id": "SLT-011",
+            "time": "3:00 PM",
+            "period": "afternoon",
+            "status": "available"
+        },
+        {
+            "id": "SLT-012",
+            "time": "3:30 PM",
+            "period": "afternoon",
+            "status": "limited"
+        },
+        {
+            "id": "SLT-013",
+            "time": "4:00 PM",
+            "period": "afternoon",
+            "status": "available"
+        },
+        {
+            "id": "SLT-014",
+            "time": "4:30 PM",
+            "period": "afternoon",
+            "status": "booked"
+        },
+        {
+            "id": "SLT-015",
+            "time": "5:00 PM",
+            "period": "afternoon",
+            "status": "available"
+        },
+        {
+            "id": "SLT-016",
+            "time": "5:30 PM",
+            "period": "afternoon",
+            "status": "available"
+        }
+    ]
+}
