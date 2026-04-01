@@ -1,0 +1,21 @@
+
+/* ===== MAIN FLEX (SIDE BY SIDE) ===== */
+.main {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  margin-top: 60px;
+}
+
+#msgBox {
+  display: none;
+  position: fixed;  
+  top: 10px;
+  right: 10px;
+  padding: 10px 20px;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+  z-index: 9999;    
+}
