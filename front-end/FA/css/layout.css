@@ -1,0 +1,102 @@
+.header {
+    background: var(--white);
+    padding: 12px 40px;
+    display: flex;
+    /* This allows the flex children to use the full width for centering */
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    /* Takes up 1 part of the outer space to push nav to center */
+    flex: 1;
+}
+
+.nav-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    /* Centers the links within the middle section */
+    justify-content: center;
+    /* Takes up more space to ensure it stays centered */
+    flex: 2;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex: 1;
+}
+
+.nav-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 8px 0;
+    /* Prevents links from wrapping if the window gets small */
+    white-space: nowrap;
+}
+
+.role-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.module-switch-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #0369a1;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.logo-box {
+    background: var(--primary);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 22px;
+}
+
+.main-content {
+    padding: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Dashboard Stat Cards Layout */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+}
