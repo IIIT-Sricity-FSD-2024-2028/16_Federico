@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor Availability</title>
+ <link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/layout.css">
+<link rel="stylesheet" href="../css/components.css">
+</head>
+
+<body>
+
+<!-- Navbar -->
+<div class="navbar">
+  
+  <div class="logo">
+    <div class="icon">F</div>
+    <div class="text">
+      <h2>Federico</h2>
+      <p>patient relational executive</p>
+    </div>
+  </div>
+
+  <ul class="nav-links">
+    <li><a href="PRE.html">Dashboard</a></li>
+    <li><a href="emergency.html">Emergency cases</a></li>
+    <li><a href="patient-records.html">Patient record</a></li>
+    <li class="active"><a href="doctor.html">Doctor availability</a></li>
+    <li><a href="appointment.html">Create Appointment</a></li>
+    <li><a href="hom.html">HOM</a></li>
+  </ul>
+
+  <button class="logout">LOG OUT</button>
+</div>
+
+<!-- Content -->
+<div class="container">
+  <h2>Doctor Availability</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Doctor ID</th>
+        <th>Doctor Name</th>
+        <th>Specialization</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+
+    <tbody id="doctorTable"></tbody>
+  </table>
+</div>
+
+<script src="../../../shared/rbac.js"></script>
+<script src="../../../shared/canonical-seed.js"></script>
+<script src="../js/auth-guard.js"></script>
+<script src="../js/shared-state.js"></script>
+<script src="../js/doctor.js"></script>
+<script src="../js/logout.js"></script>
+</body>
+</html>

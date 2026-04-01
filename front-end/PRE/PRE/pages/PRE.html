@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/layout.css">
+<link rel="stylesheet" href="../css/components.css">
+</head>
+
+<body>
+
+<!-- Navbar -->
+<div class="navbar">
+  
+  <div class="logo">
+    <div class="icon">F</div>
+    <div class="text">
+      <h2>Federico</h2>
+      <p>patient relational executive</p>
+    </div>
+  </div>
+
+  <ul class="nav-links">
+    <li class="active"><a href="PRE.html">Dashboard</a></li>
+    <li><a href="emergency.html">Emergency cases</a></li>
+    <li><a href="patient-records.html">Patient record</a></li>
+    <li><a href="doctor.html">Doctor availability</a></li>
+    <li><a href="appointment.html">Create Appointment</a></li>
+    <li><a href="hom.html">HOM</a></li>
+  </ul>
+
+  <button class="logout">LOG OUT</button>
+</div>
+
+<!-- Cards -->
+<div class="cards">
+
+  <a href="request.html" class="card">
+    <h3>Pending Requests</h3>
+    <p id="pending"></p> 
+  </a>
+
+  <a href="rejected.html" class="card">
+    <h3>Rejected Requests</h3>
+    <p id="rejected"></p>
+  </a>
+
+  <a href="admitted.html" class="card">
+    <h3>Admitted Patients</h3>
+    <p id="admitted"></p>
+  </a>
+
+</div>
+
+<!-- Table -->
+<div class="table-container">
+  <h2>Approved Patients</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Patient ID</th>
+        <th>Name</th>
+        <th>Age</th>
+         <th>Gender</th>
+        <th>Department</th>
+        <th>Doctor</th>
+        <th>Appointment Date</th>
+        <th>Appointment Time</th>
+        <th>Visit Type</th>
+        <!-- <th>Status</th> -->
+        <th>Set Visit</th>
+        <th>Set Status</th>
+      </tr>
+    </thead>
+
+    <tbody id="approvedTable"></tbody>
+  </table>
+</div>
+
+<!-- ✅ SUCCESS POPUP (IMPORTANT) -->
+<div id="successPopup" class="success-popup">
+  <div class="success-box">
+    <p id="successMsg"></p>
+    <button onclick="closeSuccess()">OK</button>
+  </div>
+</div>
+
+<!-- BED POPUP -->
+<div id="bedPopup" class="success-popup">
+  <div class="success-box">
+    <h3>Enter Bed Number</h3>
+    <input type="text" id="bedInput" placeholder="Enter Bed No" />
+
+    <div style="margin-top:10px;">
+      <button onclick="submitBed()">Submit</button>
+      <button onclick="closeBedPopup()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="../../../shared/rbac.js"></script>
+<script src="../../../shared/canonical-seed.js"></script>
+<script src="../js/auth-guard.js"></script>
+<script src="../js/shared-state.js"></script>
+<script src="../js/PRE.js"></script>
+<script src="../js/logout.js"></script>
+
+</body>
+</html>

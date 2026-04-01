@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create Appointment</title>
+  <link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/layout.css">
+<link rel="stylesheet" href="../css/components.css">
+</head>
+
+<body>
+
+<div class="navbar">
+  <div class="logo">
+    <div class="icon">F</div>
+    <div class="text">
+      <h2>Federico</h2>
+      <p>patient relational executive</p>
+    </div>
+  </div>
+
+  <ul class="nav-links">
+    <li><a href="PRE.html">Dashboard</a></li>
+    <li><a href="emergency.html">Emergency cases</a></li>
+    <li><a href="patient-records.html">Patient record</a></li>
+    <li><a href="doctor.html">Doctor availability</a></li>
+    <li class="active"><a href="appointment.html">Create Appointment</a></li>
+    <li><a href="hom.html">HOM</a></li>
+  </ul>
+
+  <button class="logout">LOG OUT</button>
+</div>
+
+<div class="container-appointment">
+  <div class="card-appointment">
+
+    <h2>Create Appointment</h2>
+
+    <div id="errorMsg" style="color:red;"></div>
+
+    
+    <div class="search-box">
+      <input type="text" id="searchPhone" placeholder="Search by Phone">
+      <button onclick="searchPatient()">🔍</button>
+    </div>
+
+    <button class="btn green" onclick="openPatientPopup()">Create New Patient</button>
+
+    <div class="appointment-patient-picker" id="appointmentPatientPicker">
+      <input type="text" id="patientId" placeholder="Click or type Patient ID from shared list" autocomplete="off">
+      <div class="appointment-picker-dropdown" id="appointmentPatientDropdown" hidden></div>
+    </div>
+    <div class="appointment-picker-helper">Click the patient ID field to browse all shared patients used across the other actors.</div>
+    <input type="text" id="patientName" placeholder="Patient Name">
+    <input type="number" id="age" placeholder="Age">
+
+    <select id="gender">
+      <option value="">Select Gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+    </select>
+
+    <input type="text" id="phone" placeholder="Phone Number">
+
+    <input type="date" id="appointmentDate">
+
+    <select id="department">
+      <option value="">Select Department</option>
+      <option value="Cardiology">Cardiology</option>
+      <option value="Neurology">Neurology</option>
+      <option value="Orthopedic">Orthopedic</option>
+      <option value="General">General</option>
+    </select>
+
+    <input type="text" id="address" placeholder="Address">
+
+    <button class="btn green" onclick="createAppointment()">Create Appointment</button>
+
+  </div>
+</div>
+
+
+<div id="patientPopup" class="popup">
+  <div class="popup-content">
+
+    <h2>New Patient</h2>
+
+    <div id="popupError" style="color:red;"></div>
+
+    <input type="text" id="newName" placeholder="Name">
+    <input type="number" id="newAge" placeholder="Age">
+
+    <select id="newGender">
+      <option value="">Gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+    </select>
+
+    <input type="text" id="newPhone" placeholder="Phone">
+
+    <button class="btn green" onclick="registerPatient()">Submit</button>
+    <button class="btn reject" onclick="closePatientPopup()">Close</button>
+
+  </div>
+</div>
+
+
+<div id="successPopup" class="success-popup" style="display:none;">
+  <div class="success-box">
+    <p id="successMsg">Success</p>
+    <button onclick="closeSuccess()">OK</button>
+  </div>
+</div>
+
+<script src="../../../shared/rbac.js"></script>
+<script src="../../../shared/canonical-seed.js"></script>
+<script src="../js/auth-guard.js"></script>
+<script src="../js/shared-state.js"></script>
+<script src="../js/Appointment.js"></script>
+<script src="../js/logout.js"></script>
+
+</body>
+</html>

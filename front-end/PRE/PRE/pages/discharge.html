@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Discharge Requests</title>
+  <link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/layout.css">
+<link rel="stylesheet" href="../css/components.css">
+</head>
+
+<body>
+
+<!-- Navbar -->
+<div class="navbar">
+  
+  <div class="logo">
+    <div class="icon">F</div>
+    <div class="text">
+      <h2>Federico</h2>
+      <p>patient relational executive</p>
+    </div>
+  </div>
+
+  <ul class="nav-links">
+    <li ><a href="PRE.html">Dashboard</a></li>
+    <li><a href="emergency.html">Emergency cases</a></li>
+    <li><a href="patient-records.html">Patient record</a></li>
+    <li><a href="doctor.html">Doctor availability</a></li>
+    <li><a href="appointment.html">Create Appointment</a></li>
+    <li><a href="hom.html">HOM</a></li>
+  </ul>
+
+  <button class="logout">LOG OUT</button>
+</div>
+
+<div class="container">
+   <h2>Discharge request</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Patient ID</th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Gender</th>
+        <th>Department</th>
+        <th>Doctor</th>
+        <th>Appointment Date</th>
+        <th>Appointment Time</th>
+        <th>Bed No</th> <!-- ✅ ADD -->
+        <th>Visit Type</th>
+        <th>Status</th>
+        
+      </tr>
+    </thead>
+
+    <tbody id="dischargeTable"></tbody>
+  </table>
+</div>
+
+
+<!-- 🔽 NEW SECTION (ADD BELOW FIRST TABLE) -->
+<div class="container">
+  <h3>✅ Approved Discharge</h3>
+
+  <table>
+    <thead>
+      <tr>
+          <th>Patient ID</th>
+    <th>Name</th>
+    <th>Age</th>
+    <th>Gender</th>
+    <th>Department</th>
+    <th>Doctor</th>
+    <th>Appointment Date</th>
+    <th>Appointment Time</th>
+     <th>Bed No</th> <!-- ✅ ADD -->
+    <th>Visit Type</th>
+    <th>Status</th>
+    <th>Action</th>
+      </tr>
+    </thead>
+
+    <tbody id="approvedDischargeTable"></tbody>
+  </table>
+</div>
+
+<script src="../../../shared/rbac.js"></script>
+<script src="../../../shared/canonical-seed.js"></script>
+<script src="../js/auth-guard.js"></script>
+<script src="../js/shared-state.js"></script>
+<script src="../js/discharge.js"></script>
+<script src="../js/logout.js"></script>
+</body>
+</html>

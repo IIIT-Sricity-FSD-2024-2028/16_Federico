@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HOM Panel</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+<div id="msgBox"></div>
+<div class="navbar">
+  <div class="logo">
+    <div class="icon">F</div>
+    <div class="text">
+      <h2>Federico</h2>
+      <p>patient relational executive</p>
+    </div>
+  </div>
+
+  <ul class="nav-links">
+    <li><a href="PRE.html">Dashboard</a></li>
+    <li><a href="emergency.html">Emergency cases</a></li>
+    <li><a href="patient-records.html">Patient record</a></li>
+    <li><a href="doctor.html">Doctor availability</a></li>
+    <li><a href="appointment.html">Create Appointment</a></li>
+    <li class="active"><a href="hom.html">HOM</a></li>
+  </ul>
+
+  <button class="logout">LOG OUT</button>
+</div>
+
+<div class="main hom-main">
+  <div class="card-hom hom-request-card">
+    <div class="hom-card-kicker">PRE to HOM</div>
+    <h2>HOM Requests</h2>
+    <p class="hom-card-intro">Create bed requests from the same shared patient data used across PRE, HOM, FA, and Patient.</p>
+
+    <div class="hom-form-section">
+      <div class="hom-section-header">
+        <h4>Bed Allocation Request</h4>
+        <span class="hom-section-chip">Shared queue</span>
+      </div>
+
+      <label class="hom-field-label" for="name">Patient Name</label>
+      <div class="hom-patient-picker" id="patientPicker">
+        <input type="text" id="name" class="hom-input" placeholder="Search patient name or UHID">
+        <div class="hom-picker-dropdown" id="patientListDropdown" hidden></div>
+      </div>
+      <div class="hom-field-helper">Search the live shared list. Updates from other modules appear here automatically.</div>
+
+      <div class="hom-two-column-grid">
+        <div>
+          <label class="hom-field-label" for="patientId">Patient ID</label>
+          <input type="text" id="patientId" class="hom-input" placeholder="Shared patient ID" readonly>
+        </div>
+        <div>
+          <label class="hom-field-label" for="wardType">Ward Type</label>
+          <select id="wardType" class="hom-input hom-select">
+            <option value="">Select ward</option>
+            <option value="General Ward">General Ward</option>
+            <option value="ICU Ward">ICU Ward</option>
+            <option value="Emergency Ward">Emergency Ward</option>
+            <option value="Surgical Ward">Surgical Ward</option>
+            <option value="Pediatric Ward">Pediatric Ward</option>
+            <option value="Maternity Ward">Maternity Ward</option>
+            <option value="Cardiac Care Ward">Cardiac Care Ward</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="hom-field-label" for="patientDetails">Patient Details</label>
+      <textarea id="patientDetails" class="hom-input hom-textarea" placeholder="Age, gender, department, doctor, or admission notes"></textarea>
+
+      <button class="btn btn-blue hom-submit-btn" onclick="sendRequest()">Create Bed Request</button>
+    </div>
+
+    <div class="hom-form-section hom-form-section-muted">
+      <div class="hom-section-header">
+        <h4>Emergency Notify</h4>
+        <span class="hom-section-chip hom-section-chip-alert">Urgent</span>
+      </div>
+
+      <div class="hom-two-column-grid">
+        <div>
+          <label class="hom-field-label" for="emergencyId">Patient ID</label>
+          <input type="text" id="emergencyId" class="hom-input" placeholder="Patient ID">
+        </div>
+        <div>
+          <label class="hom-field-label" for="bedNo">Bed No</label>
+          <input type="text" id="bedNo" class="hom-input" placeholder="Bed No">
+        </div>
+      </div>
+
+      <button class="btn btn-red hom-submit-btn" onclick="notifyEmergency()">Send Emergency Alert</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="container hom-table-card">
+  <div class="hom-section-header hom-table-header">
+    <div>
+      <h3>Bed Requests</h3>
+      <p class="hom-table-copy">Rows below come from the same shared HOM queue used by the other actors.</p>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Patient Name</th>
+        <th>Patient ID</th>
+        <th>Ward Type</th>
+        <th>Patient Details</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="homRequestTable"></tbody>
+  </table>
+</div>
+
+<script src="../../../shared/rbac.js"></script>
+<script src="../../../shared/canonical-seed.js"></script>
+<script src="../js/auth-guard.js"></script>
+<script src="../js/shared-state.js"></script>
+<script src="../js/hom.js"></script>
+<script src="../js/logout.js"></script>
+</body>
+</html>
