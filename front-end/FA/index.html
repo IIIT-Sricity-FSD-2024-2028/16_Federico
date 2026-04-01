@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federico | Finance Portal</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="header">
+        <div class="logo-group">
+            <div class="logo-box">F</div>
+            <strong>Federico</strong>
+        </div>
+        <nav class="nav-links">
+            <span class="nav-link" onclick="navigate('#/dashboard')">Dashboard</span>
+            <span class="nav-link" onclick="navigate('#/charges')">Charges</span>
+            <span class="nav-link" onclick="navigate('#/ledger')">Ledger</span>
+            <span class="nav-link" onclick="navigate('#/eod')">EOD Billing</span>
+            <span class="nav-link" onclick="navigate('#/discharge')">Discharge</span>
+            <span class="nav-link" onclick="navigate('#/receipts')">Receipts</span>
+        </nav>
+        <div class="header-actions">
+            <a id="module-switch-link" class="module-switch-link" href="../HOM/screen-01-dashboard.html" hidden>Open HOM</a>
+            <span id="role-indicator" class="role-indicator"></span>
+            <button id="logout-btn" style="border:none; background:#ef4444; color:white; padding:10px 18px; border-radius:999px; font-weight:700; cursor:pointer; font-family:inherit;">LOG OUT</button>
+        </div>
+    </header>
+
+    <main id="app" class="main-content"></main>
+
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/canonical-seed.js"></script>
+    <script src="js/auth-guard.js"></script>
+    <script src="js/data/mockData.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/permissions.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/modules/billing.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
+
