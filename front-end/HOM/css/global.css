@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* Federico Teal Colors */
+  --primary: #20B2AA;
+  --primary-hover: #1A9B94;
+  --primary-light: #E0F7F6;
+  --background: #FCFCF9;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  
+  /* Text Colors */
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  
+  /* Status Colors */
+  --success: #10B981;
+  --success-bg: #D1FAE5;
+  --success-text: #065F46;
+  --warning: #F59E0B;
+  --warning-bg: #FEF3C7;
+  --warning-text: #92400E;
+  --error: #EF4444;
+  --error-bg: #FEE2E2;
+  --error-text: #991B1B;
+  --info: #3B82F6;
+  --info-bg: #E0F2FE;
+  --info-text: #075985;
+  --neutral-bg: #F1F5F9;
+  --neutral-text: #475569;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-base: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.04), 0 2px 4px -1px rgba(0,0,0,0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.04), 0 4px 6px -2px rgba(0,0,0,0.02);
+}
+
+/* Base Styles & Typography */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, .h1 { font-size: 32px; font-weight: 600; color: var(--text-primary); margin: 0; }
+h2, .h2 { font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0; }
+h3, .h3 { font-size: 18px; font-weight: 500; color: var(--text-primary); margin: 0; }
+h4, .h4 { font-size: 16px; font-weight: 500; color: var(--text-primary); margin: 0; }
+p, .body-text { font-size: 14px; font-weight: 400; color: var(--text-secondary); margin: 0; }
+small, .text-small { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+
+/* Extrapolated Minor Components */
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+.divider {
+  height: 1px;
+  background-color: var(--border);
+  width: 100%;
+  margin: 16px 0;
+}
+.flex-row { display: flex; align-items: center; gap: 8px; }
+.flex-col { display: flex; flex-direction: column; gap: 8px; }
+
+/* 1. Badge Component */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+.badge-success { background-color: var(--success-bg); color: var(--success-text); }
+.badge-warning { background-color: var(--warning-bg); color: var(--warning-text); }
+.badge-error { background-color: var(--error-bg); color: var(--error-text); }
+.badge-info { background-color: var(--info-bg); color: var(--info-text); }
+.badge-neutral { background-color: var(--neutral-bg); color: var(--neutral-text); }
+
+/* 2. Button Component */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  border-radius: var(--radius-base);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: 1px solid transparent;
+  outline: none;
+}
+.btn:disabled { opacity: 0.5; pointer-events: none; }
+.btn:focus-visible { box-shadow: 0 0 0 3px var(--primary-light); border-color: var(--primary); }
+
+/* Button Variants */
+.btn-primary { background-color: var(--primary); color: #fff; box-shadow: var(--shadow-sm); }
+.btn-primary:hover { background-color: var(--primary-hover); }
+.btn-secondary { background-color: var(--surface); border-color: var(--border); color: var(--text-primary); }
+.btn-secondary:hover { background-color: var(--neutral-bg); }
+.btn-outline { background-color: transparent; border-color: var(--border); color: var(--text-primary); }
+.btn-outline:hover { background-color: var(--neutral-bg); }
+.btn-danger { background-color: var(--error-bg); border-color: #FECACA; color: var(--error-text); }
+.btn-danger:hover { background-color: #FCA5A5; }
+
+/* Button Sizes */
+.btn-default { height: 40px; padding: 12px 24px; }
+.btn-sm { height: 32px; padding: 0 16px; }
+.btn-lg { height: 44px; padding: 12px 32px; }
+
+/* 3. Card Component */
+.card {
+  background-color: var(--surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+.card-header { padding: 24px 24px 0 24px; display: flex; flex-direction: column; gap: 6px; }
+.card-title { font-size: 18px; font-weight: 500; margin: 0; }
+.card-description { font-size: 14px; color: var(--text-secondary); margin: 0; }
+.card-content { padding: 24px; flex: 1; }
+.card-footer { padding: 0 24px 24px 24px; display: flex; align-items: center; gap: 12px; }
+
+/* 4. Input Component */
+.input {
+  height: 44px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-base);
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: var(--surface);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  outline: none;
+}
+.input::placeholder { color: var(--text-muted); }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+.input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 5. Tabs Component */
+.tabs { display: flex; flex-direction: column; gap: 16px; }
+.tabs-list {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  justify-content: flex-start;
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+  gap: 24px;
+}
+.tabs-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 0 4px 10px 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tabs-trigger:hover { color: var(--text-primary); }
+.tabs-trigger[data-state="active"] {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.tabs-content { display: none; outline: none; }
+.tabs-content[data-state="active"] { display: block; }
