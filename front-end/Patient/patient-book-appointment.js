@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedTime = null;
     let selectedDate = null;
     let selectedDept = null;
-    let selectedType = "Consultation";
+    let selectedType = "";
 
     // ── CONFIGURATION ──
     const MAX_PATIENTS_PER_SLOT = 3; // 3 patients can book the same 30-min slot
@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
         populatePatientSidebar();   
         initDatePicker();
         initDepartmentSelect();
-        initVisitTypeSelect();
         initSlots();
         initFileUpload();
         initConfirmButton();
@@ -80,16 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
             hideError("error-dept");
             updateSlotMeta();
             refreshSlotAvailability(); // Recalculate capacity!
-        });
-    }
-
-    function initVisitTypeSelect() {
-        const select = document.getElementById("visit-type");
-        if (!select) return;
-
-        select.addEventListener("change", () => {
-            selectedType = select.value || "Consultation";
-            updateSummary();
         });
     }
 
@@ -181,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setText("slot-date", selectedDate ? formatDate(selectedDate) : "—");
         setText("slot-time", selectedTime || "—");
         setText("slot-dept", selectedDept || "—");
-        setText("slot-visit", selectedType || "—");
+        setText("slot-visit", "PRE will assign");
     }
 
     /* ── VALIDATE ─────────────────────────────────────── */
@@ -218,7 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 displayDate: formatDate(selectedDate),
                 time: selectedTime,
                 department: selectedDept,
-                type: selectedType,
+                type: "",
                 status: "Pending",
                 doctorId: null
             });
@@ -248,25 +237,61 @@ document.addEventListener("DOMContentLoaded", () => {
     function initFileUpload() {
         const dropZone = document.querySelector(".upload-box") || document.querySelector(".file-drop-zone");
         if (!dropZone) return;
-
-        const fileInput = document.createElement("input");
-        fileInput.type = "file";
-        fileInput.style.display = "none";
-        dropZone.parentNode.insertBefore(fileInput, dropZone.nextSibling);
-
-        dropZone.addEventListener("click", () => fileInput.click());
-
-        
-
+        const fileInput = document.getElementById("file-upload");
+        if (!fileInput) return;
 
         fileInput.addEventListener("change", (e) => {
-            if (e.target.files.length > 0) updateFileName(e.target.files[0].name);
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+            updateFileName(files[0].name);
+            persistMedicalFiles(files);
         });
 
         function updateFileName(name) {
             const textElement = dropZone.querySelector("strong") || dropZone;
             textElement.innerHTML = `Attached: <span style="color:var(--primary)">${name}</span>`;
             showToast("File attached successfully.", "success");
+        }
+    }
+
+    function persistMedicalFiles(files) {
+        const profile = getProfile();
+        if (!profile) return;
+
+        const fileRecords = files.map((file) => ({
+            name: file.name,
+            size: file.size,
+            type: file.type || "application/octet-stream",
+            uploadedAt: Date.now()
+        }));
+
+        const mergedMedicalFiles = [...(profile.medicalFiles || []), ...fileRecords];
+        if (typeof updateProfile === "function") {
+            updateProfile({ medicalFiles: mergedMedicalFiles });
+        }
+
+        try {
+            const _root = JSON.parse(localStorage.getItem("HospitalAppState") || "{}");
+            const accounts = Array.isArray(_root.patientAuthAccounts) ? _root.patientAuthAccounts : [];
+            if (Array.isArray(accounts)) {
+                const authEmail = String(sessionStorage.getItem("authEmail") || "").toLowerCase();
+                const patientUhid = String(profile.uhid || "");
+                const accountIndex = accounts.findIndex((account) =>
+                    String(account?.email || "").toLowerCase() === authEmail ||
+                    (patientUhid && String(account?.patientUhid || "") === patientUhid)
+                );
+
+                if (accountIndex >= 0) {
+                    const existingFiles = Array.isArray(accounts[accountIndex].medicalFiles)
+                        ? accounts[accountIndex].medicalFiles
+                        : [];
+                    accounts[accountIndex].medicalFiles = [...existingFiles, ...fileRecords];
+                    _root.patientAuthAccounts = accounts;
+                    localStorage.setItem("HospitalAppState", JSON.stringify(_root));
+                }
+            }
+        } catch (error) {
+            console.warn("Unable to persist patient medical files in patientAuthAccounts:", error);
         }
     }
 
@@ -278,15 +303,10 @@ document.addEventListener("DOMContentLoaded", () => {
             "nav-bill": "patient-billing.html",
             "nav-profile": "patient-profile.html",
             "profile-chip": "patient-profile.html",
-            "logout-btn": "landing-page.html",
             "breadcrumb-home": "patient-dashboard.html"
         };
         Object.entries(routes).forEach(([id, url]) => {
               document.getElementById(id)?.addEventListener("click", () => {
-                if (id === "logout-btn") {
-                    if (window.RoleAccess) window.RoleAccess.logout();
-                    else sessionStorage.removeItem("userRole");
-                }
                 window.location.href = url;
               });
         });

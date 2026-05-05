@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+  <script src="auth-guard.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Book Appointment – Federico</title>
@@ -10,8 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="patient-book-appointment.css" />
-    <script src="../shared/rbac.js"></script>
-    <script src="js/auth-guard.js"></script>
+
 </head>
 
 <body>
@@ -33,7 +33,6 @@
         </nav>
 
         <div class="topbar-right">
-            <button class="logout-btn" type="button" id="logout-btn">LOG OUT</button>
             <button class="user-chip" type="button" id="profile-chip" aria-label="Go to My Profile">
                 <div class="user-avatar" id="topbar-initials">HA</div>
                 <div class="user-meta">
@@ -54,7 +53,7 @@
 
         <section class="page-heading">
             <h1>Book Appointment</h1>
-            <p>Select a department, date, visit type, and available time slot to schedule your visit.</p>
+            <p>Select a department, date, and available time slot to schedule your visit. Visit type will be assigned by PRE.</p>
         </section>
 
         <section class="layout">
@@ -71,16 +70,6 @@
                             <label for="appointment-date">Appointment Date</label>
                             <input id="appointment-date" type="date" />
                             <span class="field-error hidden" id="error-date">Please select a date.</span>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="visit-type">Visit Type</label>
-                            <select id="visit-type">
-                                <option value="Consultation" selected>Consultation</option>
-                                <option value="Follow-up">Follow-up</option>
-                                <option value="Review">Review</option>
-                                <option value="Check-up">Check-up</option>
-                            </select>
                         </div>
 
                         <div class="form-group">
@@ -242,7 +231,7 @@
                         <div class="label">Department</div>
                         <div class="value" id="slot-dept">—</div>
                         <div class="label">Visit Type</div>
-                        <div class="value" id="slot-visit">Consultation</div>
+                        <div class="value" id="slot-visit">PRE will assign</div>
                     </div>
                     <div class="fee-row">
                         <span>Consultation Fee</span>
@@ -259,9 +248,18 @@
         </section>
     </main>
 
-    <script src="../shared/canonical-seed.js" defer></script>
-    <script src="js/patient-store.js" defer></script>
-    <script src="patient-book-appointment.js" defer></script>
+  <script src="../shared/constants.js"></script>
+    <script src="../shared/canonical-seed.js"></script>
+    <script src="../shared/id-generator.js"></script>
+    <script src="../shared/patient-resolver.js"></script>
+    <script src="../shared/sanitizer.js"></script>
+    <script src="../shared/ledger-validator.js"></script>
+    <script src="../shared/finance-states.js"></script>
+    <script src="../shared/insurance.js"></script>
+    <script src="../shared/rbac.js"></script>
+
+    <script src="js/patient-store.js"></script>
+    <script src="patient-book-appointment.js"></script>
 </body>
 
 </html>

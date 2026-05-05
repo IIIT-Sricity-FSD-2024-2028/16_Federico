@@ -17,6 +17,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 let currentSelectedPatient = null;
+
+function nextGeneratedId(namespace) {
+    if (window.IDGenerator && typeof window.IDGenerator.nextId === "function") return window.IDGenerator.nextId(namespace);
+    return `${namespace}-fallback`;
+}
 let currentSelectedLedger = null;
 let patientFlowFilters = {
     search: '',
@@ -82,6 +87,7 @@ function renderPage() {
     const data = window.Store.get() || {};
     populateDepartmentFilter(data);
     renderPatientsTable(data);
+    renderDispatchQueue(data);
 }
 
 function populateDepartmentFilter(data) {
@@ -148,7 +154,7 @@ function renderPatientsTable(data) {
         } else if (patient.status === 'Pending Discharge') {
             actionButtons += `<button class="btn btn-primary btn-sm" style="background: var(--primary); color: white;" onclick="openDischargeModal('${patient.uhid}')">Approve Discharge</button>`;
         } else if (patient.status === 'Critical') {
-            actionButtons += `<button class="btn btn-outline btn-sm" onclick="window.location.href='screen-02-bed-management.html'">Transfer</button>`;
+            actionButtons += `<button hidden class="btn btn-outline btn-sm" onclick="window.location.href='screen-02-bed-management.html'">Transfer</button>`;
         } else if (patient.status === 'Discharged') {
             actionButtons += `<button class="btn btn-outline btn-sm" onclick="openBillingFromUhid('${patient.uhid}')">View Receipt</button>`;
         }
@@ -157,7 +163,7 @@ function renderPatientsTable(data) {
             <tr style="cursor: default;">
                 <td style="color: var(--text-secondary); font-weight: 500;">${patient.uhid}</td>
                 <td>
-                    <div style="font-weight: 500; color: var(--text-primary);">${patient.name}</div>
+                    <div style="font-weight: 500; color: var(--text-primary);">${window.PatientResolver ? window.PatientResolver.getName(patient.uhid, data) : patient.name}</div>
                     <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${patient.age}</div>
                 </td>
                 <td style="color: var(--text-secondary);">${patient.dept}</td>
@@ -274,8 +280,18 @@ window.confirmDischarge = function () {
         return;
     }
 
+    const uhid = currentSelectedPatient.uhid;
+    const data = window.Store.get();
+    const hasPreRequest = (data.preRequests || []).some(
+      (r) => r.patientId === uhid || r.uhid === uhid
+    );
+    if (!hasPreRequest) {
+      alert("Discharge can only be initiated for patients admitted through PRE. No PRE request found for this patient.");
+      return;
+    }
+
     setDischargeError('');
-    window.Store.dischargePatient(currentSelectedPatient.uhid);
+    window.Store.dischargePatient(uhid);
     closeModals();
 };
 
@@ -319,3 +335,82 @@ window.openBillingFromUhid = function (uhid) {
     const target = `screen-05-billing.html?uhid=${encodeURIComponent(uhid)}`;
     window.location.href = target;
 };
+
+function renderDispatchQueue(data) {
+    const section = document.getElementById('fa-dispatch-queue-section');
+    if (!section) return;
+
+    const items = (data.dispatchQueue || []).filter((item) => item.status === "SENT");
+
+    if (items.length === 0) {
+        section.innerHTML = `
+            <div class="card" style="padding: 24px;">
+                <h3 style="margin: 0 0 8px 0;">FA Dispatch Queue</h3>
+                <p style="margin: 0; color: var(--text-secondary);">No pending dispatch items from FA.</p>
+            </div>
+        `;
+        return;
+    }
+
+    window.confirmDispatchPaymentFromHOM = function (dispatchId) {
+        const latestData = window.Store.get() || {};
+        const item = (latestData.dispatchQueue || []).find((entry) => String(entry.id) === String(dispatchId));
+        if (!item) return;
+
+        item.status = "PAYMENT_CONFIRMED";
+        item.payment_confirmed = true;
+        item.payment_confirmed_at = Date.now();
+
+        if (!Array.isArray(latestData.paymentConfirmations)) {
+            latestData.paymentConfirmations = [];
+        }
+        latestData.paymentConfirmations.unshift({
+            id: nextGeneratedId("payment-confirmation"),
+            patient_id: item.patient_id,
+            admission_id: item.admission_id || item.patient_id,
+            patient_name: item.patient_name,
+            uhid: item.uhid,
+            amount: item.amount,
+            payment_mode: item.payment_mode || "CASH",
+            confirmed_by: "HOM",
+            confirmed_at: Date.now(),
+            status: "PENDING_RECEIPT",
+        });
+
+        window.Store.save(latestData);
+        renderDispatchQueue(window.Store.get());
+        alert("Payment confirmation sent to FA. Receipt can now be generated.");
+    };
+
+    section.innerHTML = `
+        <div class="card" style="padding: 24px;">
+            <h3 style="margin: 0 0 16px 0;">FA Dispatch Queue</h3>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map((item) => `
+                            <tr>
+                                <td>${window.PatientResolver ? window.PatientResolver.getName(item.uhid, latestData) : (item.patient_name || "-")}</td>
+                                <td>${item.type || "-"}</td>
+                                <td>Rs ${Number(item.amount || 0).toLocaleString()}</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="confirmDispatchPaymentFromHOM('${item.id}')">Confirm Payment</button>
+                                </td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+

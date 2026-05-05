@@ -1,375 +1,421 @@
-// front-end/patient-billing.js
-
 document.addEventListener("DOMContentLoaded", () => {
+  setupNavigation();
+  setupTabs();
 
-    /* ── 1. NAVIGATION (Run immediately, outside of data loading) ── */
-    setupNavigation();
+  onStoreReady(renderAll);
+  window.addEventListener("patientStoreUpdated", renderAll);
 
-    function setupNavigation() {
-        document.getElementById("nav-dashboard")?.addEventListener("click", () => {
-            window.location.href = "patient-dashboard.html";
-        });
-        document.getElementById("nav-book")?.addEventListener("click", () => {
-            window.location.href = "patient-book-appointment.html";
-        });
-        document.getElementById("nav-bill")?.addEventListener("click", () => {
-            window.location.href = "patient-billing.html";
-        });
-        document.getElementById("nav-profile")?.addEventListener("click", () => {
-            window.location.href = "patient-profile.html";
-        });
-        document.getElementById("profile-chip")?.addEventListener("click", () => {
-            window.location.href = "patient-profile.html";
-        });
-        document.getElementById("logout-btn")?.addEventListener("click", () => {
-            if (window.RoleAccess) window.RoleAccess.logout();
-            else sessionStorage.removeItem("userRole");
-            window.location.href = "landing-page.html";
-        });
-    }
-
-    /* ── 2. DATA RENDERING (Waits for AppStore) ── */
-
-    // Computes real-time status — never trusts the hardcoded JSON status
-    function getEffectiveStatus(bill) {
-        if (bill.status === "paid") return "paid";
-        const today = new Date().toISOString().split("T")[0]; // e.g. "2026-03-30"
-        if (bill.dueDateISO < today) return "overdue";
-        return "pending";
-    }
-
-    // Wait for store to finish loading the JSON / LocalStorage
-    function renderAll() {
-        renderKPIs();
-        renderDocuments();
-        renderTable(getBills(), "all");
-    }
-
-    onStoreReady(() => {
-        renderAll();
-        setupFilterTabs();
-        setupSearch();
-        setupModal();
+  function setupNavigation() {
+    document.getElementById("nav-dashboard")?.addEventListener("click", () => {
+      window.location.href = "patient-dashboard.html";
     });
-    window.addEventListener("patientStoreUpdated", renderAll);
+    document.getElementById("nav-book")?.addEventListener("click", () => {
+      window.location.href = "patient-book-appointment.html";
+    });
+    document.getElementById("nav-bill")?.addEventListener("click", () => {
+      window.location.href = "patient-billing.html";
+    });
+    document.getElementById("nav-profile")?.addEventListener("click", () => {
+      window.location.href = "patient-profile.html";
+    });
+    document.getElementById("profile-chip")?.addEventListener("click", () => {
+      window.location.href = "patient-profile.html";
+    });
+  }
 
-    /* ── KPI Cards ───────────────────────────────────── */
-    function renderKPIs() {
-        const today = new Date().toISOString().split("T")[0];
-        const bills = getBills();
+  function setupTabs() {
+    document.querySelectorAll(".filter-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".filter-tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
 
-        // KPI 1 — Total Outstanding
-        const unpaidBills = bills.filter(b => getEffectiveStatus(b) !== "paid");
-        const outstanding = unpaidBills.reduce((sum, b) => sum + b.youPay, 0);
-        document.querySelector(".kpi-value.danger").textContent =
-            "₹" + outstanding.toLocaleString("en-IN");
-        document.querySelector(".kpi-sub.warning-text").textContent =
-            unpaidBills.length + " bill" + (unpaidBills.length !== 1 ? "s" : "") + " due";
+        const section = tab.dataset.section;
+        document.getElementById("section-receipts")?.classList.add("hidden");
+        document.getElementById("section-discharge")?.classList.add("hidden");
+        document.getElementById("section-eod")?.classList.add("hidden");
+        document.getElementById(`section-${section}`)?.classList.remove("hidden");
+      });
+    });
+  }
 
-        // KPI 2 — Paid This Year
-        const year = new Date().getFullYear().toString();
-        const paidBills = bills.filter(b => b.status === "paid");
-        const paidThisYear = paidBills
-            .filter(b => b.dueDateISO.startsWith(year))
-            .reduce((sum, b) => sum + b.youPay, 0);
-        document.querySelector(".kpi-value.success").textContent =
-            "₹" + paidThisYear.toLocaleString("en-IN");
+  function markAsPaid(dispatchId, paymentMethod) {
+    const VALID_METHODS = ["UPI", "CARD", "CASH", "NETBANKING"];
+    if (!VALID_METHODS.includes(paymentMethod)) return false;
 
-        // Update "6 payments made" → dynamic count
-        const kpiSubs = document.querySelectorAll(".kpi-sub");
-        kpiSubs[1].textContent = paidBills.length + " payment" + (paidBills.length !== 1 ? "s" : "") + " made";
+    const raw   = localStorage.getItem("HospitalAppState");
+    const state = raw ? JSON.parse(raw) : null;
+    if (!state) return false;
 
-        // KPI 3 — Insurance Covered
-        const totalInsurance = bills.reduce((sum, b) => sum + b.insuranceCovered, 0);
-        document.querySelector(".kpi-value.primary").textContent =
-            "₹" + totalInsurance.toLocaleString("en-IN");
+    const queueItem = (state.dispatchQueue || []).find(
+      (item) => String(item.id) === String(dispatchId)
+    );
+    if (!queueItem) return false;
 
-        // KPI 3 sub — insurance provider from store
-        const ins = AppStore.patient.insurance;
-        kpiSubs[2].textContent = ins.provider + " – " + (ins.verified ? "Active" : "Unverified");
+    // Only allow marking if the item has been SENT (link delivered by HOM)
+    if (queueItem.status !== window.FinanceStates.SENT) return false;
 
-        // KPI 4 — Next Due Date
-        const nextBill = unpaidBills.sort((a, b) => a.dueDateISO.localeCompare(b.dueDateISO))[0] || null;
-        const dueDateValEl = document.querySelectorAll(".kpi-value")[3];
-        const dueDateSubEl = kpiSubs[3];
+    queueItem.status                 = window.FinanceStates.PENDING_VERIFICATION;
+    queueItem.patient_payment_method = paymentMethod;
+    queueItem.patient_marked_at      = Date.now();
 
-        if (nextBill) {
-            dueDateValEl.textContent = nextBill.dueDate;
-            if (nextBill.dueDateISO < today) {
-                dueDateSubEl.textContent = "Already overdue";
-                dueDateSubEl.style.color = "var(--danger)";
-            } else {
-                const daysLeft = Math.ceil(
-                    (new Date(nextBill.dueDateISO) - new Date(today)) / (1000 * 60 * 60 * 24)
-                );
-                dueDateSubEl.textContent = "In " + daysLeft + " day" + (daysLeft !== 1 ? "s" : "");
-                dueDateSubEl.style.color = daysLeft <= 7 ? "var(--warn)" : "var(--muted)";
-            }
-        } else {
-            dueDateValEl.textContent = "None";
-            dueDateSubEl.textContent = "All bills paid";
-            dueDateSubEl.style.color = "var(--success)";
-        }
-
-        const profile = getProfile();
-        const insurance = profile?.insurance || {};
-        const totalBilled = bills.reduce((sum, bill) => sum + bill.total, 0);
-        const totalInsuranceCovered = bills.reduce((sum, bill) => sum + bill.insuranceCovered, 0);
-
-        const verifiedBadge = document.querySelector(".ins-badge");
-        const insuranceTitle = document.querySelector(".ins-left strong");
-        const insuranceCopy = document.querySelector(".ins-left p");
-        const breakdownValues = document.querySelectorAll(".ins-item strong");
-
-        if (verifiedBadge) verifiedBadge.textContent = insurance.verified ? "Verified" : "Pending";
-        if (insuranceTitle) insuranceTitle.textContent = `${insurance.provider || "Self Pay"} Insurance`;
-        if (insuranceCopy) {
-            insuranceCopy.textContent = `Policy ${insurance.policyNumber || "NA"} · Coverage ₹${Number(insurance.coverage || 0).toLocaleString("en-IN")} · Valid till ${insurance.validTo || "NA"}`;
-        }
-
-        if (breakdownValues[0]) breakdownValues[0].textContent = "₹" + totalBilled.toLocaleString("en-IN");
-        if (breakdownValues[1]) breakdownValues[1].textContent = "₹" + totalInsuranceCovered.toLocaleString("en-IN");
-        if (breakdownValues[2]) breakdownValues[2].textContent = "₹" + outstanding.toLocaleString("en-IN");
+    localStorage.setItem("HospitalAppState", JSON.stringify(state));
+    
+    // Immediate push to backend for real-time sync
+    if (window.APIClient) {
+      window.APIClient.pushFullState(state);
     }
 
-    function renderDocuments() {
-        const container = document.getElementById("patient-documents-links");
-        if (!container) return;
+    window.dispatchEvent(new Event("patientStoreUpdated"));
+    return true;
+  }
 
-        const documents = getDocuments();
-        if (documents.length === 0) {
-            container.innerHTML = `
-                <div class="ins-item">
-                    <span>No documents yet</span>
-                    <strong>--</strong>
-                </div>
-            `;
-            return;
-        }
+  function renderAll() {
+    renderPatientHeader();
+    renderKpis();
+    renderSections();
+  }
 
-        container.innerHTML = documents.slice(0, 3).map(doc => `
-            <div class="ins-item">
-                <span>${doc.title}</span>
-                <strong><a href="${doc.reference}" target="_blank" style="color: inherit; text-decoration: none;">Open</a></strong>
+  function renderPatientHeader() {
+    const profile = getProfile();
+    const authName = sessionStorage.getItem("authDisplayName") || profile?.name || "Patient";
+    const safeName = String(authName).trim();
+    const initials = safeName
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "P";
+
+    const nameEl = document.getElementById("bill-topbar-name");
+    const avatarEl = document.getElementById("bill-avatar");
+    if (nameEl) nameEl.textContent = safeName;
+    if (avatarEl) avatarEl.textContent = initials;
+  }
+
+  function renderKpis() {
+    const sections = getBillingSections();
+    const visits = getVisits();
+
+    const paidTotal = (sections.receipts || [])
+      .filter((row) => row.type === "RECEIPT" || row.type === "PAYMENT_CONFIRMED")
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const pendingLinksTotal = (sections.receipts || [])
+      .filter((row) => row.type === "PAYMENT_LINK")
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const dischargeTotal = (sections.discharge || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const eodTotal = (sections.eod || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+
+    const totalBilled = paidTotal + pendingLinksTotal + dischargeTotal + eodTotal;
+    const totalPaid = paidTotal;
+    const pending = pendingLinksTotal;
+
+    setText("kpi-total-billed", `Rs ${totalBilled.toLocaleString("en-IN")}`);
+    setText("kpi-paid", `Rs ${totalPaid.toLocaleString("en-IN")}`);
+    setText("kpi-pending", `Rs ${pending.toLocaleString("en-IN")}`);
+    setText("kpi-visits", String((visits || []).length));
+
+    setText("kpi-total-billed-sub", `${(sections.receipts || []).length + (sections.discharge || []).length + (sections.eod || []).length} documents`);
+    setText("kpi-paid-sub", `${(sections.receipts || []).filter((row) => row.type === "RECEIPT").length} receipts`);
+    setText("kpi-pending-sub", `${(sections.receipts || []).filter((row) => row.type === "PAYMENT_LINK").length} payment links`);
+  }
+
+  function renderSections() {
+    const sections = getBillingSections();
+
+    renderReceiptsSection(sections.receipts || []);
+    renderDischargeSection(sections.discharge || []);
+    renderEodSection(sections.eod || []);
+  }
+
+  function renderReceiptsSection(rows) {
+    const el = document.getElementById("section-receipts");
+    if (!el) return;
+
+    if (!rows.length) {
+      el.classList.remove("billing-list");
+      el.innerHTML = `<div class="table-empty"><p>No receipts or payment links available.</p></div>`;
+      return;
+    }
+
+    el.innerHTML = rows.map((row) => {
+      const safeRow = window.Sanitizer ? window.Sanitizer.forRole(row, 'PATIENT') : row;
+      const isPaymentLink = row.type === "PAYMENT_LINK";
+      const isPaidLink = row.type === "PAYMENT_CONFIRMED";
+      const isPendingVerification = row.status === window.FinanceStates.PENDING_VERIFICATION;
+
+      const action = isPendingVerification
+        ? `<button class="btn-view" type="button" disabled
+             title="Awaiting FA verification"
+             style="opacity:0.5;cursor:not-allowed;">
+             Awaiting Verification
+           </button>`
+        : isPaymentLink
+          ? `<button class="btn-view" type="button"
+               data-pay-link="${escapeAttr(row.paymentLink || "")}"
+               data-dispatch-id="${escapeAttr(String(row.dispatchId || ""))}">
+               Pay Now
+             </button>`
+          : `<button class="btn-download" type="button"
+               data-source-type="${escapeAttr(row.sourceType || "")}"
+               data-source-id="${escapeAttr(String(row.sourceId || ""))}"
+               data-row-type="${escapeAttr(row.type || "")}"
+               data-row-title="${escapeAttr(row.title || "")}">
+               View Digital Copy
+             </button>`;
+      const statusLabel = isPendingVerification
+        ? `<span class="status pending">Pending Verification</span>`
+        : isPaymentLink
+          ? `<span class="status pending">Pending</span>`
+          : isPaidLink
+            ? `<span class="status confirmed">Paid</span>`
+            : `<span class="status confirmed">Receipt</span>`;
+
+      return `
+        <div class="billing-row">
+          <div class="billing-row-main">
+            <div class="billing-row-title">
+              <strong>${escapeHtml(safeRow.title || (isPaymentLink ? "Payment Link" : "Receipt"))}</strong>
+              ${statusLabel}
             </div>
-        `).join("");
-    }
+            <span class="billing-row-date">${new Date(safeRow.createdAt || Date.now()).toLocaleString("en-IN")}</span>
+          </div>
+          <div class="billing-row-meta">
+            <strong class="billing-row-amount">Rs ${Number(safeRow.amount || 0).toLocaleString("en-IN")}</strong>
+            <div class="billing-row-actions">${action}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+    el.classList.add("billing-list");
 
-    /* ── Table Rendering ─────────────────────────────── */
-    function renderTable(bills, filter) {
-        const tbody = document.querySelector("#bills-table tbody");
-        const emptyState = document.getElementById("empty-state");
-        const tableWrap = document.querySelector(".table-wrap");
-        const searchTerm = document.getElementById("bill-search").value.toLowerCase();
+    el.querySelectorAll("[data-pay-link]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const link       = btn.getAttribute("data-pay-link") || "";
+        const dispatchId = btn.getAttribute("data-dispatch-id") || "";
+        if (!link)       return showToast("Payment link is not available.", "info");
+        if (!dispatchId) return showToast("Unable to confirm payment for this link.", "warn");
 
-        const filtered = bills.filter(bill => {
-            const status = getEffectiveStatus(bill);
-            const matchFilter = filter === "all" || status === filter;
-            const matchSearch =
-                bill.billNo.toLowerCase().includes(searchTerm) ||
-                bill.department.toLowerCase().includes(searchTerm) ||
-                bill.description.toLowerCase().includes(searchTerm);
-            return matchFilter && matchSearch;
-        });
+        // Patient selects payment method
+        const method = window.prompt(
+          "Select payment method:\nType exactly one of: UPI, CARD, CASH, NETBANKING",
+          "UPI"
+        );
+        if (!method) return; // user cancelled
 
-        if (filtered.length === 0) {
-            tbody.innerHTML = "";
-            emptyState.classList.remove("hidden");
-            tableWrap.classList.add("hidden");
-            return;
+        const normalised = method.trim().toUpperCase();
+        const validMethods = ["UPI", "CARD", "CASH", "NETBANKING"];
+        if (!validMethods.includes(normalised)) {
+          showToast("Invalid payment method. Type exactly: UPI, CARD, CASH, or NETBANKING.", "warn");
+          return;
         }
 
-        emptyState.classList.add("hidden");
-        tableWrap.classList.remove("hidden");
-
-        tbody.innerHTML = filtered.map(bill => {
-            const status = getEffectiveStatus(bill);
-            const dueDateClass = status === "overdue" ? "danger-text"
-                : status === "pending" ? "warn-text" : "";
-            const statusBadge = `<span class="status ${status}">${capitalize(status)}</span>`;
-            const actions = status === "paid"
-                ? `<div class="action-btns">
-           <button class="btn-download" type="button" data-bill-id="${bill.id}">Receipt</button>
-         </div>`
-                : `<div class="action-btns">
-           <button class="btn-view" type="button" data-bill-id="${bill.id}">View</button>
-           <button class="btn-dispute" type="button" data-bill-id="${bill.id}">Dispute</button>
-         </div>`;
-
-            return `
-      <tr data-status="${status}">
-        <td class="bill-id">${bill.billNo}</td>
-        <td>${bill.date}</td>
-        <td>${bill.department}</td>
-        <td>${bill.description}</td>
-        <td>₹${bill.total.toLocaleString("en-IN")}</td>
-        <td class="success">₹${bill.insuranceCovered.toLocaleString("en-IN")}</td>
-        <td><strong>₹${bill.youPay.toLocaleString("en-IN")}</strong></td>
-        <td class="${dueDateClass}">${bill.dueDate}</td>
-        <td>${statusBadge}</td>
-        <td>${actions}</td>
-      </tr>`;
-        }).join("");
-
-        attachRowListeners();
-    }
-
-    /* ── Row Button Listeners ────────────────────────── */
-    function attachRowListeners() {
-        document.querySelectorAll(".btn-view").forEach(btn => {
-            btn.addEventListener("click", () => openModal(btn.dataset.billId));
-        });
-
-        document.querySelectorAll(".btn-dispute").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const bill = getBillById(btn.dataset.billId);
-                if (bill && !bill.disputed) {
-                    disputeBill(btn.dataset.billId);
-                    showToast("Dispute submitted for " + bill.billNo + ". Billing team will contact you within 2 business days.", "warn");
-                } else {
-                    showToast("This bill has already been disputed.", "info");
-                }
-            });
-        });
-
-        document.querySelectorAll(".btn-download").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const bill = getBillById(btn.dataset.billId);
-                showToast("Receipt for " + bill.billNo + " will download once backend is connected.", "info");
-            });
-        });
-    }
-
-    /* ── Filter Tabs ─────────────────────────────────── */
-    function setupFilterTabs() {
-        const tabs = document.querySelectorAll(".filter-tab");
-        tabs.forEach(tab => {
-            tab.addEventListener("click", () => {
-                tabs.forEach(t => t.classList.remove("active"));
-                tab.classList.add("active");
-                renderTable(getBills(), tab.dataset.filter);
-            });
-        });
-    }
-
-    /* ── Search ──────────────────────────────────────── */
-    function setupSearch() {
-        document.getElementById("bill-search").addEventListener("input", () => {
-            const activeFilter = document.querySelector(".filter-tab.active").dataset.filter;
-            renderTable(getBills(), activeFilter);
-        });
-    }
-
-    /* ── Modal ───────────────────────────────────────── */
-    const modalOverlay = document.getElementById("bill-modal");
-
-    function openModal(billId) {
-        const bill = getBillById(billId);
-        if (!bill) return;
-
-        document.getElementById("m-bill-id").textContent = bill.billNo;
-
-        // Update the 4 meta fields
-        const metas = document.querySelectorAll(".modal-meta strong");
-        if (metas[0]) metas[0].textContent = bill.billNo;
-        const metaSpans = document.querySelectorAll(".modal-meta");
-        if (metaSpans[1]) metaSpans[1].querySelector("strong").textContent = bill.date;
-        if (metaSpans[2]) metaSpans[2].querySelector("strong").textContent = bill.department;
-
-        // Status badge
-        const statusCell = metaSpans[3];
-        if (statusCell) {
-            statusCell.innerHTML = `<span>Status</span><span class="status ${bill.status}">${capitalize(bill.status)}</span>`;
+        const marked = markAsPaid(dispatchId, normalised);
+        if (!marked) {
+          showToast("Unable to mark payment. Link may not be ready yet.", "warn");
+          return;
         }
 
-        // Itemized table
-        const itemTbody = document.querySelector(".itemized-table tbody");
-        itemTbody.innerHTML = bill.items.map(item => `
-      <tr>
-        <td>${item.name}</td>
-        <td>${item.qty}</td>
-        <td>₹${item.unitPrice.toLocaleString("en-IN")}</td>
-        <td>₹${item.total.toLocaleString("en-IN")}</td>
-      </tr>
-    `).join("");
+        window.open(link, "_blank");
+        showToast("Payment marked as pending verification. Finance will confirm shortly.", "success");
+        renderAll();
+      });
+    });
 
-        // Footer totals
-        const tfoot = document.querySelector(".itemized-table tfoot");
-        tfoot.innerHTML = `
-      <tr>
-        <td colspan="3"><strong>Subtotal</strong></td>
-        <td><strong>₹${bill.total.toLocaleString("en-IN")}</strong></td>
-      </tr>
-      <tr class="ins-row">
-        <td colspan="3">Insurance Covered (${AppStore.patient.insurance.provider})</td>
-        <td class="success">– ₹${bill.insuranceCovered.toLocaleString("en-IN")}</td>
-      </tr>
-      <tr class="total-row">
-        <td colspan="3"><strong>Amount Due</strong></td>
-        <td><strong class="${bill.status === 'paid' ? 'success' : 'danger'}">
-          ₹${bill.youPay.toLocaleString("en-IN")}
-        </strong></td>
-      </tr>
+    attachDigitalCopyHandlers(el);
+  }
+
+  function renderDischargeSection(rows) {
+    const el = document.getElementById("section-discharge");
+    if (!el) return;
+
+    if (!rows.length) {
+      el.classList.remove("billing-list");
+      el.innerHTML = `<div class="table-empty"><p>No discharge summary available.</p></div>`;
+      return;
+    }
+
+    el.innerHTML = rows.map((row) => {
+      const safeRow = window.Sanitizer ? window.Sanitizer.forRole(row, 'PATIENT') : row;
+      return `
+      <div class="billing-row">
+        <div class="billing-row-main">
+          <div class="billing-row-title">
+            <strong>${escapeHtml(safeRow.title || "Discharge Summary")}</strong>
+          </div>
+          <span class="billing-row-date">${new Date(safeRow.createdAt || Date.now()).toLocaleString("en-IN")}</span>
+        </div>
+        <div class="billing-row-meta">
+          <strong class="billing-row-amount">Rs ${Number(safeRow.amount || 0).toLocaleString("en-IN")}</strong>
+          <div class="billing-row-actions">
+            <button class="btn-download" type="button" data-source-type="${escapeAttr(row.sourceType || "")}" data-source-id="${escapeAttr(String(row.sourceId || ""))}" data-row-type="${escapeAttr(row.type || "")}" data-row-title="${escapeAttr(row.title || "")}">View Digital Copy</button>
+          </div>
+        </div>
+      </div>
     `;
+    }).join("");
+    el.classList.add("billing-list");
 
-        // Raise Dispute button — hide for paid bills
-        const disputeBtn = document.querySelector(".modal-btn-dispute");
-        if (disputeBtn) {
-            disputeBtn.style.display = bill.status === "paid" ? "none" : "";
-            disputeBtn.onclick = () => {
-                if (!bill.disputed) {
-                    disputeBill(bill.id);
-                    showToast("Dispute submitted for " + bill.billNo, "warn");
-                    closeModal();
-                } else {
-                    showToast("Already disputed.", "info");
-                }
-            };
-        }
+    attachDigitalCopyHandlers(el);
+  }
 
-        modalOverlay.classList.remove("hidden");
+  function renderEodSection(rows) {
+    const el = document.getElementById("section-eod");
+    if (!el) return;
+
+    if (!rows.length) {
+      el.classList.remove("billing-list");
+      el.innerHTML = `<div class="table-empty"><p>No EOD bills available.</p></div>`;
+      return;
     }
 
-    function closeModal() {
-        modalOverlay.classList.add("hidden");
+    el.innerHTML = rows.map((row) => {
+      const safeRow = window.Sanitizer ? window.Sanitizer.forRole(row, 'PATIENT') : row;
+      return `
+      <div class="billing-row">
+        <div class="billing-row-main">
+          <div class="billing-row-title">
+            <strong>${escapeHtml(safeRow.title || "EOD Bill")}</strong>
+          </div>
+          <span class="billing-row-date">${new Date(safeRow.createdAt || Date.now()).toLocaleString("en-IN")}</span>
+        </div>
+        <div class="billing-row-meta">
+          <strong class="billing-row-amount">Rs ${Number(safeRow.amount || 0).toLocaleString("en-IN")}</strong>
+          <div class="billing-row-actions">
+            <button class="btn-download" type="button" data-source-type="${escapeAttr(row.sourceType || "")}" data-source-id="${escapeAttr(String(row.sourceId || ""))}" data-row-type="${escapeAttr(row.type || "")}" data-row-title="${escapeAttr(row.title || "")}">View Digital Copy</button>
+          </div>
+        </div>
+      </div>
+    `;
+    }).join("");
+    el.classList.add("billing-list");
+
+    attachDigitalCopyHandlers(el);
+  }
+
+  function attachDigitalCopyHandlers(container) {
+    container.querySelectorAll("[data-source-type][data-source-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sourceType = btn.getAttribute("data-source-type") || "";
+        const sourceId = btn.getAttribute("data-source-id") || "";
+        const rowType = btn.getAttribute("data-row-type") || "";
+        const rowTitle = btn.getAttribute("data-row-title") || "Digital Copy";
+        if (!sourceType || !sourceId) return showToast("Document source not available.", "warn");
+
+        const record = typeof getBillingDocumentByRef === "function"
+          ? getBillingDocumentByRef(sourceType, sourceId)
+          : null;
+        if (!record) return showToast("Unable to open digital copy.", "warn");
+
+        openDigitalCopy(record, { rowType, rowTitle, sourceType, sourceId });
+      });
+    });
+  }
+
+  function openDigitalCopy(record, context = {}) {
+    const win = window.open("", "_blank");
+    if (!win) {
+      showToast("Please allow popups to view digital copy.", "warn");
+      return;
     }
 
-    function setupModal() {
-        document.getElementById("modal-close").addEventListener("click", closeModal);
-        document.getElementById("modal-close-btn").addEventListener("click", closeModal);
-        modalOverlay.addEventListener("click", e => { if (e.target === modalOverlay) closeModal(); });
-        document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
-    }
+    const rowType = context.rowType || record.type || "DOCUMENT";
+    const title = context.rowTitle || "Digital Copy";
+    const createdAt = new Date(
+      record.receipt_sent_at || record.confirmed_at || record.payment_confirmed_at ||
+      record.sent_at || record.created_at || record.ts || Date.now()
+    ).toLocaleString("en-IN");
+    const patientName = record.patient || record.patient_name || getProfile()?.name || "Patient";
+    const patientId = record.patient_id || record.admission_id || record.uhid || "N/A";
+    const paymentMode = record.mode || record.payment_mode || "N/A";
+    const gross = Number(record.gross || record.amount || 0);
+    const coverage = Number(record.coverage || record.insurance_deduction || 0);
+    const amount = Number(record.amount || 0);
+    const reference = record.receipt_link || record.discharge_summary_link || record.billing_link || record.payment_link || record.link || record.reference || "N/A";
+    const docStatus = record.status || "AVAILABLE";
 
-    /* ── Toast ───────────────────────────────────────── */
-    function showToast(message, type = "info") {
-        document.querySelector(".toast-notify")?.remove();
-        const colors = { warn: "#7a4b00", info: "#1c2f42", success: "#1a5c3a" };
-        const t = document.createElement("div");
-        t.className = "toast-notify";
-        t.textContent = message;
-        Object.assign(t.style, {
-            position: "fixed", bottom: "28px", right: "28px", zIndex: "9999",
-            background: colors[type] || colors.info, color: "#fff",
-            padding: "13px 20px", borderRadius: "12px", fontSize: "13px",
-            fontWeight: "600", fontFamily: "Inter, sans-serif",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.18)", maxWidth: "380px",
-            lineHeight: "1.5", transform: "translateY(80px)", opacity: "0",
-            transition: "transform 280ms ease, opacity 280ms ease"
-        });
-        document.body.appendChild(t);
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            t.style.transform = "translateY(0)"; t.style.opacity = "1";
-        }));
-        setTimeout(() => {
-            t.style.transform = "translateY(80px)"; t.style.opacity = "0";
-            setTimeout(() => t.remove(), 300);
-        }, 3500);
-    }
+    win.document.write(`
+      <html>
+      <head>
+        <title>${escapeHtml(title)}</title>
+        <style>
+          body { font-family: 'Inter', sans-serif; padding: 50px; color: #1e293b; max-width: 700px; margin: 0 auto; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+          h2 { color: #0f172a; margin: 0; font-size: 24px; }
+          .badge { background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
+          .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #cbd5e1; font-size: 15px; }
+          .row span:first-child { color: #64748b; font-weight: 500; }
+          .row span:last-child { font-weight: 600; color: #0f172a; }
+          .net { font-size: 20px; font-weight: 800; color: #00a19a; border-bottom: 2px solid #00a19a; border-top: 2px solid #00a19a; padding: 20px 0; margin-top: 10px; }
+          .net span { color: #00a19a !important; }
+          .print-btn { background: #00a19a; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 40px; display: block; width: 100%; }
+          @media print { .print-btn { display:none; } body { padding:0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>Payment Receipt</h2>
+          <span class="badge">${escapeHtml(String(docStatus).replace(/_/g, " "))}</span>
+        </div>
+        <div class="row"><span>Document</span><span>${escapeHtml(title)}</span></div>
+        <div class="row"><span>Type</span><span>${escapeHtml(rowType)}</span></div>
+        <div class="row"><span>Patient Name</span><span>${escapeHtml(patientName)}</span></div>
+        <div class="row"><span>Patient ID</span><span>${escapeHtml(String(patientId))}</span></div>
+        <div class="row"><span>Generated</span><span>${escapeHtml(createdAt)}</span></div>
+        <div class="row"><span>Payment Mode</span><span>${escapeHtml(String(paymentMode).toUpperCase())}</span></div>
+        <div class="row"><span>Gross Total</span><span>Rs ${gross.toLocaleString("en-IN")}</span></div>
+        <div class="row"><span>Insurance Coverage</span><span>-Rs ${coverage.toLocaleString("en-IN")}</span></div>
+        <div class="row net"><span>Net Paid</span><span>Rs ${amount.toLocaleString("en-IN")}</span></div>
+        <div class="row"><span>Reference</span><span>${escapeHtml(reference)}</span></div>
+        <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  }
 
-    /* ── Utility ─────────────────────────────────────── */
-    function capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
 
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value);
+  }
+
+  function showToast(message, type = "info") {
+    document.querySelector(".toast-notify")?.remove();
+    const colors = { warn: "#7a4b00", info: "#1c2f42", success: "#1a5c3a" };
+    const t = document.createElement("div");
+    t.className = "toast-notify";
+    t.textContent = message;
+    Object.assign(t.style, {
+      position: "fixed", bottom: "28px", right: "28px", zIndex: "9999",
+      background: colors[type] || colors.info, color: "#fff",
+      padding: "13px 20px", borderRadius: "12px", fontSize: "13px",
+      fontWeight: "600", fontFamily: "Inter, sans-serif",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.18)", maxWidth: "380px",
+      lineHeight: "1.5", transform: "translateY(80px)", opacity: "0",
+      transition: "transform 280ms ease, opacity 280ms ease"
+    });
+    document.body.appendChild(t);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      t.style.transform = "translateY(0)";
+      t.style.opacity = "1";
+    }));
+    setTimeout(() => {
+      t.style.transform = "translateY(80px)";
+      t.style.opacity = "0";
+      setTimeout(() => t.remove(), 300);
+    }, 3500);
+  }
 });

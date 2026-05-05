@@ -1,6 +1,23 @@
 // js/state.js
 
-const STORAGE_KEY = 'hospitalFinanceAppState';
+const LEGACY_STORAGE_KEY = 'hospitalFinanceAppState';
+const ROOT_STORAGE_KEY = 'HospitalAppState';
+
+function useSharedState(){ return localStorage.getItem('USE_SHARED_STATE') === 'true'; }
+function resolveStorageKey(){ return ROOT_STORAGE_KEY; }
+function readStateFromAdapter() {
+    if (window.FAStorage && typeof window.FAStorage.getState === 'function') return window.FAStorage.getState();
+    const raw = localStorage.getItem(resolveStorageKey());
+    return raw ? JSON.parse(raw) : null;
+}
+function writeStateFromAdapter(state) {
+    if (window.FAStorage && typeof window.FAStorage.setState === 'function') {
+        window.FAStorage.setState(state);
+        return;
+    }
+    const payload = JSON.stringify(state);
+    localStorage.setItem(ROOT_STORAGE_KEY, payload);
+}
 
 function mergeState(defaults, saved) {
     if (Array.isArray(defaults)) return Array.isArray(saved) ? saved : defaults.slice();
@@ -30,6 +47,7 @@ function ensureFinanceStateShape() {
     if (!Array.isArray(AppState.publishedBills)) AppState.publishedBills = [];
     if (!Array.isArray(AppState.dispatchQueue)) AppState.dispatchQueue = [];
     if (!Array.isArray(AppState.faLedgerRequests)) AppState.faLedgerRequests = [];
+    if (!Array.isArray(AppState.paymentConfirmations)) AppState.paymentConfirmations = [];
     if (!Array.isArray(AppState.billingRecords)) AppState.billingRecords = [];
 
     if (!AppState.currentPatientId) {
@@ -41,7 +59,7 @@ function ensureFinanceStateShape() {
 function saveState() {
     try {
         ensureFinanceStateShape();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState));
+        writeStateFromAdapter(AppState);
     } catch (e) {
         console.warn('Could not save state to localStorage:', e);
     }
@@ -49,14 +67,24 @@ function saveState() {
 
 function loadState() {
     try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
+        const parsed = readStateFromAdapter();
+        if (parsed) {
             Object.assign(AppState, mergeState(AppState, parsed));
         }
         ensureFinanceStateShape();
+        // Trigger UI refresh if router is available
+        if (window.Router && typeof window.Router.refresh === 'function') {
+            window.Router.refresh();
+        }
     } catch (e) {
         console.warn('Could not load state from localStorage, using defaults:', e);
         ensureFinanceStateShape();
     }
 }
+
+// Global listeners for sync events
+window.addEventListener('storage', loadState);
+window.addEventListener('sharedStateUpdated', loadState);
+
+
+

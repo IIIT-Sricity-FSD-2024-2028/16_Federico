@@ -3,7 +3,9 @@ function navigate(hash, patientId = null) {
     if (patientId) AppState.currentPatientId = patientId;
     saveState();
     location.hash = hash;
-    render();
+    if (typeof window.render === 'function') window.render();
 }
 
-window.onhashchange = render;
+window.onhashchange = function () {
+    if (typeof window.render === 'function') window.render();
+};

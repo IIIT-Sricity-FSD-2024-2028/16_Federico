@@ -13,7 +13,15 @@ document.addEventListener("DOMContentLoaded", () => {
     <style>
       .top-nav { height: 64px; background: #ffffff; border-bottom: 1px solid #E2E8F0; position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; font-family: 'Inter', sans-serif; }
       .nav-logo-group { display: flex; align-items: center; gap: 8px; }
-      .nav-logo-icon { width: 28px; height: 28px; background-color: #20B2AA; border-radius: 6px; }
+      .nav-logo-icon {     width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 700; }
       .nav-logo-text { font-size: 18px; font-weight: 600; display: flex; gap: 4px; }
       .nav-logo-text .federico { color: #20B2AA; }
       .nav-logo-text .hospital { color: #1E293B; }
@@ -61,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     <div class="top-nav">
       <div class="nav-logo-group">
-        <div class="nav-logo-icon"></div>
+        <div class="nav-logo-icon">F</div>
         <div class="nav-logo-text">
           <span class="federico">Federico</span>
           <span class="hospital">Hospital</span>
@@ -74,7 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <a href="screen-03-patient-flow.html" class="nav-link" data-flow="nav-patients">Patient Flow</a>
         <a href="screen-04-inventory.html" class="nav-link" data-flow="nav-inventory">Inventory</a>
         <a href="screen-05-billing.html" class="nav-link" data-flow="nav-billing">Billing Summary</a>
-        <a href="../FA/index.html" class="nav-link" data-flow="nav-finance" hidden>Finance Control</a>
       </div>
 
       <div class="nav-actions">
@@ -146,15 +153,10 @@ document.addEventListener("DOMContentLoaded", () => {
   navContainer.innerHTML = navHTML;
 
   const currentProfile = window.RoleAccess?.getProfile?.();
-  const financeLink = navContainer.querySelector('[data-flow="nav-finance"]');
   const avatar = document.getElementById('nav-avatar');
   const profileText = document.getElementById('nav-profile-text');
   const profileTitle = document.getElementById('nav-profile-title');
   const profileEmail = document.getElementById('nav-profile-email');
-
-  if (financeLink) {
-    financeLink.hidden = !(window.RoleAccess?.isSuperUser?.() && window.RoleAccess?.hasModuleAccess?.('FA'));
-  }
 
   if (avatar) avatar.textContent = currentProfile?.accessRole === 'SUPER_USER' ? 'SU' : 'HO';
   if (profileText) profileText.textContent = currentProfile?.accessRole === 'SUPER_USER' ? 'Super User' : 'HOM';
@@ -204,7 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('btn-signout')?.addEventListener('click', () => {
     if (window.RoleAccess) window.RoleAccess.logout();
     else sessionStorage.removeItem('userRole');
-    window.location.href = '../Patient/landing-page.html';
+    window.location.href = '../landing/landing-page.html';
   });
 
   // Handle Notifications Navigation (from CONNECTION-MAP.md)

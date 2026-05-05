@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+  <script src="auth-guard.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Patient Dashboard</title>
@@ -10,8 +11,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="patient-dashboard.css" />
-    <script src="../shared/rbac.js"></script>
-    <script src="js/auth-guard.js"></script>
 </head>
 
 <body>
@@ -32,8 +31,6 @@
         </nav>
 
         <div class="topbar-right">
-            <button class="logout-btn" type="button">LOG OUT</button>
-
             <button class="user-chip" type="button" id="profile-chip" aria-label="Go to profile">
                 <div class="user-avatar">HA</div>
                 <div class="user-meta">
@@ -41,7 +38,6 @@
                     <span>Patient</span>
                 </div>     
             </button>
-            </div>
         </div>
     </header>
 
@@ -86,7 +82,6 @@
                                     <th>Date</th>
                                     <th>Time</th>
                                     <th>Department</th>
-                                    <th>Type</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -95,28 +90,24 @@
                                     <td>Mar 8, 2026</td>
                                     <td>9:00 AM</td>
                                     <td>Cardiology</td>
-                                    <td>Follow-up</td>
                                     <td><span class="status confirmed">Confirmed</span></td>
                                 </tr>
                                 <tr>
                                     <td>Mar 10, 2026</td>
                                     <td>11:00 AM</td>
                                     <td>Neurology</td>
-                                    <td>Consultation</td>
                                     <td><span class="status scheduled">Scheduled</span></td>
                                 </tr>
                                 <tr>
                                     <td>Mar 15, 2026</td>
                                     <td>2:00 PM</td>
                                     <td>Orthopedics</td>
-                                    <td>Review</td>
                                     <td><span class="status pending">Pending</span></td>
                                 </tr>
                                 <tr>
                                     <td>Mar 20, 2026</td>
                                     <td>10:30 AM</td>
                                     <td>Cardiology</td>
-                                    <td>Check-up</td>
                                     <td><span class="status scheduled">Scheduled</span></td>
                                 </tr>
                             </tbody>
@@ -132,27 +123,7 @@
 
                     <div class="visit-list">
                         <div class="visit-item">
-                            <div class="visit-title">
-                                <span class="visit-dot"></span>
-                                <strong>Cardiology Consultation</strong>
-                            </div>
-                            <span class="visit-date">Mar 2, 2026</span>
-                        </div>
-
-                        <div class="visit-item">
-                            <div class="visit-title">
-                                <span class="visit-dot"></span>
-                                <strong>Blood Test - Diagnostics</strong>
-                            </div>
-                            <span class="visit-date">Feb 20, 2026</span>
-                        </div>
-
-                        <div class="visit-item">
-                            <div class="visit-title">
-                                <span class="visit-dot"></span>
-                                <strong>General Check-up</strong>
-                            </div>
-                            <span class="visit-date">Jan 15, 2026</span>
+                            <span style="color: var(--muted);">No visit history.</span>
                         </div>
                     </div>
                 </section>
@@ -254,12 +225,18 @@
                         <h3>Documents From HOM</h3>
                     </div>
 
-                    <div class="bill-list" id="patient-documents-list">
-                        <div class="bill-item">
-                            <div>
-                                <strong>No documents yet</strong>
-                                <span>Documents sent by HOM will appear here.</span>
-                            </div>
+                    <div id="patient-documents-list">
+                        <div class="bill-list">
+                            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #475569;">Receipts</h4>
+                            <div id="documents-receipts"></div>
+                        </div>
+                        <div class="bill-list" style="margin-top: 14px;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #475569;">Discharge Summary</h4>
+                            <div id="documents-discharge"></div>
+                        </div>
+                        <div class="bill-list" style="margin-top: 14px;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #475569;">EOD Bills</h4>
+                            <div id="documents-eod"></div>
                         </div>
                     </div>
                 </section>
@@ -281,7 +258,6 @@
                                     <th>Date</th>
                                     <th>Time</th>
                                     <th>Department</th>
-                                    <th>Type</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -290,14 +266,12 @@
                                     <td>Mar 8, 2026</td>
                                     <td>9:00 AM</td>
                                     <td>Cardiology</td>
-                                    <td>Follow-up</td>
                                     <td><span class="status confirmed">Confirmed</span></td>
                                 </tr>
                                 <tr>
                                     <td>Mar 10, 2026</td>
                                     <td>11:00 AM</td>
                                     <td>Neurology</td>
-                                    <td>Consultation</td>
                                     <td><span class="status scheduled">Scheduled</span></td>
                                 </tr>
                                 <tr>
@@ -343,36 +317,7 @@
                 <div class="modal-body">
                     <div class="visit-list modal-visit-list">
                         <div class="visit-item">
-                            <div class="visit-title"><span class="visit-dot"></span><strong>Cardiology Consultation</strong>
-                            </div>
-                            <span class="visit-date">Mar 2, 2026</span>
-                        </div>
-                        <div class="visit-item">
-                            <div class="visit-title"><span class="visit-dot"></span><strong>Blood Test – Diagnostics</strong>
-                            </div>
-                            <span class="visit-date">Feb 20, 2026</span>
-                        </div>
-                        <div class="visit-item">
-                            <div class="visit-title"><span class="visit-dot"></span><strong>General Check-up</strong></div>
-                            <span class="visit-date">Jan 15, 2026</span>
-                        </div>
-                        <div class="visit-item">
-                            <div class="visit-title"><span class="visit-dot"></span><strong>Neurology Consultation</strong>
-                            </div>
-                            <span class="visit-date">Dec 10, 2025</span>
-                        </div>
-                        <div class="visit-item">
-                            <div class="visit-title"><span class="visit-dot"></span><strong>Orthopedics Follow-up</strong></div>
-                            <span class="visit-date">Nov 28, 2025</span>
-                        </div>
-                        <div class="visit-item">
-                            <div class="visit-title"><span class="visit-dot"></span><strong>Cardiology – ECG Test</strong></div>
-                            <span class="visit-date">Oct 5, 2025</span>
-                        </div>
-                        <div class="visit-item">
-                            <div class="visit-title"><span class="visit-dot"></span><strong>Annual Health Screening</strong>
-                            </div>
-                            <span class="visit-date">Sep 14, 2025</span>
+                            <span style="color: var(--muted);">No visit history.</span>
                         </div>
                     </div>
                 </div>
@@ -444,10 +389,20 @@
         </div>
     </main>
 
-    <!-- patient-dashboard.html -->
-    <script src="../shared/canonical-seed.js" defer></script>
-    <script src="js/patient-store.js" defer></script>
-    <script src="patient-dashboard.js" defer></script>
+
+  <script src="../shared/constants.js"></script>
+    <script src="../shared/canonical-seed.js"></script>
+<script src="../shared/id-generator.js"></script>
+<script src="../shared/patient-resolver.js"></script>
+<script src="../shared/sanitizer.js"></script>
+<script src="../shared/ledger-validator.js"></script>
+<script src="../shared/finance-states.js"></script>
+<script src="../shared/insurance.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="js/patient-store.js"></script>
+<script src="patient-dashboard.js"></script>
+<script src="../shared/debug-state-panel.js"></script>
 </body>
 
 </html>

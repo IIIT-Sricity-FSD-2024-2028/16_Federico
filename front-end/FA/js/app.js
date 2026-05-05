@@ -1,3 +1,6 @@
+function useSharedStateFlag() { return localStorage.getItem('USE_SHARED_STATE') === 'true'; }
+function activeFinanceStorageKey() { return useSharedStateFlag() ? 'HospitalAppState' : 'hospitalFinanceAppState'; }
+
 // js/app.js
 
 // ── 1. CORE RENDERING ENGINE ──
@@ -39,7 +42,8 @@ function renderDashboard() {
     // Grab pending claims from stats
     const claims = AppState.stats.pendingClaims || 0;
     const dischargeRequests = Object.values(AppState.admissions || {}).filter(a => a.discharge_requested && !a.discharged);
-    const pendingLedgerRequests = (AppState.faLedgerRequests || []).filter((item) => item.status !== 'COMPLETED');
+    const pendingLedgerRequests = (AppState.faLedgerRequests || []).filter((item) => item.status !== window.FinanceStates.COMPLETED && item.type !== 'SERVICE_CHARGE');
+    const paymentConfirmations = (AppState.paymentConfirmations || []).filter((item) => item.status === window.FinanceStates.PENDING_RECEIPT);
 
     // Build the "Patient Billing Queue" rows
     const admissions = Object.values(AppState.admissions);
@@ -65,7 +69,7 @@ function renderDashboard() {
         return `
             <tr>
                 <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${patientId}</span></td>
-                <td style="padding: 16px 20px;"><strong>${a.patient_name}</strong></td>
+                <td style="padding: 16px 20px;"><strong>${window.PatientResolver ? window.PatientResolver.getName(a.uhid, AppState) : a.patient_name}</strong></td>
                 <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${a.ward_no}</span></td>
                 <td style="padding: 16px 20px;">${statusBadge}</td>
                 <td style="padding: 16px 20px;">
@@ -77,7 +81,7 @@ function renderDashboard() {
 
     const dischargeRows = dischargeRequests.map(a => `
             <tr>
-                <td style="padding: 16px 20px;"><strong>${a.patient_name}</strong></td>
+                <td style="padding: 16px 20px;"><strong>${window.PatientResolver ? window.PatientResolver.getName(a.uhid, AppState) : a.patient_name}</strong></td>
                 <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${getDisplayPatientId(a)}</span></td>
                 <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${a.ward_no}</span></td>
                 <td style="padding: 16px 20px;"><span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">Awaiting FA</span></td>
@@ -87,14 +91,22 @@ function renderDashboard() {
             </tr>
         `).join('');
 
+    const paymentConfirmationRows = paymentConfirmations.map((item) => `
+            <tr>
+                <td style="padding: 16px 20px;"><strong>${window.PatientResolver ? window.PatientResolver.getName(item.uhid, AppState) : item.patient_name}</strong></td>
+                <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${item.uhid}</span></td>
+                <td style="padding: 16px 20px;">₹${Number(item.amount || 0).toLocaleString()}</td>
+                <td style="padding: 16px 20px;"><span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">Payment Confirmed</span></td>
+                <td style="padding: 16px 20px;">
+                    <button class="btn-primary" style="padding: 6px 16px; font-size: 12px; border-radius: 6px;" onclick="openReceiptGeneration(${item.admission_id})">Generate Receipt</button>
+                </td>
+            </tr>
+        `).join('');
+
     return `
         <h2 style="margin-bottom: 24px; color: #1e293b; font-weight: 700;">Finance Dashboard</h2>
         
-        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px;">
-            <div class="card" style="padding: 20px; margin-bottom: 0;">
-                <div style="font-size:13px; color:var(--text-muted); font-weight:700; margin-bottom: 12px;">Revenue</div>
-                <div style="font-size:26px; font-weight:800; color:var(--primary);">₹${stats.revenue.toLocaleString()}</div>
-            </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
             <div class="card" style="padding: 20px; margin-bottom: 0;">
                 <div style="font-size:13px; color:var(--text-muted); font-weight:700; margin-bottom: 12px;">Active IPD</div>
                 <div style="font-size:26px; font-weight:800; color:var(--primary);">${stats.activeIPD}</div>
@@ -104,16 +116,8 @@ function renderDashboard() {
                 <div style="font-size:26px; font-weight:800; color:var(--primary);">${stats.pendingHOM}</div>
             </div>
             <div class="card" style="padding: 20px; margin-bottom: 0;">
-                <div style="font-size:13px; color:var(--text-muted); font-weight:700; margin-bottom: 12px;">Claims</div>
-                <div style="font-size:26px; font-weight:800; color:#f59e0b;">${claims}</div>
-            </div>
-            <div class="card" style="padding: 20px; margin-bottom: 0;">
                 <div style="font-size:13px; color:var(--text-muted); font-weight:700; margin-bottom: 12px;">HOM Discharge</div>
                 <div style="font-size:26px; font-weight:800; color:#ef4444;">${dischargeRequests.length}</div>
-            </div>
-            <div class="card" style="padding: 20px; margin-bottom: 0;">
-                <div style="font-size:13px; color:var(--text-muted); font-weight:700; margin-bottom: 12px;">Failed</div>
-                <div style="font-size:26px; font-weight:800; color:#ef4444;">${stats.failedPayments}</div>
             </div>
         </div>
 
@@ -186,8 +190,185 @@ function renderDashboard() {
                 </tbody>
             </table>
         </div>
+
+        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; background: white; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin: 0; font-size: 16px; color: #1e293b; font-weight: 700;">HOM Payment Confirmations</h3>
+                <span style="background: ${paymentConfirmations.length ? '#dcfce7' : '#f8fafc'}; color: ${paymentConfirmations.length ? '#166534' : '#475569'}; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;">${paymentConfirmations.length} Awaiting Receipt</span>
+            </div>
+            <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
+                <thead style="background: #f8fafc; border-bottom: 1px solid #f1f5f9;">
+                    <tr>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Patient</th>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">UHID</th>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Amount</th>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${paymentConfirmationRows || '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">No payment confirmations from HOM yet.</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+        ${renderPendingVerificationQueue()}
     `;
 }
+
+
+function getPendingVerifications() {
+  return (AppState.dispatchQueue || []).filter(
+    (item) => item.status === window.FinanceStates.PENDING_VERIFICATION
+  );
+}
+
+function renderPendingVerificationQueue() {
+  const items = getPendingVerifications();
+
+  const rows = items.map((item) => {
+    const isCash         = item.patient_payment_method === "CASH";
+    const cashCollected  = Boolean(item.cash_collected);
+    const markedAt       = item.patient_marked_at
+      ? new Date(item.patient_marked_at).toLocaleString("en-IN")
+      : "\u2014";
+
+    const collectBtn = isCash && !cashCollected
+      ? `<button
+           style="background:#f59e0b;color:white;border:none;padding:6px 14px;
+                  border-radius:6px;font-weight:600;cursor:pointer;font-size:12px;margin-right:8px;"
+           onclick="window.markCashCollected('${item.id}')">
+           Mark Collected
+         </button>`
+      : "";
+
+    const confirmDisabled = isCash && !cashCollected;
+    const confirmBtn = `<button
+      style="background:${confirmDisabled ? "#cbd5e1" : "var(--primary)"};color:white;
+             border:none;padding:6px 14px;border-radius:6px;font-weight:600;
+             font-size:12px;cursor:${confirmDisabled ? "not-allowed" : "pointer"};"
+      ${confirmDisabled ? "disabled title='Collect cash first'" : ""}
+      onclick="window.confirmVerifiedPayment('${item.id}')">
+      Confirm Receipt
+    </button>`;
+
+    return `
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:14px 20px;font-weight:600;">${item.patient_name || "\u2014"}</td>
+        <td style="padding:14px 20px;color:#475569;">${item.uhid || "\u2014"}</td>
+        <td style="padding:14px 20px;font-weight:700;color:var(--primary);">
+          \u20b9${Number(item.amount || 0).toLocaleString()}
+        </td>
+        <td style="padding:14px 20px;">
+          <span style="background:#f1f5f9;padding:4px 10px;border-radius:6px;
+                       font-size:12px;font-weight:700;letter-spacing:0.5px;">
+            ${item.patient_payment_method || "\u2014"}
+          </span>
+        </td>
+        <td style="padding:14px 20px;font-size:13px;color:#64748b;">${markedAt}</td>
+        <td style="padding:14px 20px;">${collectBtn}${confirmBtn}</td>
+      </tr>
+    `;
+  }).join("");
+
+  return `
+    <div class="card" style="padding:0;overflow:hidden;margin-top:24px;
+                              border:1px solid #f1f5f9;border-radius:12px;background:white;">
+      <div style="padding:20px;border-bottom:1px solid #f1f5f9;display:flex;
+                  justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;font-size:16px;color:#1e293b;font-weight:700;">
+          Patient Payment Verifications
+        </h3>
+        <span style="background:${items.length ? "#fef3c7" : "#dcfce7"};
+                     color:${items.length ? "#92400e" : "#166534"};
+                     padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">
+          ${items.length} Awaiting
+        </span>
+      </div>
+      <table style="width:100%;text-align:left;border-collapse:collapse;">
+        <thead style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
+          <tr>
+            <th style="padding:12px 20px;font-size:11px;font-weight:700;
+                       color:var(--text-muted);text-transform:uppercase;">Patient</th>
+            <th style="padding:12px 20px;font-size:11px;font-weight:700;
+                       color:var(--text-muted);text-transform:uppercase;">UHID</th>
+            <th style="padding:12px 20px;font-size:11px;font-weight:700;
+                       color:var(--text-muted);text-transform:uppercase;">Amount</th>
+            <th style="padding:12px 20px;font-size:11px;font-weight:700;
+                       color:var(--text-muted);text-transform:uppercase;">Method</th>
+            <th style="padding:12px 20px;font-size:11px;font-weight:700;
+                       color:var(--text-muted);text-transform:uppercase;">Marked At</th>
+            <th style="padding:12px 20px;font-size:11px;font-weight:700;
+                       color:var(--text-muted);text-transform:uppercase;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows || '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">No pending verifications.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+window.markCashCollected = function (dispatchId) {
+  const item = (AppState.dispatchQueue || []).find(
+    (i) => String(i.id) === String(dispatchId)
+  );
+  if (!item || item.status !== window.FinanceStates.PENDING_VERIFICATION) return false;
+  item.cash_collected    = true;
+  item.cash_collected_at = Date.now();
+  saveState();
+  render();
+  return true;
+};
+
+window.confirmVerifiedPayment = function (dispatchId) {
+  const item = (AppState.dispatchQueue || []).find(
+    (i) => String(i.id) === String(dispatchId)
+  );
+  if (!item || item.status !== window.FinanceStates.PENDING_VERIFICATION) return false;
+
+  // Block CASH confirmation until cash has been physically collected
+  if (item.patient_payment_method === "CASH" && !item.cash_collected) return false;
+
+  item.status           = window.FinanceStates.PAID;
+  item.payment_confirmed = true;
+  item.confirmed_at      = Date.now();
+
+  // Update the backing ledger status if one exists
+  const billingRecord = (AppState.billingRecords || []).find(
+    (b) => String(b.id) === String(item.admission_id)
+  );
+  if (billingRecord) {
+    billingRecord.status  = window.FinanceStates.PAID;
+    billingRecord.paid_at = Date.now();
+  }
+
+  // Add to paymentConfirmations so FA discharge screen can generate receipt
+  if (!Array.isArray(AppState.paymentConfirmations)) AppState.paymentConfirmations = [];
+  AppState.paymentConfirmations.unshift({
+    id:            `CONF-PV-${Date.now()}`,
+    admission_id:  item.admission_id,
+    patient_name:  item.patient_name,
+    uhid:          item.uhid,
+    amount:        item.amount,
+    payment_mode:  item.patient_payment_method,
+    confirmed_by:  "FA",
+    confirmed_at:  Date.now(),
+    status:        window.FinanceStates.PENDING_RECEIPT,
+  });
+
+  saveState();
+  render();
+  return true;
+};
+
+window.openReceiptGeneration = function (admissionId) {
+    // CHANGED: set active patient before opening discharge screen.
+    AppState.currentPatientId = admissionId;
+    saveState();
+    location.hash = '#/discharge';
+    render();
+};
 
 function renderCharges() {
     const requests = AppState.serviceRequests || [];
@@ -211,7 +392,7 @@ function renderCharges() {
         const service = req.service || 'Unknown Service';
         const qty = req.service_count || 1;
 
-        const statusBadge = req.status === 'PENDING'
+        const statusBadge = req.status === window.FinanceStates.PENDING
             ? `<span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">PENDING</span>`
             : `<span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${req.status}</span>`;
 
@@ -224,7 +405,7 @@ function renderCharges() {
                 <td style="padding: 16px 20px; text-align: center;"><strong>${qty}</strong></td>
                 <td style="padding: 16px 20px;">${statusBadge}</td>
                 <td style="padding: 16px 20px;">
-                    ${req.status === 'PENDING'
+                    ${req.status === window.FinanceStates.PENDING
                 ? `<button class="btn-primary" style="padding: 6px 16px; font-size: 12px; border-radius: 6px; background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer;" onclick="approveRequest(${req.id})">Approve</button>`
                 : '<span style="color:var(--text-muted); font-size:12px; font-weight:600;">Resolved</span>'}
                 </td>
@@ -337,7 +518,6 @@ function renderReceipts() {
                 
                 <select id="receipt-filter" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; font-family: inherit; background: white;" onchange="filterReceipts()">
                     <option value="ALL">All Payment Methods</option>
-                    <option value="CASH">Cash</option>
                     <option value="UPI">UPI</option>
                     <option value="CREDIT CARD">Credit Card</option>
                 </select>
@@ -421,6 +601,7 @@ window.filterReceipts = function () {
 window.resetState = function () {
     if (confirm("Are you sure you want to reset all data?")) {
         localStorage.removeItem('hospitalFinanceAppState');
+        if (useSharedStateFlag()) localStorage.removeItem('HospitalAppState');
         location.reload();
     }
 };
@@ -433,13 +614,14 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('logout-btn')?.addEventListener('click', () => {
         if (window.RoleAccess) window.RoleAccess.logout();
         else sessionStorage.removeItem('userRole');
-        window.location.href = '../Patient/landing-page.html';
+        window.location.href = '../landing/landing-page.html';
     });
     render();                // Draw the initial screen based on the URL hash
 });
 
 window.addEventListener('storage', (event) => {
-    if (event.key && event.key !== 'hospitalFinanceAppState') return;
+    // HOM strictly saves to 'HospitalAppState'. Listen to it universally to fix cross-tab sync lag.
+    if (event.key && event.key !== 'HospitalAppState' && event.key !== 'hospitalFinanceAppState') return;
     loadState();
     render();
 });
@@ -526,10 +708,14 @@ function renderEodBilling() {
 function renderDischarge() {
     const currentPid = AppState.currentPatientId || 701;
     const p = AppState.admissions[currentPid];
+    const paymentConfirmation = (AppState.paymentConfirmations || []).find((item) =>
+    (item.admission_id === currentPid || item.patient_id === currentPid) && item.status === window.FinanceStates.PENDING_RECEIPT
+  );
+    const waitingForPaymentConfirmation = Boolean(p?.discharge_packet_sent && !paymentConfirmation && !p?.discharged);
 
     if (!p) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected for discharge.</h2></div>`;
 
-    if (!p.discharge_requested) {
+    if (!p.discharge_requested && !waitingForPaymentConfirmation && !paymentConfirmation && !p.receipt_sent_to_hom) {
         return `
             <h2 style="margin-bottom: 24px; color: #1e293b; font-weight: 700;">Final Discharge Summary | <span style="color: #475569;">${p.patient_name}</span></h2>
             <div class="card" style="padding: 40px; text-align: center;">
@@ -576,6 +762,11 @@ function renderDischarge() {
                     <span>Insurance Deduction (${p.insurance_provider || 'None'})</span>
                     <span>- ₹${insuranceDeduction.toLocaleString()}</span>
                 </div>
+
+                <div style="margin-top: 12px;">
+                    <label style="font-size: 12px; color: #64748b;">Override Insurance Coverage (₹)</label>
+                    <input type="number" id="coverage-override" value="${insuranceDeduction}" min="0" max="${grossTotal}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                </div>
                 
                 <div style="display: flex; justify-content: space-between; padding: 16px 0; color: var(--primary); font-size: 16px; font-weight: 700; margin-bottom: 20px;">
                     <span>Net Payable</span>
@@ -596,7 +787,6 @@ function renderDischarge() {
                 <h3 style="margin: 0 0 20px 0; font-size: 18px; color: #1e293b;">Payment</h3>
                 
                 <select id="discharge-payment-method" onchange="handlePaymentMethodChange()" style="width: 100%; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none; background: white; color: #1e293b; font-family: inherit;">
-                    <option value="CASH">Cash</option>
                     <option value="UPI">UPI</option>
                     <option value="DEBIT CARD">Debit Card</option>
                     <option value="CREDIT CARD">Credit Card</option>
@@ -604,11 +794,24 @@ function renderDischarge() {
 
                 <div id="dynamic-payment-area"></div>
 
-                <button class="btn-primary" style="width: 100%; padding: 14px; border-radius: 8px; font-weight: 700; font-size: 14px; background: var(--primary);" onclick="confirmDischarge()">
-                    Generate & Send to HOM
+                ${waitingForPaymentConfirmation ? `
+                    <div style="margin-bottom: 16px; padding: 14px; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 13px;">
+                        Discharge summary and payment link already sent to HOM. Waiting for HOM to confirm the payment before FA can generate the receipt.
+                    </div>
+                ` : paymentConfirmation ? `
+                    <div style="margin-bottom: 16px; padding: 14px; border-radius: 8px; background: #dcfce7; color: #166534; font-size: 13px;">
+                        HOM has confirmed the payment. FA can now generate the receipt and send it back to HOM.
+                    </div>
+                ` : ''}
+
+                <button class="btn-primary" style="width: 100%; padding: 14px; border-radius: 8px; font-weight: 700; font-size: 14px; background: ${waitingForPaymentConfirmation ? '#cbd5e1' : 'var(--primary)'};" onclick="${paymentConfirmation ? `generateReceiptAndSendToHOM('${paymentConfirmation.id}')` : 'confirmDischarge()'}" ${waitingForPaymentConfirmation ? 'disabled' : ''}>
+                    ${paymentConfirmation ? 'Generate Receipt & Send to HOM' : 'Send Summary & Payment Link to HOM'}
                 </button>
             </div>
 
         </div>
     `;
 }
+
+
+

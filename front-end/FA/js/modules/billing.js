@@ -1,133 +1,8 @@
-function publishEOD() {
-    const p = AppState.admissions[AppState.currentPatientId];
-    const data = getPatientData(p.ledger_id, 'NEW');
-    if (data.entries.length === 0) return alert("No new charges to publish.");
-
-    AppState.publishedBills.unshift({
-        bill_id: `EOD-${Date.now()}`,
-        patient: p.patient_name,
-        amount: data.total,
-        link: `https://federico.patient/view/${p.uhid}`
-    });
-
-    p.last_published_ts = Date.now();
-    saveState();
-    alert(`EOD Bill Generated for ${p.patient_name}.`);
-    render();
+function nextGeneratedId(namespace) {
+    if (window.IDGenerator && typeof window.IDGenerator.nextId === 'function') return window.IDGenerator.nextId(namespace);
+    return `${namespace}-fallback`;
 }
 
-window.approveRequest = function (id) {
-    // 1. Find the specific service request that was clicked
-    const req = AppState.serviceRequests.find(r => r.id === id);
-    if (!req) return;
-
-    // 2. Find the patient's admission data to get their correct ledger ID
-    const admission = AppState.admissions[req.patient_id];
-    if (!admission) {
-        alert("Error: Patient admission record not found.");
-        return;
-    }
-
-    // 3. Mark the request as APPROVED so it updates on the dashboard
-    req.status = "APPROVED";
-
-    // 4. Find their ledger and add the financial charge
-    const ledgerId = admission.ledger_id;
-    if (!AppState.ledgers[ledgerId]) {
-        AppState.ledgers[ledgerId] = [];
-    }
-
-    // Pull the quantity from the request, and set a mock price/tax
-    const qty = req.service_count || 1;
-    const price = 1200;
-
-    AppState.ledgers[ledgerId].push({
-        entry_id: Date.now(),
-        service_name: req.service,
-        qty: qty,
-        price: price,
-        tax: price * 0.05 * qty, // 5% mock tax
-        ts: Date.now()
-    });
-
-    // 5. Save everything to localStorage
-    saveState();
-
-    // 6. Switch the active patient and jump directly to the Ledger screen!
-    AppState.currentPatientId = req.patient_id;
-    location.hash = '#/ledger';
-    render();
-};
-
-function handlePaymentMethodChange() {
-    const method = document.getElementById('paymentMethod').value;
-    const container = document.getElementById('methodActionContainer');
-    const p = AppState.admissions[AppState.currentPatientId];
-    const data = getPatientData(p.ledger_id, 'ALL');
-    const netPayable = data.total - p.coverage;
-
-    if (method === 'UPI') {
-        const paymentUrl = `upi://pay?pa=hospital@upi&pn=HospitalBilling&am=${netPayable}&cu=INR&tn=Bill-${p.uhid}`;
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(paymentUrl)}`;
-        const shareableLink = `https://pay.hospital.in/bill?uhid=${p.uhid}&amount=${netPayable}&patient=${encodeURIComponent(p.patient_name)}`;
-
-        container.innerHTML = `
-        <div style="text-align:center; padding:15px; border:1px solid #ddd; border-radius:10px; background:#f9f9f9; margin-top:10px;">
-          <p>Scan to Pay <strong>₹${netPayable.toLocaleString()}</strong></p>
-          <img src="${qrApiUrl}" alt="QR Code" style="border-radius:8px;">
-          <div style="margin-top:10px; padding:8px; background:#e8f5f5; border-radius:8px; font-size:11px; word-break:break-all; color:#00827d;">
-            🔗 ${shareableLink}
-          </div>
-          <button class="btn-primary" style="width:100%; margin-top:10px;" onclick="navigator.clipboard.writeText('${shareableLink}').then(()=>alert('Payment link copied to clipboard!'))">
-            📋 Copy Payment Link
-          </button>
-          <button class="btn-primary" style="width:100%; margin-top:8px; background:#10b981;" onclick="confirmPayment('UPI')">
-            ✅ Confirm UPI Payment
-          </button>
-        </div>`;
-    } else if (method === 'CARD') {
-        container.innerHTML = `
-        <div style="padding:15px; border:1px solid #ddd; border-radius:10px; background:#f9f9f9; margin-top:10px;">
-          <p>Amount to Charge: <strong>₹${netPayable.toLocaleString()}</strong></p>
-          <p>Status: <strong style="color:#f59e0b;">Awaiting Swipe...</strong></p>
-          <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="confirmPayment('CARD')">
-            ✅ Confirm Card Payment
-          </button>
-        </div>`;
-    } else {
-        container.innerHTML = `
-        <div style="padding:15px; border:1px solid #ddd; border-radius:10px; background:#f9f9f9; margin-top:10px;">
-          <p>Collect Cash: <strong>₹${netPayable.toLocaleString()}</strong></p>
-          <button class="btn-primary" style="width:100%;" onclick="confirmPayment('CASH')">
-            ✅ Confirm & Print Cash Receipt
-          </button>
-        </div>`;
-    }
-}
-
-function confirmPayment(method) {
-    const p = AppState.admissions[AppState.currentPatientId];
-    const data = getPatientData(p.ledger_id, 'ALL');
-    const netPayable = data.total - p.coverage;
-
-    if (netPayable <= 0) {
-        alert('No outstanding amount. Fully covered by insurance.');
-        return;
-    }
-
-    const receiptId = Date.now();
-    AppState.receipts.push({
-        id: receiptId, patient: p.patient_name, uhid: p.uhid, amount: netPayable,
-        gross: data.total, coverage: p.coverage, insurance: p.insurance_provider,
-        mode: method, status: 'Paid', ts: receiptId
-    });
-
-    if (p.coverage > 0) p.claim_status = 'SUBMITTED';
-    p.discharged = true;
-    alert(`✅ Payment of ₹${netPayable.toLocaleString()} confirmed via ${method}.\nReceipt saved. File closed.`);
-    printReceipt(receiptId);
-    render();
-}
 
 function printReceipt(receiptId) {
     const receipt = AppState.receipts.find(r => r.id === receiptId);
@@ -162,130 +37,6 @@ function printReceipt(receiptId) {
     win.document.close();
 }
 
-window.publishEOD = function () {
-    const currentPid = AppState.currentPatientId || 701;
-    const p = AppState.admissions[currentPid];
-    if (!p) return;
-
-    // Grab all unpublished charges
-    const data = getPatientData(p.ledger_id, 'NEW');
-
-    if (data.entries.length === 0) {
-        alert("No new charges to publish.");
-        return;
-    }
-
-    // Create a unique Bill ID
-    const newBillId = `EOD-${Date.now()}`;
-
-    // Add it to the History array
-    AppState.publishedBills.unshift({
-        bill_id: newBillId,
-        patient: p.patient_name,
-        amount: data.total,
-        link: `https://federico.patient/view/${p.uhid}`
-    });
-
-    // 🚨 CRITICAL: Update the patient's timestamp so these charges are no longer marked as "NEW"
-    p.last_published_ts = Date.now();
-
-    // Save to localStorage
-    saveState();
-
-    alert(`✅ ${newBillId} generated successfully and sent to ${p.patient_name}'s portal!`);
-
-    // Re-render the page to instantly update the UI
-    render();
-};
-
-
-window.confirmDischarge = function () {
-    const currentPid = AppState.currentPatientId;
-    const p = AppState.admissions[currentPid];
-
-    if (!p) return;
-
-    // 1. Get final math and selected payment method
-    const data = getPatientData(p.ledger_id, 'ALL');
-    const grossTotal = data.total;
-    const insuranceDeduction = p.coverage || 0;
-    const netPayable = Math.max(0, grossTotal - insuranceDeduction);
-    const method = document.getElementById('discharge-payment-method').value;
-
-    // 2. Generate the final receipt
-    const receiptId = Date.now();
-    AppState.receipts.unshift({
-        id: receiptId,
-        patient: p.patient_name,
-        amount: netPayable,
-        mode: method,
-        status: 'Paid',
-        ts: receiptId
-    });
-
-    // 3. Mark the patient as officially discharged!
-    p.discharged = true;
-
-    // 4. Save to database
-    saveState();
-
-    // 5. Alert and Redirect
-    alert(`Success! ${p.patient_name} has been fully discharged.\nPayment of ₹${netPayable.toLocaleString()} via ${method} confirmed.`);
-
-    // Send the user to the receipts page to view the final transaction
-    location.hash = '#/receipts';
-    render();
-};
-
-
-/* ── 1. DYNAMIC PAYMENT UI (QR CODES & LINKS) ── */
-window.handlePaymentMethodChange = function () {
-    const method = document.getElementById('discharge-payment-method').value;
-    const container = document.getElementById('dynamic-payment-area');
-
-    const p = AppState.admissions[AppState.currentPatientId];
-    const data = getPatientData(p.ledger_id, 'ALL');
-    const netPayable = Math.max(0, data.total - (p.coverage || 0));
-
-    if (method === 'UPI') {
-        // Generates a real QR code using an open API
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=federico@upi&pn=FedericoHospital&am=${netPayable}`;
-        container.innerHTML = `
-            <div style="margin-bottom: 24px; text-align: center; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
-                <img src="${qrUrl}" alt="UPI QR" style="border-radius: 8px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 13px; color: var(--primary); font-weight: 700;">📲 Scan to Pay ₹${netPayable.toLocaleString()}</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Payment link auto-dispatched to patient via WhatsApp.</div>
-            </div>
-        `;
-    } else if (method === 'CREDIT CARD') {
-        container.innerHTML = `
-            <div style="margin-bottom: 24px; text-align: center; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
-                <div style="font-size: 32px; margin-bottom: 8px;">💳</div>
-                <div style="font-size: 13px; color: var(--primary); font-weight: 700;">Secure Payment Link Generated</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Link dispatched to +91 ******7604. Awaiting patient payment...</div>
-            </div>
-        `;
-    } else {
-        container.innerHTML = '<div style="margin-bottom: 24px;"></div>'; // Cash needs no extra UI
-    }
-};
-
-/* ── 2. CONFIRM & CLOSE FILE ── */
-window.confirmDischarge = function () {
-    const currentPid = AppState.currentPatientId;
-    const p = AppState.admissions[currentPid];
-    if (!p) return;
-
-    const method = document.getElementById('discharge-payment-method').value;
-    p.discharged = true;
-    saveState();
-
-    alert(`File Closed! Final payment via ${method} confirmed.`);
-    location.hash = '#/dashboard';
-    render();
-};
-
-/* ── 3. PIXEL-PERFECT PDF RECEIPT GENERATOR ── */
 /* ── 3. PIXEL-PERFECT PDF: DISCHARGE & BILL SUMMARY ── */
 window.printDischargeSummary = function () {
     const currentPid = AppState.currentPatientId;
@@ -303,7 +54,7 @@ window.printDischargeSummary = function () {
     const treatmentsReceived = data.entries.map(e => e.service_name).join(', ') || 'Standard Care';
     const admissionDate = new Date(Date.now() - (3 * 24 * 60 * 60 * 1000)).toLocaleDateString(); // Mocking admission to 3 days ago
     const dischargeDate = new Date().toLocaleString('en-US');
-    const receiptId = `PAY${Date.now()}`;
+    const receiptId = nextGeneratedId("receipt");
 
     // Open a new tab for printing
     const printWindow = window.open('', '_blank');
@@ -606,7 +357,7 @@ window.createLedgerAndOpen = function (admissionId) {
     const existingBilling = AppState.billingRecords.find((item) => item.uhid === patient.uhid);
     if (!existingBilling) {
         AppState.billingRecords.push({
-            id: Date.now(),
+            id: patient.admission_id,
             patient: patient.patient_name,
             uhid: patient.uhid,
             dept: patient.doctor_assigned || 'General',
@@ -639,19 +390,24 @@ function queueDispatchArtifact(type, patient, amount, meta = {}) {
     if (!Array.isArray(AppState.dispatchQueue)) AppState.dispatchQueue = [];
 
     dispatchSequence += 1;
-    const dispatchId = Date.now() + dispatchSequence;
+    const dispatchId = `${nextGeneratedId("dispatch")}-${dispatchSequence}`;
     const patientIdentifier = getDisplayPatientId(patient);
     const payload = {
         id: dispatchId,
         type,
+        admission_id: patient.admission_id,
         patient_id: patient.admission_id,
         patient_identifier: patientIdentifier,
         patient_name: patient.patient_name,
         uhid: patient.uhid,
         amount,
         status: 'QUEUED',
-        created_at: dispatchId,
+        created_at: Date.now(),
         created_by: 'FA',
+        sent_at: 0,
+        payment_confirmed: false,
+        payment_confirmed_at: 0,
+        payment_confirmation_id: "",
         ...meta
     };
 
@@ -661,7 +417,7 @@ function queueDispatchArtifact(type, patient, amount, meta = {}) {
 
 function buildPaymentArtifacts(patient, method, netPayable) {
     const patientIdentifier = getPatientRouteId(patient);
-    const baseId = `FED-${patientIdentifier}-${Date.now()}`;
+    const baseId = `${nextGeneratedId("billing")}-${patientIdentifier}`;
     const patientParam = encodeURIComponent(patient.patient_name);
     const upiIntent = `upi://pay?pa=federico.hospital@upi&pn=Federico Hospital&am=${netPayable}&cu=INR&tn=${baseId}`;
     const cardLink = `https://pay.federico.hospital/checkout?patientId=${encodeURIComponent(patientIdentifier)}&amount=${netPayable}&method=${encodeURIComponent(method)}&patient=${patientParam}`;
@@ -671,7 +427,8 @@ function buildPaymentArtifacts(patient, method, netPayable) {
         upiIntent,
         cardLink,
         qrLink,
-        summaryLink: `federico://documents/discharge/${patientIdentifier}`,
+        payment_link: method === 'UPI' ? upiIntent : cardLink,
+        discharge_summary_link: `federico://documents/discharge/${patientIdentifier}`,
         billingLink: `federico://patient-ledger/${patientIdentifier}`
     };
 }
@@ -686,6 +443,18 @@ window.approveRequest = function (id) {
         return;
     }
 
+    // Phase 3: block approve if no ledger exists for this admission
+    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(req.patient_id, AppState)) {
+        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
+        if (errEl) {
+            errEl.textContent = 'Action blocked: no ledger found for this admission.';
+            errEl.style.display = 'block';
+        } else {
+            alert('Action blocked: no ledger found for this admission.');
+        }
+        return;
+    }
+
     req.status = 'APPROVED';
     req.approved_at = Date.now();
     req.approved_by = 'FA';
@@ -697,7 +466,7 @@ window.approveRequest = function (id) {
     const price = getServiceCatalogPricing(req.service);
 
     AppState.ledgers[ledgerId].push({
-        entry_id: Date.now(),
+        entry_id: nextGeneratedId("ledger-entry"),
         service_name: req.service,
         qty,
         price,
@@ -718,13 +487,25 @@ window.publishEOD = function () {
     const patient = AppState.admissions[currentPid];
     if (!patient) return;
 
+    // Phase 3: block publish if no ledger exists for this admission
+    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(patient.admission_id, AppState)) {
+        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
+        if (errEl) {
+            errEl.textContent = 'Action blocked: no ledger found for this admission.';
+            errEl.style.display = 'block';
+        } else {
+            alert('Action blocked: no ledger found for this admission.');
+        }
+        return;
+    }
+
     const data = getPatientData(patient.ledger_id, 'NEW');
     if (data.entries.length === 0) {
         alert('No new charges to publish.');
         return;
     }
 
-    const billId = `EOD-${Date.now()}`;
+    const billId = nextGeneratedId("eod");
     AppState.publishedBills.unshift({
         bill_id: billId,
         patient: patient.patient_name,
@@ -734,15 +515,16 @@ window.publishEOD = function () {
         ts: Date.now()
     });
 
-    queueDispatchArtifact('EOD_BILL', patient, data.total, {
+    const eodDispatch = queueDispatchArtifact('EOD_BILL', patient, data.total, {
         bill_id: billId,
         entry_count: data.entries.length,
         link: `federico://patient-ledger/${getPatientRouteId(patient)}`
     });
+    // EOD billing is queued for HOM to dispatch to Patient.
 
     patient.last_published_ts = Date.now();
     saveState();
-    alert(`EOD billing packet queued for HOM dispatch for ${patient.patient_name}.`);
+    alert(`EOD billing packet sent to patient for ${patient.patient_name}.`);
     render();
 };
 
@@ -796,13 +578,89 @@ window.confirmDischarge = function () {
     const patient = AppState.admissions[currentPid];
     if (!patient) return;
 
+    // Phase 3: block discharge if no ledger exists for this admission
+    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(patient.admission_id, AppState)) {
+        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
+        if (errEl) {
+            errEl.textContent = 'Action blocked: no ledger found for this admission.';
+            errEl.style.display = 'block';
+        } else {
+            alert('Action blocked: no ledger found for this admission.');
+        }
+        return;
+    }
+
+    if (patient.discharge_packet_sent && !patient.discharged) {
+        alert(`Discharge summary and payment link are already waiting with HOM for ${patient.patient_name}.`);
+        return;
+    }
+
     const method = document.getElementById('discharge-payment-method')?.value || 'CASH';
     const data = getPatientData(patient.ledger_id, 'ALL');
     const grossTotal = data.total;
-    const insuranceDeduction = patient.coverage || 0;
+    const insuranceDeduction = Math.min(
+        Number(document.getElementById('coverage-override')?.value ?? patient.coverage ?? 0),
+        grossTotal
+    );
     const netPayable = Math.max(0, grossTotal - insuranceDeduction);
-    const receiptId = Date.now();
     const artifacts = buildPaymentArtifacts(patient, method, netPayable);
+    patient.discharge_requested = false;
+    patient.discharge_packet_sent = true;
+    patient.discharge_packet_sent_at = Date.now();
+    patient.pending_payment_mode = method;
+    patient.pending_net_payable = netPayable;
+    patient.pending_gross_total = grossTotal;
+    patient.pending_insurance_deduction = insuranceDeduction;
+
+    const dischargeSummaryDispatch = queueDispatchArtifact('DISCHARGE_SUMMARY', patient, netPayable, {
+        payment_mode: method,
+        gross: grossTotal,
+        insurance_deduction: insuranceDeduction,
+        discharge_summary_link: artifacts.summaryLink
+    });
+
+    const paymentLinkDispatch = queueDispatchArtifact('PAYMENT_LINK', patient, netPayable, {
+        payment_mode: method,
+        billing_link: artifacts.billingLink,
+        payment_link: method === 'UPI' ? artifacts.upiIntent : method === 'CASH' ? '' : artifacts.cardLink
+    });
+
+    saveState();
+    alert(`Discharge summary and payment link queued to HOM for ${patient.patient_name}. Receipt will be generated after HOM confirms payment.`);
+    location.hash = '#/dashboard';
+    render();
+};
+
+window.generateReceiptAndSendToHOM = function (confirmationId) {
+    const confirmation = (AppState.paymentConfirmations || []).find((item) => item.id === confirmationId);
+    if (!confirmation || confirmation.status !== 'PENDING_RECEIPT') {
+        alert('Payment confirmation from HOM is not available.');
+        return;
+    }
+
+    const patient = AppState.admissions[confirmation.admission_id];
+    if (!patient) {
+        alert('Patient admission record not found for receipt generation.');
+        return;
+    }
+
+    // Phase 3: block receipt generation if no ledger exists for this admission
+    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(confirmation.admission_id, AppState)) {
+        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
+        if (errEl) {
+            errEl.textContent = 'Action blocked: no ledger found for this admission.';
+            errEl.style.display = 'block';
+        } else {
+            alert('Action blocked: no ledger found for this admission.');
+        }
+        return;
+    }
+
+    const receiptId = nextGeneratedId("receipt");
+    const grossTotal = Number(patient.pending_gross_total || 0);
+    const insuranceDeduction = Number(patient.pending_insurance_deduction || patient.coverage || 0);
+    const netPayable = Number(patient.pending_net_payable || confirmation.amount || 0);
+    const method = confirmation.payment_mode || patient.pending_payment_mode || 'CASH';
 
     AppState.receipts.unshift({
         id: receiptId,
@@ -817,24 +675,8 @@ window.confirmDischarge = function () {
         status: 'Paid',
         ts: receiptId
     });
-
-    patient.discharged = true;
-    patient.discharge_requested = false;
-
-    queueDispatchArtifact('DISCHARGE_SUMMARY', patient, netPayable, {
-        receipt_id: receiptId,
-        payment_mode: method,
-        gross: grossTotal,
-        insurance_deduction: insuranceDeduction,
-        discharge_summary_link: artifacts.summaryLink
-    });
-
-    queueDispatchArtifact('PAYMENT_LINK', patient, netPayable, {
-        receipt_id: receiptId,
-        payment_mode: method,
-        billing_link: artifacts.billingLink,
-        payment_link: method === 'UPI' ? artifacts.upiIntent : method === 'CASH' ? '' : artifacts.cardLink
-    });
+    confirmation.status = "RECEIPT_SENT";
+    saveState();
 
     queueDispatchArtifact('FINAL_RECEIPT', patient, netPayable, {
         receipt_id: receiptId,
@@ -842,8 +684,25 @@ window.confirmDischarge = function () {
         receipt_link: `federico://receipts/${receiptId}`
     });
 
+    confirmation.status = 'RECEIPT_SENT';
+    confirmation.receipt_id = receiptId;
+    confirmation.receipt_sent_at = Date.now();
+
+    patient.discharged = true;
+    patient.receipt_sent_to_hom = true;
+    patient.receipt_sent_to_hom_at = Date.now();
+    patient.discharge_packet_sent = false;
+    patient.payment_confirmed = true;
+    patient.payment_confirmed_at = confirmation.confirmed_at || Date.now();
+    patient.pending_payment_mode = null;
+    patient.pending_net_payable = null;
+    patient.pending_gross_total = null;
+    patient.pending_insurance_deduction = null;
+
     saveState();
-    alert(`Discharge summary, payment link, and receipt queued to HOM for ${patient.patient_name}.`);
+    alert(`Receipt generated and queued back to HOM for ${patient.patient_name}.`);
     location.hash = '#/receipts';
     render();
 };
+
+

@@ -107,6 +107,8 @@
                 </div>
             </div>
         </div>
+
+        <div id="fa-dispatch-queue-section" style="margin-top: 32px;"></div>
     </main>
 
     <div class="modal-overlay" id="modal-patient-detail">
@@ -250,30 +252,39 @@
         </div>
     </div>
 
-    <script src="../shared/rbac.js"></script>
+  <script src="../shared/constants.js"></script>
     <script src="../shared/canonical-seed.js"></script>
-    <script src="auth-guard.js"></script>
-    <script src="storage.js"></script>
-    
-    <script>
-        window.UI = {
-            cn: (...classes) => classes.filter(Boolean).join(' '),
-            Badge: ({ children, variant = 'neutral', className = '' }) => {
-                const baseClass = 'badge';
-                const variantClass = `badge-${variant}`;
-                return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
-            },
-            Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '' }) => {
-                const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
-                const idAttr = id ? `id="${id}"` : '';
-                const disabledAttr = disabled ? 'disabled' : '';
-                const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
-                return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr}>${children}</button>`;
-            }
-        };
-    </script>
+<script src="../shared/id-generator.js"></script>
+<script src="../shared/patient-resolver.js"></script>
+<script src="../shared/sanitizer.js"></script>
+<script src="../shared/ledger-validator.js"></script>
+<script src="../shared/finance-states.js"></script>
+<script src="../shared/insurance.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="auth-guard.js"></script>
+<script src="storage.js"></script>
 
-    <script src="shared-nav.js"></script>
-    <script src="patient-flow.js"></script>
+<script>
+    window.UI = {
+        cn: (...classes) => classes.filter(Boolean).join(' '),
+        Badge: ({ children, variant = 'neutral', className = '' }) => {
+            const baseClass = 'badge';
+            const variantClass = `badge-${variant}`;
+            return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
+        },
+        Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
+            const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
+            const idAttr = id ? `id="${id}"` : '';
+            const disabledAttr = disabled ? 'disabled' : '';
+            const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
+            const onClickAttr = onClick ? `onclick="${onClick}"` : '';
+            return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
+        }
+    };
+</script>
+
+<script src="shared-nav.js"></script>
+<script src="patient-flow.js"></script>
 </body>
 </html>

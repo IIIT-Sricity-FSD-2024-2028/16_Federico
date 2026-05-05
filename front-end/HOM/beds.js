@@ -18,6 +18,7 @@ let bedSearchQuery = '';
 let assignPatientQuery = '';
 let selectedAssignPatient = null;
 let assignPatientOptions = [];
+let currentRequestedWard = '';
 
 const tabs = [
   { id: 'all', label: 'All Beds', wardMatch: 'all' },
@@ -32,7 +33,6 @@ const filters = [
   { id: 'all', label: 'All' },
   { id: 'available', label: 'Available' },
   { id: 'occupied', label: 'Occupied' },
-  { id: 'reserved', label: 'Reserved' },
   { id: 'maintenance', label: 'Maintenance' }
 ];
 
@@ -88,6 +88,19 @@ function toggleAssignPatientDropdown(show) {
   const dropdown = document.getElementById('assign-patient-dropdown');
   if (!dropdown) return;
   dropdown.style.display = show ? 'block' : 'none';
+}
+
+function normalizeWardName(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getAdmissionRequestedWard(admission) {
+  return String(admission?.preferredWard || admission?.wardType || '').trim();
+}
+
+function bedMatchesRequestedWard(bed, requestedWard) {
+  if (!requestedWard) return true;
+  return normalizeWardName(bed?.ward) === normalizeWardName(requestedWard);
 }
 
 function getPatientCandidates() {
@@ -194,10 +207,32 @@ function renderFilters() {
 }
 
 function getPatientIndex(data) {
-  return (data.patients || []).reduce((accumulator, patient) => {
+  const patientIndex = (data.patients || []).reduce((accumulator, patient) => {
     accumulator[patient.bed] = patient;
     return accumulator;
   }, {});
+
+  // Second pass: resolve occupied beds that store a uhid in bed.patient
+  // but don't yet have a matching entry in the index (e.g. seed-data beds).
+  if (window.PatientResolver) {
+    (data.wards || []).forEach((ward) => {
+      ward.beds.forEach((bed) => {
+        if (
+          bed.status === "occupied" &&
+          typeof bed.patient === "string" &&
+          !patientIndex[bed.number]
+        ) {
+          // Try treating bed.patient as a uhid first.
+          const profile = window.PatientResolver.getProfile(bed.patient, data);
+          if (profile) {
+            patientIndex[bed.number] = profile;
+          }
+        }
+      });
+    });
+  }
+
+  return patientIndex;
 }
 
 function bedMatchesSearch(bed, linkedPatient) {
@@ -242,7 +277,6 @@ function getBedStyle(status) {
   switch (status) {
     case 'available': return { bg: '#F0FDF4', border: '#86EFAC', text: '#166534', label: 'Available' };
     case 'occupied': return { bg: '#FEF2F2', border: '#FECACA', text: '#991B1B', label: 'Occupied' };
-    case 'reserved': return { bg: '#FFF7ED', border: '#FED7AA', text: '#9A3412', label: 'Reserved' };
     case 'maintenance': return { bg: '#F8FAFC', border: '#CBD5E1', text: '#475569', label: 'Maintenance' };
     default: return { bg: '#ffffff', border: '#E2E8F0', text: '#1E293B', label: 'Unknown' };
   }
@@ -272,7 +306,7 @@ function renderWards(data) {
           <div>
             <h2 class="h2" style="font-size: 18px;">${ward.name}</h2>
             <p class="body-text" style="font-size: 14px; margin-top: 4px;">
-              ${ward.total} beds | ${ward.occupied} Occupied | ${ward.available} Available | ${ward.reserved} Reserved
+              ${ward.total} beds | ${ward.occupied} Occupied | ${ward.available} Available
             </p>
           </div>
           <button class="btn btn-outline btn-sm" style="border:none; color: var(--primary);">View Ward Details</button>
@@ -476,6 +510,216 @@ function confirmBedAllocation() {
   const activePatient = getMatchingActivePatient(patientQuery);
   if (!pendingAdmission && activePatient) {
     setAssignError(`${activePatient.name} is already assigned to ${activePatient.bed}.`);
+    return;
+  }
+
+  setAssignError('');
+
+  if (pendingAdmission) {
+    window.Store.assignBed(pendingAdmission.id, selectedAvailableBed);
+    closeModals();
+    return;
+  }
+
+  setAssignError('Choose a valid pending admission from the patient list before confirming admission.');
+}
+window.confirmBedAllocation = confirmBedAllocation;
+
+function getPatientCandidates() {
+  const data = window.Store.get() || {};
+  const byUhid = new Map();
+
+  (data.pendingAdmissions || []).forEach((admission) => {
+    const requestedWard = getAdmissionRequestedWard(admission);
+    byUhid.set(admission.uhid, {
+      key: `pending-${admission.id}`,
+      type: 'pending',
+      assignable: true,
+      admissionId: admission.id,
+      patient: admission.patient,
+      uhid: admission.uhid,
+      dept: admission.dept,
+      requestedWard,
+      status: 'Pending Admission',
+      meta: `Requested by ${admission.requestedBy || 'PRE'} â€¢ ${admission.priority || 'Normal'}${requestedWard ? ` â€¢ ${requestedWard}` : ''}`
+    });
+  });
+
+  (data.patients || []).forEach((patient) => {
+    if (byUhid.has(patient.uhid)) return;
+    const isDischarged = patient.status === 'Discharged' || patient.bed === 'Bed freed';
+    byUhid.set(patient.uhid, {
+      key: `patient-${patient.uhid}`,
+      type: 'patient',
+      assignable: false,
+      admissionId: null,
+      patient: patient.name,
+      uhid: patient.uhid,
+      dept: patient.dept,
+      requestedWard: '',
+      status: isDischarged ? 'Already Discharged' : `${patient.status} â€¢ ${patient.bed}`,
+      meta: isDischarged ? 'Not assignable here. Create/approve a new admission first.' : 'Already assigned to a bed.'
+    });
+  });
+
+  return Array.from(byUhid.values()).sort((left, right) => {
+    if (left.assignable !== right.assignable) return left.assignable ? -1 : 1;
+    return left.patient.localeCompare(right.patient);
+  });
+}
+
+function closeModals() {
+  document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
+  selectedAvailableBed = null;
+  currentDetailBed = null;
+  currentDetailPatient = null;
+  selectedAssignPatient = null;
+  currentRequestedWard = '';
+  assignPatientQuery = '';
+  const assignInput = document.getElementById('assign-patient-search');
+  if (assignInput) assignInput.value = '';
+  toggleAssignPatientDropdown(false);
+  setAssignError('');
+  setAssignHint('');
+}
+window.closeModals = closeModals;
+
+function renderAvailableBeds(preselectedBed) {
+  const beds = getAvailableBeds().filter((bed) => bedMatchesRequestedWard(bed, currentRequestedWard));
+  const container = document.getElementById('modal-available-beds');
+  if (!container) return;
+
+  if (preselectedBed && !beds.some((bed) => bed.number === preselectedBed)) {
+    selectedAvailableBed = null;
+  }
+
+  container.innerHTML = beds.map((bed) => `
+    <button class="modal-bed-btn" onclick="selectAvailableBed('${bed.number}')" id="modal-bed-${bed.number}" style="padding: 16px; border-radius: 8px; border: 2px solid var(--border); background: white; text-align: left; cursor: pointer; transition: all 0.2s;">
+      <div style="font-weight: 600; font-size: 14px;">${bed.number}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${bed.ward}</div>
+    </button>
+  `).join('') || '<p style="grid-column: 1 / -1; color: var(--text-secondary); margin: 0;">No available beds found for this ward request.</p>';
+
+  if (preselectedBed) selectAvailableBed(preselectedBed);
+}
+
+function openAssignModal(preselectedBed = null) {
+  assignPatientQuery = '';
+  selectedAssignPatient = null;
+  currentRequestedWard = '';
+  const input = document.getElementById('assign-patient-search');
+  if (input) input.value = '';
+  renderAvailableBeds(preselectedBed);
+  renderAssignPatientOptions();
+  toggleAssignPatientDropdown(true);
+  setAssignHint('Select a patient from the live list below. Pending admissions are assignable.');
+  setAssignError('');
+  document.getElementById('modal-assign-bed').classList.add('active');
+}
+window.openAssignModal = openAssignModal;
+
+window.handleAssignPatientSearch = function (value) {
+  assignPatientQuery = value.trim();
+  selectedAssignPatient = null;
+  currentRequestedWard = '';
+  setAssignError('');
+  renderAssignPatientOptions();
+  toggleAssignPatientDropdown(true);
+
+  const pendingAdmission = getMatchingPendingAdmission(assignPatientQuery);
+  const activePatient = getMatchingActivePatient(assignPatientQuery);
+
+  if (!assignPatientQuery) {
+    setAssignHint('Showing all patients. Pending admissions are assignable.');
+    renderAvailableBeds(selectedAvailableBed);
+    return;
+  }
+  if (pendingAdmission) {
+    currentRequestedWard = getAdmissionRequestedWard(pendingAdmission);
+    setAssignHint(currentRequestedWard
+      ? `Pending admission matched: ${pendingAdmission.patient} (${pendingAdmission.uhid}) â€¢ showing ${currentRequestedWard} beds`
+      : `Pending admission matched: ${pendingAdmission.patient} (${pendingAdmission.uhid})`);
+    renderAvailableBeds(selectedAvailableBed);
+    return;
+  }
+  if (activePatient) {
+    setAssignHint(`${activePatient.name} is already occupying ${activePatient.bed}.`);
+    renderAvailableBeds(selectedAvailableBed);
+    return;
+  }
+
+  if (assignPatientQuery.length < 3) {
+    setAssignHint('Enter at least 3 characters to search for a patient.');
+  } else {
+    setAssignHint('No pending admission matched. Choose a patient from the list to filter beds by requested ward.');
+  }
+  renderAvailableBeds(selectedAvailableBed);
+};
+
+window.selectAssignPatient = function (candidateKey) {
+  const candidate = assignPatientOptions.find((item) => item.key === candidateKey);
+  if (!candidate) return;
+
+  selectedAssignPatient = candidate;
+  assignPatientQuery = candidate.uhid;
+  currentRequestedWard = candidate.requestedWard || '';
+
+  const input = document.getElementById('assign-patient-search');
+  if (input) input.value = `${candidate.patient} (${candidate.uhid})`;
+
+  if (candidate.assignable) {
+    setAssignHint(currentRequestedWard
+      ? `Selected ${candidate.patient} (${candidate.uhid}) for admission. Showing only ${currentRequestedWard} beds.`
+      : `Selected ${candidate.patient} (${candidate.uhid}) for admission.`);
+    setAssignError('');
+  } else {
+    setAssignHint(candidate.meta);
+    setAssignError(`${candidate.patient} cannot be assigned from this form right now.`);
+  }
+
+  renderAvailableBeds(selectedAvailableBed);
+  renderAssignPatientOptions();
+  toggleAssignPatientDropdown(candidate.assignable ? false : true);
+};
+
+function confirmBedAllocation() {
+  const patientInput = document.getElementById('assign-patient-search');
+  const patientQuery = patientInput ? patientInput.value.trim() : '';
+
+  if (!patientQuery) {
+    setAssignError('Enter a patient UHID or name before confirming admission.');
+    return;
+  }
+  if (patientQuery.length < 3) {
+    setAssignError('Patient search must be at least 3 characters long.');
+    return;
+  }
+  if (!selectedAvailableBed) {
+    setAssignError('Select an available bed before confirming admission.');
+    return;
+  }
+
+  if (selectedAssignPatient && !selectedAssignPatient.assignable) {
+    setAssignError(`${selectedAssignPatient.patient} is not assignable from this form.`);
+    return;
+  }
+
+  const pendingAdmission = selectedAssignPatient?.admissionId
+    ? (window.Store.get().pendingAdmissions || []).find((item) => item.id === selectedAssignPatient.admissionId)
+    : getMatchingPendingAdmission(patientQuery);
+
+  const activePatient = getMatchingActivePatient(patientQuery);
+  if (!pendingAdmission && activePatient) {
+    setAssignError(`${activePatient.name} is already assigned to ${activePatient.bed}.`);
+    return;
+  }
+
+  const requestedWard = getAdmissionRequestedWard(pendingAdmission);
+  const selectedBed = getAvailableBeds().find((bed) => bed.number === selectedAvailableBed);
+  if (pendingAdmission && selectedBed && !bedMatchesRequestedWard(selectedBed, requestedWard)) {
+    currentRequestedWard = requestedWard;
+    renderAvailableBeds(selectedAvailableBed);
+    setAssignError(`This request needs ${requestedWard}. Please choose a bed from that ward.`);
     return;
   }
 

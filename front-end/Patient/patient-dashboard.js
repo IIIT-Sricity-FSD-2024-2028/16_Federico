@@ -18,12 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("profile-chip")?.addEventListener("click", () => {
         window.location.href = "patient-profile.html";
     });
-    document.querySelector(".logout-btn")?.addEventListener("click", () => {
-        if (window.RoleAccess) window.RoleAccess.logout();
-        else sessionStorage.removeItem("userRole");
-        window.location.href = "landing-page.html";
-    });
-
     document.querySelectorAll(".nav-link").forEach(link => {
         link.addEventListener("click", () => {
             document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
@@ -89,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderProfile();
         renderWelcome();
         renderSummaryCards();
+        renderLastVisitSummary();
         renderAppointmentsTable();
         renderVisitsList();
         renderNotificationsPanel();
@@ -102,6 +97,47 @@ document.addEventListener("DOMContentLoaded", () => {
     onStoreReady(renderAll);
     window.addEventListener("patientStoreUpdated", renderAll);
 
+    function renderLastVisitSummary() {
+        const cards = document.querySelectorAll(".summary-card");
+        const now = Date.now();
+        const visits = getVisits().filter((item) => {
+            const ts = new Date(item.isoDate || item.date || "").getTime();
+            return Number.isFinite(ts) && ts < now;
+        });
+        const appointments = typeof getAllAppointments === "function" ? getAllAppointments() : [];
+        const latestAppointment = appointments
+            .filter(item => item && item.displayDate)
+            .sort((left, right) => {
+                const l = new Date(`${left.date || ""} ${left.time || ""}`).getTime();
+                const r = new Date(`${right.date || ""} ${right.time || ""}`).getTime();
+                return r - l;
+            })
+            .find((item) => {
+                const ts = new Date(`${item.date || ""} ${item.time || ""}`).getTime();
+                return Number.isFinite(ts) && ts < now;
+            }) || null;
+        const targetCard = cards[2];
+        if (!targetCard) return;
+
+        const title = targetCard.querySelector("h2");
+        if (title) {
+            title.textContent = visits.length > 0
+                ? visits[0].date.split(",").slice(0, 2).join(",")
+                : (latestAppointment?.displayDate || "-");
+        }
+
+        let summary = targetCard.querySelector("small");
+        if (!summary) {
+            summary = document.createElement("small");
+            targetCard.appendChild(summary);
+        }
+
+        summary.textContent = visits.length > 0
+            ? visits[0].description
+            : (latestAppointment ? `Last activity: ${latestAppointment.department || "General"} appointment` : "No visits yet");
+        summary.className = visits.length > 0 ? "info-teal" : "";
+    }
+
     /* ── Helpers ── */
     function getEffectiveStatus(bill) {
         if (bill.status === "paid") return "paid";
@@ -110,7 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function statusBadge(status) {
-        const map = { confirmed: "confirmed", scheduled: "scheduled", pending: "pending", cancelled: "pending" };
+        const map = { confirmed: "confirmed", scheduled: "scheduled", pending: "pending", cancelled: "pending", completed: "confirmed" };
         return `<span class="status ${map[status.toLowerCase()] || "pending"}">${status}</span>`;
     }
 
@@ -162,7 +198,23 @@ document.addEventListener("DOMContentLoaded", () => {
     /* ── Summary cards ── */
     function renderSummaryCards() {
         const upcoming = getUpcomingAppointments();
-        const visits = getVisits();
+        const now = Date.now();
+        const visits = getVisits().filter((item) => {
+            const ts = new Date(item.isoDate || item.date || "").getTime();
+            return Number.isFinite(ts) && ts < now;
+        });
+        const appointments = typeof getAllAppointments === "function" ? getAllAppointments() : [];
+        const latestAppointment = appointments
+            .filter(item => item && item.displayDate)
+            .sort((left, right) => {
+                const l = new Date(`${left.date || ""} ${left.time || ""}`).getTime();
+                const r = new Date(`${right.date || ""} ${right.time || ""}`).getTime();
+                return r - l;
+            })
+            .find((item) => {
+                const ts = new Date(`${item.date || ""} ${item.time || ""}`).getTime();
+                return Number.isFinite(ts) && ts < now;
+            }) || null;
         const bills = getBills();
         const unpaid = bills.filter(b => getEffectiveStatus(b) !== "paid");
         const totalOwed = unpaid.reduce((sum, b) => sum + b.youPay, 0);
@@ -197,11 +249,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // Card 3 — Last Visit
         if (cards[2]) {
             cards[2].querySelector("h2").textContent = visits.length > 0
-                ? visits[0].date.split(",")[0]  // "Mar 2"
-                : "—";
+                ? visits[0].date.split(",")[0]
+                : (latestAppointment?.displayDate || "-");
             const sm = cards[2].querySelector("small");
             if (sm) {
-                sm.textContent = visits.length > 0 ? visits[0].description : "No visits yet";
+                sm.textContent = visits.length > 0
+                    ? visits[0].description
+                    : (latestAppointment ? `Last activity: ${latestAppointment.department || "General"} appointment` : "No visits yet");
                 sm.className = "";
             }
         }
@@ -214,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const upcoming = getUpcomingAppointments();
         if (upcoming.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No upcoming appointments.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No upcoming appointments.</td></tr>`;
             return;
         }
 
@@ -223,7 +277,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${a.displayDate}</td>
         <td>${a.time}</td>
         <td>${a.department}</td>
-        <td>${a.type}</td>
         <td>${statusBadge(a.status)}</td>
       </tr>`
         ).join("");
@@ -304,12 +357,13 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>`;
         } else {
             listEl.innerHTML = unpaid.slice(0, 2).map(bill => {
+                const safeBill = window.Sanitizer ? window.Sanitizer.forRole(bill, 'PATIENT') : bill;
                 const status = getEffectiveStatus(bill);
                 return `
           <div class="bill-item">
             <div>
-              <strong>${bill.billNo}</strong>
-              <span>${bill.department} – ${bill.date}</span>
+              <strong>${safeBill.billNo}</strong>
+              <span>${safeBill.department} – ${safeBill.date}</span>
             </div>
             <div class="bill-meta">
               ${billStatusBadge(status)}
@@ -325,22 +379,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderDocumentsPanel() {
-        const container = document.getElementById("patient-documents-list");
-        if (!container) return;
+        const receiptsContainer = document.getElementById("documents-receipts");
+        const dischargeContainer = document.getElementById("documents-discharge");
+        const eodContainer = document.getElementById("documents-eod");
+        if (!receiptsContainer || !dischargeContainer || !eodContainer) return;
 
         const documents = getDocuments();
-        if (documents.length === 0) {
-            container.innerHTML = `
+        const receipts = documents.filter((doc) => doc.section === "Receipts");
+        const discharge = documents.filter((doc) => doc.section === "Discharge Summary");
+        const eod = documents.filter((doc) => doc.section === "EOD Bills");
+
+        const renderDocRows = (rows, emptyText) => {
+            if (!rows.length) {
+                return `
                 <div class="bill-item">
                     <div>
-                        <strong>No documents yet</strong>
-                        <span>Documents sent by HOM will appear here.</span>
+                        <strong>${emptyText}</strong>
                     </div>
                 </div>`;
-            return;
-        }
-
-        container.innerHTML = documents.slice(0, 4).map(doc => `
+            }
+            return rows.slice(0, 4).map(doc => `
             <div class="bill-item">
                 <div>
                     <strong>${doc.title}</strong>
@@ -351,6 +409,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             </div>
         `).join("");
+        };
+
+        receiptsContainer.innerHTML = renderDocRows(receipts, "No receipts available.");
+        dischargeContainer.innerHTML = renderDocRows(discharge, "No discharge summary available.");
+        eodContainer.innerHTML = renderDocRows(eod, "No EOD bills available.");
     }
 
     /* ── Appointments modal tbody ── */
@@ -360,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const upcoming = getUpcomingAppointments();
         if (upcoming.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No upcoming appointments.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No upcoming appointments.</td></tr>`;
             return;
         }
 
@@ -369,7 +432,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${a.displayDate}</td>
         <td>${a.time}</td>
         <td>${a.department}</td>
-        <td>${a.type}</td>
         <td>${statusBadge(a.status)}</td>
       </tr>`
         ).join("");
@@ -403,13 +465,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const totalOwed = unpaid.reduce((sum, b) => sum + b.youPay, 0);
 
         tbody.innerHTML = bills.map(bill => {
+            const safeBill = window.Sanitizer ? window.Sanitizer.forRole(bill, 'PATIENT') : bill;
             const status = getEffectiveStatus(bill);
             return `
         <tr>
-          <td class="bill-id-cell">${bill.billNo}</td>
-          <td>${bill.description}</td>
+          <td class="bill-id-cell">${safeBill.billNo}</td>
+          <td>${safeBill.description}</td>
           <td><strong>₹${bill.youPay.toLocaleString("en-IN")}</strong></td>
-          <td>${bill.dueDate}</td>
+          <td>${safeBill.dueDate}</td>
           <td>${billStatusBadge(status)}</td>
         </tr>`;
         }).join("");
@@ -420,3 +483,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 });
+

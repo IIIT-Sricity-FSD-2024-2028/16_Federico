@@ -172,6 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 gender: valueOf("gender"),
                 bloodGroup: valueOf("blood-group")
             });
+            syncProfileToAuthAccounts();
         }
 
         if (section === "contact") {
@@ -181,6 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 altPhone: valueOf("alt-phone"),
                 address: valueOf("address")
             });
+            syncProfileToAuthAccounts();
         }
 
         if (section === "insurance") {
@@ -194,6 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 coverage: parseCoverage(valueOf("coverage-amount"))
             });
             setValue("coverage-amount", Number(getProfile()?.insurance?.coverage || 0).toLocaleString("en-IN"));
+            syncProfileToAuthAccounts();
         }
 
         inputs.forEach((input) => {
@@ -262,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
             setTimeout(() => {
                 if (window.RoleAccess) window.RoleAccess.logout();
                 else sessionStorage.removeItem("userRole");
-                window.location.href = "landing-page.html";
+                window.location.href = "../landing/landing-page.html";
             }, 900);
         };
 
@@ -297,6 +300,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function parseCoverage(value) {
         return Number(String(value).replace(/,/g, "")) || 0;
+    }
+
+    function syncProfileToAuthAccounts() {
+        const profile = getProfile();
+        if (!profile) return;
+
+        try {
+            const _root = JSON.parse(localStorage.getItem("HospitalAppState") || "{}");
+            const accounts = Array.isArray(_root.patientAuthAccounts) ? _root.patientAuthAccounts : [];
+            if (!Array.isArray(accounts)) return;
+
+            const authEmail = String(sessionStorage.getItem("authEmail") || "").trim().toLowerCase();
+            const patientUhid = String(profile.uhid || "").trim();
+            const updatedName = String(profile.name || "").trim();
+            const updatedEmail = String(profile.email || "").trim();
+
+            const accountIndex = accounts.findIndex((account) =>
+                String(account?.email || "").trim().toLowerCase() === authEmail ||
+                (patientUhid && String(account?.patientUhid || "").trim() === patientUhid)
+            );
+            if (accountIndex < 0) return;
+
+            accounts[accountIndex] = {
+                ...accounts[accountIndex],
+                displayName: updatedName || accounts[accountIndex].displayName || "Patient",
+                email: updatedEmail || accounts[accountIndex].email,
+                phone: profile.phone || "",
+                altPhone: profile.altPhone || "",
+                address: profile.address || "",
+                gender: profile.gender || "",
+                dob: profile.dob || "",
+                bloodGroup: profile.bloodGroup || "",
+                patientUhid: patientUhid || accounts[accountIndex].patientUhid || null
+            };
+
+            _root.patientAuthAccounts = accounts;
+            localStorage.setItem("HospitalAppState", JSON.stringify(_root));
+
+            if (updatedName) {
+                sessionStorage.setItem("authDisplayName", updatedName);
+            }
+            if (updatedEmail) {
+                sessionStorage.setItem("authEmail", updatedEmail);
+            }
+        } catch (error) {
+            console.warn("Unable to persist profile updates in patientAuthAccounts:", error);
+        }
     }
 
     function showToast(message, type = "success") {

@@ -33,12 +33,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Listen for real-time updates from other interactions
   window.addEventListener('storeUpdated', renderDashboard);
+  window.addEventListener('sharedStateUpdated', renderDashboard);
 });
 
 let currentSelectedAdmissionId = null;
 let currentSelectedBed = null;
 let currentWardFilter = 'ALL';
 let currentStatusFilter = 'ALL';
+
+function normalizeDashboardWard(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function dashboardBedMatchesRequestedWard(bed, requestedWard) {
+  if (!requestedWard) return true;
+  return normalizeDashboardWard(bed?.ward) === normalizeDashboardWard(requestedWard);
+}
 
 function setDashboardFormMessage(id, message) {
   const element = document.getElementById(id);
@@ -251,7 +261,6 @@ function renderAdmissionsTable(data) {
         <td>${adm.uhid}</td>
         <td>${adm.dept}</td>
         <td>${adm.requestedBy}</td>
-        <td>${window.UI.Badge({ variant: priorityVariant, children: adm.priority })}</td>
         <td>${adm.time}</td>
         <td>${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Assign Bed' })}</td>
       </tr>
@@ -336,16 +345,19 @@ function renderServiceRequests(data) {
     return;
   }
 
-  tbody.innerHTML = serviceRequests.slice(0, 6).map((request) => `
+  tbody.innerHTML = serviceRequests.slice(0, 6).map((request) => {
+    const safeRequest = window.Sanitizer ? window.Sanitizer.forRole(request, 'HOM') : request;
+    return `
     <tr>
-      <td>${request.patient_name}</td>
-      <td>${request.uhid}</td>
-      <td>${request.service}</td>
-      <td>${request.service_count || 1}</td>
+      <td>${safeRequest.patient_name}</td>
+      <td>${safeRequest.uhid}</td>
+      <td>${safeRequest.service}</td>
+      <td>${safeRequest.service_count || 1}</td>
       <td>${window.UI.Badge({ variant: request.status === 'PENDING' ? 'warning' : 'success', children: request.status })}</td>
       <td>${new Date(request.created_at || Date.now()).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderDispatchQueue(data) {
@@ -354,7 +366,7 @@ function renderDispatchQueue(data) {
   if (!tbody || !badge) return;
 
   const queue = (data.dispatchQueue || []).slice().sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  const readyCount = queue.filter((item) => item.status === 'QUEUED').length;
+  const readyCount = queue.filter((item) => item.type === 'PAYMENT_LINK' && !item.payment_confirmed).length;
   badge.innerHTML = window.UI.Badge({ variant: readyCount > 0 ? 'warning' : 'neutral', children: `${readyCount} Awaiting HOM` });
 
   if (queue.length === 0) {
@@ -362,25 +374,30 @@ function renderDispatchQueue(data) {
     return;
   }
 
-  tbody.innerHTML = queue.slice(0, 6).map((item) => `
+  tbody.innerHTML = queue.slice(0, 6).map((item) => {
+    const safeItem = window.Sanitizer ? window.Sanitizer.forRole(item, 'HOM') : item;
+    return `
     <tr>
-      <td>${item.patient_name}</td>
+      <td>${safeItem.patient_name}</td>
       <td>
         <div style="font-weight: 600;">${getDispatchLabel(item)}</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${getDispatchReference(item) || 'Reference available after send'}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${getDispatchReference(safeItem) || 'Reference available after send'}</div>
       </td>
-      <td>${item.amount ? `Rs ${Number(item.amount).toLocaleString('en-IN')}` : '-'}</td>
+      <td>${safeItem.amount ? `Rs ${Number(safeItem.amount).toLocaleString('en-IN')}` : '-'}</td>
       <td>${window.UI.Badge({ variant: item.status === 'SENT' ? 'success' : 'warning', children: item.status })}</td>
       <td>
         <div style="display:flex; gap:8px; align-items:center;">
           ${item.status === 'QUEUED'
-            ? window.UI.Button({ variant: 'primary', size: 'sm', children: 'Send to Patient', onClick: `sendDispatchItem(${item.id})` })
-            : '<span style="color: var(--text-secondary); font-size: 12px;">Delivered</span>'}
-          ${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Copy Link', onClick: `copyDispatchReference(${item.id})` })}
+            ? window.UI.Button({ variant: 'primary', size: 'sm', children: 'Send to Patient', onClick: `sendDispatchItem('${item.id}')` })
+            : item.type === 'PAYMENT_LINK' && !item.payment_confirmed
+              ? window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Confirm Payment', onClick: `confirmPaymentToFA('${item.id}')` })
+              : '<span style="color: var(--text-secondary); font-size: 12px;">Delivered</span>'}
+          ${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Copy Link', onClick: `copyDispatchReference('${item.id}')` })}
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderPreDischargeQueue() {
@@ -428,43 +445,6 @@ function getDispatchReference(item) {
 // ==========================================
 // ADMISSION REQUEST MODAL
 // ==========================================
-window.openAdmissionModal = function(admissionId) {
-  const data = window.Store.get();
-  const admission = data.pendingAdmissions.find(a => a.id === admissionId);
-  if (!admission) return;
-
-  currentSelectedAdmissionId = admission.id;
-  currentSelectedBed = null;
-
-  document.getElementById('modal-admit-title').innerText = `Admission Request — ${admission.patient}`;
-  document.getElementById('modal-admit-name').innerText = admission.patient;
-  document.getElementById('modal-admit-uhid').innerText = admission.uhid;
-  
-  const priorityVariant = (admission.priority === "Critical" || admission.priority === "Urgent") ? "error" : "warning";
-  document.getElementById('modal-admit-dept').innerHTML = window.UI.Badge({ variant: 'info', children: admission.dept });
-  document.getElementById('modal-admit-priority').innerHTML = window.UI.Badge({ variant: priorityVariant, children: admission.priority });
-  document.getElementById('modal-admit-time').innerText = admission.time;
-  document.getElementById('modal-admit-req').innerText = admission.requestedBy;
-  document.getElementById('modal-admit-ward').innerHTML = admission.preferredWard
-    ? window.UI.Badge({ variant: 'success', children: admission.preferredWard })
-    : '<span style="color: var(--text-secondary);">Not specified</span>';
-
-  const bedsContainer = document.getElementById('modal-admit-beds');
-  if(bedsContainer) {
-      let availableBedsList = [];
-      data.wards.forEach(w => w.beds.filter(b => b.status === 'available').slice(0,2).forEach(b => availableBedsList.push({ number: b.number, ward: w.name, rate: 3500 })));
-      
-      bedsContainer.innerHTML = availableBedsList.slice(0, 2).map(bed => `
-        <button class="bed-option-btn" onclick="selectModalBed('${bed.number}')" id="bed-opt-${bed.number}" style="padding: 16px; border-radius: 8px; border: 2px solid var(--border); background: white; text-align: left; cursor: pointer;">
-          <div style="font-weight: 600; font-size: 14px;">${bed.number}</div>
-          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${bed.ward}</div>
-        </button>
-      `).join('');
-  }
-
-  const modal = document.getElementById('modal-admission-request');
-  if(modal) modal.classList.add('active');
-}
 
 window.closeAdmissionModal = function() {
   const modal = document.getElementById('modal-admission-request');
@@ -582,7 +562,21 @@ window.submitServiceRequest = function() {
 
 window.sendDispatchItem = function(dispatchId) {
   const success = window.Store.dispatchToPatient(dispatchId);
-  if (!success) alert('Dispatch item not found.');
+  if (!success) {
+    alert('Dispatch item not found.');
+    return;
+  }
+  renderDashboard();
+};
+
+window.confirmPaymentToFA = function(dispatchId) {
+  const success = window.Store.notifyFAPaymentConfirmed(dispatchId);
+  if (!success) {
+    alert('Unable to notify FA about the payment confirmation.');
+    return;
+  }
+  renderDashboard();
+  alert('Payment confirmation sent to FA. Receipt can now be generated.');
 };
 
 window.copyDispatchReference = function(dispatchId) {
@@ -609,19 +603,21 @@ window.copyDispatchReference = function(dispatchId) {
 window.sendPreDischargeToFA = function(uhid) {
   const success = window.Store.requestDischargeBilling(uhid);
   if (!success) {
-    alert('Unable to send discharge request to FA.');
+    alert('Unable to forward discharge to FA.');
     return;
   }
-  alert(`Discharge request forwarded to FA for ${uhid}.`);
+  renderDashboard();
+  window.location.href = `screen-05-billing.html?uhid=${encodeURIComponent(uhid)}`;
 };
 
 window.confirmPreDischarge = function(uhid) {
   const success = window.Store.confirmDischargeBackToPRE(uhid);
   if (!success) {
-    alert('HOM needs discharge summary, payment link, and receipt from FA before confirming to PRE.');
+    alert('Unable to confirm discharge back to PRE.');
     return;
   }
-  alert(`Discharge completion confirmed back to PRE for ${uhid}.`);
+  renderDashboard();
+  alert(`Discharge confirmed to PRE and forwarded to FA for payment link and discharge summary for ${uhid}.`);
 };
 
 window.rejectAdmissionRequest = function() {
@@ -642,6 +638,52 @@ window.rejectAdmissionRequest = function() {
   window.Store.logActivity('error', `Admission request rejected for ${removed.patient} (${removed.uhid})`);
   closeAdmissionModal();
 };
+
+window.openAdmissionModal = function(admissionId) {
+  const data = window.Store.get();
+  const admission = data.pendingAdmissions.find(a => a.id === admissionId);
+  if (!admission) return;
+
+  currentSelectedAdmissionId = admission.id;
+  currentSelectedBed = null;
+
+  document.getElementById('modal-admit-title').innerText = `Admission Request â€” ${admission.patient}`;
+  document.getElementById('modal-admit-name').innerText = admission.patient;
+  document.getElementById('modal-admit-uhid').innerText = admission.uhid;
+
+  const priorityVariant = (admission.priority === "Critical" || admission.priority === "Urgent") ? "error" : "warning";
+  document.getElementById('modal-admit-dept').innerHTML = window.UI.Badge({ variant: 'info', children: admission.dept });
+  document.getElementById('modal-admit-priority').innerHTML = window.UI.Badge({ variant: priorityVariant, children: admission.priority });
+  document.getElementById('modal-admit-time').innerText = admission.time;
+  document.getElementById('modal-admit-req').innerText = admission.requestedBy;
+  document.getElementById('modal-admit-ward').innerHTML = admission.preferredWard
+    ? window.UI.Badge({ variant: 'success', children: admission.preferredWard })
+    : '<span style="color: var(--text-secondary);">Not specified</span>';
+
+  const bedsContainer = document.getElementById('modal-admit-beds');
+  if (bedsContainer) {
+    const requestedWard = admission.preferredWard || '';
+    let availableBedsList = [];
+
+    data.wards.forEach((ward) => {
+      ward.beds
+        .filter((bed) => bed.status === 'available')
+        .forEach((bed) => availableBedsList.push({ number: bed.number, ward: ward.name, rate: 3500 }));
+    });
+
+    availableBedsList = availableBedsList.filter((bed) => dashboardBedMatchesRequestedWard(bed, requestedWard));
+
+    bedsContainer.innerHTML = availableBedsList.length ? availableBedsList.map((bed) => `
+      <button class="bed-option-btn" onclick="selectModalBed('${bed.number}')" id="bed-opt-${bed.number}" style="padding: 16px; border-radius: 8px; border: 2px solid var(--border); background: white; text-align: left; cursor: pointer;">
+        <div style="font-weight: 600; font-size: 14px;">${bed.number}</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${bed.ward}</div>
+      </button>
+    `).join('') : `<div style="padding: 16px; border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary);">No available beds found for ${requestedWard || 'the requested ward'}.</div>`;
+  }
+
+  const modal = document.getElementById('modal-admission-request');
+  if (modal) modal.classList.add('active');
+}
 
 function filterDashboardBedSearch() {
   const query = (document.getElementById('dashboard-patient-search')?.value || '').trim().toLowerCase();

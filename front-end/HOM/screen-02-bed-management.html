@@ -56,7 +56,6 @@
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
                 <input type="text" class="input" placeholder="Search by UHID or bed number" style="width: 280px;" id="bed-search">
-                <button class="btn btn-primary btn-default" onclick="openAssignModal()">+ Allocate Bed</button>
             </div>
         </div>
 
@@ -137,12 +136,20 @@
         </div>
     </div>
 
-    <script src="../shared/rbac.js"></script>
+  <script src="../shared/constants.js"></script>
     <script src="../shared/canonical-seed.js"></script>
-    <script src="auth-guard.js"></script>
-    <script src="storage.js"></script>
-    <script src="ui-template.js"></script>
-    <script src="shared-nav.js"></script>
-    <script src="beds.js"></script>
+<script src="../shared/id-generator.js"></script>
+<script src="../shared/patient-resolver.js"></script>
+<script src="../shared/sanitizer.js"></script>
+<script src="../shared/ledger-validator.js"></script>
+<script src="../shared/finance-states.js"></script>
+<script src="../shared/insurance.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="auth-guard.js"></script>
+<script src="storage.js"></script>
+<script src="ui-template.js"></script>
+<script src="shared-nav.js"></script>
+<script src="beds.js"></script>
 </body>
 </html>
