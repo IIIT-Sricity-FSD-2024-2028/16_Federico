@@ -1,7 +1,6 @@
-function navigate(hash, patientId = null) {
+function navigate(hash, admissionId = null) {
     if (window.Permissions && !Permissions.enforceRoute(hash)) return;
-    if (patientId) AppState.currentPatientId = patientId;
-    saveState();
+    if (admissionId) window.currentAdmissionId = admissionId;
     location.hash = hash;
     if (typeof window.render === 'function') window.render();
 }
