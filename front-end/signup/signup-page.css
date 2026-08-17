@@ -1,374 +1,236 @@
-:root {
-    --bg: #edf5f8;
-    --surface: #ffffff;
-    --text: #1f2937;
-    --muted: #7b8794;
-    --muted-light: #9aa6b2;
-    --line: #e7edf2;
-    --input: #eef2f5;
-    --primary: #23b7b2;
-    --primary-dark: #169892;
-    --primary-soft: #dff8f6;
-    --danger: #ff3355;
-    --shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-    --radius-xl: 22px;
-    --radius-lg: 16px;
-    --radius-md: 12px;
-    --radius-sm: 10px;
-}
+/* signup-page.css — Phase 4: Luxury / Editorial (design.txt) */
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
-    font-family: "Inter", sans-serif;
-    background: linear-gradient(180deg, #eef5f8 0%, #f3f8fb 100%);
-    color: var(--text);
+    font-family: var(--font-body);
+    background: var(--color-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
 }
 
-button,
-input,
-select,
-a {
-    font-family: inherit;
-}
+button, input, select, a { font-family: inherit; }
 
 .topbar {
-    height: 74px;
-    background: #ffffff;
-    border-bottom: 1px solid #e6edf1;
+    position: relative;
+    z-index: 2;
+    height: 88px;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 22px;
+    padding: 0 64px;
 }
 
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+.brand { display: flex; align-items: center; gap: 12px; }
 
 .brand-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--primary);
-    color: #ffffff;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius);
+    background: var(--color-fg);
+    color: var(--color-bg);
     display: grid;
     place-items: center;
-    font-size: 14px;
-    font-weight: 700;
+    font-family: var(--font-heading);
+    font-size: 16px;
 }
 
-.brand-name {
-    font-size: 14px;
-    font-weight: 700;
-}
+.brand-name { font-family: var(--font-heading); font-size: 18px; letter-spacing: 0.02em; }
 
-.login-shortcut {
-    border: none;
-    background: var(--primary);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 11px 16px;
-    border-radius: 10px;
-    cursor: pointer;
-}
+.login-shortcut { font-size: 11px; height: 44px; padding: 0 24px; letter-spacing: 0.14em; }
 
 .signup-wrapper {
-    padding: 38px 16px 60px;
+    position: relative;
+    z-index: 2;
+    padding: 64px 20px 80px;
     display: flex;
     justify-content: center;
 }
 
 .signup-card {
     width: 100%;
-    max-width: 560px;
-    background: #ffffff;
-    border-radius: 18px;
-    box-shadow: var(--shadow);
-    padding: 24px 24px 28px;
+    max-width: 620px;
+    background: transparent;
+    border-radius: var(--radius);
+    box-shadow: none;
+    border-top: 1px solid var(--color-fg);
+    padding: 48px 0 0;
 }
 
 .card-logo {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: var(--primary);
-    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    background: var(--color-fg);
+    color: var(--color-bg);
     display: grid;
     place-items: center;
-    margin: 0 auto 12px;
-    font-weight: 700;
+    margin: 0 auto 20px;
+    font-family: var(--font-heading);
+    font-size: 18px;
 }
 
 .signup-card h1 {
     margin: 0;
     text-align: center;
-    font-size: 20px;
-    font-weight: 800;
-    color: #243247;
+    font-family: var(--font-heading);
+    font-size: 30px;
+    font-weight: 400;
+    color: var(--color-fg);
 }
 
-.subtext {
-    margin: 6px 0 10px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--muted);
-}
+.subtext { margin: 12px 0 16px; text-align: center; font-size: 14px; color: var(--color-muted-fg); }
 
 .pill {
     width: fit-content;
-    margin: 0 auto 18px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: var(--primary-soft);
-    color: var(--primary-dark);
-    font-size: 11px;
-    font-weight: 700;
+    margin: 0 auto 32px;
+    padding: 6px 16px;
+    border-radius: var(--radius);
+    background: transparent;
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-fg);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
 }
 
-.signup-form {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
+.signup-form { display: flex; flex-direction: column; gap: 32px; }
 
-.form-section {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
+.form-section { display: flex; flex-direction: column; gap: 18px; }
 
 .section-title {
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--muted-light);
-    padding-top: 6px;
-    border-top: 1px solid var(--line);
+    letter-spacing: var(--tracking-label);
+    color: var(--color-muted-fg);
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
 }
 
-.with-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+.with-badge { display: flex; align-items: center; gap: 10px; }
 
 .optional-badge {
-    background: #ff3355;
-    color: #ffffff;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-muted-fg);
     font-size: 9px;
-    font-weight: 800;
-    padding: 3px 8px;
-    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: var(--radius);
 }
 
-.grid-one,
-.grid-two {
-    display: grid;
-    gap: 12px;
-}
-
-.grid-one {
-    grid-template-columns: 1fr;
-}
-
-.grid-two {
-    grid-template-columns: repeat(2, 1fr);
-}
+.grid-one, .grid-two { display: grid; gap: 20px; }
+.grid-one { grid-template-columns: 1fr; }
+.grid-two { grid-template-columns: repeat(2, 1fr); }
 
 .form-group label {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     font-size: 11px;
-    font-weight: 700;
-    color: #2d3748;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted-fg);
 }
 
-.form-group input,
-.form-group select {
+/* Underline-only inputs, italic serif placeholder */
+.form-group input, .form-group select {
     width: 100%;
-    height: 40px;
+    height: 44px;
     border: none;
+    border-bottom: 1px solid var(--color-fg);
     outline: none;
-    border-radius: 8px;
-    background: var(--input);
-    padding: 0 12px;
-    font-size: 12px;
-    color: #4b5563;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    font-size: 14px;
+    color: var(--color-fg);
+    transition: border-color var(--duration-base) var(--ease-luxury);
 }
+
+.form-group input:focus, .form-group select:focus { border-color: var(--color-accent); }
 
 .form-group input::placeholder {
-    color: #9aa3ad;
+    font-family: var(--font-heading);
+    font-style: italic;
+    color: var(--color-muted-fg);
 }
 
 .form-group select {
     appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, #9aa3ad 50%),
-        linear-gradient(135deg, #9aa3ad 50%, transparent 50%);
-    background-position: calc(100% - 14px) 17px, calc(100% - 9px) 17px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-fg) 50%),
+        linear-gradient(135deg, var(--color-fg) 50%, transparent 50%);
+    background-position: calc(100% - 12px) 20px, calc(100% - 7px) 20px;
     background-size: 5px 5px, 5px 5px;
     background-repeat: no-repeat;
 }
 
-.uploads-grid .form-group label {
-    margin-bottom: 0;
-}
+.uploads-grid .form-group label { margin-bottom: 0; }
 
-.mini-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 6px;
-}
+.mini-label { font-size: 10px; font-weight: 600; color: var(--color-muted-fg); margin-bottom: 8px; letter-spacing: 0.04em; }
 
 .mini-label span {
-    margin-left: 4px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: #dff8f6;
-    color: var(--primary-dark);
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: var(--radius);
+    background: var(--color-muted-bg);
+    color: var(--color-fg);
     font-size: 9px;
     text-transform: uppercase;
 }
 
 .upload-box {
     width: 100%;
-    min-height: 74px;
-    border: 1.5px dashed #9fe0dc;
-    background: #f4feff;
-    border-radius: 10px;
+    min-height: 84px;
+    border: 1px dashed var(--color-border-strong);
+    background: transparent;
+    border-radius: var(--radius);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 4px;
     cursor: pointer;
-    color: #2d3748;
+    color: var(--color-fg);
+    transition: background var(--duration-base) var(--ease-luxury), border-color var(--duration-base) var(--ease-luxury);
 }
 
-.upload-box strong {
-    font-size: 11px;
-    font-weight: 700;
-}
+.upload-box:hover { background: var(--color-muted-bg); border-color: var(--color-accent); }
 
-.upload-box small {
-    font-size: 10px;
-    color: #94a3b8;
-}
+.upload-box strong { font-size: 12px; font-weight: 500; }
 
-.terms-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: 11px;
-    color: #6b7280;
-    line-height: 1.6;
-    cursor: pointer;
-}
+.upload-box small { font-size: 10px; color: var(--color-muted-fg); }
 
-.terms-row input {
-    margin-top: 2px;
-    accent-color: var(--primary);
-}
+.terms-row { display: flex; align-items: flex-start; gap: 12px; font-size: 12px; color: var(--color-muted-fg); line-height: 1.6; cursor: pointer; }
 
-.terms-row a {
-    color: var(--primary-dark);
-    text-decoration: none;
-    font-weight: 600;
-}
+.terms-row input { margin-top: 2px; accent-color: var(--color-fg); }
 
-.create-btn {
-    width: 100%;
-    height: 46px;
-    border: none;
-    border-radius: 10px;
-    background: linear-gradient(90deg, #28c7c0 0%, #16a39d 100%);
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 10px 24px rgba(35, 183, 178, 0.22);
-}
+.terms-row a { color: var(--color-fg); text-decoration: none; font-weight: 500; border-bottom: 1px solid var(--color-accent); }
 
-.bottom-login {
-    text-align: center;
-    color: #9aa3ad;
-    font-size: 11px;
-    position: relative;
-    margin-top: 2px;
-}
+.create-btn { width: 100%; margin-top: 8px; }
 
-.bottom-login::before,
-.bottom-login::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    width: 34%;
-    height: 1px;
-    background: #d8e0e6;
-}
+.bottom-login { text-align: center; color: var(--color-muted-fg); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; position: relative; margin-top: 4px; }
 
-.bottom-login::before {
-    left: 0;
-}
+.bottom-login::before, .bottom-login::after { content: ""; position: absolute; top: 50%; width: 32%; height: 1px; background: var(--color-border); }
 
-.bottom-login::after {
-    right: 0;
-}
-
-.login-shortcut:hover {
-    background: var(--primary-dark);
-}
-
-.create-btn:hover {
-    filter: brightness(0.96);
-}
-
-.upload-box:hover {
-    background: #ebfcfc;
-}
+.bottom-login::before { left: 0; }
+.bottom-login::after { right: 0; }
 
 @media (max-width: 640px) {
-    .topbar {
-        padding: 0 14px;
-        gap: 10px;
-    }
-
-    .login-shortcut {
-        font-size: 11px;
-        padding: 10px 12px;
-    }
-
-    .signup-card {
-        padding: 20px 16px 22px;
-    }
-
-    .grid-two {
-        grid-template-columns: 1fr;
-    }
-
-    .bottom-login::before,
-    .bottom-login::after {
-        width: 24%;
-    } }
-
-
-/* Ensure date inputs match the height and styling of other inputs */
-.form-group input[type="date"] {
-    height: 40px;
-    padding: 0 12px;
-    cursor: pointer;
+    .topbar { padding: 0 20px; }
+    .signup-card { padding: 32px 0 0; }
+    .grid-two { grid-template-columns: 1fr; }
+    .bottom-login::before, .bottom-login::after { width: 22%; }
 }
 
-/* Customizes the calendar icon color to match the Federico theme (Chrome/Edge) */
-input[type="date"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    filter: invert(58%) sepia(87%) saturate(345%) hue-rotate(130deg) brightness(92%) contrast(89%);
-}
+/* Ensure date inputs match the underline style of other inputs */
+.form-group input[type="date"] { cursor: pointer; }
+
+input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
