@@ -16,11 +16,21 @@ const dataStore = {
     { role_id: 3, role_name: 'FA' },
     { role_id: 4, role_name: 'PRE' },
   ],
+  // Demo credentials (Phase 2 real auth) — password_hash values are real
+  // bcrypt hashes, plaintext documented here and in README.md:
+  //   HOM   admin@hosp.com      / Hom@123
+  //   PRE   rekha.pre@hosp.com  / Pre@123
+  //   FA    farah.fa@hosp.com   / Fa@123
+  //   Patient hamiz@hosp.com    / Hamiz@123
+  //   Patient salma@hosp.com    / Salma@123
+  //   Patient john@hosp.com     / John@123
   users: [
-    { user_id: 101, name: 'Admin User', email: 'admin@hosp.com', password_hash: '$2b$12$eJ...', role_id: 1, created_at: '2026-03-01 10:00:00' },
-    { user_id: 102, name: 'Hamiz Shams', email: 'hamiz@hosp.com', password_hash: '$2b$12$kP...', role_id: 2, created_at: '2026-03-02 11:30:00' },
-    { user_id: 103, name: 'Salma Begum', email: 'salma@hosp.com', role_id: 2 },
-    { user_id: 104, name: 'John Doe', email: 'john@hosp.com', role_id: 2 },
+    { user_id: 101, name: 'Admin User', email: 'admin@hosp.com', password_hash: '$2a$10$nilm1vg5pIZ9C5i9gz.hwOB/WMWSzXvRinSsrnqwV1QqT2pZTS5R2', role_id: 1, created_at: '2026-03-01 10:00:00' },
+    { user_id: 102, name: 'Hamiz Shams', email: 'hamiz@hosp.com', password_hash: '$2a$10$wtsS0xsMDJQGpnggKdy2se/.ociBQyZ17e8sGbQ3tXnBgQ966DeuS', role_id: 2, created_at: '2026-03-02 11:30:00' },
+    { user_id: 103, name: 'Salma Begum', email: 'salma@hosp.com', password_hash: '$2a$10$u1bvXPu4YeKnLW8uYa8aUe63Ud28j6Dwdh6ZhMWmd14Lz.F8EwgZO', role_id: 2, created_at: '2026-03-02 11:30:00' },
+    { user_id: 104, name: 'John Doe', email: 'john@hosp.com', password_hash: '$2a$10$IKsvae62kmrQTiauYPmxN.HvDUON0euqu0Bug3CMlPKKjIp3oo0Jm', role_id: 2, created_at: '2026-03-02 11:30:00' },
+    { user_id: 105, name: 'Rekha Nair', email: 'rekha.pre@hosp.com', password_hash: '$2a$10$GBx3dZtybae0OQeNKKYZf.s52vAY8MiW6007MZP.No9epNmPyzIW.', role_id: 4, created_at: '2026-03-02 11:30:00' },
+    { user_id: 106, name: 'Farah Ansari', email: 'farah.fa@hosp.com', password_hash: '$2a$10$1TCl4eaJ1gCM4AeahNrK9eG0W7Pd0cQNY1OuUms02YwgHBWuztx3u', role_id: 3, created_at: '2026-03-02 11:30:00' },
   ],
 
   // Section 2 — Patients
@@ -90,6 +100,17 @@ const dataStore = {
     { item_id: 20, item_name: 'Paracetamol', category: 'Medicine', stock_quantity: 1200, reorder_level: 200, service_id: 1 },
   ],
   purchaseRequests: [],
+
+  // Section 7 — Phase 2: real backend-as-source-of-truth additions.
+  // New resources only (Section 1-6 above is the exact Phase 1 port and
+  // is left untouched). These back the workflows the original frontend
+  // could only simulate in localStorage: PRE intake, bed request/
+  // allocation, emergency admission, and billing dispatch/receipts.
+  preRequests: [],
+  bedRequests: [],
+  emergencyNotifications: [],
+  receipts: [],
+  activityLog: [],
 };
 
 module.exports = dataStore;

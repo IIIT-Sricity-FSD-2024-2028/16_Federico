@@ -2,24 +2,62 @@
 
 const { Router } = require('express');
 const controller = require('../controllers/ward.controller');
-const { requireRoles } = require('../middleware/rolesGuard');
+const { authorize } = require('../middleware/actorAccess');
 const { validateBody } = require('../validators/engine');
-const { createWardRules, createBedRules, updateBedStatusRules } = require('../validators/ward.validators');
+const {
+  createWardRules,
+  createBedRules,
+  updateBedStatusRules,
+  createBedRequestRules,
+  updateBedRequestRules,
+  createEmergencyRules,
+  updateEmergencyRules,
+} = require('../validators/ward.validators');
 
 const router = Router();
 
-router.get('/', requireRoles('ADMIN', 'SUPER_USER'), controller.findAllWards);
-router.post('/', requireRoles('SUPER_USER'), validateBody(createWardRules), controller.createWard);
+router.get('/', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllWards);
+router.post('/', authorize(['SUPER_USER'], 'ward', 'write'), validateBody(createWardRules), controller.createWard);
 
 // Beds
-router.get('/beds', requireRoles('ADMIN', 'SUPER_USER'), controller.findAllBeds);
-router.get('/:id/beds', requireRoles('ADMIN', 'SUPER_USER'), controller.findBedsByWard);
-router.post('/bed', requireRoles('SUPER_USER'), validateBody(createBedRules), controller.createBed);
+router.get('/beds', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllBeds);
+router.get('/:id/beds', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findBedsByWard);
+router.post('/bed', authorize(['SUPER_USER'], 'ward', 'write'), validateBody(createBedRules), controller.createBed);
 router.put(
   '/bed/:bedId',
-  requireRoles('SUPER_USER'),
+  authorize(['SUPER_USER'], 'ward', 'write'),
   validateBody(updateBedStatusRules),
   controller.updateBedStatus,
+);
+
+// Phase 2 — bed requests (PRE requests, HOM allocates/denies)
+router.get('/bed-requests', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllBedRequests);
+router.post(
+  '/bed-requests',
+  authorize(['SUPER_USER'], 'admission', 'write'),
+  validateBody(createBedRequestRules),
+  controller.createBedRequest,
+);
+router.put(
+  '/bed-requests/:id',
+  authorize(['SUPER_USER'], 'ward', 'write'),
+  validateBody(updateBedRequestRules),
+  controller.updateBedRequest,
+);
+
+// Phase 2 — emergency admissions
+router.get('/emergency', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllEmergencies);
+router.post(
+  '/emergency',
+  authorize(['SUPER_USER'], 'admission', 'write'),
+  validateBody(createEmergencyRules),
+  controller.createEmergency,
+);
+router.put(
+  '/emergency/:id',
+  authorize(['SUPER_USER'], 'ward', 'write'),
+  validateBody(updateEmergencyRules),
+  controller.updateEmergency,
 );
 
 module.exports = router;

@@ -15,6 +15,11 @@ const billingRoutes = require('./billing.routes');
 const requestRoutes = require('./request.routes');
 const admissionRoutes = require('./admission.routes');
 
+// Phase 2 — backend-as-source-of-truth additions.
+const authRoutes = require('./auth.routes');
+const preRequestRoutes = require('./preRequest.routes');
+const activityRoutes = require('./activity.routes');
+
 const router = Router();
 
 router.get('/', appController.getHello);
@@ -27,5 +32,9 @@ router.use('/inventory', inventoryRoutes);
 router.use('/billing', billingRoutes);
 router.use('/appointment', requestRoutes);
 router.use('/admission', admissionRoutes);
+
+router.use('/auth', authRoutes);
+router.use('/pre-requests', preRequestRoutes);
+router.use('/activity-log', activityRoutes);
 
 module.exports = router;

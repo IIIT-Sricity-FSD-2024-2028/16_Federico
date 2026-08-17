@@ -50,6 +50,46 @@ function createSummary(req, res) {
   sendResult(res, result, 201);
 }
 
+// Phase 2 — patient-facing reads are restricted to the caller's own
+// patient_id when the session belongs to a Patient (FA/HOM can view any).
+function forbidsOtherPatient(req, patientId) {
+  return req.session && req.session.role === 'Patient' && req.session.patientId !== patientId;
+}
+
+function dispatchLedger(req, res) {
+  const result = billingService.dispatchLedger(+req.params.id);
+  if (result) logger.log(`📤 LEDGER DISPATCHED  id=${result.ledger_id}`);
+  sendResult(res, result, 200);
+}
+
+function findPatientBills(req, res) {
+  const patientId = +req.params.patientId;
+  if (forbidsOtherPatient(req, patientId)) {
+    return res.status(403).json({ message: 'Forbidden resource', error: 'Forbidden', statusCode: 403 });
+  }
+  sendResult(res, billingService.findPatientBills(patientId), 200);
+}
+
+function findAllReceipts(req, res) {
+  sendResult(res, billingService.findAllReceipts(), 200);
+}
+
+function findReceiptsByPatient(req, res) {
+  const patientId = +req.params.patientId;
+  if (forbidsOtherPatient(req, patientId)) {
+    return res.status(403).json({ message: 'Forbidden resource', error: 'Forbidden', statusCode: 403 });
+  }
+  sendResult(res, billingService.findReceiptsByPatient(patientId), 200);
+}
+
+function findDischargeSummary(req, res) {
+  const result = billingService.findDischargeSummaryByAdmission(+req.params.admissionId);
+  if (result && forbidsOtherPatient(req, result.patient_id)) {
+    return res.status(403).json({ message: 'Forbidden resource', error: 'Forbidden', statusCode: 403 });
+  }
+  sendResult(res, result, 200);
+}
+
 module.exports = {
   findAllServices,
   createService,
@@ -60,4 +100,9 @@ module.exports = {
   findAllPayments,
   createPayment,
   createSummary,
+  dispatchLedger,
+  findPatientBills,
+  findAllReceipts,
+  findReceiptsByPatient,
+  findDischargeSummary,
 };

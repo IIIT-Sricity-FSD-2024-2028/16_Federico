@@ -1,10 +1,15 @@
 # Federico — Backend (Express)
 
-In-memory Express backend for the Federico hospital administrative
-operations platform. Migrated from NestJS to Express — see
-[`docs/express-migration-notes.md`](docs/express-migration-notes.md) for
-the full migration map and the behaviors that were empirically verified
-against the original implementation before porting.
+Express backend for the Federico hospital administrative operations
+platform, and the real source of truth for all workflow state (no more
+frontend `localStorage` simulation). Built in two documented phases:
+
+1. A literal, behavior-preserving NestJS→Express port —
+   [`docs/express-migration-notes.md`](docs/express-migration-notes.md).
+2. New functionality making this the real backend the frontend talks to:
+   real login, pre-registration, bed requests, billing dispatch/receipts,
+   an activity log, and lightweight durability —
+   [`docs/phase2-source-of-truth.md`](docs/phase2-source-of-truth.md).
 
 ## Project setup
 
@@ -22,8 +27,10 @@ npm run start
 npm run start:dev
 ```
 
-The server listens on `http://localhost:3000`. All data is in-memory and
-resets on restart — there is no database in this phase of the project.
+The server listens on `http://localhost:3000`. Data lives in memory and
+is debounce-written to `data/db.json` (gitignored) on every change, then
+restored from there on the next boot — so a restart no longer wipes
+whatever you entered. Delete `data/db.json` to reset to the seed data.
 
 ## API docs
 
@@ -32,23 +39,42 @@ Swagger UI: `http://localhost:3000/api`. The same document is written to
 
 ## Auth
 
-Every route except `GET /`, `GET /data/full-state`, and
-`POST /data/full-state` requires an `x-role` header set to `ADMIN` or
-`SUPER_USER` (`SUPER_USER` is required for any write). This is a direct
-port of the original demo-only header check — see the migration notes for
-why it isn't real authentication yet.
+Two ways to authenticate, checked additively (either is sufficient):
+
+1. **Real login** (Phase 2) — `POST /auth/login` with `{ email, password }`
+   returns a session token; send it as `Authorization: Bearer <token>` on
+   subsequent requests. Demo accounts:
+
+   | Actor | Email | Password |
+   |---|---|---|
+   | HOM | admin@hosp.com | Hom@123 |
+   | PRE | rekha.pre@hosp.com | Pre@123 |
+   | FA | farah.fa@hosp.com | Fa@123 |
+   | Patient | hamiz@hosp.com | Hamiz@123 |
+   | Patient | salma@hosp.com | Salma@123 |
+   | Patient | john@hosp.com | John@123 |
+
+   New patients can also self-register via `POST /auth/signup`.
+
+2. **Legacy header** (Phase 1, preserved exactly) — `x-role: ADMIN` or
+   `x-role: SUPER_USER` (`SUPER_USER` required for writes). Still works
+   on every route it always did, unchanged — this is what
+   `test-all-endpoints.ps1` and Swagger's "try it out" use.
+
+See `docs/phase2-source-of-truth.md` for the full per-resource
+read/write permission matrix for the four real actors (HOM/PRE/FA/Patient).
 
 ## Tests
 
 ```bash
 npm run test       # unit
-npm run test:e2e   # supertest against the Express app
+npm run test:e2e   # supertest against the Express app (incl. auth/permission checks)
 ```
 
 `test-all-endpoints.ps1` is a PowerShell smoke script exercising the full
-doctor → ward/bed → patient → appointment → admission → billing →
-inventory chain end-to-end; run it against a running `npm run start`
-server.
+legacy-contract doctor → ward/bed → patient → appointment → admission →
+billing → inventory chain end-to-end; run it against a running
+`npm run start` server.
 
 ## Structure
 
@@ -57,10 +83,11 @@ src/
   controllers/   thin HTTP handlers
   routes/        express.Router() per resource
   services/      business logic over the shared in-memory store
-  middleware/    role guard, request logger, validation error/404/500 shaping
+  middleware/    role/session guards, request logger, persistence hook,
+                 validation error/404/500 shaping
   validators/    declarative per-field validation rules
-  store/         the in-memory "database"
+  store/         the in-memory "database", sessions, and disk persistence
   config/        Swagger setup
   app.js         createApp()
-server.js        app.listen()
+server.js        persist.load() + app.listen()
 ```

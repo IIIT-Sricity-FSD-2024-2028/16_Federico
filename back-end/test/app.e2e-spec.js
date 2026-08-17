@@ -42,3 +42,73 @@ describe('AppController (e2e)', () => {
       });
   });
 });
+
+describe('Phase 2 — real auth and actor permissions (e2e)', () => {
+  const app = createApp();
+
+  it('rejects bad credentials with 401', () => {
+    return request(app)
+      .post('/auth/login')
+      .send({ email: 'admin@hosp.com', password: 'wrong' })
+      .expect(401);
+  });
+
+  it('logs in each seeded actor and issues a usable session token', async () => {
+    const hom = await request(app)
+      .post('/auth/login')
+      .send({ email: 'admin@hosp.com', password: 'Hom@123' })
+      .expect(200);
+    if (hom.body.role !== 'HOM') throw new Error('Expected HOM role');
+
+    const pre = await request(app)
+      .post('/auth/login')
+      .send({ email: 'rekha.pre@hosp.com', password: 'Pre@123' })
+      .expect(200);
+    if (pre.body.role !== 'PRE') throw new Error('Expected PRE role');
+
+    // PRE can create a pre-request via session auth alone (no x-role header)
+    const created = await request(app)
+      .post('/pre-requests')
+      .set('Authorization', `Bearer ${pre.body.token}`)
+      .send({ patient_id: 201, department: 'Cardiology', visit_type: 'ADMIT' })
+      .expect(201);
+    if (created.body.status !== 'PENDING') throw new Error('Expected PENDING status on create');
+
+    // HOM (not FA/PRE) can read it back
+    await request(app)
+      .get('/pre-requests')
+      .set('Authorization', `Bearer ${hom.body.token}`)
+      .expect(200);
+  });
+
+  it('denies an actor writing outside their SRS responsibility (FA creating a pre-request)', async () => {
+    const fa = await request(app)
+      .post('/auth/login')
+      .send({ email: 'farah.fa@hosp.com', password: 'Fa@123' })
+      .expect(200);
+
+    await request(app)
+      .post('/pre-requests')
+      .set('Authorization', `Bearer ${fa.body.token}`)
+      .send({ patient_id: 201, department: 'Cardiology', visit_type: 'ADMIT' })
+      .expect(403);
+  });
+
+  it('prevents a patient from reading another patient\'s bills', async () => {
+    const patient = await request(app)
+      .post('/auth/login')
+      .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
+      .expect(200);
+    if (patient.body.patient.patient_id !== 201) throw new Error('Expected patient_id 201');
+
+    await request(app)
+      .get('/billing/patient/202/bills')
+      .set('Authorization', `Bearer ${patient.body.token}`)
+      .expect(403);
+
+    await request(app)
+      .get('/billing/patient/201/bills')
+      .set('Authorization', `Bearer ${patient.body.token}`)
+      .expect(200);
+  });
+});

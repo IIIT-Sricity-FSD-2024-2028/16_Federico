@@ -16,4 +16,36 @@ const createBedRules = [
 // UpdateBedStatusDto is NOT a PartialType in the original — status stays required.
 const updateBedStatusRules = [{ field: 'status', checks: ['isNotEmpty', 'isString'] }];
 
-module.exports = { createWardRules, createBedRules, updateBedStatusRules };
+// Phase 2 additions
+const createBedRequestRules = [
+  { field: 'patient_id', checks: ['isNotEmpty', 'isInt'] },
+  { field: 'pre_request_id', checks: ['isInt'], optional: true },
+  { field: 'ward_id', checks: ['isInt'], optional: true },
+  { field: 'priority', checks: ['isString'], optional: true },
+];
+
+const updateBedRequestRules = [
+  { field: 'bed_id', checks: ['isInt'], optional: true },
+  { field: 'status', checks: ['isString'], optional: true },
+];
+
+const createEmergencyRules = [
+  { field: 'patient_id', checks: ['isInt'], optional: true },
+  { field: 'bed_id', checks: ['isInt'], optional: true },
+  { field: 'department', checks: ['isString'], optional: true },
+];
+
+const updateEmergencyRules = [
+  { field: 'patient_id', checks: ['isInt'], optional: true },
+  { field: 'status', checks: ['isNotEmpty', 'isString'], optional: true },
+];
+
+module.exports = {
+  createWardRules,
+  createBedRules,
+  updateBedStatusRules,
+  createBedRequestRules,
+  updateBedRequestRules,
+  createEmergencyRules,
+  updateEmergencyRules,
+};
