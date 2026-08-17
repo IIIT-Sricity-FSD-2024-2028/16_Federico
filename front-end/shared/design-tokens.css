@@ -1,0 +1,258 @@
+/**
+ * shared/design-tokens.css — Phase 4 (design.txt: "Luxury / Editorial")
+ *
+ * Central design-token layer shared by every app (landing, login, signup,
+ * Patient, PRE, HOM, FA). Each app keeps its own component CSS and its
+ * own existing class names (`.btn-primary`, `.primary-btn`, `.card`,
+ * etc. — the taxonomies already diverge app to app) — this file supplies
+ * the *values* those classes should be built from: colors, type, radius,
+ * shadow, and motion, all matching design.txt's token system exactly.
+ *
+ * Load this file BEFORE each app's own CSS, so the app's rules (which
+ * reference these custom properties) resolve correctly and can still
+ * override specific declarations if a page has a genuine exception.
+ *
+ * Adaptation for dense operational UI (documented deliberately, not an
+ * oversight): design.txt's palette is strictly monochrome + gold, but
+ * PRE/HOM/FA/Patient are live hospital-operations dashboards where
+ * status badges (Paid/Pending/Critical/Low-Stock/Rejected) are
+ * functional, at-a-glance signals, not decoration. Removing color from
+ * them would hurt real usability. --status-* tokens below keep
+ * conventional semantic hues (success/warning/error/info) but desaturate
+ * and warm them slightly to sit inside the alabaster/charcoal palette
+ * instead of clashing with it. Everything else — typography, buttons,
+ * cards, inputs, navigation, borders, radius, shadow, motion — follows
+ * the luxury/editorial system exactly. The full "bold factor" treatment
+ * (hero type scale, vertical labels, drop caps, mixed-italic headlines,
+ * visible grid lines, paper grain) is reserved for the public marketing
+ * pages (landing/login/signup); dashboards use the same DNA at a
+ * restrained, legible scale — see each app's own CSS for specifics.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* ---- Color: sophisticated monochrome + gold accent ---- */
+  --color-bg: #F9F8F6;               /* Warm Alabaster */
+  --color-fg: #1A1A1A;               /* Rich Charcoal */
+  --color-muted-bg: #EBE5DE;         /* Pale Taupe */
+  --color-muted-fg: #6C6863;         /* Warm Grey */
+  --color-accent: #D4AF37;           /* Metallic Gold */
+  --color-accent-fg: #FFFFFF;
+
+  --color-border: rgba(26, 26, 26, 0.14);
+  --color-border-subtle: rgba(26, 26, 26, 0.08);
+  --color-border-strong: #1A1A1A;
+
+  /* Dark/inverted section palette */
+  --color-bg-inverse: #1A1A1A;
+  --color-fg-inverse: #F9F8F6;
+  --color-muted-fg-inverse: rgba(249, 248, 246, 0.7);
+  --color-border-inverse: rgba(249, 248, 246, 0.18);
+
+  /* ---- Functional status colors (kept for dashboard legibility —
+     see file header) — desaturated/warmed to sit in this palette ---- */
+  --status-success: #3F7D5C;
+  --status-success-bg: #E7F0EA;
+  --status-success-fg: #2C5B41;
+  --status-warning: #A97327;
+  --status-warning-bg: #F5EBDB;
+  --status-warning-fg: #7A5219;
+  --status-error: #A6402F;
+  --status-error-bg: #F3E3DF;
+  --status-error-fg: #7A2E21;
+  --status-info: #3C6E8A;
+  --status-info-bg: #E3EDF1;
+  --status-info-fg: #2A4E63;
+  --status-neutral: #6C6863;
+  --status-neutral-bg: #EBE5DE;
+  --status-neutral-fg: #4A4742;
+
+  /* ---- Typography ---- */
+  --font-heading: 'Playfair Display', 'Georgia', serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+
+  /* ---- Radius: strictly rectangular ---- */
+  --radius: 0px;
+
+  /* ---- Shadow: extremely subtle, layered depth, never harsh ---- */
+  --shadow-card: 0 2px 8px rgba(26, 26, 26, 0.02);
+  --shadow-card-hover: 0 8px 24px rgba(26, 26, 26, 0.06);
+  --shadow-button: 0 4px 16px rgba(26, 26, 26, 0.15);
+  --shadow-button-hover: 0 8px 24px rgba(26, 26, 26, 0.25);
+  --shadow-image: 0 4px 24px rgba(26, 26, 26, 0.08);
+  --shadow-image-hover: 0 8px 32px rgba(26, 26, 26, 0.12);
+  --shadow-inner-border: inset 0 0 0 1px rgba(26, 26, 26, 0.06);
+
+  /* ---- Motion: slow, deliberate, cinematic ---- */
+  --ease-luxury: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --duration-fast: 300ms;
+  --duration-base: 500ms;
+  --duration-slow: 700ms;
+  --duration-image: 1800ms;
+
+  /* ---- Tracking scale (letter-spacing) ---- */
+  --tracking-label: 0.28em;
+  --tracking-button: 0.2em;
+
+  /* ---- Back-compat alias for a couple of inline `var(--danger)` refs
+     in pre-Phase-4 markup, so this file is a true drop-in. ---- */
+  --danger: var(--status-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+    --duration-image: 0ms;
+  }
+}
+
+/* ---- Universal heading treatment: every app's h1-h4 (and the .h1-.h4
+   alias classes the dashboard apps already use) render in the serif
+   display face with tight, editorial tracking, regardless of each app's
+   own component class taxonomy. ---- */
+h1, h2, h3, h4,
+.h1, .h2, .h3, .h4 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+/* ---- Uppercase overline label — the one truly universal component
+   class across every app (kicker text above headings, section labels,
+   table header text already leans this direction in the dashboards). ---- */
+.label,
+.overline {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted-fg);
+}
+
+/* ---- Decorative horizontal rule used before labels/headlines
+   (design.txt "Bold Factor" #7). ---- */
+.rule-mark {
+  display: inline-block;
+  width: 32px;
+  height: 1px;
+  background: var(--color-accent);
+  vertical-align: middle;
+  margin-right: 12px;
+}
+
+/* ---- Mixed-italic emphasis word inside a headline (Bold Factor #3). ---- */
+.italic-accent {
+  font-style: italic;
+  color: var(--color-accent);
+}
+.italic-accent.on-dark {
+  color: var(--color-accent);
+}
+
+/* ---- Fixed vertical gridlines — opt in per-page via
+   <div class="luxury-grid-lines"><span></span><span></span><span></span><span></span></div>
+   Only intended for the public marketing pages (landing/login/signup);
+   never add this to a dashboard app, it would compete with real content. ---- */
+.luxury-grid-lines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+}
+.luxury-grid-lines span {
+  width: 1px;
+  height: 100%;
+  background: rgba(26, 26, 26, 0.08);
+}
+
+/* ---- Vertical (writing-mode) side label — Bold Factor #1. Hidden on
+   mobile, visible on desktop. ---- */
+.vertical-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted-fg);
+  display: none;
+}
+@media (min-width: 1024px) {
+  .vertical-label { display: inline-block; }
+}
+
+/* ---- Shared primary/secondary button treatment for the public pages
+   (landing/login/signup), which each keep their own class names
+   (.primary-btn/.login-btn/.create-btn, .secondary-btn) but share this
+   one visual component: dark rectangle, gold layer slides in from the
+   left on hover (Bold Factor #6). The pseudo-element sits behind the
+   button's own text within its stacking context, so this needs no
+   markup change — no nested <span> required. ---- */
+.primary-btn, .login-btn, .create-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: none;
+  border-radius: var(--radius);
+  height: 56px;
+  padding: 0 40px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  background: var(--color-fg);
+  color: var(--color-bg);
+  box-shadow: var(--shadow-button);
+  cursor: pointer;
+  transition: box-shadow var(--duration-base) var(--ease-luxury);
+}
+.primary-btn::before, .login-btn::before, .create-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-accent);
+  transform: translateX(-100%);
+  transition: transform var(--duration-base) var(--ease-luxury);
+  z-index: -1;
+}
+.primary-btn:hover, .login-btn:hover, .create-btn:hover { box-shadow: var(--shadow-button-hover); }
+.primary-btn:hover::before, .login-btn:hover::before, .create-btn:hover::before { transform: translateX(0); }
+
+.secondary-btn, .login-shortcut {
+  border: 1px solid var(--color-fg);
+  background: transparent;
+  color: var(--color-fg);
+  border-radius: var(--radius);
+  height: 56px;
+  padding: 0 40px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
+}
+.secondary-btn:hover, .login-shortcut:hover { background: var(--color-fg); color: var(--color-bg); }
+
+/* ---- Drop cap — Bold Factor #2. Apply to the first <p> of an
+   introductory block: <p class="drop-cap">First sentence...</p> ---- */
+.drop-cap::first-letter {
+  font-family: var(--font-heading);
+  float: left;
+  font-size: 4.5rem;
+  line-height: 0.8;
+  padding-right: 0.15em;
+  margin-top: 0.05em;
+  color: var(--color-fg);
+}
