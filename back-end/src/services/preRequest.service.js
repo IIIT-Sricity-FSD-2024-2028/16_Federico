@@ -125,12 +125,13 @@ const HOM_STATUS_BY_STATUS = {
 function updateFields(id, patch) {
   const request = findOne(id);
   if (!request) return null;
-  const { doctor_id, requested_date, requested_time, department, ward_type } = patch;
+  const { doctor_id, requested_date, requested_time, department, ward_type, visit_type } = patch;
   if (doctor_id !== undefined) request.doctor_id = doctor_id;
   if (requested_date !== undefined) request.requested_date = requested_date;
   if (requested_time !== undefined) request.requested_time = requested_time;
   if (department !== undefined) request.department = department;
   if (ward_type !== undefined) request.ward_type = ward_type;
+  if (visit_type !== undefined) request.visit_type = visit_type;
   request.updated_at = new Date().toISOString();
   return request;
 }

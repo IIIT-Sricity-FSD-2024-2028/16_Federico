@@ -1,169 +1,102 @@
-function getDischargeRequests() {
-  const resolveVisitType = (item) => {
-    if (["Emergency", "Admit"].includes(item?.visitType)) return item.visitType;
-    if (item?.status === "Emergency" || item?.patientStatus === "Emergency") return "Emergency";
-    if (
-      item?.status === "Admitted" ||
-      item?.patientStatus === "Admitted" ||
-      item?.status === "Discharge" ||
-      item?.patientStatus === "Discharge Pending" ||
-      item?.patientStatus === "Approved Discharge" ||
-      item?.status === "Approved Discharge"
-    ) return "Admit";
-    return "";
-  };
-
-  return getPreRequests().filter(item =>
-    ["Emergency", "Admit"].includes(resolveVisitType(item)) && (
-    item.patientStatus === "Discharge Pending" ||
-    item.status === "Discharge" ||
-    item.patientStatus === "Approved Discharge" ||
-    item.patientStatus === "Discharged" ||
-    item.status === "Approved Discharge"
-    )
-  );
+function showSuccess(msg) {
+  const el = document.getElementById('successMsg');
+  const popup = document.getElementById('successPopup');
+  if (el && popup) {
+    el.innerText = msg;
+    popup.style.display = 'flex';
+  }
+}
+function closeSuccess() {
+  const popup = document.getElementById('successPopup');
+  if (popup) popup.style.display = 'none';
 }
 
-function renderDischarge() {
-  const table = document.getElementById("dischargeTable");
+async function loadJoined() {
+  const [preRequests, patients, doctors, beds] = await Promise.all([
+    window.ApiClient.preRequests.list(),
+    window.ApiClient.patients.list(),
+    window.ApiClient.doctors.list(),
+    window.ApiClient.wards.beds(),
+  ]);
+  const doctorsById = {};
+  doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
+  const bedsById = {};
+  beds.forEach((b) => (bedsById[b.bed_id] = b));
+  return PREHelpers.joinPreRequestsWithPatients(preRequests, patients, doctorsById).map((r) => ({
+    ...r,
+    bedNumber: bedsById[r.bed_id]?.bed_number || '-',
+  }));
+}
+
+function rowHtml(r, extraCell) {
+  return `
+    <tr>
+      <td>${PREHelpers.escapeHtml(r.patientUhid)}</td>
+      <td>${PREHelpers.escapeHtml(r.patientName)}</td>
+      <td>${PREHelpers.escapeHtml(r.patientAge)}</td>
+      <td>${PREHelpers.escapeHtml(r.patientGender)}</td>
+      <td>${PREHelpers.escapeHtml(r.department)}</td>
+      <td>${PREHelpers.escapeHtml(r.doctorName)}</td>
+      <td>${PREHelpers.escapeHtml(PREHelpers.formatDate(r.requested_date))}</td>
+      <td>${PREHelpers.escapeHtml(PREHelpers.to12Hour(r.requested_time) || '-')}</td>
+      <td>${PREHelpers.escapeHtml(r.bedNumber)}</td>
+      <td>${PREHelpers.escapeHtml(r.visit_type || '-')}</td>
+      ${extraCell}
+    </tr>
+  `;
+}
+
+async function renderDischarge() {
+  const table = document.getElementById('dischargeTable');
   if (!table) return;
 
-  const pending = getDischargeRequests().filter(item => item.patientStatus === "Discharge Pending" || item.status === "Discharge");
-  table.innerHTML = "";
+  const joined = await loadJoined();
+  const pending = joined.filter((r) => r.status === 'DISCHARGE_REQUESTED');
 
   if (pending.length === 0) {
     table.innerHTML = `<tr><td colspan="11">No Pending Requests</td></tr>`;
     return;
   }
 
-  pending.forEach((r) => {
-    table.innerHTML += `
-      <tr>
-        <td>${r.patientId || "-"}</td>
-        <td>${r.name || "-"}</td>
-        <td>${r.age || "-"}</td>
-        <td>${r.gender || "-"}</td>
-        <td>${r.department || "-"}</td>
-        <td>${r.doctor || "-"}</td>
-        <td>${r.appointmentDate || "-"}</td>
-        <td>${r.appointmentTime || "-"}</td>
-        <td>${r.bedNumber || "-"}</td>
-        <td>${r.visitType || "-"}</td>
-        <td style="color:orange;">
-          ${r.homStatus || "Awaiting HOM"}
-          <div style="margin-top:6px;">
-            <button class="btn suggest" onclick="requestDischargeFromPre('${r.id || ""}')">Request Discharge</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  });
+  table.innerHTML = pending
+    .map((r) => rowHtml(r, `<td style="color:orange;">${PREHelpers.escapeHtml(r.hom_status || 'Awaiting HOM')}</td>`))
+    .join('');
 }
 
-function requestDischargeFromPre(requestId) {
-  const requests = getPreRequests();
-  const request = requests.find((item) => item.id === requestId);
-  if (!request) return;
-
-  const shared = readSharedState() || {};
-  if (!shared.admissions || typeof shared.admissions !== "object") shared.admissions = {};
-
-  const targetPatientId = String(request.patientId || request.uhid || "").trim();
-  const targetName = String(request.name || "").trim().toLowerCase();
-  const admission = Object.values(shared.admissions).find((item) => {
-    const admissionPatientId = String(item?.patient_id || item?.uhid || "").trim();
-    const admissionName = String(item?.patient_name || item?.name || "").trim().toLowerCase();
-    return (
-      (targetPatientId && admissionPatientId === targetPatientId) ||
-      (targetName && admissionName === targetName)
-    );
-  });
-
-  if (!admission) {
-    alert("No matching admission found in shared state.");
-    return;
-  }
-
-  admission.discharge_requested = true;
-  admission.discharge_initiated_by = "PRE"; // CHANGED: mark PRE-origin discharge signal for HOM workflow
-  request.homStatus = "Discharge requested by PRE";
-  request.updated_at = Date.now();
-  savePreRequests(requests);
-
-  shared.preRequests = requests;
-  saveSharedState(shared);
-
-  renderDischarge();
-  renderApproved();
-}
-
-function renderApproved() {
-  const table = document.getElementById("approvedDischargeTable");
+async function renderApproved() {
+  const table = document.getElementById('approvedDischargeTable');
   if (!table) return;
 
-  const approved = getDischargeRequests().filter(item =>
-    item.patientStatus === "Approved Discharge" || item.status === "Approved Discharge"
-  );
-  table.innerHTML = "";
+  const joined = await loadJoined();
+  const approved = joined.filter((r) => r.status === 'DISCHARGE_APPROVED');
 
   if (approved.length === 0) {
     table.innerHTML = `<tr><td colspan="12">No Approved Requests</td></tr>`;
     return;
   }
 
-  approved.forEach((r) => {
-    table.innerHTML += `
-      <tr>
-        <td>${r.patientId || "-"}</td>
-        <td>${r.name || "-"}</td>
-        <td>${r.age || "-"}</td>
-        <td>${r.gender || "-"}</td>
-        <td>${r.department || "-"}</td>
-        <td>${r.doctor || "-"}</td>
-        <td>${r.appointmentDate || "-"}</td>
-        <td>${r.appointmentTime || "-"}</td>
-        <td>${r.bedNumber || "-"}</td>
-        <td>${r.visitType || "-"}</td>
-        <td style="color:green;">Ready for PRE</td>
-        <td>
-          <button class="btn approve" onclick="finalApprove('${r.id}')">Approve</button>
-        </td>
-      </tr>
-    `;
-  });
+  table.innerHTML = approved
+    .map((r) =>
+      rowHtml(
+        r,
+        `<td style="color:green;">Ready for PRE</td><td><button class="btn approve" onclick="finalApprove(${r.pre_request_id})">Approve</button></td>`,
+      ),
+    )
+    .join('');
 }
 
-function finalApprove(requestId) {
-  const requests = getPreRequests();
-  const realIndex = requests.findIndex(item => item.id === requestId);
-  if (realIndex === -1) return;
-
-  requests[realIndex].patientStatus = "Approved Discharge";
-  requests[realIndex].status = "Approved Discharge";
-  requests[realIndex].visitType =
-    requests[realIndex].visitType ||
-    (requests[realIndex].homStatus === "HOM notified" ? "Emergency" : "Admit");
-  requests[realIndex].homStatus = "Closed by PRE";
-  requests[realIndex].updated_at = Date.now();
-  savePreRequests(requests);
-
-  const shared = readSharedState();
-  const admission = Object.values(shared.admissions || {}).find(item =>
-    item.patient_id === requests[realIndex].patientId || item.uhid === requests[realIndex].patientId
-  );
-  if (admission) admission.discharged = true;
-  saveSharedState(shared);
-
-  renderDischarge();
-  renderApproved();
+async function finalApprove(id) {
+  try {
+    await window.ApiClient.preRequests.update(id, { status: 'DISCHARGED' });
+    showSuccess('Discharge finalized — bed released.');
+    renderDischarge();
+    renderApproved();
+  } catch (err) {
+    showSuccess(err.message || 'Could not finalize discharge');
+  }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  renderDischarge();
-  renderApproved();
-});
-
-bindSharedStateRefresh(() => {
+document.addEventListener('DOMContentLoaded', () => {
   renderDischarge();
   renderApproved();
 });
