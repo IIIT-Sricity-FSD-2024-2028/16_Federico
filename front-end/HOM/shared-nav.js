@@ -11,60 +11,52 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. Define the Navigation HTML Template
   const navHTML = `
     <style>
-      .top-nav { height: 64px; background: #ffffff; border-bottom: 1px solid #E2E8F0; position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; font-family: 'Inter', sans-serif; }
-      .nav-logo-group { display: flex; align-items: center; gap: 8px; }
-      .nav-logo-icon {     width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: var(--primary);
-      color: #ffffff;
-      display: grid;
-      place-items: center;
-      font-size: 14px;
-      font-weight: 700; }
-      .nav-logo-text { font-size: 18px; font-weight: 600; display: flex; gap: 4px; }
-      .nav-logo-text .federico { color: #20B2AA; }
-      .nav-logo-text .hospital { color: #1E293B; }
-      
+      .top-nav { height: 76px; background: var(--color-bg); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; font-family: var(--font-body); }
+      .nav-logo-group { display: flex; align-items: center; gap: 12px; }
+      .nav-logo-icon { width: 32px; height: 32px; border-radius: 0; background: var(--color-fg); color: var(--color-bg); display: grid; place-items: center; font-family: var(--font-heading); font-size: 16px; }
+      .nav-logo-text { font-family: var(--font-heading); font-size: 19px; display: flex; gap: 6px; }
+      .nav-logo-text .federico { color: var(--color-fg); }
+      .nav-logo-text .hospital { color: var(--color-muted-fg); font-style: italic; }
+
       .nav-links { display: flex; align-items: center; gap: 4px; }
-      .nav-link { padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #64748B; text-decoration: none; transition: all 0.2s; cursor: pointer; border: none; background: transparent; }
-      .nav-link:hover { color: #1E293B; background: #F8FAFC; }
-      .nav-link.active { background: #E0F7F6; color: #20B2AA; }
+      .nav-link { padding: 8px 14px; border-radius: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-muted-fg); text-decoration: none; transition: color var(--duration-base) var(--ease-luxury); cursor: pointer; border: none; border-bottom: 2px solid transparent; background: transparent; }
+      .nav-link:hover { color: var(--color-fg); background: transparent; }
+      .nav-link.active { background: transparent; color: var(--color-fg); border-bottom-color: var(--color-accent); }
 
       .nav-actions { display: flex; align-items: center; gap: 16px; position: relative; }
-      
-      .nav-bell { position: relative; background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 8px; color: #64748B; transition: background 0.2s; }
-      .nav-bell:hover { background: #F8FAFC; }
-      .nav-bell-badge { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; }
-      
-      .nav-profile { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 9999px; background: #F8FAFC; cursor: pointer; border: none; transition: background 0.2s; }
-      .nav-profile:hover { background: #E2E8F0; }
-      .nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: #20B2AA; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
-      .nav-profile-text { font-size: 14px; font-weight: 500; color: #1E293B; }
+
+      .nav-bell { position: relative; background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 0; color: var(--color-muted-fg); transition: color var(--duration-base) var(--ease-luxury); }
+      .nav-bell:hover { background: transparent; color: var(--color-fg); }
+      .nav-bell-badge { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: var(--status-error); border-radius: 50%; }
+
+      .nav-profile { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 0; background: transparent; border: 1px solid var(--color-border); cursor: pointer; transition: border-color var(--duration-base) var(--ease-luxury); }
+      .nav-profile:hover { border-color: var(--color-fg); }
+      .nav-avatar { width: 28px; height: 28px; border-radius: 0; background: var(--color-fg); color: var(--color-bg); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
+      .nav-profile-text { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-fg); }
 
       /* Overlays */
-      .nav-overlay { position: absolute; top: calc(100% + 8px); background: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #E2E8F0; display: none; flex-direction: column; overflow: hidden; z-index: 100; }
+      .nav-overlay { position: absolute; top: calc(100% + 8px); background: var(--color-bg); border-radius: 0; box-shadow: var(--shadow-card-hover); border: 1px solid var(--color-border); display: none; flex-direction: column; overflow: hidden; z-index: 100; }
       .nav-overlay.active { display: flex; }
-      
+
       #overlay-notifications { width: 360px; right: 140px; }
       #overlay-profile-dropdown { width: 200px; right: 0; }
 
-      .overlay-header { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; }
-      .overlay-header h3 { font-size: 14px; font-weight: 600; color: #1E293B; margin: 0; }
-      .overlay-link { font-size: 12px; color: #20B2AA; text-decoration: none; cursor: pointer; }
+      .overlay-header { padding: 14px 16px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+      .overlay-header h3 { font-family: var(--font-heading); font-size: 15px; font-weight: 500; color: var(--color-fg); margin: 0; }
+      .overlay-link { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-accent); text-decoration: none; cursor: pointer; }
       .overlay-link:hover { text-decoration: underline; }
-      
-      .notif-item { padding: 12px 16px; border-bottom: 1px solid #F1F5F9; display: flex; gap: 12px; cursor: pointer; transition: background 0.2s; background: white; text-align: left; border: none; width: 100%; }
-      .notif-item:hover { background: #F8FAFC; }
-      .notif-item.unread { background: #F0FDF4; }
-      .notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
-      .notif-title { font-size: 14px; font-weight: 500; color: #1E293B; margin: 0; }
-      .notif-time { font-size: 12px; color: #94A3B8; margin: 2px 0 0 0; }
 
-      .profile-item { padding: 8px 16px; font-size: 14px; color: #64748B; cursor: pointer; display: flex; align-items: center; gap: 8px; background: white; border: none; width: 100%; text-align: left; transition: background 0.2s; }
-      .profile-item:hover { background: #F8FAFC; color: #1E293B; }
-      .profile-item.danger { color: #EF4444; border-top: 1px solid #E2E8F0; }
-      .profile-item.danger:hover { background: #FEF2F2; }
+      .notif-item { padding: 14px 16px; border-bottom: 1px solid var(--color-border-subtle); display: flex; gap: 12px; cursor: pointer; transition: background var(--duration-base) var(--ease-luxury); background: var(--color-bg); text-align: left; border-left: none; border-right: none; border-top: none; width: 100%; }
+      .notif-item:hover { background: var(--color-muted-bg); }
+      .notif-item.unread { background: rgba(212, 175, 55, 0.06); }
+      .notif-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+      .notif-title { font-size: 13px; font-weight: 500; color: var(--color-fg); margin: 0; }
+      .notif-time { font-size: 11px; color: var(--color-muted-fg); margin: 2px 0 0 0; }
+
+      .profile-item { padding: 10px 16px; font-size: 13px; color: var(--color-muted-fg); cursor: pointer; display: flex; align-items: center; gap: 8px; background: var(--color-bg); border: none; width: 100%; text-align: left; transition: background var(--duration-base) var(--ease-luxury); }
+      .profile-item:hover { background: var(--color-muted-bg); color: var(--color-fg); }
+      .profile-item.danger { color: var(--status-error); border-top: 1px solid var(--color-border); }
+      .profile-item.danger:hover { background: var(--status-error-bg); }
     </style>
 
     <div class="top-nav">

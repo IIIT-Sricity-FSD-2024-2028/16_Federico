@@ -1,110 +1,106 @@
 :root {
-    --primary: #00a19a;
-    --primary-dark: #00827d;
-    --bg-light: #f8fafc;
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    /* --primary maps to charcoal (matches the app's solid dark buttons) —
+       the old teal accent is gone; text-emphasis moments (stat figures,
+       totals, links) use --color-accent (gold) directly in app.js instead. */
+    --primary: var(--color-fg);
+    --primary-dark: var(--color-fg);
+    --bg-light: var(--color-bg);
+    --transition: all var(--duration-base) var(--ease-luxury);
+    --shadow-sm: var(--shadow-card);
+    --shadow-md: var(--shadow-card-hover);
 }
 
 /* 1. Global Reset & Body */
 body {
-    background-color: var(--bg-light);
-    font-family: 'Inter', sans-serif;
-    color: #1e293b;
+    background-color: var(--color-bg);
+    font-family: var(--font-body);
+    color: var(--color-fg);
 }
 
-/* 2. Interactive Cards */
+/* 2. Interactive Cards — defined by a single top line, not a box */
 .card {
-    background: white;
-    border-radius: 12px;
+    background: var(--color-bg);
+    border-radius: var(--radius);
     padding: 24px;
-    border: 1px solid #e2e8f0;
-    box-shadow: var(--shadow-sm);
+    border: none;
+    border-top: 1px solid var(--color-fg);
+    box-shadow: none;
     transition: var(--transition);
 }
 
-/* The "Lift" Effect */
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--primary);
+    transform: none;
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--color-fg);
 }
 
-/* 3. Smooth Buttons */
+/* 3. Buttons — dark rectangle, gold layer slides in from the left on
+   hover (no markup change: the pseudo-element sits behind the button's
+   own text within its own stacking context). */
 .btn-primary {
-    background: var(--primary);
-    color: white;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: var(--color-fg);
+    color: var(--color-bg);
     border: none;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: var(--radius);
+    font-family: var(--font-body);
     font-weight: 500;
+    font-size: 12px;
+    letter-spacing: var(--tracking-button);
+    text-transform: uppercase;
     cursor: pointer;
-    transition: var(--transition);
+    box-shadow: var(--shadow-button);
+    transition: box-shadow var(--duration-base) var(--ease-luxury);
 }
 
-/* The "Glow" Effect */
+.btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--color-accent);
+    transform: translateX(-100%);
+    transition: transform var(--duration-base) var(--ease-luxury);
+    z-index: -1;
+}
+
 .btn-primary:hover {
-    background: var(--primary-dark);
-    box-shadow: 0 4px 12px rgba(0, 161, 154, 0.3);
-    transform: scale(1.02);
+    box-shadow: var(--shadow-button-hover);
+    transform: none;
 }
+.btn-primary:hover::before { transform: translateX(0); }
 
-.btn-primary:active {
-    transform: scale(0.98);
+.btn-primary:active { transform: none; }
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
+.btn-primary:disabled::before { display: none; }
 
 /* 4. Table Row Hover */
-.data-table tr {
-    transition: background 0.2s ease;
-}
+.data-table tr { transition: background var(--duration-fast) ease; }
 
-.data-table tr:hover {
-    background-color: #f1f5f9;
-}
+.data-table tr:hover { background-color: var(--color-muted-bg); }
 
-/* 5. Status Pill Effects */
+/* 5. Status Pill Effects — kept functional, restyled to the rectangular
+   luxury chip treatment */
 .status {
     padding: 4px 10px;
-    border-radius: 20px;
+    border-radius: var(--radius);
     font-size: 12px;
     font-weight: 600;
+    letter-spacing: 0.04em;
     transition: var(--transition);
 }
 
-.status-pending {
-    background: #fef3c7;
-    color: #92400e;
-}
+.status-pending { background: var(--status-warning-bg); color: var(--status-warning-fg); }
 
-.status-cleared {
-    background: #dcfce7;
-    color: #166534;
-}
+.status-cleared { background: var(--status-success-bg); color: var(--status-success-fg); }
 
 /* 6. Navigation Link Hover */
-nav span,
-nav a {
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
+nav span, nav a { cursor: pointer; transition: color var(--duration-base) var(--ease-luxury); }
 
-nav span:hover {
-    color: var(--primary);
-}
-
-/* Pulse Animation for Card Swiping UI */
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
-
-    100% {
-        opacity: 1;
-    }
-}
-
+nav span:hover { color: var(--color-accent); }

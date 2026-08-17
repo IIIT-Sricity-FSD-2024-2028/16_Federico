@@ -307,17 +307,18 @@ document.addEventListener("DOMContentLoaded", () => {
       <html>
       <head>
         <title>${escapeHtml(title)}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Inter', sans-serif; padding: 50px; color: #1e293b; max-width: 700px; margin: 0 auto; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
-          h2 { color: #0f172a; margin: 0; font-size: 24px; }
-          .badge { background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
-          .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #cbd5e1; font-size: 15px; }
-          .row span:first-child { color: #64748b; font-weight: 500; }
-          .row span:last-child { font-weight: 600; color: #0f172a; }
-          .net { font-size: 20px; font-weight: 800; color: #00a19a; border-bottom: 2px solid #00a19a; border-top: 2px solid #00a19a; padding: 20px 0; margin-top: 10px; }
-          .net span { color: #00a19a !important; }
-          .print-btn { background: #00a19a; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 40px; display: block; width: 100%; }
+          body { font-family: 'Inter', sans-serif; padding: 50px; color: #1A1A1A; max-width: 700px; margin: 0 auto; background: #F9F8F6; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; margin-bottom: 30px; }
+          h2 { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; margin: 0; font-size: 26px; }
+          .badge { background: #E7F0EA; color: #2C5B41; padding: 6px 14px; border-radius: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+          .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #D8D2C8; font-size: 15px; }
+          .row span:first-child { color: #6C6863; font-weight: 500; }
+          .row span:last-child { font-weight: 600; color: #1A1A1A; }
+          .net { font-size: 20px; font-weight: 600; color: #9C7A1E; border-bottom: 1px solid #1A1A1A; border-top: 1px solid #1A1A1A; padding: 20px 0; margin-top: 10px; }
+          .net span { color: #9C7A1E !important; }
+          .print-btn { background: #1A1A1A; color: #F9F8F6; border: none; padding: 14px 28px; border-radius: 0; cursor: pointer; font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 40px; display: block; width: 100%; }
           @media print { .print-btn { display:none; } body { padding:0; } }
         </style>
       </head>

@@ -142,7 +142,7 @@
         const grossTotal = H().ledgerTotal(entries);
 
         const servicesList = entries.map((e) => `
-            <li style="padding: 6px 0; border-bottom: 1px dashed #cbd5e1; color: #334155; font-size: 14px;">
+            <li style="padding: 8px 0; border-bottom: 1px dashed #D8D2C8; color: #6C6863; font-size: 14px;">
                 ${H().escapeHtml(servicesById[e.service_id]?.service_name || '-')} <span style="float: right; font-weight: 600;">(Qty: ${e.quantity})</span>
             </li>
         `).join('');
@@ -150,18 +150,19 @@
         const win = window.open('', '_blank');
         win.document.write(`
             <html><head><title>Discharge Summary - ${H().escapeHtml(row.patient.name || '')}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
             <style>
-                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; }
-                h1 { color: #0f172a; text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; font-size: 28px; }
-                h3 { color: #6366f1; margin-top: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-size: 18px; }
+                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1A1A1A; max-width: 800px; margin: 0 auto; background: #F9F8F6; }
+                h1 { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; text-align: center; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; font-size: 28px; }
+                h3 { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; margin-top: 30px; border-bottom: 1px solid #D8D2C8; padding-bottom: 8px; font-size: 18px; }
                 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-                .label { color: #64748b; font-size: 12px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
-                .value { font-size: 15px; font-weight: 600; color: #0f172a; }
+                .label { color: #6C6863; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+                .value { font-size: 15px; font-weight: 600; color: #1A1A1A; }
                 ul { list-style: none; padding: 0; margin: 0; }
-                .financials { background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px; }
+                .financials { background: #EBE5DE; padding: 20px; border-radius: 0; border: none; border-top: 1px solid #1A1A1A; margin-top: 10px; }
                 .row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 15px; }
-                .net { font-size: 20px; font-weight: 800; color: #6366f1; border-top: 2px solid #cbd5e1; padding-top: 16px; margin-top: 12px; }
-                .print-btn { display: block; width: 100%; background: #0f172a; color: white; border: none; padding: 16px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 40px; }
+                .net { font-size: 20px; font-weight: 800; color: #9C7A1E; border-top: 1px solid #1A1A1A; padding-top: 16px; margin-top: 12px; }
+                .print-btn { display: block; width: 100%; background: #1A1A1A; color: #F9F8F6; border: none; padding: 16px; border-radius: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; margin-top: 40px; }
                 @media print { .print-btn { display: none; } body { padding: 0; } }
             </style></head>
             <body>
@@ -200,24 +201,25 @@
         const win = window.open('', '_blank');
         win.document.write(`
             <html><head><title>Discharge & Billing Summary - ${H().escapeHtml(row.patient.name || '')}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
             <style>
-                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; max-width: 900px; margin: 0 auto; line-height: 1.5; }
-                .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #00a19a; padding-bottom: 20px; margin-bottom: 30px; }
-                .hospital-name { color: #00a19a; font-size: 28px; font-weight: 800; margin: 0; }
-                .section-title { background: #f8fafc; padding: 10px 16px; border-left: 4px solid #00a19a; font-size: 16px; font-weight: 700; color: #0f172a; margin: 30px 0 15px 0; text-transform: uppercase; }
+                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1A1A1A; max-width: 900px; margin: 0 auto; line-height: 1.5; background: #F9F8F6; }
+                .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; margin-bottom: 30px; }
+                .hospital-name { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; font-size: 28px; margin: 0; }
+                .section-title { background: #EBE5DE; padding: 10px 16px; border-left: 3px solid #D4AF37; font-size: 12px; letter-spacing: 0.1em; font-weight: 600; color: #1A1A1A; margin: 30px 0 15px 0; text-transform: uppercase; }
                 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; font-size: 14px; }
-                .info-label { color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
-                .info-value { color: #0f172a; font-weight: 600; }
-                .text-block { font-size: 14px; color: #334155; margin-bottom: 16px; background: #fff; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; }
-                .bill-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-                .net-paid { color: #00a19a; font-size: 18px; font-weight: 800; border-bottom: 2px solid #00a19a; border-top: 2px solid #00a19a; margin-top: 10px; }
-                .print-btn { background: #00a19a; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 50px; display: block; width: 100%; }
+                .info-label { color: #6C6863; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+                .info-value { color: #1A1A1A; font-weight: 600; }
+                .text-block { font-size: 14px; color: #4A4742; margin-bottom: 16px; background: #F9F8F6; border: 1px solid #D8D2C8; padding: 16px; border-radius: 0; }
+                .bill-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #D8D2C8; font-size: 14px; }
+                .net-paid { color: #9C7A1E; font-size: 18px; font-weight: 800; border-bottom: 1px solid #1A1A1A; border-top: 1px solid #1A1A1A; margin-top: 10px; }
+                .print-btn { background: #1A1A1A; color: #F9F8F6; border: none; padding: 14px 28px; border-radius: 0; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 50px; display: block; width: 100%; }
                 @media print { .print-btn { display: none; } body { padding: 0; } }
             </style></head>
             <body>
                 <div class="header">
-                    <div><h1 class="hospital-name">Federico Hospital</h1><div style="font-size: 13px; color: #64748b; margin-top: 4px;">123 Health Avenue, Medical District</div></div>
-                    <div style="text-align: right;"><div style="font-size: 14px; color: #64748b; font-weight: 600; text-transform: uppercase;">Discharge & Billing Summary</div></div>
+                    <div><h1 class="hospital-name">Federico Hospital</h1><div style="font-size: 13px; color: #6C6863; margin-top: 4px;">123 Health Avenue, Medical District</div></div>
+                    <div style="text-align: right;"><div style="font-size: 12px; color: #6C6863; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">Discharge & Billing Summary</div></div>
                 </div>
                 <div class="info-grid">
                     <div><div class="info-label">Patient Name</div><div class="info-value">${H().escapeHtml(row.patient.name || '-')}</div></div>
@@ -251,13 +253,15 @@
         const win = window.open('', '_blank');
         win.document.write(`
             <html><head><title>Receipt - PAY${r.receipt_id}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
             <style>
-                body { font-family: 'Inter', sans-serif; padding: 50px; color: #1e293b; max-width: 700px; margin: 0 auto; }
-                .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
-                .badge { background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; }
-                .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #cbd5e1; font-size: 15px; }
-                .net { font-size: 20px; font-weight: 800; color: #00a19a; border-bottom: 2px solid #00a19a; border-top: 2px solid #00a19a; padding: 20px 0; margin-top: 10px; }
-                .print-btn { background: #00a19a; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 40px; display: block; width: 100%; }
+                body { font-family: 'Inter', sans-serif; padding: 50px; color: #1A1A1A; max-width: 700px; margin: 0 auto; background: #F9F8F6; }
+                h2 { font-family: 'Playfair Display', serif; font-weight: 500; }
+                .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; margin-bottom: 30px; }
+                .badge { background: #E7F0EA; color: #2C5B41; padding: 6px 14px; border-radius: 0; font-size: 11px; letter-spacing: 0.08em; font-weight: 700; }
+                .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #D8D2C8; font-size: 15px; }
+                .net { font-size: 20px; font-weight: 800; color: #9C7A1E; border-bottom: 1px solid #1A1A1A; border-top: 1px solid #1A1A1A; padding: 20px 0; margin-top: 10px; }
+                .print-btn { background: #1A1A1A; color: #F9F8F6; border: none; padding: 14px 28px; border-radius: 0; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 40px; display: block; width: 100%; }
                 @media print { .print-btn { display: none; } body { padding: 0; } }
             </style></head>
             <body>
