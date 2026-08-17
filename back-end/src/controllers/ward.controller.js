@@ -37,4 +37,43 @@ function updateBedStatus(req, res) {
   sendResult(res, result, 200);
 }
 
-module.exports = { findAllWards, createWard, findAllBeds, findBedsByWard, createBed, updateBedStatus };
+function findAllBedRequests(req, res) {
+  sendResult(res, wardService.findAllBedRequests(), 200);
+}
+
+function createBedRequest(req, res) {
+  const requestedBy = req.session ? req.session.userId : null;
+  sendResult(res, wardService.createBedRequest(req.body, requestedBy), 201);
+}
+
+function updateBedRequest(req, res) {
+  sendResult(res, wardService.updateBedRequest(+req.params.id, req.body), 200);
+}
+
+function findAllEmergencies(req, res) {
+  sendResult(res, wardService.findAllEmergencies(), 200);
+}
+
+function createEmergency(req, res) {
+  const createdBy = req.session ? req.session.userId : null;
+  sendResult(res, wardService.createEmergency(req.body, createdBy), 201);
+}
+
+function updateEmergency(req, res) {
+  sendResult(res, wardService.updateEmergency(+req.params.id, req.body), 200);
+}
+
+module.exports = {
+  findAllWards,
+  createWard,
+  findAllBeds,
+  findBedsByWard,
+  createBed,
+  updateBedStatus,
+  findAllBedRequests,
+  createBedRequest,
+  updateBedRequest,
+  findAllEmergencies,
+  createEmergency,
+  updateEmergency,
+};

@@ -6,6 +6,8 @@ const cors = require('cors');
 const { requestLogger } = require('./middleware/requestLogger');
 const { notFoundHandler } = require('./middleware/notFoundHandler');
 const { errorHandler } = require('./middleware/errorHandler');
+const { attachSession } = require('./middleware/session');
+const { persistOnMutation } = require('./middleware/persistOnMutation');
 const { setupSwagger } = require('./config/swagger');
 const routes = require('./routes');
 
@@ -27,6 +29,8 @@ function createApp() {
   app.use(express.urlencoded({ extended: true }));
 
   app.use(requestLogger);
+  app.use(attachSession);
+  app.use(persistOnMutation);
 
   app.use(routes);
 

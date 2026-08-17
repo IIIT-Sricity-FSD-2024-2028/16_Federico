@@ -1,6 +1,7 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const activityService = require('./activity.service');
 
 // WARD
 function findAllWards() {
@@ -41,4 +42,110 @@ function updateBedStatus(bed_id, status) {
   return bed;
 }
 
-module.exports = { findAllWards, createWard, findAllBeds, findBedsByWard, createBed, updateBedStatus };
+// --- Phase 2: bed request / allocation workflow, layered on top of the
+// existing wards/beds above (no duplicate bed table). ---
+
+function findAllBedRequests() {
+  return dataStore.bedRequests;
+}
+
+function createBedRequest(payload, requestedBy) {
+  const newRequest = {
+    bed_request_id:
+      dataStore.bedRequests.length > 0
+        ? Math.max(...dataStore.bedRequests.map((r) => r.bed_request_id)) + 1
+        : 1,
+    pre_request_id: payload.pre_request_id || null,
+    patient_id: payload.patient_id,
+    ward_id: payload.ward_id || null,
+    priority: payload.priority || 'NORMAL',
+    status: 'PENDING',
+    bed_id: null,
+    requested_by: requestedBy || null,
+    requested_at: new Date().toISOString(),
+    decided_at: null,
+  };
+  dataStore.bedRequests.push(newRequest);
+
+  const patient = dataStore.patients.find((p) => p.patient_id === newRequest.patient_id);
+  activityService.log('info', `Bed requested for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`, {
+    bedRequestId: newRequest.bed_request_id,
+  });
+
+  return newRequest;
+}
+
+function updateBedRequest(id, patch) {
+  const request = dataStore.bedRequests.find((r) => r.bed_request_id === id);
+  if (!request) return null;
+
+  if (patch.bed_id) {
+    const bed = updateBedStatus(patch.bed_id, 'OCCUPIED');
+    if (bed) {
+      request.bed_id = patch.bed_id;
+      request.status = 'ALLOCATED';
+      request.decided_at = new Date().toISOString();
+      activityService.log('success', `Bed ${bed.bed_number} allocated (bed request #${id})`, { bedRequestId: id });
+    }
+  } else if (patch.status === 'DENIED') {
+    request.status = 'DENIED';
+    request.decided_at = new Date().toISOString();
+    activityService.log('warning', `Bed request #${id} denied`, { bedRequestId: id });
+  }
+
+  return request;
+}
+
+// --- Phase 2: emergency admission notifications. Per SRS/domain-expert
+// interaction, an emergency patient is moved to a ward before formal
+// registration — patient_id is intentionally optional here. ---
+
+function findAllEmergencies() {
+  return dataStore.emergencyNotifications;
+}
+
+function createEmergency(payload, createdBy) {
+  const newEmergency = {
+    emergency_id:
+      dataStore.emergencyNotifications.length > 0
+        ? Math.max(...dataStore.emergencyNotifications.map((e) => e.emergency_id)) + 1
+        : 1,
+    patient_id: payload.patient_id || null,
+    bed_id: payload.bed_id || null,
+    department: payload.department || null,
+    status: 'PENDING',
+    created_by: createdBy || null,
+    created_at: new Date().toISOString(),
+  };
+  dataStore.emergencyNotifications.push(newEmergency);
+
+  if (newEmergency.bed_id) updateBedStatus(newEmergency.bed_id, 'OCCUPIED');
+
+  activityService.log('error', `Emergency admission — bed ${newEmergency.bed_id || 'TBD'}`, {
+    emergencyId: newEmergency.emergency_id,
+  });
+
+  return newEmergency;
+}
+
+function updateEmergency(id, patch) {
+  const emergency = dataStore.emergencyNotifications.find((e) => e.emergency_id === id);
+  if (!emergency) return null;
+  Object.assign(emergency, patch);
+  return emergency;
+}
+
+module.exports = {
+  findAllWards,
+  createWard,
+  findAllBeds,
+  findBedsByWard,
+  createBed,
+  updateBedStatus,
+  findAllBedRequests,
+  createBedRequest,
+  updateBedRequest,
+  findAllEmergencies,
+  createEmergency,
+  updateEmergency,
+};

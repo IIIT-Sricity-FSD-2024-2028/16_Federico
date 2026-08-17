@@ -2,7 +2,7 @@
 
 const { Router } = require('express');
 const controller = require('../controllers/inventory.controller');
-const { requireRoles } = require('../middleware/rolesGuard');
+const { authorize } = require('../middleware/actorAccess');
 const { validateBody } = require('../validators/engine');
 const {
   createInventoryItemRules,
@@ -13,25 +13,30 @@ const {
 
 const router = Router();
 
-router.get('/items', requireRoles('ADMIN', 'SUPER_USER'), controller.findAllItems);
-router.post('/items', requireRoles('SUPER_USER'), validateBody(createInventoryItemRules), controller.createItem);
+router.get('/items', authorize(['ADMIN', 'SUPER_USER'], 'inventory', 'read'), controller.findAllItems);
+router.post(
+  '/items',
+  authorize(['SUPER_USER'], 'inventory', 'write'),
+  validateBody(createInventoryItemRules),
+  controller.createItem,
+);
 router.put(
   '/items/:id',
-  requireRoles('SUPER_USER'),
+  authorize(['SUPER_USER'], 'inventory', 'write'),
   validateBody(updateInventoryItemRules),
   controller.updateItem,
 );
 
-router.get('/requests', requireRoles('ADMIN', 'SUPER_USER'), controller.findAllRequests);
+router.get('/requests', authorize(['ADMIN', 'SUPER_USER'], 'inventory', 'read'), controller.findAllRequests);
 router.post(
   '/requests',
-  requireRoles('SUPER_USER'),
+  authorize(['SUPER_USER'], 'inventory', 'write'),
   validateBody(createPurchaseRequestRules),
   controller.createRequest,
 );
 router.put(
   '/requests/:id',
-  requireRoles('SUPER_USER'),
+  authorize(['SUPER_USER'], 'inventory', 'write'),
   validateBody(updatePurchaseRequestRules),
   controller.updateRequest,
 );

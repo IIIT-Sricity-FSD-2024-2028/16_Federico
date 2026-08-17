@@ -2,7 +2,7 @@
 
 const { Router } = require('express');
 const controller = require('../controllers/patient.controller');
-const { requireRoles } = require('../middleware/rolesGuard');
+const { authorize } = require('../middleware/actorAccess');
 const { validateBody } = require('../validators/engine');
 const {
   createPatientRules,
@@ -12,18 +12,18 @@ const {
 
 const router = Router();
 
-router.get('/', requireRoles('ADMIN', 'SUPER_USER'), controller.findAll);
-router.get('/:id', requireRoles('ADMIN', 'SUPER_USER'), controller.findOne);
-router.post('/', requireRoles('SUPER_USER'), validateBody(createPatientRules), controller.create);
-router.put('/:id', requireRoles('SUPER_USER'), validateBody(updatePatientRules), controller.update);
-router.delete('/:id', requireRoles('SUPER_USER'), controller.remove);
+router.get('/', authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'), controller.findAll);
+router.get('/:id', authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'), controller.findOne);
+router.post('/', authorize(['SUPER_USER'], 'patient', 'write'), validateBody(createPatientRules), controller.create);
+router.put('/:id', authorize(['SUPER_USER'], 'patient', 'write'), validateBody(updatePatientRules), controller.update);
+router.delete('/:id', authorize(['SUPER_USER'], 'patient', 'write'), controller.remove);
 
 // Insurance
-router.get('/insurance/all', requireRoles('ADMIN', 'SUPER_USER'), controller.findAllInsurances);
-router.get('/:id/insurance', requireRoles('ADMIN', 'SUPER_USER'), controller.findInsuranceByPatient);
+router.get('/insurance/all', authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'), controller.findAllInsurances);
+router.get('/:id/insurance', authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'), controller.findInsuranceByPatient);
 router.post(
   '/insurance',
-  requireRoles('SUPER_USER'),
+  authorize(['SUPER_USER'], 'patient', 'write'),
   validateBody(createPatientInsuranceRules),
   controller.createInsurance,
 );
