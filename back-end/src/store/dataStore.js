@@ -40,7 +40,7 @@ const dataStore = {
     { patient_id: 203, user_id: 104, uhid: 'UHID-112233', name: 'John Doe', phone: '+91-9988776655', dob: '1990-01-01', gender: 'Male', blood_group: 'B+', address: '78 Cyber City, Bangalore', emergency_contact_name: 'Jane Doe', emergency_contact_phone: '+91-9988776600' },
   ],
   patientInsurances: [
-    { insurance_id: 301, patient_id: 201, provider_name: 'Niva Bupa', policy_number: 'NB-77210', member_id: 'M-990', coverage_type: 'Full', valid_from: '2025-01-01', valid_to: '2027-12-31' },
+    { insurance_id: 301, patient_id: 201, provider_name: 'Niva Bupa', policy_number: 'NB-77210', member_id: 'M-990', coverage_type: 'Full', valid_from: '2025-01-01', valid_to: '2027-12-31', coverage_limit: 150000, copay_percentage: 10 },
   ],
   patientInsuranceDocuments: [],
 

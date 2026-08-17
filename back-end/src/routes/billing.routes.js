@@ -47,7 +47,7 @@ router.put('/ledger/:id/dispatch', authorize(['SUPER_USER'], 'billing', 'write')
 router.get('/payments', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findAllPayments);
 router.post(
   '/payments',
-  authorize(['SUPER_USER'], 'billing', 'write'),
+  authorize(['SUPER_USER'], 'payment', 'write'),
   validateBody(createPaymentRules),
   controller.createPayment,
 );

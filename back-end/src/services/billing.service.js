@@ -27,6 +27,10 @@ function findLedgerByAdmission(admission_id) {
   return dataStore.ledgers.find((l) => l.admission_id === admission_id) || null;
 }
 
+function findLedgerById(ledger_id) {
+  return dataStore.ledgers.find((l) => l.ledger_id === ledger_id) || null;
+}
+
 function createLedger(ledger) {
   const newLedger = {
     ledger_id: dataStore.ledgers.length > 0 ? Math.max(...dataStore.ledgers.map((l) => l.ledger_id)) + 1 : 801,
@@ -161,6 +165,7 @@ module.exports = {
   createService,
   findAllLedgers,
   findLedgerByAdmission,
+  findLedgerById,
   createLedger,
   findLedgerEntries,
   addLedgerEntry,
