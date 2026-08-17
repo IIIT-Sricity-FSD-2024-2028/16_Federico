@@ -201,3 +201,120 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
     }
   });
 });
+
+describe('Phase 3 — pre-request state machine (e2e)', () => {
+  const app = createApp();
+
+  async function login(email, password) {
+    const res = await request(app).post('/auth/login').send({ email, password }).expect(200);
+    return `Bearer ${res.body.token}`;
+  }
+
+  it('walks the full Admit lifecycle end to end with the correct actor at each step, and releases the bed on discharge', async () => {
+    const pre = await login('rekha.pre@hosp.com', 'Pre@123');
+    const hom = await login('admin@hosp.com', 'Hom@123');
+
+    const created = await request(app)
+      .post('/pre-requests')
+      .set('Authorization', pre)
+      .send({ patient_id: 202, department: 'Orthopedics', visit_type: 'Admit' })
+      .expect(201);
+    const id = created.body.pre_request_id;
+    if (created.body.status !== 'PENDING') throw new Error('Expected PENDING on create');
+
+    // FA has no business approving intake
+    const fa = await login('farah.fa@hosp.com', 'Fa@123');
+    await request(app).put(`/pre-requests/${id}`).set('Authorization', fa).send({ status: 'APPROVED' }).expect(403);
+
+    // PRE approves
+    const approved = await request(app).put(`/pre-requests/${id}`).set('Authorization', pre).send({ status: 'APPROVED' }).expect(200);
+    if (approved.body.status !== 'APPROVED') throw new Error('Expected APPROVED');
+
+    // ADMITTED can never be set directly, by anyone, even HOM
+    await request(app).put(`/pre-requests/${id}`).set('Authorization', hom).send({ status: 'ADMITTED' }).expect(403);
+
+    // HOM allocates a bed via the bed-request flow — THIS drives ADMITTED
+    const bedReq = await request(app)
+      .post('/ward/bed-requests')
+      .set('Authorization', pre)
+      .send({ patient_id: 202, pre_request_id: id, ward_id: 1 })
+      .expect(201);
+    const beds = await request(app).get('/ward/beds').set('Authorization', hom).expect(200);
+    const freeBed = beds.body.find((b) => b.status === 'AVAILABLE');
+    await request(app)
+      .put(`/ward/bed-requests/${bedReq.body.bed_request_id}`)
+      .set('Authorization', hom)
+      .send({ bed_id: freeBed.bed_id })
+      .expect(200);
+
+    const afterAllocation = await request(app).get(`/pre-requests/${id}`).set('Authorization', hom).expect(200);
+    if (afterAllocation.body.status !== 'ADMITTED') throw new Error('Expected bed allocation to drive status to ADMITTED');
+    if (afterAllocation.body.bed_id !== freeBed.bed_id) throw new Error('Expected bed_id to be set on the pre-request');
+
+    const bedAfterAllocation = await request(app).get('/ward/beds').set('Authorization', hom).expect(200);
+    if (bedAfterAllocation.body.find((b) => b.bed_id === freeBed.bed_id).status !== 'OCCUPIED') {
+      throw new Error('Expected allocated bed to be OCCUPIED');
+    }
+
+    // PRE requests discharge — HOM cannot skip PRE and request it themselves
+    await request(app).put(`/pre-requests/${id}`).set('Authorization', hom).send({ status: 'DISCHARGE_REQUESTED' }).expect(403);
+    await request(app).put(`/pre-requests/${id}`).set('Authorization', pre).send({ status: 'DISCHARGE_REQUESTED' }).expect(200);
+
+    // HOM coordinates and approves the discharge — PRE cannot self-approve
+    await request(app).put(`/pre-requests/${id}`).set('Authorization', pre).send({ status: 'DISCHARGE_APPROVED' }).expect(403);
+    await request(app).put(`/pre-requests/${id}`).set('Authorization', hom).send({ status: 'DISCHARGE_APPROVED' }).expect(200);
+
+    // PRE gives the final sign-off — this must release the bed
+    const discharged = await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', pre)
+      .send({ status: 'DISCHARGED' })
+      .expect(200);
+    if (discharged.body.status !== 'DISCHARGED') throw new Error('Expected DISCHARGED');
+
+    const bedAfterDischarge = await request(app).get('/ward/beds').set('Authorization', hom).expect(200);
+    if (bedAfterDischarge.body.find((b) => b.bed_id === freeBed.bed_id).status !== 'AVAILABLE') {
+      throw new Error('Expected bed to be released (AVAILABLE) after discharge');
+    }
+  });
+
+  it('rejects an out-of-order transition (cannot discharge-request a request that was never admitted)', async () => {
+    const pre = await login('rekha.pre@hosp.com', 'Pre@123');
+    const created = await request(app)
+      .post('/pre-requests')
+      .set('Authorization', pre)
+      .send({ patient_id: 203, department: 'General Medicine', visit_type: 'Consultation' })
+      .expect(201);
+
+    await request(app)
+      .put(`/pre-requests/${created.body.pre_request_id}`)
+      .set('Authorization', pre)
+      .send({ status: 'DISCHARGE_REQUESTED' })
+      .expect(403);
+  });
+
+  it('lets PRE reschedule (field update) but blocks Patient from the same endpoint', async () => {
+    const pre = await login('rekha.pre@hosp.com', 'Pre@123');
+    const patient = await login('hamiz@hosp.com', 'Hamiz@123');
+
+    const created = await request(app)
+      .post('/pre-requests')
+      .set('Authorization', pre)
+      .send({ patient_id: 201, department: 'Cardiology', visit_type: 'Consultation' })
+      .expect(201);
+    const id = created.body.pre_request_id;
+
+    const rescheduled = await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', pre)
+      .send({ requested_date: '2026-09-01', requested_time: '11:00 AM' })
+      .expect(200);
+    if (rescheduled.body.requested_time !== '11:00 AM') throw new Error('Expected field update to apply');
+
+    await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', patient)
+      .send({ requested_date: '2026-09-02' })
+      .expect(403);
+  });
+});
