@@ -65,10 +65,7 @@
                         <th>UHID</th>
                         <th>Department</th>
                         <th>Bed</th>
-                        <th>Daily Rate</th>
-                        <th>Days</th>
-                        <th>Supply Charges</th>
-                        <th>Total</th>
+                        <th>Total Billed</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -110,73 +107,37 @@
 
                 <div>
                     <h3 class="h3" style="font-size: 18px; margin-bottom: 16px;">Charges Breakdown</h3>
-                    
-                    <div style="border: 1px solid var(--border); border-radius: var(--radius-base); margin-bottom: 16px; overflow: hidden;">
-                        <div style="background: var(--neutral-bg); padding: 12px 16px; border-bottom: 1px solid var(--border);">
-                            <h4 class="h4" style="font-size: 14px;">Room Charges</h4>
-                        </div>
-                        <table class="w-full breakdown-table" style="width: 100%; text-align: left;">
-                            <thead>
-                                <tr>
-                                    <th style="color: var(--text-secondary);">Description</th>
-                                    <th style="text-align: right; color: var(--text-secondary);">Days</th>
-                                    <th style="text-align: right; color: var(--text-secondary);">Rate/Day</th>
-                                    <th style="text-align: right; color: var(--text-secondary);">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td id="bd-room-desc">Room Charge</td>
-                                    <td style="text-align: right; color: var(--text-secondary);" id="bd-days">0</td>
-                                    <td style="text-align: right; color: var(--text-secondary);" id="bd-rate">₹0</td>
-                                    <td style="text-align: right; font-weight: 500;" id="bd-room-amount">₹0</td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr style="border-top: 1px solid var(--border);">
-                                    <td colspan="3" style="padding: 12px 16px; font-weight: 600;">Subtotal</td>
-                                    <td style="padding: 12px 16px; text-align: right; font-weight: 600;" id="bd-room-subtotal">₹0</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
 
                     <div style="border: 1px solid var(--border); border-radius: var(--radius-base); overflow: hidden;">
-                        <div style="background: var(--neutral-bg); padding: 12px 16px; border-bottom: 1px solid var(--border);">
-                            <h4 class="h4" style="font-size: 14px;">Supply Charges</h4>
-                        </div>
                         <table class="w-full breakdown-table" style="width: 100%; text-align: left;">
                             <thead>
                                 <tr>
-                                    <th style="color: var(--text-secondary);">Item</th>
+                                    <th style="color: var(--text-secondary);">Service</th>
+                                    <th style="text-align: right; color: var(--text-secondary);">Qty</th>
+                                    <th style="text-align: right; color: var(--text-secondary);">Unit Price</th>
                                     <th style="text-align: right; color: var(--text-secondary);">Amount</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Consolidated Inventory & Pharmacy Supplies</td>
-                                    <td style="text-align: right; font-weight: 500;" id="bd-supply-amount">₹0</td>
-                                </tr>
-                            </tbody>
+                            <tbody id="bd-entries-tbody"></tbody>
                         </table>
                     </div>
                 </div>
 
                 <div style="background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius-base); padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 18px; font-weight: 600;">Administrative Total</span>
-                    <span style="font-size: 24px; font-weight: 600; color: var(--primary);" id="bd-total">₹0</span>
+                    <span style="font-size: 18px; font-weight: 600;">Total Billed</span>
+                    <span style="font-size: 24px; font-weight: 600; color: var(--primary);" id="bd-total">-</span>
                 </div>
 
                 <div>
                     <h3 class="h3" style="font-size: 14px; margin-bottom: 8px;">Payment History</h3>
-                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);" id="bd-payments">
                         <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No payments recorded yet</p>
                     </div>
                 </div>
-                
+
                 <div style="background: #E0F2FE; border-radius: var(--radius-base); padding: 12px;">
                     <p style="font-size: 14px; color: #075985; margin: 0;">
-                        <strong>Note:</strong> Clinical charges handled by Finance Associate
+                        <strong>Note:</strong> Ledger creation and dispatch are handled by Finance Associate.
                     </p>
                 </div>
             </div>
@@ -188,37 +149,11 @@
         </div>
     </div>
 
-  <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-<script src="../shared/id-generator.js"></script>
-<script src="../shared/patient-resolver.js"></script>
-<script src="../shared/sanitizer.js"></script>
-<script src="../shared/ledger-validator.js"></script>
-<script src="../shared/finance-states.js"></script>
-<script src="../shared/insurance.js"></script>
-<script src="../shared/rbac.js"></script>
+  <script src="../shared/rbac.js"></script>
 <script src="../shared/api-client.js"></script>
 <script src="auth-guard.js"></script>
-<script src="storage.js"></script>
-
-<script>
-    window.UI = {
-        cn: (...classes) => classes.filter(Boolean).join(' '),
-        Badge: ({ children, variant = 'neutral', className = '' }) => {
-            const baseClass = 'badge';
-            const variantClass = `badge-${variant}`;
-            return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
-        },
-        Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
-            const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
-            const idAttr = id ? `id="${id}"` : '';
-            const disabledAttr = disabled ? 'disabled' : '';
-            const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
-            const onClickAttr = onClick ? `onclick="${onClick}"` : '';
-            return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
-        }
-    };
-</script>
+<script src="hom-helpers.js"></script>
+<script src="ui-template.js"></script>
 
 <script src="shared-nav.js"></script>
 <script src="billing.js"></script>

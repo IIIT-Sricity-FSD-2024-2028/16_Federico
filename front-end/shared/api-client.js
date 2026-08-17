@@ -279,6 +279,9 @@
         },
       },
       ledger: {
+        listAll: function () {
+          return request("GET", "/billing/ledgers");
+        },
         getByAdmission: function (admissionId) {
           return request("GET", "/billing/ledger/" + admissionId);
         },
