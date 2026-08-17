@@ -1,26 +1,21 @@
-:root {
-    --primary: #00a19a;
-    --border: #eee;
-    --white: #ffffff;
-    --text-muted: #64748b;
-    --transition: all 0.2s ease-in-out;
-}
-
-/* YOUR CARD - Added subtle hover lift */
+/* Card — same top-border-only treatment as base.css (kept redundant-safe
+   in case components.css loads after base.css and a page relies on this
+   file's cascade order). */
 .card {
-    background: var(--white);
-    border-radius: 12px;
+    background: var(--color-bg);
+    border-radius: var(--radius);
     padding: 24px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    border: 1px solid var(--border);
+    box-shadow: none;
+    border: none;
+    border-top: 1px solid var(--color-fg);
     margin-bottom: 24px;
-    transition: var(--transition);
+    transition: box-shadow var(--duration-base) var(--ease-luxury);
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-    border-color: #cbd5e1;
+    transform: none;
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--color-fg);
 }
 
 .stat-grid {
@@ -31,13 +26,14 @@
 }
 
 .value {
+    font-family: var(--font-heading);
     font-size: 28px;
-    font-weight: 800;
-    color: var(--primary);
-    letter-spacing: -1px;
+    font-weight: 600;
+    color: var(--color-fg);
+    letter-spacing: -0.01em;
 }
 
-/* YOUR TABLE - Added row highlight */
+/* Table */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -45,60 +41,70 @@
 
 .data-table th {
     text-align: left;
-    padding: 12px;
-    font-size: 11px;
-    color: var(--text-muted);
-    background: #f9fafb;
-    border-bottom: 2px solid #eee;
+    padding: 14px 12px;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
+    color: var(--color-muted-fg);
+    background: var(--color-muted-bg);
+    border-bottom: 1px solid var(--color-border);
 }
 
-.data-table tr {
-    transition: background 0.1s ease;
-}
+.data-table tr { transition: background var(--duration-fast) ease; }
 
-.data-table tr:hover {
-    background: #fcfcfc;
-}
+.data-table tr:hover { background: var(--color-muted-bg); }
 
 .data-table td {
     padding: 14px 12px;
-    border-bottom: 1px solid #f9fafb;
+    border-bottom: 1px solid var(--color-border);
     font-size: 13px;
+    color: var(--color-fg);
 }
 
-/* YOUR BUTTON - Added interaction feedback */
+/* Button — same gold-slide treatment as base.css */
 .btn-primary {
-    background: var(--primary);
-    color: white;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: var(--color-fg);
+    color: var(--color-bg);
     border: none;
     padding: 10px 18px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     cursor: pointer;
-    font-weight: 600;
-    transition: var(--transition);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: var(--tracking-button);
+    text-transform: uppercase;
+    transition: box-shadow var(--duration-base) var(--ease-luxury);
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
-
-.btn-primary:hover {
-    filter: brightness(1.1);
-    box-shadow: 0 4px 12px rgba(0, 161, 154, 0.25);
+.btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--color-accent);
+    transform: translateX(-100%);
+    transition: transform var(--duration-base) var(--ease-luxury);
+    z-index: -1;
 }
+.btn-primary:hover { box-shadow: var(--shadow-button-hover); filter: none; }
+.btn-primary:hover::before { transform: translateX(0); }
+.btn-primary:active { transform: none; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary:disabled::before { display: none; }
 
-.btn-primary:active {
-    transform: scale(0.96);
-}
-
-/* Modern styling for the code badge */
+/* Monospace UHID/reference badge */
 .uhid-badge {
     font-family: 'JetBrains Mono', monospace;
-    background: #f1f5f9;
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: var(--color-muted-bg);
+    padding: 2px 8px;
+    border-radius: var(--radius);
     font-size: 12px;
-    color: #475569;
+    color: var(--color-muted-fg);
 }
-
-    

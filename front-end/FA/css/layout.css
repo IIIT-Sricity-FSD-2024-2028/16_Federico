@@ -1,11 +1,11 @@
 .header {
-    background: var(--white);
-    padding: 12px 40px;
+    background: var(--color-bg);
+    padding: 0 40px;
+    height: 88px;
     display: flex;
-    /* This allows the flex children to use the full width for centering */
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--color-border);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -15,17 +15,22 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    /* Takes up 1 part of the outer space to push nav to center */
     flex: 1;
+}
+
+.logo-group strong {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-fg);
 }
 
 .nav-links {
     display: flex;
-    gap: 24px;
+    gap: 32px;
     align-items: center;
-    /* Centers the links within the middle section */
     justify-content: center;
-    /* Takes up more space to ensure it stays centered */
     flex: 2;
 }
 
@@ -33,52 +38,79 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 16px;
     flex: 1;
 }
 
 .nav-link {
-    font-size: 13px;
+    font-family: var(--font-body);
+    font-size: 11px;
     font-weight: 600;
-    color: var(--text-muted);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-muted-fg);
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color var(--duration-base) var(--ease-luxury);
     padding: 8px 0;
-    /* Prevents links from wrapping if the window gets small */
     white-space: nowrap;
+    border-bottom: 2px solid transparent;
 }
+
+.nav-link:hover { color: var(--color-fg); }
 
 .role-indicator {
     display: inline-flex;
     align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f1f5f9;
-    color: var(--text-primary);
-    font-size: 12px;
-    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-fg);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     white-space: nowrap;
 }
 
 .module-switch-link {
     display: inline-flex;
     align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #e0f2fe;
-    color: #0369a1;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-accent);
+    background: transparent;
+    color: var(--color-fg);
     text-decoration: none;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    transition: background var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
 }
+.module-switch-link:hover { background: var(--color-accent); color: var(--color-fg); }
+
+.logout-btn {
+    border: 1px solid var(--status-error);
+    background: transparent;
+    color: var(--status-error);
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-button);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
+}
+.logout-btn:hover { background: var(--status-error); color: #fff; }
 
 .logo-box {
-    background: var(--primary);
-    color: white;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-weight: 800;
-    font-size: 22px;
+    background: var(--color-fg);
+    color: var(--color-bg);
+    padding: 4px 12px;
+    border-radius: var(--radius);
+    font-family: var(--font-heading);
+    font-size: 20px;
 }
 
 .main-content {
@@ -96,7 +128,8 @@
 }
 
 .value {
+    font-family: var(--font-heading);
     font-size: 28px;
-    font-weight: 800;
-    color: var(--primary);
+    font-weight: 600;
+    color: var(--color-fg);
 }

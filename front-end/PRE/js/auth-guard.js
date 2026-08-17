@@ -3,7 +3,7 @@
 
   var actor = window.RoleAccess.getCurrentActor();
   if (!actor) {
-    window.location.href = "../../../login/login-page.html";
+    window.location.href = "../../login/login-page.html";
     return;
   }
 

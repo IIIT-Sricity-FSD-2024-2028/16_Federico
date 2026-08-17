@@ -1,11 +1,13 @@
 /* BODY */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f7fb;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   text-decoration: none;
-  color: black;
+  color: var(--color-fg);
 }

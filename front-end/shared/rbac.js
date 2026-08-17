@@ -158,14 +158,23 @@
     var currentActor = actor || getCurrentActor();
     var currentModule = fromModule || detectCurrentModule();
 
+    // Every other app's pages live one directory level below front-end/
+    // (e.g. HOM/screen-01-dashboard.html, FA/index.html), but PRE's real
+    // pages live one level deeper still, under PRE/pages/*.html — the
+    // only PRE page at the shallow depth is PRE/index.html, which is a
+    // static redirect that never loads rbac.js or calls this function.
+    // So whenever the caller is PRE, every cross-module path below needs
+    // one extra "../" to escape that extra nesting.
+    var crossModulePrefix = currentModule === "PRE" ? "../" : "";
+
     if (currentActor === "HOM") {
       if (currentModule === "HOM") return "screen-01-dashboard.html";
-      return "../HOM/screen-01-dashboard.html";
+      return crossModulePrefix + "../HOM/screen-01-dashboard.html";
     }
 
     if (currentActor === "FA") {
       if (currentModule === "FA") return "index.html";
-      return "../FA/index.html";
+      return crossModulePrefix + "../FA/index.html";
     }
 
     if (currentActor === "PRE") {
@@ -175,10 +184,10 @@
 
     if (currentActor === "Patient") {
       if (currentModule === "PATIENT") return "patient-dashboard.html";
-      return "../Patient/patient-dashboard.html";
+      return crossModulePrefix + "../Patient/patient-dashboard.html";
     }
 
-    return "../login/login-page.html";
+    return crossModulePrefix + "../login/login-page.html";
   }
 
   function detectCurrentModule() {
