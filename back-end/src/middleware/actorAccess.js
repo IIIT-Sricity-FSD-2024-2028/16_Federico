@@ -13,13 +13,38 @@
  * things and book appointments.
  */
 const ACTOR_ACCESS = {
-  doctor: { read: ['HOM', 'PRE', 'FA'], write: ['HOM'] },
-  patient: { read: ['HOM', 'PRE', 'FA'], write: ['HOM', 'PRE'] },
+  doctor: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM'] },
+  // 'Patient' read/write is further restricted to their OWN record by
+  // ownership checks in patient.controller.js (findOne/update/
+  // findInsuranceByPatient/createInsurance) — this table alone doesn't
+  // express per-record ownership, only which actors may attempt the call.
+  patient: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM', 'PRE', 'Patient'] },
   ward: { read: ['HOM', 'PRE', 'FA'], write: ['HOM'] },
   inventory: { read: ['HOM', 'FA'], write: ['HOM'] },
+  // 'Patient' read here only actually resolves for the single-record
+  // views (findPatientBills/findReceiptsByPatient/findDischargeSummary,
+  // all ownership-checked) and the shared services price list. The
+  // list-all-across-everyone handlers sharing this same gate
+  // (findAllPayments, findAllReceipts, findLedgerByAdmission,
+  // findLedgerEntries) explicitly deny Patient in billing.controller.js
+  // since there's no single patientId to scope them to.
   billing: { read: ['HOM', 'FA', 'Patient'], write: ['FA'] },
-  appointment: { read: ['HOM', 'PRE', 'FA'], write: ['PRE', 'Patient'] },
+  // Scoped narrower than 'billing' write: a Patient may only ever POST
+  // their own payment (the "Pay Now" action, enforced in the controller
+  // by ledger ownership) — never create services/ledgers/entries or
+  // dispatch a bill, which stay FA-only under 'billing'.
+  payment: { write: ['FA', 'Patient'] },
+  // Legacy Phase-1 appointment resource: PRE-only for actor-based write.
+  // The Patient-facing booking flow goes through 'preRequest' instead
+  // (properly ownership-scoped there) — this endpoint has no per-record
+  // ownership check, so Patient is deliberately NOT granted write here.
+  appointment: { read: ['HOM', 'PRE', 'FA'], write: ['PRE'] },
   admission: { read: ['HOM', 'PRE', 'FA'], write: ['HOM', 'PRE'] },
+  // Patient may read/write pre-requests, but only their OWN (findAll
+  // filters to it, findOne/update 403 on mismatch), and only ever CANCEL
+  // one of their own PENDING requests (update rejects any other field or
+  // status change from a Patient session) — see preRequest.controller.js.
+  preRequest: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['PRE', 'Patient'] },
 };
 
 /**

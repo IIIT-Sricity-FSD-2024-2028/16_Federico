@@ -23,6 +23,8 @@ function create(payload, createdBy) {
     doctor_id: payload.doctor_id || null,
     visit_type: payload.visit_type,
     ward_type: payload.ward_type || null,
+    requested_date: payload.requested_date || null,
+    requested_time: payload.requested_time || null,
     status: 'PENDING',
     hom_status: 'Awaiting HOM',
     bed_id: null,

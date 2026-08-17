@@ -45,14 +45,6 @@ function login(email, password) {
   };
 }
 
-function generateUhid() {
-  let uhid;
-  do {
-    uhid = `UHID-${Math.floor(100000 + Math.random() * 900000)}`;
-  } while (dataStore.patients.some((p) => p.uhid === uhid));
-  return uhid;
-}
-
 function signup(payload) {
   if (findUserByEmail(payload.email)) {
     return { error: 'EMAIL_TAKEN' };
@@ -70,7 +62,7 @@ function signup(payload) {
 
   const patient = patientService.create({
     user_id: newUser.user_id,
-    uhid: generateUhid(),
+    uhid: patientService.generateUhid(),
     name: payload.name,
     phone: payload.phone,
     dob: payload.dob,
