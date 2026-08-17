@@ -198,32 +198,40 @@ document.addEventListener("DOMContentLoaded", () => {
         const btn = document.getElementById("confirm-booking");
         if (!btn) return;
 
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
             if (!validateForm()) return;
 
-            // Add the appointment to the database
-            const newId = addAppointment({
-                date: selectedDate,
-                displayDate: formatDate(selectedDate),
-                time: selectedTime,
-                department: selectedDept,
-                type: "",
-                status: "Pending",
-                doctorId: null
-            });
-
-            // Re-run the availability check so the slot updates instantly on screen
-            refreshSlotAvailability();
-
             btn.disabled = true;
-            btn.textContent = "Booked ✓";
-            btn.style.opacity = "0.7";
+            const originalLabel = btn.textContent;
+            btn.textContent = "Booking…";
 
-            showToast("Appointment booked successfully! ID: " + newId, "success");
+            try {
+                const newId = await addAppointment({
+                    date: selectedDate,
+                    displayDate: formatDate(selectedDate),
+                    time: selectedTime,
+                    department: selectedDept,
+                    type: "",
+                    status: "Pending",
+                    doctorId: null
+                });
 
-            setTimeout(() => {
-                window.location.href = "patient-dashboard.html";
-            }, 2000);
+                // Re-run the availability check so the slot updates instantly on screen
+                refreshSlotAvailability();
+
+                btn.textContent = "Booked ✓";
+                btn.style.opacity = "0.7";
+
+                showToast("Appointment request sent! Reference #" + newId, "success");
+
+                setTimeout(() => {
+                    window.location.href = "patient-dashboard.html";
+                }, 2000);
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+                showToast(err?.message || "Could not book this slot. Please try again.", "warn");
+            }
         });
     }
 
@@ -244,54 +252,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const files = Array.from(e.target.files || []);
             if (files.length === 0) return;
             updateFileName(files[0].name);
-            persistMedicalFiles(files);
         });
 
         function updateFileName(name) {
             const textElement = dropZone.querySelector("strong") || dropZone;
             textElement.innerHTML = `Attached: <span style="color:var(--primary)">${name}</span>`;
-            showToast("File attached successfully.", "success");
-        }
-    }
-
-    function persistMedicalFiles(files) {
-        const profile = getProfile();
-        if (!profile) return;
-
-        const fileRecords = files.map((file) => ({
-            name: file.name,
-            size: file.size,
-            type: file.type || "application/octet-stream",
-            uploadedAt: Date.now()
-        }));
-
-        const mergedMedicalFiles = [...(profile.medicalFiles || []), ...fileRecords];
-        if (typeof updateProfile === "function") {
-            updateProfile({ medicalFiles: mergedMedicalFiles });
-        }
-
-        try {
-            const _root = JSON.parse(localStorage.getItem("HospitalAppState") || "{}");
-            const accounts = Array.isArray(_root.patientAuthAccounts) ? _root.patientAuthAccounts : [];
-            if (Array.isArray(accounts)) {
-                const authEmail = String(sessionStorage.getItem("authEmail") || "").toLowerCase();
-                const patientUhid = String(profile.uhid || "");
-                const accountIndex = accounts.findIndex((account) =>
-                    String(account?.email || "").toLowerCase() === authEmail ||
-                    (patientUhid && String(account?.patientUhid || "") === patientUhid)
-                );
-
-                if (accountIndex >= 0) {
-                    const existingFiles = Array.isArray(accounts[accountIndex].medicalFiles)
-                        ? accounts[accountIndex].medicalFiles
-                        : [];
-                    accounts[accountIndex].medicalFiles = [...existingFiles, ...fileRecords];
-                    _root.patientAuthAccounts = accounts;
-                    localStorage.setItem("HospitalAppState", JSON.stringify(_root));
-                }
-            }
-        } catch (error) {
-            console.warn("Unable to persist patient medical files in patientAuthAccounts:", error);
+            showToast("File attached to this booking.", "success");
         }
     }
 

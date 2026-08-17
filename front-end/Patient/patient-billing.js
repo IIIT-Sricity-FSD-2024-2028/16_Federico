@@ -38,34 +38,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function markAsPaid(dispatchId, paymentMethod) {
+  async function payDispatchedBill(ledgerId, paymentMethod) {
     const VALID_METHODS = ["UPI", "CARD", "CASH", "NETBANKING"];
     if (!VALID_METHODS.includes(paymentMethod)) return false;
 
-    const raw   = localStorage.getItem("HospitalAppState");
-    const state = raw ? JSON.parse(raw) : null;
-    if (!state) return false;
+    const bill = getBills().find((b) => String(b.ledgerId) === String(ledgerId));
+    if (!bill || bill.status === "paid") return false;
 
-    const queueItem = (state.dispatchQueue || []).find(
-      (item) => String(item.id) === String(dispatchId)
-    );
-    if (!queueItem) return false;
-
-    // Only allow marking if the item has been SENT (link delivered by HOM)
-    if (queueItem.status !== window.FinanceStates.SENT) return false;
-
-    queueItem.status                 = window.FinanceStates.PENDING_VERIFICATION;
-    queueItem.patient_payment_method = paymentMethod;
-    queueItem.patient_marked_at      = Date.now();
-
-    localStorage.setItem("HospitalAppState", JSON.stringify(state));
-    
-    // Immediate push to backend for real-time sync
-    if (window.APIClient) {
-      window.APIClient.pushFullState(state);
-    }
-
-    window.dispatchEvent(new Event("patientStoreUpdated"));
+    await payBill(bill, paymentMethod);
     return true;
   }
 
@@ -77,8 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderPatientHeader() {
     const profile = getProfile();
-    const authName = sessionStorage.getItem("authDisplayName") || profile?.name || "Patient";
-    const safeName = String(authName).trim();
+    const safeName = String(profile?.name || "Patient").trim();
     const initials = safeName
       .split(/\s+/)
       .filter(Boolean)
@@ -141,35 +120,22 @@ document.addEventListener("DOMContentLoaded", () => {
     el.innerHTML = rows.map((row) => {
       const safeRow = window.Sanitizer ? window.Sanitizer.forRole(row, 'PATIENT') : row;
       const isPaymentLink = row.type === "PAYMENT_LINK";
-      const isPaidLink = row.type === "PAYMENT_CONFIRMED";
-      const isPendingVerification = row.status === window.FinanceStates.PENDING_VERIFICATION;
 
-      const action = isPendingVerification
-        ? `<button class="btn-view" type="button" disabled
-             title="Awaiting FA verification"
-             style="opacity:0.5;cursor:not-allowed;">
-             Awaiting Verification
-           </button>`
-        : isPaymentLink
-          ? `<button class="btn-view" type="button"
-               data-pay-link="${escapeAttr(row.paymentLink || "")}"
+      const action = isPaymentLink
+        ? `<button class="btn-view" type="button"
                data-dispatch-id="${escapeAttr(String(row.dispatchId || ""))}">
                Pay Now
              </button>`
-          : `<button class="btn-download" type="button"
+        : `<button class="btn-download" type="button"
                data-source-type="${escapeAttr(row.sourceType || "")}"
                data-source-id="${escapeAttr(String(row.sourceId || ""))}"
                data-row-type="${escapeAttr(row.type || "")}"
                data-row-title="${escapeAttr(row.title || "")}">
                View Digital Copy
              </button>`;
-      const statusLabel = isPendingVerification
-        ? `<span class="status pending">Pending Verification</span>`
-        : isPaymentLink
-          ? `<span class="status pending">Pending</span>`
-          : isPaidLink
-            ? `<span class="status confirmed">Paid</span>`
-            : `<span class="status confirmed">Receipt</span>`;
+      const statusLabel = isPaymentLink
+        ? `<span class="status pending">Pending</span>`
+        : `<span class="status confirmed">Receipt</span>`;
 
       return `
         <div class="billing-row">
@@ -189,12 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }).join("");
     el.classList.add("billing-list");
 
-    el.querySelectorAll("[data-pay-link]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const link       = btn.getAttribute("data-pay-link") || "";
+    el.querySelectorAll("[data-dispatch-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
         const dispatchId = btn.getAttribute("data-dispatch-id") || "";
-        if (!link)       return showToast("Payment link is not available.", "info");
-        if (!dispatchId) return showToast("Unable to confirm payment for this link.", "warn");
+        if (!dispatchId) return showToast("Unable to process payment for this bill.", "warn");
 
         // Patient selects payment method
         const method = window.prompt(
@@ -210,15 +174,20 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const marked = markAsPaid(dispatchId, normalised);
-        if (!marked) {
-          showToast("Unable to mark payment. Link may not be ready yet.", "warn");
-          return;
+        btn.disabled = true;
+        try {
+          const paid = await payDispatchedBill(dispatchId, normalised);
+          if (!paid) {
+            showToast("Unable to process payment. Please refresh and try again.", "warn");
+            return;
+          }
+          showToast("Payment received — receipt generated.", "success");
+          renderAll();
+        } catch (err) {
+          showToast(err?.message || "Payment failed. Please try again.", "warn");
+        } finally {
+          btn.disabled = false;
         }
-
-        window.open(link, "_blank");
-        showToast("Payment marked as pending verification. Finance will confirm shortly.", "success");
-        renderAll();
       });
     });
 

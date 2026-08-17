@@ -1,335 +1,379 @@
 /**
- * shared/api-client.js
- * Bridge between Frontend (localStorage) and Backend (NestJS API).
+ * shared/api-client.js — Phase 3 rewrite.
  *
- * Strategy:
- *  - On load   → MERGE backend state into localStorage (backend wins for most keys,
- *                but local arrays like preRequests are union-merged so nothing is lost)
- *  - On change → push to backend only when state actually changes (event-driven)
- *  - No polling interval → zero unnecessary requests when user is idle
+ * Replaces the old localStorage-simulation bridge (which only merged 9 of
+ * ~20 state slices and silently dropped the rest — the root cause of most
+ * "broken workflow" bugs) with a direct REST client against the Express
+ * backend, which is now the real source of truth. There is no more
+ * full-state merge: every read goes to the backend, every write goes to
+ * the backend, and localStorage is used only as a short-lived render
+ * cache (see `shared/render-cache.js`), never as authority.
+ *
+ * Session (login token) is stored in `localStorage` (not `sessionStorage`)
+ * under FEDERICO_SESSION_KEY so a logged-in actor stays logged in across
+ * tabs/windows of the same browser — fixing the old per-tab session gap.
  */
-
 (function () {
   var API_BASE_URL = "http://localhost:3000";
-  var ROOT_STORAGE_KEY = "HospitalAppState";
+  var SESSION_KEY = "FedericoSession";
 
-  // Track last pushed state hash to avoid duplicate POSTs
-  var _lastPushedHash = null;
+  // ---- session storage -----------------------------------------------
 
-  function _hash(str) {
-    var h = 5381;
-    for (var i = 0; i < str.length; i++) {
-      h = (h * 33) ^ str.charCodeAt(i);
+  function getSession() {
+    try {
+      var raw = localStorage.getItem(SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
     }
-    return h >>> 0;
+  }
+
+  function setSession(session) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    window.dispatchEvent(new Event("federicoSessionChanged"));
+  }
+
+  function clearSession() {
+    localStorage.removeItem(SESSION_KEY);
+    window.dispatchEvent(new Event("federicoSessionChanged"));
+  }
+
+  // ---- helpers ----------------------------------------------------------
+
+  /**
+   * The backend's @IsPhoneNumber() validator requires international
+   * format (a leading "+"). The demo dataset and forms are India-centric,
+   * so a bare local number is assumed to be +91 unless the caller already
+   * supplied a country code.
+   */
+  function normalizePhone(phone) {
+    var trimmed = String(phone || "").trim();
+    if (!trimmed) return trimmed;
+    if (trimmed.startsWith("+")) return trimmed;
+    return "+91" + trimmed.replace(/\D/g, "");
+  }
+
+  function extractMessage(status, statusText, data) {
+    if (data) {
+      if (Array.isArray(data.message)) return data.message.join(", ");
+      if (data.message) return data.message;
+    }
+    return status + " " + statusText;
   }
 
   /**
-   * Merge two arrays by unique id/appointmentId — local wins over remote for the same id.
+   * Low-level request helper. Attaches the session Bearer token unless
+   * `opts.auth === false`. On a 401 from an authenticated call, clears the
+   * stale/expired session so the next guarded page load redirects to
+   * login instead of looping on invalid-token errors.
    */
-  function _mergeArrays(localArr, remoteArr) {
-    if (!Array.isArray(remoteArr)) return Array.isArray(localArr) ? localArr : [];
-    if (!Array.isArray(localArr)) return remoteArr;
+  async function request(method, path, body, opts) {
+    opts = opts || {};
+    var session = getSession();
+    var headers = { "Content-Type": "application/json" };
+    if (session && session.token && opts.auth !== false) {
+      headers["Authorization"] = "Bearer " + session.token;
+    }
 
-    var seen = new Set();
-    var merged = [];
+    var res;
+    try {
+      res = await fetch(API_BASE_URL + path, {
+        method: method,
+        headers: headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    } catch (networkErr) {
+      var offlineErr = new Error("Cannot reach the server. Is the backend running on " + API_BASE_URL + "?");
+      offlineErr.status = 0;
+      throw offlineErr;
+    }
 
-    // Local items take priority
-    localArr.forEach(function(item) {
-      var key = item.id || item.appointmentId || item.entry_id || item.admission_id || JSON.stringify(item);
-      seen.add(String(key));
-      merged.push(item);
-    });
-
-    // Add remote items not already present locally
-    remoteArr.forEach(function(item) {
-      var key = item.id || item.appointmentId || item.entry_id || item.admission_id || JSON.stringify(item);
-      if (!seen.has(String(key))) {
-        merged.push(item);
+    var text = await res.text();
+    var data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        data = null;
       }
-    });
+    }
 
-    return merged;
+    if (!res.ok) {
+      if (res.status === 401 && opts.auth !== false) clearSession();
+      var err = new Error(extractMessage(res.status, res.statusText, data));
+      err.status = res.status;
+      err.body = data;
+      throw err;
+    }
+
+    return data;
   }
 
-  /**
-   * Merge backend state into local state.
-   * Arrays are union-merged (local + remote, no duplicates).
-   * Scalar values default to remote.
-   * Objects are shallow-merged (local wins).
-   */
-  function _mergeStates(localState, remoteState) {
-    if (!remoteState || typeof remoteState !== "object") return localState;
-    if (!localState || typeof localState !== "object") return remoteState;
-
-    var result = Object.assign({}, remoteState);
-
-    var arrayKeys = [
-      "preRequests", "pendingAdmissions", "patients", "dispatchQueue",
-      "paymentConfirmations", "receipts", "publishedBills", "faLedgerRequests",
-      "serviceRequests", "billingRecords", "bedRequests", "bedAllocations",
-      "emergencyNotifications", "appointments", "activityLog", "doctors",
-      "inventoryItems", "patientDirectory", "patientAuthAccounts"
-    ];
-
-    arrayKeys.forEach(function(key) {
-      result[key] = _mergeArrays(localState[key], remoteState[key]);
+  function withNormalizedPhones(payload, fields) {
+    var out = Object.assign({}, payload);
+    fields.forEach(function (field) {
+      if (out[field]) out[field] = normalizePhone(out[field]);
     });
-
-    // Merge object maps (admissions, ledgers, patientProfiles) — local wins per key
-    ["admissions", "ledgers", "patientProfiles"].forEach(function(key) {
-      if (localState[key] && typeof localState[key] === "object") {
-        result[key] = Object.assign({}, remoteState[key] || {}, localState[key]);
-      }
-    });
-
-    return result;
+    return out;
   }
 
-  // --- ADAPTER LAYER (Relational <-> Denormalized) ---
-  function transformLocalToRelational(local) {
-    var rel = {
-      stateVersion: local.stateVersion || "3.0.0",
-      roles: [{ role_id: 1, role_name: 'ADMIN' }, { role_id: 2, role_name: 'SUPER_USER' }],
-      users: [],
-      patients: [],
-      patientInsurances: [],
-      patientInsuranceDocuments: [],
-      doctors: [],
-      doctorAvailabilities: [],
-      appointments: [],
-      wards: [],
-      beds: [],
-      admissions: [],
-      dischargeSummaries: [],
-      services: [],
-      ledgers: [],
-      ledgerEntries: [],
-      insurances: [],
-      payments: [],
-      inventoryItems: [],
-      purchaseRequests: [],
-      patientAuthAccounts: local.patientAuthAccounts || []
-    };
+  // ---- API surface --------------------------------------------------
 
-    // 1. Patients
-    (local.patientDirectory || []).forEach(p => {
-      rel.patients.push({
-        user_id: 101, // Mock default
-        patient_id: p.id && String(p.id).includes('FED-') ? parseInt(String(p.id).split('-').pop()) : 201,
-        uhid: p.id || p.uhid || "UHID-000",
-        name: p.name || "Unknown",
-        phone: p.phone || "0000000000",
-        dob: "1970-01-01", // Approximation from age not possible without full date
-        gender: p.gender || "Unknown",
-        address: p.address || ""
-      });
-    });
+  var Api = {
+    request: request,
+    getSession: getSession,
+    setSession: setSession,
+    clearSession: clearSession,
+    normalizePhone: normalizePhone,
 
-    // 2. Doctors
-    (local.doctors || []).forEach((d, i) => {
-      rel.doctors.push({
-        doctor_id: i + 401,
-        name: d.name,
-        specialization: d.specialization || "General",
-        phone: "0000000000",
-        email: "doc@hosp.com"
-      });
-      rel.doctorAvailabilities.push({
-        availability_id: i + 501,
-        doctor_id: i + 401,
-        available_date: new Date().toISOString().split('T')[0],
-        start_time: d.start || "09:00:00",
-        end_time: d.end || "17:00:00",
-        status: d.status || "Available"
-      });
-    });
-
-    // 3. Appointments
-    (local.preRequests || []).forEach((pr, i) => {
-      rel.appointments.push({
-        appointment_id: parseInt(String(pr.appointmentId || pr.id).replace(/\D/g, '') || (i + 601).toString()),
-        patient_id: 201,
-        availability_id: 501,
-        scheduled_datetime: new Date().toISOString(),
-        visit_type: "OPD",
-        status: pr.status === "Approved" ? "CONFIRMED" : "PENDING",
-        created_by: 101
-      });
-    });
-
-    // 4. Admissions, Beds & Ledgers
-    Object.values(local.admissions || {}).forEach((adm, i) => {
-      // Create Ward/Bed mock mapping
-      if (!rel.wards.find(w => w.ward_name === "General Ward")) {
-        rel.wards.push({ ward_id: 1, ward_name: "General Ward", total_beds: 10, description: "Main" });
-      }
-      var bedId = i + 11;
-      rel.beds.push({ bed_id: bedId, ward_id: 1, bed_number: adm.ward_no || `G-${bedId}`, status: adm.discharged ? "AVAILABLE" : "OCCUPIED" });
-
-      rel.admissions.push({
-        admission_id: adm.admission_id || (i + 701),
-        appointment_id: 601,
-        patient_id: 201,
-        bed_id: bedId,
-        status: adm.discharged ? "DISCHARGED" : "ADMITTED",
-        admit_time: new Date().toISOString()
-      });
-
-      rel.ledgers.push({
-        ledger_id: adm.ledger_id || (i + 801),
-        admission_id: adm.admission_id || (i + 701),
-        status: adm.discharged ? "CLOSED" : "OPEN"
-      });
-    });
-
-    // 5. Ledger Entries & Services
-    Object.keys(local.ledgers || {}).forEach(ledger_id => {
-      (local.ledgers[ledger_id] || []).forEach((entry, i) => {
-        // Ensure service exists
-        if (!rel.services.find(s => s.service_name === entry.service_name)) {
-          rel.services.push({ service_id: rel.services.length + 1, service_name: entry.service_name, base_cost: entry.price });
+    auth: {
+      login: function (email, password) {
+        return request("POST", "/auth/login", { email: email, password: password }, { auth: false });
+      },
+      signup: function (payload) {
+        var body = withNormalizedPhones(payload, ["phone", "emergency_contact_phone"]);
+        return request("POST", "/auth/signup", body, { auth: false });
+      },
+      me: function () {
+        return request("GET", "/auth/me");
+      },
+      logout: async function () {
+        try {
+          await request("POST", "/auth/logout");
+        } catch (err) {
+          // best-effort — clear local session regardless
         }
-        rel.ledgerEntries.push({
-          entry_id: entry.entry_id || (i + 1),
-          ledger_id: parseInt(ledger_id),
-          service_id: rel.services.find(s => s.service_name === entry.service_name)?.service_id || 1,
-          quantity: entry.qty || 1,
-          unit_price: entry.price || 0,
-          amount: (entry.qty || 1) * (entry.price || 0)
-        });
-      });
-    });
+        clearSession();
+      },
+    },
 
-    // 6. Payments
-    (local.receipts || []).forEach((r, i) => {
-      rel.payments.push({
-        payment_id: r.id || (i + 901),
-        ledger_id: r.ledger_id || 801,
-        amount_paid: r.amount || 0,
-        payment_mode: r.mode || "UPI"
-      });
-    });
+    doctors: {
+      list: function () {
+        return request("GET", "/doctor");
+      },
+      get: function (id) {
+        return request("GET", "/doctor/" + id);
+      },
+      create: function (payload) {
+        return request("POST", "/doctor", withNormalizedPhones(payload, ["phone"]));
+      },
+      update: function (id, patch) {
+        return request("PUT", "/doctor/" + id, patch);
+      },
+      remove: function (id) {
+        return request("DELETE", "/doctor/" + id);
+      },
+      availabilityAll: function () {
+        return request("GET", "/doctor/availability/all");
+      },
+      availabilityForDoctor: function (id) {
+        return request("GET", "/doctor/" + id + "/availability");
+      },
+      createAvailability: function (payload) {
+        return request("POST", "/doctor/availability", payload);
+      },
+    },
 
-    // 7. Inventory
-    (local.inventoryItems || []).forEach(inv => {
-      rel.inventoryItems.push({
-        item_id: inv.item_id,
-        item_name: inv.name,
-        category: inv.category,
-        stock_quantity: inv.stock,
-        reorder_level: inv.reorderLevel || 10
-      });
-    });
+    patients: {
+      list: function () {
+        return request("GET", "/patient");
+      },
+      get: function (idOrUhid) {
+        return request("GET", "/patient/" + idOrUhid);
+      },
+      create: function (payload) {
+        return request("POST", "/patient", withNormalizedPhones(payload, ["phone", "alternate_phone", "emergency_contact_phone"]));
+      },
+      update: function (idOrUhid, patch) {
+        return request("PUT", "/patient/" + idOrUhid, patch);
+      },
+      insuranceAll: function () {
+        return request("GET", "/patient/insurance/all");
+      },
+      insuranceForPatient: function (id) {
+        return request("GET", "/patient/" + id + "/insurance");
+      },
+      createInsurance: function (payload) {
+        return request("POST", "/patient/insurance", payload);
+      },
+    },
 
-    return rel;
-  }
+    wards: {
+      list: function () {
+        return request("GET", "/ward");
+      },
+      create: function (payload) {
+        return request("POST", "/ward", payload);
+      },
+      beds: function () {
+        return request("GET", "/ward/beds");
+      },
+      bedsForWard: function (wardId) {
+        return request("GET", "/ward/" + wardId + "/beds");
+      },
+      createBed: function (payload) {
+        return request("POST", "/ward/bed", payload);
+      },
+      updateBedStatus: function (bedId, status) {
+        return request("PUT", "/ward/bed/" + bedId, { status: status });
+      },
+      bedRequests: {
+        list: function () {
+          return request("GET", "/ward/bed-requests");
+        },
+        create: function (payload) {
+          return request("POST", "/ward/bed-requests", payload);
+        },
+        allocate: function (id, bedId) {
+          return request("PUT", "/ward/bed-requests/" + id, { bed_id: bedId });
+        },
+        deny: function (id) {
+          return request("PUT", "/ward/bed-requests/" + id, { status: "DENIED" });
+        },
+      },
+      emergency: {
+        list: function () {
+          return request("GET", "/ward/emergency");
+        },
+        create: function (payload) {
+          return request("POST", "/ward/emergency", payload);
+        },
+        update: function (id, patch) {
+          return request("PUT", "/ward/emergency/" + id, patch);
+        },
+      },
+    },
 
-  function transformRelationalToLocal(rel) {
-    // Because UI components (HOM, FA) rely strictly on local cache structures and union merging 
-    // prevents data destruction, we only map back critical arrays to keep the payload alive.
-    // For a complete full-stack migration, the frontend controllers would be rewritten.
-    var loc = {
-      patientAuthAccounts: rel.patientAuthAccounts || [],
-      patients: [],
-      doctors: [],
-      preRequests: [],
-      admissions: {},
-      ledgers: {},
-      receipts: [],
-      inventoryItems: [],
-      patientDirectory: []
-    };
+    inventory: {
+      items: {
+        list: function () {
+          return request("GET", "/inventory/items");
+        },
+        create: function (payload) {
+          return request("POST", "/inventory/items", payload);
+        },
+        update: function (id, patch) {
+          return request("PUT", "/inventory/items/" + id, patch);
+        },
+      },
+      requests: {
+        list: function () {
+          return request("GET", "/inventory/requests");
+        },
+        create: function (payload) {
+          return request("POST", "/inventory/requests", payload);
+        },
+        update: function (id, patch) {
+          return request("PUT", "/inventory/requests/" + id, patch);
+        },
+      },
+    },
 
-    (rel.patients || []).forEach(p => {
-      loc.patientDirectory.push({ id: p.uhid, name: p.name, gender: p.gender, phone: p.phone, address: p.address, age: "30" });
-    });
+    billing: {
+      services: {
+        list: function () {
+          return request("GET", "/billing/services");
+        },
+        create: function (payload) {
+          return request("POST", "/billing/services", payload);
+        },
+      },
+      ledger: {
+        getByAdmission: function (admissionId) {
+          return request("GET", "/billing/ledger/" + admissionId);
+        },
+        create: function (payload) {
+          return request("POST", "/billing/ledger", payload);
+        },
+        entries: function (ledgerId) {
+          return request("GET", "/billing/ledger/" + ledgerId + "/entries");
+        },
+        addEntry: function (payload) {
+          return request("POST", "/billing/ledger/entry", payload);
+        },
+        dispatch: function (ledgerId) {
+          return request("PUT", "/billing/ledger/" + ledgerId + "/dispatch");
+        },
+      },
+      payments: {
+        list: function () {
+          return request("GET", "/billing/payments");
+        },
+        create: function (payload) {
+          return request("POST", "/billing/payments", payload);
+        },
+      },
+      dischargeSummary: {
+        create: function (payload) {
+          return request("POST", "/billing/discharge-summary", payload);
+        },
+        getByAdmission: function (admissionId) {
+          return request("GET", "/billing/discharge-summary/" + admissionId);
+        },
+      },
+      patient: {
+        bills: function (patientId) {
+          return request("GET", "/billing/patient/" + patientId + "/bills");
+        },
+        receipts: function (patientId) {
+          return request("GET", "/billing/patient/" + patientId + "/receipts");
+        },
+      },
+      receipts: {
+        list: function () {
+          return request("GET", "/billing/receipts");
+        },
+      },
+    },
 
-    (rel.doctors || []).forEach(d => {
-      var avail = (rel.doctorAvailabilities || []).find(a => a.doctor_id === d.doctor_id) || {};
-      loc.doctors.push({ id: `D${d.doctor_id}`, name: d.name, specialization: d.specialization, start: avail.start_time, end: avail.end_time, status: avail.status });
-    });
+    appointments: {
+      list: function () {
+        return request("GET", "/appointment");
+      },
+      create: function (payload) {
+        return request("POST", "/appointment", payload);
+      },
+      update: function (id, patch) {
+        return request("PUT", "/appointment/" + id, patch);
+      },
+    },
 
-    return loc;
-  }
+    admissions: {
+      list: function () {
+        return request("GET", "/admission");
+      },
+      get: function (id) {
+        return request("GET", "/admission/" + id);
+      },
+      create: function (payload) {
+        return request("POST", "/admission", payload);
+      },
+      update: function (id, patch) {
+        return request("PUT", "/admission/" + id, patch);
+      },
+    },
 
-  async function fetchFullState() {
-    try {
-      var response = await fetch(API_BASE_URL + "/data/full-state", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" }
-      });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      var relationalState = await response.json();
-      return transformRelationalToLocal(relationalState);
-    } catch (err) {
-      console.warn("[APIClient] GET failed:", err.message);
-      return null;
-    }
-  }
+    preRequests: {
+      list: function () {
+        return request("GET", "/pre-requests");
+      },
+      get: function (id) {
+        return request("GET", "/pre-requests/" + id);
+      },
+      create: function (payload) {
+        return request("POST", "/pre-requests", payload);
+      },
+      update: function (id, patch) {
+        return request("PUT", "/pre-requests/" + id, patch);
+      },
+    },
 
-  async function pushFullState(state) {
-    try {
-      var relationalPayload = transformLocalToRelational(state || {});
-      var payload = JSON.stringify(relationalPayload);
-      var hash = _hash(payload);
-
-      // Skip if state hasn't changed since last push
-      if (hash === _lastPushedHash) return null;
-      _lastPushedHash = hash;
-
-      var response = await fetch(API_BASE_URL + "/data/full-state", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload
-      });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      return await response.json();
-    } catch (err) {
-      console.warn("[APIClient] POST failed:", err.message);
-      return null;
-    }
-  }
-
-  /**
-   * On page load:
-   * 1. Read what's already in localStorage (could have fresh local data)
-   * 2. Fetch backend state
-   * 3. Merge them (union arrays, local wins on conflicts)
-   * 4. Write merged result back to localStorage and push to backend
-   */
-  async function initializeSync() {
-    try {
-      var localRaw = localStorage.getItem(ROOT_STORAGE_KEY);
-      var localState = localRaw ? JSON.parse(localRaw) : {};
-
-      var remoteState = await fetchFullState();
-
-      if (remoteState && Object.keys(remoteState).length > 0) {
-        var merged = _mergeStates(localState, remoteState);
-        var mergedPayload = JSON.stringify(merged);
-        localStorage.setItem(ROOT_STORAGE_KEY, mergedPayload);
-
-        // Seed the hash so the next push is only sent if something actually changed
-        _lastPushedHash = _hash(mergedPayload);
-
-        window.dispatchEvent(new Event("sharedStateUpdated"));
-        console.log("[APIClient] ✅ State merged from backend on load.");
-      }
-    } catch (err) {
-      console.warn("[APIClient] Init sync failed:", err.message);
-    }
-  }
-
-  window.APIClient = {
-    fetchFullState: fetchFullState,
-    pushFullState: pushFullState,
-    initializeSync: initializeSync
+    activityLog: {
+      list: function () {
+        return request("GET", "/activity-log");
+      },
+    },
   };
 
-  // Auto-initialize only once per page
-  if (!window.APIClientInitialized) {
-    window.APIClientInitialized = true;
-    initializeSync();
-  }
+  window.ApiClient = Api;
 })();

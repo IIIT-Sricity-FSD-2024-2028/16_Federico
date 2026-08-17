@@ -1,12 +1,3 @@
-const LEGACY_STORAGE_KEY = "hospitalFinanceAppState";
-const ROOT_STORAGE_KEY = "HospitalAppState";
-const SHARED_STORAGE_KEY = ROOT_STORAGE_KEY;
-
-function nextGeneratedId(namespace) {
-  if (window.IDGenerator && typeof window.IDGenerator.nextId === "function") return window.IDGenerator.nextId(namespace);
-  return `${namespace}-fallback`;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const createButton = document.querySelector(".create-btn");
   const loginShortcut = document.querySelector(".login-shortcut");
@@ -15,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "../login/login-page.html";
   });
 
-  createButton?.addEventListener("click", () => {
+  createButton?.addEventListener("click", async () => {
     const firstName = valueOf("first-name");
     const lastName = valueOf("last-name");
     const fullName = [firstName, lastName].filter(Boolean).join(" ");
@@ -92,147 +83,62 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const sharedState = ensureSharedState();
-    const patientAccounts =
-      window.RoleAccess?.refreshMockAccounts?.() ||
-      window.RoleAccess?.mockAccounts?.Patient ||
-      [];
-    const emailAlreadyExists = patientAccounts.some(
-      (account) => String(account.email || "").toLowerCase() === email,
-    );
-    const phoneAlreadyExists = Object.values(
-      sharedState.patientProfiles || {},
-    ).some((profile) => profile?.phone === phone);
-
-    if (emailAlreadyExists) {
-      showToast("An account with this email already exists.", "warn");
-      return;
-    }
-
-    if (phoneAlreadyExists) {
-      showToast("A patient with this phone number already exists.", "warn");
-      return;
-    }
-
-    const patientId = buildNextPatientId(sharedState);
-    const age = calculateAge(dob);
-    const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
-    const profile = {
-      id: nextGeneratedId("user"),
-      name: fullName,
-      firstName,
-      initials: initials || "P",
-      uhid: patientId,
-      age,
-      gender,
-      bloodGroup: bloodGroup || "NA",
-      phone,
-      altPhone: "",
-      email,
-      address: "",
-      dob,
-      insurance: {
-        verified: Boolean(provider || policyNumber || memberId),
-        provider: provider || "Self Pay",
-        policyNumber: policyNumber || `POL-${patientId}`,
-        memberId: memberId || `MEM-${patientId}`,
-        coverage: 0,
-        validFrom: validFrom || "",
-        validTo: validTo || "",
-        coverageType: coverageType || "Self",
-      },
-    };
-
-    if (!Array.isArray(sharedState.patientDirectory))
-      sharedState.patientDirectory = [];
-    if (
-      !sharedState.patientProfiles ||
-      typeof sharedState.patientProfiles !== "object"
-    )
-      sharedState.patientProfiles = {};
-
-    sharedState.patientDirectory.unshift({
-      id: patientId,
-      uhid: patientId,
-      name: fullName,
-      age: String(age),
-      gender,
-      phone,
-      address: "",
-    });
-    sharedState.patientProfiles[patientId] = profile;
-
-    const payload = JSON.stringify(sharedState);
-    localStorage.setItem(ROOT_STORAGE_KEY, payload);
-    window.dispatchEvent(new Event("sharedStateUpdated"));
-
-    window.RoleAccess?.registerPatientAccount?.({
-      email,
-      password,
-      displayName: fullName,
-      patientUhid: patientId,
-    });
-
     createButton.disabled = true;
-    createButton.textContent = "Account Created";
-    createButton.style.opacity = "0.8";
+    const originalLabel = createButton.textContent;
+    createButton.textContent = "Creating account…";
 
-    showToast(
-      `Account created. Patient ID ${patientId} is now in shared records.`,
-      "success",
-    );
-
-    setTimeout(() => {
-      window.location.href = "../login/login-page.html";
-    }, 1400);
-  });
-
-  function ensureSharedState() {
     try {
-      const raw = localStorage.getItem(SHARED_STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (error) {
-      console.warn("[Signup] Could not read shared state:", error);
+      const result = await window.RoleAccess.signupPatient({
+        name: fullName,
+        email,
+        password,
+        phone,
+        dob,
+        gender,
+        blood_group: bloodGroup || undefined,
+      });
+
+      // Optional insurance — the backend models it as a separate record
+      // tied to the new patient, and only accepts it once every required
+      // field is present. Partial insurance info is fine; it can be
+      // completed later from the patient profile page.
+      if (provider && policyNumber && memberId && validFrom && validTo) {
+        try {
+          await window.ApiClient.patients.createInsurance({
+            patient_id: result.patient.patient_id,
+            provider_name: provider,
+            policy_number: policyNumber,
+            member_id: memberId,
+            coverage_type: coverageType || "Individual",
+            valid_from: validFrom,
+            valid_to: validTo,
+          });
+        } catch (insuranceErr) {
+          console.warn("[Signup] Insurance could not be saved, continuing:", insuranceErr);
+        }
+      }
+
+      createButton.textContent = "Account Created";
+      createButton.style.opacity = "0.8";
+
+      showToast(
+        `Account created. Your UHID is ${result.patient.uhid}.`,
+        "success",
+      );
+
+      setTimeout(() => {
+        window.location.href = "../Patient/patient-dashboard.html";
+      }, 1400);
+    } catch (err) {
+      createButton.disabled = false;
+      createButton.textContent = originalLabel;
+      const message =
+        err?.status === 409
+          ? "An account with this email already exists."
+          : err?.message || "Could not create your account. Please try again.";
+      showToast(message, "warn");
     }
-
-    const seed = window.CanonicalHospitalSeed?.buildSharedStateSeed?.();
-    return seed && typeof seed === "object" ? seed : {};
-  }
-
-  function buildNextPatientId(state) {
-    const year = new Date().getFullYear();
-    const prefix = `FED-${year}-`;
-    const ids = []
-      .concat(
-        (state.patientDirectory || []).map((entry) => entry?.id || entry?.uhid),
-      )
-      .concat(Object.keys(state.patientProfiles || {}));
-
-    let maxId = 9000;
-    ids.forEach((id) => {
-      const match = String(id || "").match(new RegExp(`^FED-${year}-(\\d+)$`));
-      if (!match) return;
-      maxId = Math.max(maxId, Number(match[1]));
-    });
-
-    return `${prefix}${maxId + 1}`;
-  }
-
-  function calculateAge(dob) {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age -= 1;
-    }
-
-    return Math.max(age, 0);
-  }
+  });
 
   function valueOf(id) {
     return document.getElementById(id)?.value?.trim() || "";
@@ -287,7 +193,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 3500);
   }
 });
-
-
-
-

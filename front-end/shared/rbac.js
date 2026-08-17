@@ -1,11 +1,20 @@
+/**
+ * shared/rbac.js — Phase 3 rewrite.
+ *
+ * The original version authenticated entirely client-side against a
+ * hardcoded JS array — no server call at all, and login/session lived in
+ * `sessionStorage` (invisible across tabs). This version calls the real
+ * `POST /auth/login` (bcrypt-verified on the backend) and persists the
+ * session in `localStorage` via `ApiClient.setSession()` so a logged-in
+ * actor stays logged in across every tab/window of the browser.
+ *
+ * Public interface (`window.RoleAccess.*`) is kept as close to the
+ * original as possible so the per-app `auth-guard.js` files — which call
+ * `getCurrentActor()`, `hasModuleAccess()`, `getActorHome()` synchronously
+ * — did not need to change at all. Only `authenticate()` had to become
+ * async (it now makes a network call), which only touches login-page.js.
+ */
 (function () {
-  var ROLE_STORAGE_KEY = "accessRole";
-  var ACTOR_STORAGE_KEY = "userRole";
-  var AUTH_EMAIL_KEY = "authEmail";
-  var AUTH_NAME_KEY = "authDisplayName";
-  var PATIENT_UHID_KEY = "patientUhid";
-  var PATIENT_ACCOUNT_STORAGE_KEY = "patientAuthAccounts";
-
   var actorProfiles = {
     Patient: {
       actor: "Patient",
@@ -33,272 +42,101 @@
     },
   };
 
-  function titleCase(value) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/\b[a-z]/g, function (match) {
-        return match.toUpperCase();
-      });
-  }
-
-  function buildDemoEmail(name) {
-    return (
-      String(name || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, ".")
-        .replace(/^\.+|\.+$/g, "") + "@federico.demo"
-    );
-  }
-
-  function buildDemoPassword(name) {
-    var firstName =
-      String(name || "")
-        .trim()
-        .split(/\s+/)[0] || "User";
-    return titleCase(firstName) + "@123";
-  }
-
-  function buildPatientAccount(seed, admissionId) {
-    var admission = seed?.admissions?.[admissionId];
-    if (!admission) return null;
-
-    var matchingProfile =
-      Object.values(seed.patientProfiles || {}).find(function (profile) {
-        return (
-          profile?.uhid === admission.uhid ||
-          profile?.name === admission.patient_name
-        );
-      }) || {};
-
-    return {
-      email: matchingProfile.email || buildDemoEmail(admission.patient_name),
-      password: buildDemoPassword(admission.patient_name),
-      displayName: matchingProfile.name || admission.patient_name,
-      patientAdmissionId: admissionId,
-      patientUhid: admission.uhid || matchingProfile.uhid || null,
-    };
-  }
-
-  function buildPatientAccounts() {
-    var seed = window.CanonicalHospitalSeed?.buildSharedStateSeed?.();
-    if (!seed) {
-      return [
-        {
-          email: "hamiz.ahmed@federico.demo",
-          password: "Hamiz@123",
-          displayName: "Hamiz Ahmed",
-          patientAdmissionId: 703,
-        },
-        {
-          email: "qasim.sheikh@federico.demo",
-          password: "Qasim@123",
-          displayName: "Qasim Sheikh",
-          patientAdmissionId: 701,
-        },
-      ];
-    }
-
-    return [703, 701]
-      .map(function (admissionId) {
-        return buildPatientAccount(seed, admissionId);
-      })
-      .filter(Boolean);
-  }
-
-  function readStoredPatientAccounts() {
-    try {
-      // Read from unified root state first; fall back to standalone key
-      // for backward compat during first-load migration
-      var ROOT_KEY = "HospitalAppState";
-      var rootRaw = localStorage.getItem(ROOT_KEY);
-      if (rootRaw) {
-        var root = JSON.parse(rootRaw);
-        if (Array.isArray(root.patientAuthAccounts)) {
-          return root.patientAuthAccounts;
-        }
-      }
-      // Fallback: standalone key (will be deleted after consolidation)
-      var raw = localStorage.getItem(PATIENT_ACCOUNT_STORAGE_KEY);
-      var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      console.warn("[RoleAccess] Could not read patient accounts:", error);
-      return [];
-    }
-  }
-
-  function writeStoredPatientAccounts(accounts) {
-    // Write to unified root state instead of standalone key
-    try {
-      var ROOT_KEY = "HospitalAppState";
-      var raw = localStorage.getItem(ROOT_KEY);
-      var root = raw ? JSON.parse(raw) : {};
-      root.patientAuthAccounts = accounts;
-      localStorage.setItem(ROOT_KEY, JSON.stringify(root));
-    } catch (e) {
-      console.warn("[RoleAccess] Could not write patient accounts to root state:", e);
-    }
-  }
-
-  function getPatientAccounts() {
-    var merged = [];
-    var seen = {};
-
-    buildPatientAccounts()
-      .concat(readStoredPatientAccounts())
-      .forEach(function (account) {
-        if (!account?.email || !account?.password) return;
-
-        var normalized = {
-          email: String(account.email).trim(),
-          password: String(account.password).trim(),
-          displayName: account.displayName || account.email,
-          patientAdmissionId: account.patientAdmissionId || null,
-          patientUhid: account.patientUhid || null,
-        };
-        var key = normalized.email.toLowerCase();
-        if (seen[key]) return;
-        seen[key] = true;
-        merged.push(normalized);
-      });
-
-    return merged;
-  }
-
+  // Demo credentials shown on the login page's per-role helper panel.
+  // Matches the seed users in back-end/src/store/dataStore.js exactly —
+  // see back-end/docs/phase2-source-of-truth.md.
   var mockAccounts = {
-    Patient: getPatientAccounts(),
-    PRE: [
-      {
-        email: "rekha.pre@federico.demo",
-        password: "Pre@123",
-        displayName: "Rekha",
-      },
+    Patient: [
+      { email: "hamiz@hosp.com", password: "Hamiz@123", displayName: "Hamiz Shams" },
+      { email: "salma@hosp.com", password: "Salma@123", displayName: "Salma Begum" },
+      { email: "john@hosp.com", password: "John@123", displayName: "John Doe" },
     ],
-    HOM: [
-      {
-        email: "hom.superuser@federico.demo",
-        password: "Hom@123",
-        displayName: "HOM Super User",
-      },
-    ],
-    FA: [
-      {
-        email: "fa.admin@federico.demo",
-        password: "Fa@123",
-        displayName: "Finance Admin",
-      },
-    ],
+    PRE: [{ email: "rekha.pre@hosp.com", password: "Pre@123", displayName: "Rekha Nair" }],
+    HOM: [{ email: "admin@hosp.com", password: "Hom@123", displayName: "Admin User" }],
+    FA: [{ email: "farah.fa@hosp.com", password: "Fa@123", displayName: "Farah Ansari" }],
   };
-
-  function refreshMockAccounts() {
-    mockAccounts.Patient = getPatientAccounts();
-    return mockAccounts.Patient;
-  }
-
-  function registerPatientAccount(account) {
-    if (!account?.email || !account?.password) return null;
-
-    var storedAccounts = readStoredPatientAccounts();
-    var normalizedEmail = String(account.email).trim().toLowerCase();
-    var nextAccount = {
-      email: String(account.email).trim(),
-      password: String(account.password).trim(),
-      displayName: account.displayName || account.email,
-      patientAdmissionId: account.patientAdmissionId || null,
-      patientUhid: account.patientUhid || null,
-    };
-
-    var index = storedAccounts.findIndex(function (item) {
-      return (
-        item?.email?.toLowerCase() === normalizedEmail ||
-        (nextAccount.patientUhid &&
-          item?.patientUhid === nextAccount.patientUhid)
-      );
-    });
-
-    if (index === -1) storedAccounts.unshift(nextAccount);
-    else storedAccounts[index] = { ...storedAccounts[index], ...nextAccount };
-
-    writeStoredPatientAccounts(storedAccounts);
-    refreshMockAccounts();
-    return nextAccount;
-  }
-
-  function getCurrentActor() {
-    return sessionStorage.getItem(ACTOR_STORAGE_KEY) || "";
-  }
 
   function getProfile(actor) {
     return actorProfiles[actor || getCurrentActor()] || null;
   }
 
-  function loginAs(actor) {
-    var profile = getProfile(actor);
-    if (!profile) return null;
-
-    sessionStorage.setItem(ACTOR_STORAGE_KEY, profile.actor);
-    sessionStorage.setItem(ROLE_STORAGE_KEY, profile.accessRole);
-    return profile;
+  function getCurrentActor() {
+    var session = window.ApiClient && window.ApiClient.getSession();
+    return (session && session.actor) || "";
   }
 
-  function authenticate(actor, email, password) {
-    var accounts =
-      actor === "Patient" ? getPatientAccounts() : mockAccounts[actor] || [];
-    var normalizedEmail = String(email || "")
-      .trim()
-      .toLowerCase();
-    var normalizedPassword = String(password || "").trim();
-    var matched = accounts.find(function (account) {
-      return (
-        account.email.toLowerCase() === normalizedEmail &&
-        account.password === normalizedPassword
-      );
+  function getSessionInfo() {
+    return window.ApiClient ? window.ApiClient.getSession() : null;
+  }
+
+  function loginAs(actor) {
+    return getProfile(actor);
+  }
+
+  /**
+   * Real login. Returns { actor, profile, account } on success, or null
+   * on invalid credentials / network failure — same truthy/falsy contract
+   * the original synchronous version had, just now a Promise.
+   */
+  async function authenticate(actor, email, password) {
+    try {
+      var result = await window.ApiClient.auth.login(email, password);
+      if (result.role !== actor) return null; // valid login, wrong role tab
+
+      var profile = getProfile(actor);
+      if (!profile) return null;
+
+      window.ApiClient.setSession({
+        token: result.token,
+        actor: actor,
+        role: profile.accessRole,
+        userId: result.user.user_id,
+        patientId: result.patient ? result.patient.patient_id : null,
+        patientUhid: result.patient ? result.patient.uhid : null,
+        displayName: result.user.name,
+        email: result.user.email,
+      });
+
+      return { actor: actor, profile: profile, account: { email: result.user.email, displayName: result.user.name } };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  /**
+   * Real patient self-registration via POST /auth/signup. Throws on
+   * failure (409 email taken, 400 validation) so the caller can show the
+   * server's actual message instead of guessing client-side.
+   */
+  async function signupPatient(payload) {
+    var result = await window.ApiClient.auth.signup(payload);
+    var profile = getProfile("Patient");
+
+    window.ApiClient.setSession({
+      token: result.token,
+      actor: "Patient",
+      role: profile.accessRole,
+      userId: result.user.user_id,
+      patientId: result.patient.patient_id,
+      patientUhid: result.patient.uhid,
+      displayName: result.user.name,
+      email: result.user.email,
     });
 
-    if (!matched) return null;
-
-    var profile = loginAs(actor);
-    if (!profile) return null;
-
-    sessionStorage.setItem(AUTH_EMAIL_KEY, matched.email);
-    sessionStorage.setItem(AUTH_NAME_KEY, matched.displayName || matched.email);
-
-    if (matched.patientAdmissionId) {
-      sessionStorage.setItem(
-        "patientAdmissionId",
-        String(matched.patientAdmissionId),
-      );
-    } else {
-      sessionStorage.removeItem("patientAdmissionId");
-    }
-
-    if (matched.patientUhid) {
-      sessionStorage.setItem(PATIENT_UHID_KEY, String(matched.patientUhid));
-    } else {
-      sessionStorage.removeItem(PATIENT_UHID_KEY);
-    }
-
-    return {
-      actor: actor,
-      profile: profile,
-      account: matched,
-    };
+    return result;
   }
 
   function logout() {
-    sessionStorage.removeItem(ACTOR_STORAGE_KEY);
-    sessionStorage.removeItem(ROLE_STORAGE_KEY);
-    sessionStorage.removeItem(AUTH_EMAIL_KEY);
-    sessionStorage.removeItem(AUTH_NAME_KEY);
-    sessionStorage.removeItem("patientAdmissionId");
-    sessionStorage.removeItem(PATIENT_UHID_KEY);
+    if (window.ApiClient) {
+      window.ApiClient.auth.logout(); // best-effort async server-side invalidation
+    } else {
+      localStorage.removeItem("FedericoSession");
+    }
   }
 
   function getAccessRole() {
-    var storedRole = sessionStorage.getItem(ROLE_STORAGE_KEY);
-    if (storedRole) return storedRole;
-
+    var session = getSessionInfo();
+    if (session && session.role) return session.role;
     var profile = getProfile();
     return profile ? profile.accessRole : "";
   }
@@ -357,25 +195,15 @@
     var currentActor = getCurrentActor();
 
     if (!currentActor) {
-      window.location.href =
-        settings.unauthenticatedRedirect ||
-        getActorHome("", detectCurrentModule());
+      window.location.href = settings.unauthenticatedRedirect || getActorHome("", detectCurrentModule());
       return false;
     }
 
     if (hasModuleAccess(moduleName, currentActor)) return true;
 
-    var fallbackUrl =
-      settings.unauthorizedRedirect ||
-      getActorHome(currentActor, detectCurrentModule());
+    var fallbackUrl = settings.unauthorizedRedirect || getActorHome(currentActor, detectCurrentModule());
     if (settings.alertMessage !== false) {
-      alert(
-        "Access Denied: " +
-          currentActor +
-          " cannot open the " +
-          moduleName +
-          " module.",
-      );
+      alert("Access Denied: " + currentActor + " cannot open the " + moduleName + " module.");
     }
     window.location.href = fallbackUrl;
     return false;
@@ -385,8 +213,7 @@
     profiles: actorProfiles,
     mockAccounts: mockAccounts,
     authenticate: authenticate,
-    registerPatientAccount: registerPatientAccount,
-    refreshMockAccounts: refreshMockAccounts,
+    signupPatient: signupPatient,
     loginAs: loginAs,
     logout: logout,
     getCurrentActor: getCurrentActor,
@@ -398,5 +225,6 @@
     enforceModuleAccess: enforceModuleAccess,
     isSuperUser: isSuperUser,
     isAdmin: isAdmin,
+    getSessionInfo: getSessionInfo,
   };
 })();
