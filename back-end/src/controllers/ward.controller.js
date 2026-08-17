@@ -1,6 +1,7 @@
 'use strict';
 
 const wardService = require('../services/ward.service');
+const preRequestService = require('../services/preRequest.service');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
 
@@ -46,8 +47,23 @@ function createBedRequest(req, res) {
   sendResult(res, wardService.createBedRequest(req.body, requestedBy), 201);
 }
 
+// Bed allocation is the ONE place that drives a pre-request into
+// ADMITTED (see preRequest.controller.js's PUBLICLY_SETTABLE_STATUSES —
+// that endpoint refuses to set ADMITTED directly). Orchestrated here in
+// the controller rather than inside either service, to avoid a
+// ward.service <-> preRequest.service circular require.
 function updateBedRequest(req, res) {
-  sendResult(res, wardService.updateBedRequest(+req.params.id, req.body), 200);
+  const result = wardService.updateBedRequest(+req.params.id, req.body);
+
+  if (result && result.status === 'ALLOCATED' && result.pre_request_id) {
+    const preRequest = preRequestService.findOne(result.pre_request_id);
+    const actorRole = req.session ? req.session.role : 'HOM';
+    if (preRequest && preRequestService.canTransition(preRequest.status, 'ADMITTED', actorRole)) {
+      preRequestService.transition(result.pre_request_id, 'ADMITTED', actorRole, { bed_id: result.bed_id });
+    }
+  }
+
+  sendResult(res, result, 200);
 }
 
 function findAllEmergencies(req, res) {

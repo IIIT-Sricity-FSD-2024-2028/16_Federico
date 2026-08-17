@@ -44,7 +44,14 @@ const ACTOR_ACCESS = {
   // filters to it, findOne/update 403 on mismatch), and only ever CANCEL
   // one of their own PENDING requests (update rejects any other field or
   // status change from a Patient session) — see preRequest.controller.js.
-  preRequest: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['PRE', 'Patient'] },
+  // HOM needs write here too: DISCHARGE_REQUESTED -> DISCHARGE_APPROVED
+  // is a HOM-only move in preRequestService.TRANSITIONS, and this gate
+  // is what lets the request reach that check in the first place — this
+  // exact class of bug (transition table says an actor can move
+  // somewhere, but the route-level gate never lets their request
+  // through to be checked) is what the full-lifecycle e2e test below
+  // caught.
+  preRequest: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM', 'PRE', 'Patient'] },
 };
 
 /**
