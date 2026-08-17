@@ -294,71 +294,6 @@
             </div>
           </div>
 
-          <div class="card" style="padding: 24px">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <h2 class="h2" style="font-size: 18px">
-                Inventory Service Request
-              </h2>
-              <span id="service-request-badge"></span>
-            </div>
-            <div
-              style="
-                display: grid;
-                grid-template-columns: 1fr 1fr 120px 120px;
-                gap: 12px;
-                margin-bottom: 16px;
-              "
-            >
-              <select class="input" id="hom-patient-select"></select>
-              <select class="input" id="hom-service-select"></select>
-              <input
-                class="input"
-                id="hom-service-qty"
-                type="number"
-                min="1"
-                value="1"
-              />
-              <button
-                class="btn btn-primary btn-default"
-                type="button"
-                onclick="submitServiceRequest()"
-              >
-                Request
-              </button>
-            </div>
-            <div
-              id="hom-service-form-error"
-              style="
-                display: none;
-                margin-bottom: 16px;
-                font-size: 12px;
-                color: var(--error);
-                font-weight: 500;
-              "
-            ></div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Patient</th>
-                    <th>UHID</th>
-                    <th>Service</th>
-                    <th>Qty</th>
-                    <th>Status</th>
-                    <th>Requested</th>
-                  </tr>
-                </thead>
-                <tbody id="service-requests-body"></tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         <div class="right-column">
@@ -473,14 +408,6 @@
               <div class="label">UHID</div>
               <div style="font-weight: 500" id="modal-admit-uhid"></div>
             </div>
-            <div>
-              <div class="label">Age/Gender</div>
-              <div style="font-weight: 500">58 / Male</div>
-            </div>
-            <div>
-              <div class="label">Contact</div>
-              <div style="font-weight: 500">+91 98765 43210</div>
-            </div>
           </div>
           <div
             style="
@@ -556,53 +483,13 @@
 
 
 
-  <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-<script src="../shared/id-generator.js"></script>
-<script src="../shared/patient-resolver.js"></script>
-<script src="../shared/sanitizer.js"></script>
-<script src="../shared/ledger-validator.js"></script>
-<script src="../shared/finance-states.js"></script>
-<script src="../shared/insurance.js"></script>
-<script src="../shared/rbac.js"></script>
+  <script src="../shared/rbac.js"></script>
 <script src="../shared/api-client.js"></script>
     <script src="auth-guard.js"></script>
-    <script src="storage.js"></script>
-    <script>
-      window.UI = {
-        cn: (...classes) => classes.filter(Boolean).join(" "),
-        Badge: ({ children, variant = "neutral", className = "" }) => {
-          const baseClass = "badge";
-          const variantClass = `badge-${variant}`;
-          return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
-        },
-        Button: ({
-          children,
-          variant = "primary",
-          size = "default",
-          className = "",
-          id = "",
-          disabled = false,
-          dataFlow = "",
-          onClick = "",
-        }) => {
-          const classes = window.UI.cn(
-            "btn",
-            `btn-${variant}`,
-            `btn-${size}`,
-            className,
-          );
-          const idAttr = id ? `id="${id}"` : "";
-          const disabledAttr = disabled ? "disabled" : "";
-          const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : "";
-          const onClickAttr = onClick ? `onclick="${onClick}"` : "";
-          return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
-        },
-      };
-    </script>
+    <script src="hom-helpers.js"></script>
+    <script src="ui-template.js"></script>
 
     <script src="shared-nav.js"></script>
     <script src="dashboard.js"></script>
-    <script src="../shared/debug-state-panel.js"></script>
   </body>
 </html>

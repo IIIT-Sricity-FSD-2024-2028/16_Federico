@@ -24,12 +24,13 @@ window.UI = {
    * Button Component
    * @param {Object} props - { children, variant: 'primary'|'secondary'|'outline'|'danger', size: 'default'|'sm'|'lg', className, id, disabled, onClick }
    */
-  Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '' }) => {
+  Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
     const classes = UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
     const idAttr = id ? `id="${id}"` : '';
     const disabledAttr = disabled ? 'disabled' : '';
     const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
-    return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr}>${children}</button>`;
+    const onClickAttr = onClick ? `onclick="${onClick}"` : '';
+    return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
   },
 
   /**

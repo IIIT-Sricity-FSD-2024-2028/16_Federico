@@ -24,6 +24,7 @@ router.post(
 );
 
 // Ledger
+router.get('/ledgers', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findAllLedgers);
 router.get('/ledger/:admissionId', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findLedgerByAdmission);
 router.post('/ledger', authorize(['SUPER_USER'], 'billing', 'write'), validateBody(createLedgerRules), controller.createLedger);
 
@@ -35,7 +36,7 @@ router.get(
 );
 router.post(
   '/ledger/entry',
-  authorize(['SUPER_USER'], 'billing', 'write'),
+  authorize(['SUPER_USER'], 'ledgerEntry', 'write'),
   validateBody(createLedgerEntryRules),
   controller.addLedgerEntry,
 );

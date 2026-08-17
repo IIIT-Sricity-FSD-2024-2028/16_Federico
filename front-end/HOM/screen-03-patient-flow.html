@@ -134,30 +134,21 @@
                 <div class="modal-tabs">
                     <button class="modal-tab active" onclick="switchTab('overview')" id="tab-overview">Overview</button>
                     <button class="modal-tab" onclick="switchTab('bed')" id="tab-bed">Bed & Stay Info</button>
-                    <button class="modal-tab" onclick="switchTab('supply')" id="tab-supply">Supply Charges</button>
-                    <button class="modal-tab" onclick="switchTab('timeline')" id="tab-timeline">Timeline</button>
+                    <button class="modal-tab" onclick="switchTab('supply')" id="tab-supply">Billing Ledger</button>
                 </div>
             </div>
-            
+
             <div class="modal-body">
                 <div class="tab-content-panel active" id="content-overview">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
-                        <div><div class="label">Age / Gender</div><div style="font-weight: 500; margin-top: 4px;" id="pd-age">58M</div></div>
-                        <div><div class="label">Contact Number</div><div style="font-weight: 500; margin-top: 4px;">+91 98765 43210</div></div>
-                        <div><div class="label">Admission Date</div><div style="font-weight: 500; margin-top: 4px;" id="pd-admitted">2026-03-05</div></div>
-                        <div><div class="label">Days in Hospital</div><div style="font-weight: 500; margin-top: 4px;" id="pd-days">3 days</div></div>
-                        <div><div class="label">Department</div><div style="font-weight: 500; margin-top: 4px;" id="pd-dept-detail">Cardiology</div></div>
-                        <div><div class="label">Assigned Bed</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed">CCU-04</div></div>
-                        <div><div class="label">Physician</div><div style="font-weight: 500; margin-top: 4px;" id="pd-physician">Dr. Arjun Sharma</div></div>
-                        <div><div class="label">Blood Group</div><div style="font-weight: 500; margin-top: 4px;">O+</div></div>
-                    </div>
-                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
-                        <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Current Medications</h3>
-                        <ul style="margin:0; padding-left: 20px; color: var(--text-secondary); font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
-                            <li>Aspirin 75mg - Once daily</li>
-                            <li>Atorvastatin 40mg - Once daily at bedtime</li>
-                            <li>Metoprolol 50mg - Twice daily</li>
-                        </ul>
+                        <div><div class="label">Age / Gender</div><div style="font-weight: 500; margin-top: 4px;" id="pd-age">-</div></div>
+                        <div><div class="label">Contact Number</div><div style="font-weight: 500; margin-top: 4px;" id="pd-contact">-</div></div>
+                        <div><div class="label">Admission Date</div><div style="font-weight: 500; margin-top: 4px;" id="pd-admitted">-</div></div>
+                        <div><div class="label">Days in Hospital</div><div style="font-weight: 500; margin-top: 4px;" id="pd-days">-</div></div>
+                        <div><div class="label">Department</div><div style="font-weight: 500; margin-top: 4px;" id="pd-dept-detail">-</div></div>
+                        <div><div class="label">Assigned Bed</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed">-</div></div>
+                        <div><div class="label">Physician</div><div style="font-weight: 500; margin-top: 4px;" id="pd-physician">-</div></div>
+                        <div><div class="label">Blood Group</div><div style="font-weight: 500; margin-top: 4px;" id="pd-blood-group">-</div></div>
                     </div>
                 </div>
 
@@ -165,32 +156,20 @@
                     <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
                         <h3 class="h3" style="font-size: 14px; margin-bottom: 16px;">Bed Information</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                            <div><div class="label">Bed Number</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed-info">CCU-04</div></div>
-                            <div><div class="label">Daily Rate</div><div style="font-weight: 500; margin-top: 4px;" id="pd-rate">₹4,500 / day</div></div>
-                            <div><div class="label">Total Room Charges</div><div style="font-weight: 500; margin-top: 4px;" id="pd-room-total">₹13,500</div></div>
+                            <div><div class="label">Bed Number</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed-info">-</div></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="tab-content-panel" id="content-supply">
+                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 12px 0;">Ledger status: <span id="pd-ledger-status" style="font-weight: 600; color: var(--text-primary);">-</span></p>
                     <table class="data-table" style="border: 1px solid var(--border); border-radius: var(--radius-base); overflow: hidden;">
                         <thead>
-                            <tr><th>Item</th><th>Qty</th><th>Total Cost</th></tr>
+                            <tr><th>Service</th><th>Qty</th><th>Amount</th></tr>
                         </thead>
-                        <tbody>
-                            <tr><td>IV Cannula (18G)</td><td>4</td><td>₹180</td></tr>
-                            <tr><td>Oxygen Cylinder</td><td>2</td><td>₹2,400</td></tr>
-                        </tbody>
+                        <tbody id="pd-charges-tbody"></tbody>
                     </table>
-                    <div style="text-align: right; margin-top: 16px; font-weight: 600; font-size: 16px;">Total Supplies: <span id="pd-supply-total" style="color: var(--primary);">₹2,580</span></div>
-                </div>
-
-                <div class="tab-content-panel" id="content-timeline">
-                    <div style="display: flex; flex-direction: column; gap: 16px;">
-                        <div style="display: flex; gap: 12px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 6px;"></div><div><p style="margin:0; font-size:14px;">Medication administered - Aspirin</p><p style="margin:0; font-size:12px; color:var(--text-muted);">2 hours ago</p></div></div>
-                        <div style="display: flex; gap: 12px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 6px;"></div><div><p style="margin:0; font-size:14px;">Vital signs checked - All normal</p><p style="margin:0; font-size:12px; color:var(--text-muted);">5 hours ago</p></div></div>
-                        <div style="display: flex; gap: 12px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 6px;"></div><div><p style="margin:0; font-size:14px;">Admission completed</p><p style="margin:0; font-size:12px; color:var(--text-muted);">2 days ago</p></div></div>
-                    </div>
+                    <div style="text-align: right; margin-top: 16px; font-weight: 600; font-size: 16px;">Total Billed: <span id="pd-charges-total" style="color: var(--primary);">-</span></div>
                 </div>
             </div>
             
@@ -252,37 +231,11 @@
         </div>
     </div>
 
-  <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-<script src="../shared/id-generator.js"></script>
-<script src="../shared/patient-resolver.js"></script>
-<script src="../shared/sanitizer.js"></script>
-<script src="../shared/ledger-validator.js"></script>
-<script src="../shared/finance-states.js"></script>
-<script src="../shared/insurance.js"></script>
-<script src="../shared/rbac.js"></script>
+  <script src="../shared/rbac.js"></script>
 <script src="../shared/api-client.js"></script>
 <script src="auth-guard.js"></script>
-<script src="storage.js"></script>
-
-<script>
-    window.UI = {
-        cn: (...classes) => classes.filter(Boolean).join(' '),
-        Badge: ({ children, variant = 'neutral', className = '' }) => {
-            const baseClass = 'badge';
-            const variantClass = `badge-${variant}`;
-            return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
-        },
-        Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
-            const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
-            const idAttr = id ? `id="${id}"` : '';
-            const disabledAttr = disabled ? 'disabled' : '';
-            const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
-            const onClickAttr = onClick ? `onclick="${onClick}"` : '';
-            return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
-        }
-    };
-</script>
+<script src="hom-helpers.js"></script>
+<script src="ui-template.js"></script>
 
 <script src="shared-nav.js"></script>
 <script src="patient-flow.js"></script>

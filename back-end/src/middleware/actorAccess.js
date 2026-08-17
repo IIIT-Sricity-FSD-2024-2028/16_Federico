@@ -34,6 +34,12 @@ const ACTOR_ACCESS = {
   // by ledger ownership) — never create services/ledgers/entries or
   // dispatch a bill, which stay FA-only under 'billing'.
   payment: { write: ['FA', 'Patient'] },
+  // Scoped narrower than 'billing' write in the other direction: HOM
+  // creates/dispatches nothing, but DOES post individual ledger entries
+  // when logging inventory usage against an admitted patient's ledger
+  // (inventory.js's "Post Usage to Patient" flow) — the ledger itself
+  // must already exist (created by FA), HOM can only add line items to it.
+  ledgerEntry: { write: ['FA', 'HOM'] },
   // Legacy Phase-1 appointment resource: PRE-only for actor-based write.
   // The Patient-facing booking flow goes through 'preRequest' instead
   // (properly ownership-scoped there) — this endpoint has no per-record

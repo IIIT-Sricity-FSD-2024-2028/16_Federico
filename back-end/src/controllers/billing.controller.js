@@ -25,6 +25,15 @@ function findLedgerByAdmission(req, res) {
   sendResult(res, billingService.findLedgerByAdmission(+req.params.admissionId), 200);
 }
 
+// HOM's billing-monitoring view (all ledgers, across every patient) —
+// same list-all-must-deny-Patient pattern as findAllPayments/
+// findAllReceipts below, since there's no single patientId to scope this
+// to.
+function findAllLedgers(req, res) {
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, billingService.findAllLedgers(), 200);
+}
+
 function createLedger(req, res) {
   const result = billingService.createLedger(req.body);
   logger.log(`📔 LEDGER CREATED  id=${result.ledger_id}  admission_id=${result.admission_id}`);
@@ -109,6 +118,7 @@ module.exports = {
   findAllServices,
   createService,
   findLedgerByAdmission,
+  findAllLedgers,
   createLedger,
   findLedgerEntries,
   addLedgerEntry,

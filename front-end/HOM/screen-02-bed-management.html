@@ -80,15 +80,10 @@
                 <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
-                <div id="assign-patient-picker" style="position: relative;">
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Search Patient</label>
-                    <input type="text" class="input" id="assign-patient-search" placeholder="Enter UHID or patient name (e.g. FED-2026-9001)" oninput="handleAssignPatientSearch(this.value)" autocomplete="off">
-                    <div id="assign-patient-dropdown" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 8px); background: #fff; border: 1px solid var(--border); border-radius: var(--radius-base); box-shadow: var(--shadow-md); max-height: 240px; overflow-y: auto; z-index: 30;"></div>
-                    <div id="assign-patient-hint" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary); min-height: 16px;"></div>
-                </div>
+                <div id="assign-patient-hint" style="font-size: 13px; color: var(--text-secondary);"></div>
                 <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 12px;">Select Available Bed</label>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;" id="modal-available-beds">
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 12px;">Pending Bed Requests</label>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;" id="modal-available-beds">
                         </div>
                 </div>
                 <div id="assign-bed-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
@@ -109,7 +104,7 @@
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
                 <div style="display: flex; gap: 16px; align-items: center;">
                     <span id="detail-badge"></span>
-                    <span style="font-size: 14px; color: var(--text-secondary);">Since: March 6, 2026</span>
+                    <span style="font-size: 14px; color: var(--text-secondary);" id="detail-since"></span>
                 </div>
                 
                 <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
@@ -131,23 +126,15 @@
             </div>
             <div class="modal-footer" style="justify-content: flex-end; gap: 12px;">
                 <button class="btn btn-secondary btn-default" onclick="closeModals()">Close</button>
-                <button class="btn btn-primary btn-default" onclick="initiateDischargeFromModal()">Initiate Discharge</button>
+                <button class="btn btn-primary btn-default" onclick="viewInPatientFlow()">View in Patient Flow</button>
             </div>
         </div>
     </div>
 
-  <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-<script src="../shared/id-generator.js"></script>
-<script src="../shared/patient-resolver.js"></script>
-<script src="../shared/sanitizer.js"></script>
-<script src="../shared/ledger-validator.js"></script>
-<script src="../shared/finance-states.js"></script>
-<script src="../shared/insurance.js"></script>
-<script src="../shared/rbac.js"></script>
+  <script src="../shared/rbac.js"></script>
 <script src="../shared/api-client.js"></script>
 <script src="auth-guard.js"></script>
-<script src="storage.js"></script>
+<script src="hom-helpers.js"></script>
 <script src="ui-template.js"></script>
 <script src="shared-nav.js"></script>
 <script src="beds.js"></script>

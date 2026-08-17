@@ -2,6 +2,7 @@
 
 const wardService = require('../services/ward.service');
 const preRequestService = require('../services/preRequest.service');
+const admissionService = require('../services/admission.service');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
 
@@ -52,15 +53,34 @@ function createBedRequest(req, res) {
 // that endpoint refuses to set ADMITTED directly). Orchestrated here in
 // the controller rather than inside either service, to avoid a
 // ward.service <-> preRequest.service circular require.
+//
+// This is also the ONE place an `admission` record gets created. Nothing
+// upstream (PRE's bed-request, the pre-request itself) ever produced one,
+// which left billing.service's admission_id-keyed ledger lookups with no
+// admission to attach to — a dead end for FA's billing flow. Bed
+// allocation is the natural anchor: it's the moment patient_id + bed_id
+// are both known for certain.
 function updateBedRequest(req, res) {
   const result = wardService.updateBedRequest(+req.params.id, req.body);
 
-  if (result && result.status === 'ALLOCATED' && result.pre_request_id) {
-    const preRequest = preRequestService.findOne(result.pre_request_id);
-    const actorRole = req.session ? req.session.role : 'HOM';
-    if (preRequest && preRequestService.canTransition(preRequest.status, 'ADMITTED', actorRole)) {
-      preRequestService.transition(result.pre_request_id, 'ADMITTED', actorRole, { bed_id: result.bed_id });
+  if (result && result.status === 'ALLOCATED') {
+    let appointmentId = null;
+
+    if (result.pre_request_id) {
+      const preRequest = preRequestService.findOne(result.pre_request_id);
+      const actorRole = req.session ? req.session.role : 'HOM';
+      if (preRequest && preRequestService.canTransition(preRequest.status, 'ADMITTED', actorRole)) {
+        preRequestService.transition(result.pre_request_id, 'ADMITTED', actorRole, { bed_id: result.bed_id });
+        appointmentId = preRequest.appointment_id || null;
+      }
     }
+
+    admissionService.create({
+      appointment_id: appointmentId,
+      patient_id: result.patient_id,
+      bed_id: result.bed_id,
+      status: 'ADMITTED',
+    });
   }
 
   sendResult(res, result, 200);
