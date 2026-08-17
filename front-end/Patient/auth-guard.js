@@ -1,22 +1,24 @@
 (function () {
-  const LOGIN_PAGE = "../landing/landing-page.html";
+  var LOGIN_PAGE = "../login/login-page.html";
 
-  function redirectToLogin() {
-    const currentPath = window.location.pathname;
-    if (currentPath.endsWith("landing-page.html")) return;
+  if (!window.RoleAccess) return;
+
+  var actor = window.RoleAccess.getCurrentActor();
+  if (!actor) {
     window.location.replace(LOGIN_PAGE);
+    return;
   }
 
-  try {
-    const actor = sessionStorage.getItem("userRole");
-    if (actor !== "Patient") {
-      redirectToLogin();
-      return;
-    }
-
-    const uhid = sessionStorage.getItem("patientUhid") || null;
-    window.PatientSession = { uhid, loggedIn: true };
-  } catch (_err) {
-    redirectToLogin();
+  if (!window.RoleAccess.hasModuleAccess("PATIENT", actor)) {
+    alert("Access Denied: " + actor + " cannot open the Patient module.");
+    window.location.href = window.RoleAccess.getActorHome(actor, "PATIENT");
+    return;
   }
+
+  var session = window.RoleAccess.getSessionInfo();
+  window.PatientSession = {
+    uhid: (session && session.patientUhid) || null,
+    patientId: (session && session.patientId) || null,
+    loggedIn: true,
+  };
 })();

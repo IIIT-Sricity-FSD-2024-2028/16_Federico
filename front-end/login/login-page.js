@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const helperBox = document.getElementById("login-credential-helper");
   const errorBox = document.getElementById("login-error");
+  const submitButton = loginForm?.querySelector("button[type='submit'], .login-submit");
 
   function renderCredentialHelper(role) {
     const accounts = window.RoleAccess?.mockAccounts?.[role] || [];
@@ -39,41 +40,54 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  function handleLogin() {
+  async function handleLogin() {
     const emailInput = document.getElementById("email").value;
     const passwordInput = document.getElementById("password").value;
 
-    // Basic form validation for Review-3
     if (!emailInput || !passwordInput) {
       showError("Enter both email and password.");
       return;
     }
 
-    // Find which role is currently selected
     const activeRole = document
       .querySelector(".role-tab.active")
       .textContent.trim();
 
-    const authResult = window.RoleAccess?.authenticate(
-      activeRole,
-      emailInput,
-      passwordInput,
-    );
-    if (!authResult) {
-      showError(`Invalid ${activeRole} credentials.`);
-      return;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.dataset.originalText = submitButton.dataset.originalText || submitButton.textContent;
+      submitButton.textContent = "Signing in…";
     }
-    clearError();
 
-    // Route to the actual dashboard entry points for each actor
-    if (activeRole === "Patient") {
-      window.location.href = "../Patient/patient-dashboard.html";
-    } else if (activeRole === "PRE") {
-      window.location.href = "../PRE/index.html";
-    } else if (activeRole === "HOM") {
-      window.location.href = "../HOM/screen-01-dashboard.html";
-    } else if (activeRole === "FA") {
-      window.location.href = "../FA/index.html";
+    try {
+      const authResult = await window.RoleAccess?.authenticate(
+        activeRole,
+        emailInput,
+        passwordInput,
+      );
+      if (!authResult) {
+        showError(`Invalid ${activeRole} credentials.`);
+        return;
+      }
+      clearError();
+
+      // Route to the actual dashboard entry points for each actor
+      if (activeRole === "Patient") {
+        window.location.href = "../Patient/patient-dashboard.html";
+      } else if (activeRole === "PRE") {
+        window.location.href = "../PRE/index.html";
+      } else if (activeRole === "HOM") {
+        window.location.href = "../HOM/screen-01-dashboard.html";
+      } else if (activeRole === "FA") {
+        window.location.href = "../FA/index.html";
+      }
+    } catch (err) {
+      showError(err?.status === 0 ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = submitButton.dataset.originalText;
+      }
     }
   }
 
