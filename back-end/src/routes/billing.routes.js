@@ -17,7 +17,11 @@ const router = Router();
 router.use(requireModule('BILLING'));
 
 // Services
-router.get('/services', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findAllServices);
+router.get(
+  '/services',
+  authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),
+  controller.findAllServices,
+);
 router.post(
   '/services',
   authorize(['SUPER_USER'], 'billing', 'write'),
@@ -26,9 +30,22 @@ router.post(
 );
 
 // Ledger
-router.get('/ledgers', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findAllLedgers);
-router.get('/ledger/:admissionId', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findLedgerByAdmission);
-router.post('/ledger', authorize(['SUPER_USER'], 'billing', 'write'), validateBody(createLedgerRules), controller.createLedger);
+router.get(
+  '/ledgers',
+  authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),
+  controller.findAllLedgers,
+);
+router.get(
+  '/ledger/:admissionId',
+  authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),
+  controller.findLedgerByAdmission,
+);
+router.post(
+  '/ledger',
+  authorize(['SUPER_USER'], 'billing', 'write'),
+  validateBody(createLedgerRules),
+  controller.createLedger,
+);
 
 // Ledger entries
 router.get(
@@ -44,10 +61,18 @@ router.post(
 );
 
 // Phase 2 — dispatch a ledger to the patient
-router.put('/ledger/:id/dispatch', authorize(['SUPER_USER'], 'billing', 'write'), controller.dispatchLedger);
+router.put(
+  '/ledger/:id/dispatch',
+  authorize(['SUPER_USER'], 'billing', 'write'),
+  controller.dispatchLedger,
+);
 
 // Payments
-router.get('/payments', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findAllPayments);
+router.get(
+  '/payments',
+  authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),
+  controller.findAllPayments,
+);
 router.post(
   '/payments',
   authorize(['SUPER_USER'], 'payment', 'write'),
@@ -74,7 +99,11 @@ router.get(
   authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),
   controller.findPatientBills,
 );
-router.get('/receipts', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findAllReceipts);
+router.get(
+  '/receipts',
+  authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),
+  controller.findAllReceipts,
+);
 router.get(
   '/patient/:patientId/receipts',
   authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),

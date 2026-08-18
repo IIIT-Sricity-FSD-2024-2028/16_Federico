@@ -14,7 +14,9 @@ function findDoctorById(doctor_id) {
 function createDoctor(doctor) {
   const newDoctor = {
     doctor_id:
-      dataStore.doctors.length > 0 ? Math.max(...dataStore.doctors.map((d) => d.doctor_id)) + 1 : 401,
+      dataStore.doctors.length > 0
+        ? Math.max(...dataStore.doctors.map((d) => d.doctor_id)) + 1
+        : 401,
     ...doctor,
   };
   dataStore.doctors.push(newDoctor);
@@ -30,7 +32,9 @@ function updateDoctor(doctor_id, patch) {
 
 function deleteDoctor(doctor_id) {
   const initialLen = dataStore.doctors.length;
-  dataStore.doctors = dataStore.doctors.filter((d) => d.doctor_id !== doctor_id);
+  dataStore.doctors = dataStore.doctors.filter(
+    (d) => d.doctor_id !== doctor_id,
+  );
   return { deleted: initialLen > dataStore.doctors.length };
 }
 
@@ -40,14 +44,18 @@ function findAllAvailabilities() {
 }
 
 function findAvailabilityByDoctor(doctor_id) {
-  return dataStore.doctorAvailabilities.filter((a) => a.doctor_id === doctor_id);
+  return dataStore.doctorAvailabilities.filter(
+    (a) => a.doctor_id === doctor_id,
+  );
 }
 
 function createAvailability(availability) {
   const newAvail = {
     availability_id:
       dataStore.doctorAvailabilities.length > 0
-        ? Math.max(...dataStore.doctorAvailabilities.map((a) => a.availability_id)) + 1
+        ? Math.max(
+            ...dataStore.doctorAvailabilities.map((a) => a.availability_id),
+          ) + 1
         : 501,
     ...availability,
   };

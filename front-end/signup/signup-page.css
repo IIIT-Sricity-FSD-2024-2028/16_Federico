@@ -1,12 +1,12 @@
-/* signup-page.css — Phase 4: Luxury / Editorial (design.txt) */
+/* signup-page.css — Material You (Material Design 3) */
 
 * { box-sizing: border-box; }
 
 body {
     margin: 0;
     font-family: var(--font-body);
-    background: var(--color-bg);
-    color: var(--color-fg);
+    background: var(--md-background);
+    color: var(--md-on-background);
     -webkit-font-smoothing: antialiased;
 }
 
@@ -16,8 +16,8 @@ button, input, select, a { font-family: inherit; }
     position: relative;
     z-index: 2;
     height: 88px;
-    background: var(--color-bg);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--md-background);
+    border-bottom: 1px solid var(--md-outline-variant);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -27,20 +27,21 @@ button, input, select, a { font-family: inherit; }
 .brand { display: flex; align-items: center; gap: 12px; }
 
 .brand-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius);
-    background: var(--color-fg);
-    color: var(--color-bg);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     display: grid;
     place-items: center;
     font-family: var(--font-heading);
+    font-weight: 700;
     font-size: 16px;
 }
 
-.brand-name { font-family: var(--font-heading); font-size: 18px; letter-spacing: 0.02em; }
+.brand-name { font-family: var(--font-heading); font-size: 18px; font-weight: 500; letter-spacing: 0.01em; color: var(--md-on-background); }
 
-.login-shortcut { font-size: 11px; height: 44px; padding: 0 24px; letter-spacing: 0.14em; }
+.login-shortcut { font-size: 11px; height: 44px; padding: 0 24px; letter-spacing: 0.06em; }
 
 .signup-wrapper {
     position: relative;
@@ -53,23 +54,23 @@ button, input, select, a { font-family: inherit; }
 .signup-card {
     width: 100%;
     max-width: 620px;
-    background: transparent;
-    border-radius: var(--radius);
-    box-shadow: none;
-    border-top: 1px solid var(--color-fg);
-    padding: 48px 0 0;
+    background: var(--md-surface-container);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2);
+    padding: 48px 40px 44px;
 }
 
 .card-logo {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius);
-    background: var(--color-fg);
-    color: var(--color-bg);
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     display: grid;
     place-items: center;
     margin: 0 auto 20px;
     font-family: var(--font-heading);
+    font-weight: 700;
     font-size: 18px;
 }
 
@@ -77,28 +78,29 @@ button, input, select, a { font-family: inherit; }
     margin: 0;
     text-align: center;
     font-family: var(--font-heading);
-    font-size: 30px;
-    font-weight: 400;
-    color: var(--color-fg);
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--md-on-background);
 }
 
-.subtext { margin: 12px 0 16px; text-align: center; font-size: 14px; color: var(--color-muted-fg); }
+.subtext { margin: 12px 0 16px; text-align: center; font-size: 14px; color: var(--md-on-surface-variant); }
 
 .pill {
     width: fit-content;
     margin: 0 auto 32px;
     padding: 6px 16px;
-    border-radius: var(--radius);
-    background: transparent;
-    border: 1px solid var(--color-border-strong);
-    color: var(--color-fg);
-    font-size: 10px;
+    border-radius: var(--radius-full);
+    background: var(--md-secondary-container);
+    border: none;
+    color: var(--md-on-secondary-container);
+    font-size: 11px;
     font-weight: 600;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
 }
 
-.signup-form { display: flex; flex-direction: column; gap: 32px; }
+.signup-form { display: flex; flex-direction: column; gap: 28px; }
 
 .form-section { display: flex; flex-direction: column; gap: 18px; }
 
@@ -107,23 +109,26 @@ button, input, select, a { font-family: inherit; }
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: var(--tracking-label);
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
     padding-top: 20px;
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--md-outline-variant);
 }
+
+.form-section:first-of-type .section-title { border-top: none; padding-top: 0; }
 
 .with-badge { display: flex; align-items: center; gap: 10px; }
 
+/* Tonal chip badge, matches shared .md-chip-neutral / .badge-neutral look */
 .optional-badge {
-    background: transparent;
-    border: 1px solid var(--color-border);
-    color: var(--color-muted-fg);
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    background: var(--md-secondary-container);
+    border: none;
+    color: var(--md-on-secondary-container);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: var(--radius);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
 }
 
 .grid-one, .grid-two { display: grid; gap: 20px; }
@@ -137,100 +142,109 @@ button, input, select, a { font-family: inherit; }
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
 }
 
-/* Underline-only inputs, italic serif placeholder */
+/* MD3 filled text field — rounded top corners only, tonal fill, 2px
+   bottom border that turns primary-colored on focus. Matches
+   shared/material-components.css .md-field input. */
 .form-group input, .form-group select {
     width: 100%;
-    height: 44px;
+    height: 56px;
     border: none;
-    border-bottom: 1px solid var(--color-fg);
+    border-bottom: 2px solid var(--md-outline);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     outline: none;
-    border-radius: 0;
-    background: transparent;
-    padding: 0;
+    background-color: var(--md-surface-container-low);
+    padding: 0 16px;
     font-size: 14px;
-    color: var(--color-fg);
-    transition: border-color var(--duration-base) var(--ease-luxury);
+    color: var(--md-on-background);
+    transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
 }
 
-.form-group input:focus, .form-group select:focus { border-color: var(--color-accent); }
+.form-group input:focus, .form-group select:focus {
+    border-bottom-color: var(--md-primary);
+    background-color: var(--md-surface-container);
+}
 
 .form-group input::placeholder {
-    font-family: var(--font-heading);
-    font-style: italic;
-    color: var(--color-muted-fg);
+    font-family: var(--font-body);
+    font-style: normal;
+    color: var(--md-on-surface-variant);
+    opacity: 0.8;
 }
 
 .form-group select {
     appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, var(--color-fg) 50%),
-        linear-gradient(135deg, var(--color-fg) 50%, transparent 50%);
-    background-position: calc(100% - 12px) 20px, calc(100% - 7px) 20px;
-    background-size: 5px 5px, 5px 5px;
+    cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--md-on-surface-variant) 50%),
+        linear-gradient(135deg, var(--md-on-surface-variant) 50%, transparent 50%);
+    background-position: right 18px center, right 13px center;
+    background-size: 6px 6px, 6px 6px;
     background-repeat: no-repeat;
 }
 
 .uploads-grid .form-group label { margin-bottom: 0; }
 
-.mini-label { font-size: 10px; font-weight: 600; color: var(--color-muted-fg); margin-bottom: 8px; letter-spacing: 0.04em; }
+.mini-label { font-size: 10px; font-weight: 600; color: var(--md-on-surface-variant); margin-bottom: 8px; letter-spacing: 0.04em; }
 
 .mini-label span {
     margin-left: 6px;
-    padding: 2px 8px;
-    border-radius: var(--radius);
-    background: var(--color-muted-bg);
-    color: var(--color-fg);
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
     font-size: 9px;
+    font-weight: 700;
     text-transform: uppercase;
 }
 
+/* Upload boxes — MD3 outlined dashed treatment, tonal on hover */
 .upload-box {
     width: 100%;
     min-height: 84px;
-    border: 1px dashed var(--color-border-strong);
-    background: transparent;
-    border-radius: var(--radius);
+    border: 1.5px dashed var(--md-outline);
+    background: var(--md-surface-container-low);
+    border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 4px;
     cursor: pointer;
-    color: var(--color-fg);
-    transition: background var(--duration-base) var(--ease-luxury), border-color var(--duration-base) var(--ease-luxury);
+    color: var(--md-on-background);
+    transition: background var(--duration-base) var(--ease-standard), border-color var(--duration-base) var(--ease-standard);
 }
 
-.upload-box:hover { background: var(--color-muted-bg); border-color: var(--color-accent); }
+.upload-box:hover { background: var(--md-secondary-container); border-color: var(--md-primary); }
 
 .upload-box strong { font-size: 12px; font-weight: 500; }
 
-.upload-box small { font-size: 10px; color: var(--color-muted-fg); }
+.upload-box small { font-size: 10px; color: var(--md-on-surface-variant); }
 
-.terms-row { display: flex; align-items: flex-start; gap: 12px; font-size: 12px; color: var(--color-muted-fg); line-height: 1.6; cursor: pointer; }
+.terms-row { display: flex; align-items: flex-start; gap: 12px; font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.6; cursor: pointer; }
 
-.terms-row input { margin-top: 2px; accent-color: var(--color-fg); }
+.terms-row input { margin-top: 2px; accent-color: var(--md-primary); }
 
-.terms-row a { color: var(--color-fg); text-decoration: none; font-weight: 500; border-bottom: 1px solid var(--color-accent); }
+.terms-row a { color: var(--md-primary); text-decoration: none; font-weight: 500; border-bottom: 1px solid var(--md-primary); }
 
 .create-btn { width: 100%; margin-top: 8px; }
 
-.bottom-login { text-align: center; color: var(--color-muted-fg); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; position: relative; margin-top: 4px; }
+.bottom-login { text-align: center; color: var(--md-on-surface-variant); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; position: relative; margin-top: 4px; }
 
-.bottom-login::before, .bottom-login::after { content: ""; position: absolute; top: 50%; width: 32%; height: 1px; background: var(--color-border); }
+.bottom-login::before, .bottom-login::after { content: ""; position: absolute; top: 50%; width: 32%; height: 1px; background: var(--md-outline-variant); }
 
 .bottom-login::before { left: 0; }
 .bottom-login::after { right: 0; }
 
 @media (max-width: 640px) {
     .topbar { padding: 0 20px; }
-    .signup-card { padding: 32px 0 0; }
+    .signup-card { padding: 32px 20px 28px; border-radius: var(--radius-lg); }
     .grid-two { grid-template-columns: 1fr; }
     .bottom-login::before, .bottom-login::after { width: 22%; }
 }
 
-/* Ensure date inputs match the underline style of other inputs */
+/* Ensure date inputs match the filled-field style of other inputs */
 .form-group input[type="date"] { cursor: pointer; }
 
 input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }

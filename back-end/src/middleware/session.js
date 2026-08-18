@@ -20,7 +20,11 @@ function attachSession(req, res, next) {
 
 function requireSession(req, res, next) {
   if (!req.session) {
-    return res.status(401).json({ message: 'Authentication required', error: 'Unauthorized', statusCode: 401 });
+    return res.status(401).json({
+      message: 'Authentication required',
+      error: 'Unauthorized',
+      statusCode: 401,
+    });
   }
   next();
 }
@@ -28,7 +32,11 @@ function requireSession(req, res, next) {
 function requireActor(...actors) {
   return function (req, res, next) {
     if (!req.session || !actors.includes(req.session.role)) {
-      return res.status(403).json({ message: 'Forbidden resource', error: 'Forbidden', statusCode: 403 });
+      return res.status(403).json({
+        message: 'Forbidden resource',
+        error: 'Forbidden',
+        statusCode: 403,
+      });
     }
     next();
   };

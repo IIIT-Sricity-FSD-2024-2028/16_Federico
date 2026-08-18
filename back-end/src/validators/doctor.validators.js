@@ -20,4 +20,8 @@ const createDoctorAvailabilityRules = [
   { field: 'status', checks: ['isNotEmpty', 'isString'] },
 ];
 
-module.exports = { createDoctorRules, updateDoctorRules, createDoctorAvailabilityRules };
+module.exports = {
+  createDoctorRules,
+  updateDoctorRules,
+  createDoctorAvailabilityRules,
+};

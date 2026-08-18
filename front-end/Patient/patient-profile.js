@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 try {
                     await saveSection(section, inputs, originalValues, disableSection);
                 } catch (err) {
-                    showToast(err?.message || "Could not save changes.", "warn");
+                    UIFeedback.toast(err?.message || "Could not save changes.", "warning");
                 } finally {
                     saveBtn.disabled = false;
                 }
@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (input.id) originalValues[input.id] = input.value;
             });
             disableSection();
-            showToast("Password updated.", "success");
+            UIFeedback.toast("Password updated.", "success");
             return;
         }
 
@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         populateProfileForm();
         disableSection();
-        showToast(`${capitalize(section)} details saved.`, "success");
+        UIFeedback.toast(`${capitalize(section)} details saved.`, "success");
     }
 
     function setupPasswordHint() {
@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function setupLogout() {
         const logout = () => {
-            showToast("Logging out...", "success");
+            UIFeedback.toast("Logging out...", "success");
             setTimeout(() => {
                 if (window.RoleAccess) window.RoleAccess.logout();
                 else sessionStorage.removeItem("userRole");
@@ -305,25 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function parseCoverage(value) {
         return Number(String(value).replace(/,/g, "")) || 0;
-    }
-
-    function showToast(message, type = "success") {
-        const existing = document.querySelector(".toast");
-        if (existing) existing.remove();
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => toast.classList.add("visible"));
-        });
-
-        setTimeout(() => {
-            toast.classList.remove("visible");
-            setTimeout(() => toast.remove(), 300);
-        }, 2800);
     }
 
     function capitalize(value) {

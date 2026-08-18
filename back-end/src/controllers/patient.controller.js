@@ -3,11 +3,18 @@
 const patientService = require('../services/patient.service');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
-const { forbidsOtherPatient, isPatientSession } = require('../utils/patientOwnership');
+const {
+  forbidsOtherPatient,
+  isPatientSession,
+} = require('../utils/patientOwnership');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
 const logger = createLogger('🧑‍🤝‍🧑 Patients');
-const FORBIDDEN = { message: 'Forbidden resource', error: 'Forbidden', statusCode: 403 };
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 // List-all-patients is a staff-only view — 'Patient' is in the resource's
 // coarse read gate only so findOne/findInsuranceByPatient below can serve
@@ -20,7 +27,11 @@ function findAll(req, res) {
 
 function findOne(req, res) {
   const patient = patientService.findOne(req.params.id);
-  if (patient && (forbidsOtherPatient(req, patient.patient_id) || !belongsToOrg(patient, req))) {
+  if (
+    patient &&
+    (forbidsOtherPatient(req, patient.patient_id) ||
+      !belongsToOrg(patient, req))
+  ) {
     return res.status(403).json(FORBIDDEN);
   }
   sendResult(res, patient, 200);
@@ -32,13 +43,19 @@ function findOne(req, res) {
 function create(req, res) {
   if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
   const result = patientService.create(withTenant(req, req.body));
-  logger.log(`✅ REGISTERED  patient_id=${result.patient_id}  name="${result.name}"`);
+  logger.log(
+    `✅ REGISTERED  patient_id=${result.patient_id}  name="${result.name}"`,
+  );
   sendResult(res, result, 201);
 }
 
 function update(req, res) {
   const existing = patientService.findOne(req.params.id);
-  if (existing && (forbidsOtherPatient(req, existing.patient_id) || !belongsToOrg(existing, req))) {
+  if (
+    existing &&
+    (forbidsOtherPatient(req, existing.patient_id) ||
+      !belongsToOrg(existing, req))
+  ) {
     return res.status(403).json(FORBIDDEN);
   }
   sendResult(res, patientService.update(req.params.id, req.body), 200);
@@ -48,7 +65,8 @@ function update(req, res) {
 function remove(req, res) {
   if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
   const existing = patientService.findOne(req.params.id);
-  if (existing && !belongsToOrg(existing, req)) return res.status(403).json(FORBIDDEN);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
   sendResult(res, patientService.remove(req.params.id), 200);
 }
 
@@ -70,7 +88,8 @@ function findInsuranceByPatient(req, res) {
   }
   if (!isPatientSession(req)) {
     const target = patientService.findOne(String(patientId));
-    if (target && !belongsToOrg(target, req)) return res.status(403).json(FORBIDDEN);
+    if (target && !belongsToOrg(target, req))
+      return res.status(403).json(FORBIDDEN);
   }
   sendResult(res, patientService.findInsuranceByPatient(patientId), 200);
 }
@@ -80,7 +99,9 @@ function createInsurance(req, res) {
     return res.status(403).json(FORBIDDEN);
   }
   const result = patientService.createInsurance(withTenant(req, req.body));
-  logger.log(`✅ INSURANCE ADDED  insurance_id=${result.insurance_id}  patient_id=${result.patient_id}`);
+  logger.log(
+    `✅ INSURANCE ADDED  insurance_id=${result.insurance_id}  patient_id=${result.patient_id}`,
+  );
   sendResult(res, result, 201);
 }
 

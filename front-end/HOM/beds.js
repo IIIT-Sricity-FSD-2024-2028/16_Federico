@@ -161,13 +161,11 @@ function renderWards() {
   container.innerHTML = html || `<div class="ward-section"><p style="margin: 0; color: var(--text-secondary);">No beds match the current filters.</p></div>`;
 }
 
-function closeModals() {
-  document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
-  currentDetailBedId = null;
-  selectedRequestId = null;
-  pendingBedTarget = null;
-}
-window.closeModals = closeModals;
+// closeModals() now lives in hom-helpers.js (window.closeModals) — see that
+// file for why removing this file's duplicate copy is safe: every
+// open*Modal() below re-initializes currentDetailBedId/selectedRequestId/
+// pendingBedTarget itself before showing a modal, so the extra resets this
+// duplicate used to do on close were already redundant.
 
 window.openAssignModal = function (bedId) {
   pendingBedTarget = (bedsData.beds || []).find((b) => b.bed_id === bedId);

@@ -13,7 +13,7 @@
     function showFormError(id, message) {
         const el = document.getElementById(id);
         if (!el) {
-            alert(message);
+            window.UIFeedback.toast(message, 'error');
             return;
         }
         el.textContent = message;
@@ -24,7 +24,7 @@
         try {
             await window.ApiClient.billing.ledger.create({ admission_id: admissionId, status: 'OPEN' });
         } catch (err) {
-            alert(err.message || 'Unable to create ledger.');
+            window.UIFeedback.toast(err.message || 'Unable to create ledger.', 'error');
             return;
         }
         window.currentAdmissionId = admissionId;
@@ -70,12 +70,12 @@
     async function addChargeToCurrentLedger(admissionId, ledgerId) {
         const serviceId = Number(document.getElementById('ledger-add-service').value);
         const qty = Number(document.getElementById('ledger-add-qty').value);
-        if (!serviceId) return alert('Select a service before adding a charge.');
+        if (!serviceId) return window.UIFeedback.toast('Select a service before adding a charge.', 'warning');
 
         try {
             await addCharge(ledgerId, serviceId, qty);
         } catch (err) {
-            alert(err.message || 'Unable to add charge.');
+            window.UIFeedback.toast(err.message || 'Unable to add charge.', 'error');
             return;
         }
         window.currentAdmissionId = admissionId;
@@ -84,10 +84,19 @@
 
     async function dispatchCurrent(ledgerId) {
         if (!ledgerId) return;
+
+        const confirmed = await window.UIFeedback.confirm({
+            title: 'Dispatch bill to patient?',
+            body: 'This finalizes the current ledger and makes the bill visible to the patient for payment. You can still record a manual payment afterwards, but charges on this bill can no longer be edited.',
+            confirmLabel: 'Dispatch Bill',
+            cancelLabel: 'Cancel',
+        });
+        if (!confirmed) return;
+
         try {
             await window.ApiClient.billing.ledger.dispatch(ledgerId);
         } catch (err) {
-            alert(err.message || 'Unable to dispatch this bill.');
+            window.UIFeedback.toast(err.message || 'Unable to dispatch this bill.', 'error');
             return;
         }
         window.render();
@@ -247,7 +256,7 @@
             H().loadBillingOverview(),
         ]);
         const r = receipts.find((rec) => rec.receipt_id === receiptId);
-        if (!r) return alert('Receipt not found.');
+        if (!r) return window.UIFeedback.toast('Receipt not found.', 'error');
         const patient = patientsById[r.patient_id] || {};
 
         const win = window.open('', '_blank');

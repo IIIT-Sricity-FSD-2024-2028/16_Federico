@@ -13,12 +13,22 @@ const { createSession, destroySession } = require('../store/sessionStore');
  * to an org actor role or vice versa.
  */
 function findByEmail(email) {
-  const normalized = String(email || '').trim().toLowerCase();
-  return dataStore.platformSuperUsers.find((u) => u.email && u.email.toLowerCase() === normalized) || null;
+  const normalized = String(email || '')
+    .trim()
+    .toLowerCase();
+  return (
+    dataStore.platformSuperUsers.find(
+      (u) => u.email && u.email.toLowerCase() === normalized,
+    ) || null
+  );
 }
 
 function toPublic(user) {
-  return { platform_user_id: user.platform_user_id, name: user.name, email: user.email };
+  return {
+    platform_user_id: user.platform_user_id,
+    name: user.name,
+    email: user.email,
+  };
 }
 
 function login(email, password) {
@@ -26,12 +36,19 @@ function login(email, password) {
   if (!user || !verifyPassword(password, user.password_hash)) {
     return { error: 'INVALID_CREDENTIALS' };
   }
-  const token = createSession({ userId: user.platform_user_id, role: 'PLATFORM', isPlatformUser: true });
+  const token = createSession({
+    userId: user.platform_user_id,
+    role: 'PLATFORM',
+    isPlatformUser: true,
+  });
   return { token, user: toPublic(user) };
 }
 
 function me(session) {
-  const user = dataStore.platformSuperUsers.find((u) => u.platform_user_id === session.userId) || null;
+  const user =
+    dataStore.platformSuperUsers.find(
+      (u) => u.platform_user_id === session.userId,
+    ) || null;
   return user ? toPublic(user) : null;
 }
 
@@ -41,7 +58,12 @@ function logout(token) {
 
 function create(payload) {
   const newUser = {
-    platform_user_id: dataStore.platformSuperUsers.length > 0 ? Math.max(...dataStore.platformSuperUsers.map((u) => u.platform_user_id)) + 1 : 1,
+    platform_user_id:
+      dataStore.platformSuperUsers.length > 0
+        ? Math.max(
+            ...dataStore.platformSuperUsers.map((u) => u.platform_user_id),
+          ) + 1
+        : 1,
     name: payload.name,
     email: payload.email,
     password_hash: hashPassword(payload.password),

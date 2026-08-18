@@ -45,10 +45,19 @@ function createRequest(request) {
 }
 
 function updateRequest(request_id, patch) {
-  const req = dataStore.purchaseRequests.find((r) => r.request_id === request_id);
+  const req = dataStore.purchaseRequests.find(
+    (r) => r.request_id === request_id,
+  );
   if (!req) return null;
   Object.assign(req, patch);
   return req;
 }
 
-module.exports = { findAllItems, createItem, updateItem, findAllRequests, createRequest, updateRequest };
+module.exports = {
+  findAllItems,
+  createItem,
+  updateItem,
+  findAllRequests,
+  createRequest,
+  updateRequest,
+};

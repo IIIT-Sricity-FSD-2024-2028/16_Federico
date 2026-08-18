@@ -12,7 +12,10 @@ function findById(id) {
 
 function create(payload) {
   const newPlan = {
-    plan_id: dataStore.subscriptionPlans.length > 0 ? Math.max(...dataStore.subscriptionPlans.map((p) => p.plan_id)) + 1 : 1,
+    plan_id:
+      dataStore.subscriptionPlans.length > 0
+        ? Math.max(...dataStore.subscriptionPlans.map((p) => p.plan_id)) + 1
+        : 1,
     name: payload.name,
     max_beds: payload.max_beds,
     max_users: payload.max_users,

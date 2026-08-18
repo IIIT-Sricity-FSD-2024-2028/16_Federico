@@ -1,18 +1,5 @@
 let joinedRequests = [];
 
-function showSuccess(msg) {
-  const el = document.getElementById('successMsg');
-  const popup = document.getElementById('successPopup');
-  if (el && popup) {
-    el.innerText = msg;
-    popup.style.display = 'flex';
-  }
-}
-function closeSuccess() {
-  const popup = document.getElementById('successPopup');
-  if (popup) popup.style.display = 'none';
-}
-
 async function loadPending() {
   const [preRequests, patients, doctors] = await Promise.all([
     window.ApiClient.preRequests.list(),
@@ -120,7 +107,7 @@ function closePopup(id) {
 async function confirmApprove(id) {
   const doctorId = document.getElementById('doctorSelect').value;
   const time = document.getElementById('appointTime').value;
-  if (!doctorId) return showSuccess('Select a doctor');
+  if (!doctorId) return UIFeedback.toast('Select a doctor', 'error');
 
   try {
     const fieldPatch = { doctor_id: Number(doctorId) };
@@ -128,10 +115,10 @@ async function confirmApprove(id) {
     await window.ApiClient.preRequests.update(id, fieldPatch);
     await window.ApiClient.preRequests.update(id, { status: 'APPROVED' });
     closePopup('approvePopup');
-    showSuccess('Approved');
+    UIFeedback.toast('Approved', 'success');
     renderTable();
   } catch (err) {
-    showSuccess(err.message || 'Could not approve this request');
+    UIFeedback.toast(err.message || 'Could not approve this request', 'error');
   }
 }
 
@@ -163,15 +150,15 @@ async function reject(id) {
 
 async function confirmReject(id) {
   const reason = document.getElementById('rejectReason').value.trim();
-  if (!reason) return showSuccess('Enter reason');
+  if (!reason) return UIFeedback.toast('Enter reason', 'error');
 
   try {
     await window.ApiClient.preRequests.update(id, { status: 'REJECTED', reject_reason: reason });
     closePopup('rejectPopup');
-    showSuccess('Rejected successfully');
+    UIFeedback.toast('Rejected successfully', 'success');
     renderTable();
   } catch (err) {
-    showSuccess(err.message || 'Could not reject this request');
+    UIFeedback.toast(err.message || 'Could not reject this request', 'error');
   }
 }
 
@@ -223,7 +210,7 @@ async function confirmSuggest(id) {
   const time = document.getElementById('appointTime').value;
   const doctorId = document.getElementById('doctorSelect').value;
 
-  if (!newDate || !doctorId) return showSuccess('Fill all required fields');
+  if (!newDate || !doctorId) return UIFeedback.toast('Fill all required fields', 'error');
 
   try {
     const fieldPatch = { requested_date: newDate, doctor_id: Number(doctorId) };
@@ -233,10 +220,10 @@ async function confirmSuggest(id) {
       await window.ApiClient.preRequests.update(id, { status: 'APPROVED' });
     }
     closePopup('suggestPopup');
-    showSuccess('Rescheduled successfully');
+    UIFeedback.toast('Rescheduled successfully', 'success');
     renderTable();
   } catch (err) {
-    showSuccess(err.message || 'Could not reschedule this request');
+    UIFeedback.toast(err.message || 'Could not reschedule this request', 'error');
   }
 }
 

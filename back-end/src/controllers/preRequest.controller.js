@@ -5,19 +5,30 @@ const { sendResult } = require('../utils/sendResult');
 const { forbidsOtherPatient } = require('../utils/patientOwnership');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
-const FORBIDDEN = { message: 'Forbidden resource', error: 'Forbidden', statusCode: 403 };
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 // A Patient session sees/touches only their own pre-requests; HOM/PRE/FA
 // see everything (within their own organization).
 function findAll(req, res) {
   const all = scopeToOrg(preRequestService.findAll(), req);
-  const visible = req.session && req.session.role === 'Patient' ? all.filter((p) => p.patient_id === req.session.patientId) : all;
+  const visible =
+    req.session && req.session.role === 'Patient'
+      ? all.filter((p) => p.patient_id === req.session.patientId)
+      : all;
   sendResult(res, visible, 200);
 }
 
 function findOne(req, res) {
   const request = preRequestService.findOne(+req.params.id);
-  if (request && (forbidsOtherPatient(req, request.patient_id) || !belongsToOrg(request, req))) {
+  if (
+    request &&
+    (forbidsOtherPatient(req, request.patient_id) ||
+      !belongsToOrg(request, req))
+  ) {
     return res.status(403).json(FORBIDDEN);
   }
   sendResult(res, request, 200);
@@ -28,7 +39,11 @@ function create(req, res) {
     return res.status(403).json(FORBIDDEN);
   }
   const createdBy = req.session ? req.session.userId : null;
-  sendResult(res, preRequestService.create(withTenant(req, req.body), createdBy), 201);
+  sendResult(
+    res,
+    preRequestService.create(withTenant(req, req.body), createdBy),
+    201,
+  );
 }
 
 // ADMITTED is reachable ONLY through the ward bed-allocation cascade
@@ -60,7 +75,11 @@ function update(req, res) {
   const existing = preRequestService.findOne(+req.params.id);
   if (!existing) return sendResult(res, null, 200);
 
-  if (forbidsOtherPatient(req, existing.patient_id) || !belongsToOrg(existing, req)) return res.status(403).json(FORBIDDEN);
+  if (
+    forbidsOtherPatient(req, existing.patient_id) ||
+    !belongsToOrg(existing, req)
+  )
+    return res.status(403).json(FORBIDDEN);
 
   const requestedStatus = req.body.status;
 
@@ -69,26 +88,49 @@ function update(req, res) {
 
     if (req.session && req.session.role === 'Patient') {
       const requestedFields = Object.keys(req.body);
-      const onlyAllowedFields = requestedFields.every((field) => ['status', 'reject_reason'].includes(field));
+      const onlyAllowedFields = requestedFields.every((field) =>
+        ['status', 'reject_reason'].includes(field),
+      );
       if (!onlyAllowedFields) return res.status(403).json(FORBIDDEN);
     }
 
-    if (!PUBLICLY_SETTABLE_STATUSES.has(requestedStatus)) return res.status(403).json(FORBIDDEN);
+    if (!PUBLICLY_SETTABLE_STATUSES.has(requestedStatus))
+      return res.status(403).json(FORBIDDEN);
 
     // Legacy x-role-only callers (no real session) bypass the per-actor
     // transition check, matching every other resource's SUPER_USER bypass.
-    if (req.session && !preRequestService.canTransition(existing.status, requestedStatus, req.session.role)) {
+    if (
+      req.session &&
+      !preRequestService.canTransition(
+        existing.status,
+        requestedStatus,
+        req.session.role,
+      )
+    ) {
       return res.status(403).json(FORBIDDEN);
     }
 
-    return sendResult(res, preRequestService.transition(existing.pre_request_id, requestedStatus, req.session?.role, req.body), 200);
+    return sendResult(
+      res,
+      preRequestService.transition(
+        existing.pre_request_id,
+        requestedStatus,
+        req.session?.role,
+        req.body,
+      ),
+      200,
+    );
   }
 
   if (req.session && req.session.role !== 'PRE' && req.session.role !== 'HOM') {
     return res.status(403).json(FORBIDDEN);
   }
 
-  sendResult(res, preRequestService.updateFields(existing.pre_request_id, req.body), 200);
+  sendResult(
+    res,
+    preRequestService.updateFields(existing.pre_request_id, req.body),
+    200,
+  );
 }
 
 module.exports = { findAll, findOne, create, update };

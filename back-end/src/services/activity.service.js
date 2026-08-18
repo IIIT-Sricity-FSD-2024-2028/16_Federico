@@ -10,7 +10,10 @@ const dataStore = require('../store/dataStore');
  */
 function log(type, text, meta, organizationId) {
   const entry = {
-    id: dataStore.activityLog.length > 0 ? Math.max(...dataStore.activityLog.map((a) => a.id)) + 1 : 1,
+    id:
+      dataStore.activityLog.length > 0
+        ? Math.max(...dataStore.activityLog.map((a) => a.id)) + 1
+        : 1,
     type, // 'info' | 'success' | 'warning' | 'error'
     text,
     meta: meta || null,

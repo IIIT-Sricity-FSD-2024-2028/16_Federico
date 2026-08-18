@@ -1,21 +1,18 @@
-/* Card — same top-border-only treatment as base.css (kept redundant-safe
+/* Card — tonal MD3 surface, same treatment as base.css (kept redundant-safe
    in case components.css loads after base.css and a page relies on this
    file's cascade order). */
 .card {
-    background: var(--color-bg);
-    border-radius: var(--radius);
+    background: var(--md-surface-container);
+    border-radius: var(--radius-lg);
     padding: 24px;
-    box-shadow: none;
+    box-shadow: var(--shadow-1);
     border: none;
-    border-top: 1px solid var(--color-fg);
     margin-bottom: 24px;
-    transition: box-shadow var(--duration-base) var(--ease-luxury);
+    transition: box-shadow var(--duration-base) var(--ease-standard);
 }
 
 .card:hover {
-    transform: none;
-    box-shadow: var(--shadow-card-hover);
-    border-color: var(--color-fg);
+    box-shadow: var(--shadow-2);
 }
 
 .stat-grid {
@@ -47,64 +44,53 @@
     font-weight: 600;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
-    color: var(--color-muted-fg);
-    background: var(--color-muted-bg);
-    border-bottom: 1px solid var(--color-border);
+    color: var(--md-on-surface-variant);
+    background: var(--md-surface-container-low);
+    border-bottom: 1px solid var(--md-outline-variant);
 }
 
 .data-table tr { transition: background var(--duration-fast) ease; }
 
-.data-table tr:hover { background: var(--color-muted-bg); }
+.data-table tr:hover { background: var(--md-surface-container-low); }
 
 .data-table td {
     padding: 14px 12px;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--md-outline-variant);
     font-size: 13px;
     color: var(--color-fg);
 }
 
-/* Button — same gold-slide treatment as base.css */
+/* Button — MD3 filled pill, same treatment as base.css. */
 .btn-primary {
     position: relative;
-    overflow: hidden;
-    isolation: isolate;
-    background: var(--color-fg);
-    color: var(--color-bg);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     border: none;
     padding: 10px 18px;
-    border-radius: var(--radius);
+    border-radius: var(--radius-full);
     cursor: pointer;
     font-family: var(--font-body);
     font-weight: 500;
     font-size: 12px;
     letter-spacing: var(--tracking-button);
     text-transform: uppercase;
-    transition: box-shadow var(--duration-base) var(--ease-luxury);
+    transition: background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard);
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
-.btn-primary::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--color-accent);
-    transform: translateX(-100%);
-    transition: transform var(--duration-base) var(--ease-luxury);
-    z-index: -1;
-}
-.btn-primary:hover { box-shadow: var(--shadow-button-hover); filter: none; }
-.btn-primary:hover::before { transform: translateX(0); }
-.btn-primary:active { transform: none; }
+.btn-primary:hover { background: color-mix(in srgb, var(--md-primary) 90%, black); box-shadow: var(--shadow-2); }
+.btn-primary:active { transform: scale(0.97); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary:disabled::before { display: none; }
 
-/* Monospace UHID/reference badge */
+/* Monospace UHID/reference badge — pill chip, tonal fill. */
 .uhid-badge {
+    display: inline-flex;
+    align-items: center;
     font-family: 'JetBrains Mono', monospace;
-    background: var(--color-muted-bg);
-    padding: 2px 8px;
-    border-radius: var(--radius);
+    background: var(--md-surface-container-high);
+    color: var(--md-on-surface-variant);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
     font-size: 12px;
-    color: var(--color-muted-fg);
 }

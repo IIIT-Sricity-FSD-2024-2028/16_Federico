@@ -222,7 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 btn.textContent = "Booked ✓";
                 btn.style.opacity = "0.7";
 
-                showToast("Appointment request sent! Reference #" + newId, "success");
+                UIFeedback.toast("Appointment request sent! Reference #" + newId, "success");
 
                 setTimeout(() => {
                     window.location.href = "patient-dashboard.html";
@@ -230,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (err) {
                 btn.disabled = false;
                 btn.textContent = originalLabel;
-                showToast(err?.message || "Could not book this slot. Please try again.", "warn");
+                UIFeedback.toast(err?.message || "Could not book this slot. Please try again.", "warning");
             }
         });
     }
@@ -238,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /* ── SAVE DRAFT & FILE UPLOAD ─────────────────────── */
     function initSaveDraft() {
         document.getElementById("save-draft")?.addEventListener("click", () => {
-            showToast("Draft saved. Complete your booking before the slot fills up.", "info");
+            UIFeedback.toast("Draft saved. Complete your booking before the slot fills up.", "info");
         });
     }
 
@@ -257,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
         function updateFileName(name) {
             const textElement = dropZone.querySelector("strong") || dropZone;
             textElement.innerHTML = `Attached: <span style="color:var(--primary)">${name}</span>`;
-            showToast("File attached to this booking.", "success");
+            UIFeedback.toast("File attached to this booking.", "success");
         }
     }
 
@@ -285,7 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showError(id, msg) {
         const el = document.getElementById(id);
-        if (!el) return showToast(msg, "warn");
+        if (!el) return UIFeedback.toast(msg, "warning");
         el.textContent = msg;
         el.classList.remove("hidden");
     }
@@ -298,30 +298,5 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!iso) return "—";
         const d = new Date(iso + "T00:00:00");
         return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-    }
-
-    function showToast(message, type = "info") {
-        document.querySelector(".toast-notify")?.remove();
-        const bg = { success: "#1a5c3a", warn: "#b45309", info: "#1c2f42" };
-        const t = document.createElement("div");
-        t.className = "toast-notify";
-        t.textContent = message;
-        Object.assign(t.style, {
-            position: "fixed", bottom: "28px", right: "28px", zIndex: "9999",
-            background: bg[type] || bg.info, color: "#fff",
-            padding: "13px 20px", borderRadius: "12px", fontSize: "13px",
-            fontWeight: "600", fontFamily: "Inter, sans-serif",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.18)", maxWidth: "380px",
-            lineHeight: "1.5", transform: "translateY(80px)", opacity: "0",
-            transition: "transform 280ms ease, opacity 280ms ease"
-        });
-        document.body.appendChild(t);
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            t.style.transform = "translateY(0)"; t.style.opacity = "1";
-        }));
-        setTimeout(() => {
-            t.style.transform = "translateY(80px)"; t.style.opacity = "0";
-            setTimeout(() => t.remove(), 300);
-        }, 3500);
     }
 });

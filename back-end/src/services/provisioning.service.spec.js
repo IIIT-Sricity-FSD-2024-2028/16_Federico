@@ -21,7 +21,11 @@ describe('services/provisioning.service', () => {
 
     const result = provisioningService.provision({
       name: 'Provisioning Test Hospital',
-      contact: { phone: '+91-1234567890', email: 'ops@provtest.example', address: 'Test Address' },
+      contact: {
+        phone: '+91-1234567890',
+        email: 'ops@provtest.example',
+        address: 'Test Address',
+      },
       admin_name: 'Prov Admin',
       admin_email: 'prov-admin@provtest.example',
       admin_password: 'ProvAdmin@123',
@@ -29,24 +33,34 @@ describe('services/provisioning.service', () => {
     });
 
     expect(result.organization.name).toBe('Provisioning Test Hospital');
-    expect(result.hospital.organization_id).toBe(result.organization.organization_id);
+    expect(result.hospital.organization_id).toBe(
+      result.organization.organization_id,
+    );
     expect(result.hospital.is_primary).toBe(true);
     expect(result.subscription.plan_id).toBe(plan.plan_id);
-    expect(result.apiKey.organization_id).toBe(result.organization.organization_id);
+    expect(result.apiKey.organization_id).toBe(
+      result.organization.organization_id,
+    );
     expect(result.apiKey.key).toMatch(/^fed_live_/);
 
     // Modules default to the plan's included set when none are explicitly requested.
-    const enabledModules = organizationService.enabledModulesFor(result.organization.organization_id);
+    const enabledModules = organizationService.enabledModulesFor(
+      result.organization.organization_id,
+    );
     expect(enabledModules.sort()).toEqual(['APPOINTMENTS', 'BILLING'].sort());
 
     // Default admin is a real, immediately-usable login (role_id 1 = HOM).
-    const adminUser = dataStore.users.find((u) => u.user_id === result.admin.user_id);
+    const adminUser = dataStore.users.find(
+      (u) => u.user_id === result.admin.user_id,
+    );
     expect(adminUser.role_id).toBe(1);
     expect(adminUser.organization_id).toBe(result.organization.organization_id);
     expect(verifyPassword('ProvAdmin@123', adminUser.password_hash)).toBe(true);
 
     // Every step logged to the provisioning audit trail.
-    const log = dataStore.provisioningLog.filter((l) => l.organization_id === result.organization.organization_id);
+    const log = dataStore.provisioningLog.filter(
+      (l) => l.organization_id === result.organization.organization_id,
+    );
     expect(log.map((l) => l.step)).toEqual([
       'CREATE_ORGANIZATION',
       'GENERATE_CONFIGURATION',
@@ -79,7 +93,11 @@ describe('services/provisioning.service', () => {
       modules: ['APPOINTMENTS'],
     });
 
-    expect(organizationService.enabledModulesFor(result.organization.organization_id)).toEqual(['APPOINTMENTS']);
+    expect(
+      organizationService.enabledModulesFor(
+        result.organization.organization_id,
+      ),
+    ).toEqual(['APPOINTMENTS']);
   });
 
   it('provision() with an unknown plan returns an error and creates nothing', () => {

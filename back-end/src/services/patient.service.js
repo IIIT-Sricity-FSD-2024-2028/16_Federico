@@ -10,7 +10,10 @@ function findAll() {
 // patient_id OR string uhid — exactly as the original controller passed
 // the raw string param straight through without `+id` conversion.
 function findOne(id) {
-  return dataStore.patients.find((p) => p.patient_id === +id || p.uhid === id) || null;
+  return (
+    dataStore.patients.find((p) => p.patient_id === +id || p.uhid === id) ||
+    null
+  );
 }
 
 function generateUhid() {
@@ -24,7 +27,9 @@ function generateUhid() {
 function create(patient) {
   const newPatient = {
     patient_id:
-      dataStore.patients.length > 0 ? Math.max(...dataStore.patients.map((p) => p.patient_id)) + 1 : 201,
+      dataStore.patients.length > 0
+        ? Math.max(...dataStore.patients.map((p) => p.patient_id)) + 1
+        : 201,
     created_at: new Date().toISOString(),
     ...patient,
     uhid: patient.uhid || generateUhid(),
@@ -42,7 +47,9 @@ function update(id, patch) {
 
 function remove(id) {
   const initialLen = dataStore.patients.length;
-  dataStore.patients = dataStore.patients.filter((p) => p.patient_id !== +id && p.uhid !== id);
+  dataStore.patients = dataStore.patients.filter(
+    (p) => p.patient_id !== +id && p.uhid !== id,
+  );
   return { deleted: initialLen > dataStore.patients.length };
 }
 
@@ -59,7 +66,8 @@ function createInsurance(insurance) {
   const newIns = {
     insurance_id:
       dataStore.patientInsurances.length > 0
-        ? Math.max(...dataStore.patientInsurances.map((i) => i.insurance_id)) + 1
+        ? Math.max(...dataStore.patientInsurances.map((i) => i.insurance_id)) +
+          1
         : 301,
     created_at: new Date().toISOString(),
     ...insurance,

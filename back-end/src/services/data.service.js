@@ -40,7 +40,9 @@ function updateFullState(state) {
   for (const key of SYNCED_KEYS) {
     if (state && state[key]) {
       dataStore[key] = state[key];
-      changed.push(Array.isArray(state[key]) ? `${key}(${state[key].length})` : key);
+      changed.push(
+        Array.isArray(state[key]) ? `${key}(${state[key].length})` : key,
+      );
     }
   }
   return { success: true, changed };

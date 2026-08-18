@@ -11,7 +11,9 @@ function findAllServices() {
 function createService(service) {
   const newSvc = {
     service_id:
-      dataStore.services.length > 0 ? Math.max(...dataStore.services.map((s) => s.service_id)) + 1 : 1,
+      dataStore.services.length > 0
+        ? Math.max(...dataStore.services.map((s) => s.service_id)) + 1
+        : 1,
     ...service,
   };
   dataStore.services.push(newSvc);
@@ -33,7 +35,10 @@ function findLedgerById(ledger_id) {
 
 function createLedger(ledger) {
   const newLedger = {
-    ledger_id: dataStore.ledgers.length > 0 ? Math.max(...dataStore.ledgers.map((l) => l.ledger_id)) + 1 : 801,
+    ledger_id:
+      dataStore.ledgers.length > 0
+        ? Math.max(...dataStore.ledgers.map((l) => l.ledger_id)) + 1
+        : 801,
     created_at: new Date().toISOString(),
     ...ledger,
   };
@@ -50,7 +55,9 @@ function findLedgerEntries(ledger_id) {
 
 function addLedgerEntry(entry) {
   const newEntry = {
-    entry_id: dataStore.ledgerEntries.filter((e) => e.ledger_id === entry.ledger_id).length + 1,
+    entry_id:
+      dataStore.ledgerEntries.filter((e) => e.ledger_id === entry.ledger_id)
+        .length + 1,
     entry_time: new Date().toISOString(),
     ...entry,
   };
@@ -66,18 +73,24 @@ function findAllPayments() {
 function createPayment(payment) {
   const newPayment = {
     payment_id:
-      dataStore.payments.length > 0 ? Math.max(...dataStore.payments.map((p) => p.payment_id)) + 1 : 901,
+      dataStore.payments.length > 0
+        ? Math.max(...dataStore.payments.map((p) => p.payment_id)) + 1
+        : 901,
     payment_time: new Date().toISOString(),
     ...payment,
   };
   dataStore.payments.push(newPayment);
 
   // Automatically confirm payment and notify HOM
-  const ledger = dataStore.ledgers.find((l) => l.ledger_id === payment.ledger_id);
+  const ledger = dataStore.ledgers.find(
+    (l) => l.ledger_id === payment.ledger_id,
+  );
   if (ledger) {
     ledger.status = 'PAID';
 
-    const admission = dataStore.admissions.find((a) => a.admission_id === ledger.admission_id);
+    const admission = dataStore.admissions.find(
+      (a) => a.admission_id === ledger.admission_id,
+    );
     if (admission) {
       admission.receipt_sent_to_hom = true;
       admission.status = 'PAYMENT_CONFIRMED';
@@ -85,7 +98,9 @@ function createPayment(payment) {
       // Phase 2: auto-generate a receipt for the patient, and log it.
       const newReceipt = {
         receipt_id:
-          dataStore.receipts.length > 0 ? Math.max(...dataStore.receipts.map((r) => r.receipt_id)) + 1 : 1,
+          dataStore.receipts.length > 0
+            ? Math.max(...dataStore.receipts.map((r) => r.receipt_id)) + 1
+            : 1,
         payment_id: newPayment.payment_id,
         ledger_id: ledger.ledger_id,
         admission_id: admission.admission_id,
@@ -121,7 +136,9 @@ function dispatchLedger(ledger_id) {
   ledger.status = 'DISPATCHED';
   ledger.dispatched_at = new Date().toISOString();
 
-  const admission = dataStore.admissions.find((a) => a.admission_id === ledger.admission_id);
+  const admission = dataStore.admissions.find(
+    (a) => a.admission_id === ledger.admission_id,
+  );
   activityService.log(
     'info',
     `Bill dispatched to patient for admission #${ledger.admission_id}`,
@@ -133,7 +150,9 @@ function dispatchLedger(ledger_id) {
 }
 
 function findPatientBills(patient_id) {
-  const admissions = dataStore.admissions.filter((a) => a.patient_id === patient_id);
+  const admissions = dataStore.admissions.filter(
+    (a) => a.patient_id === patient_id,
+  );
   return admissions.map((admission) => {
     const ledger = findLedgerByAdmission(admission.admission_id);
     const entries = ledger ? findLedgerEntries(ledger.ledger_id) : [];
@@ -150,7 +169,10 @@ function findReceiptsByPatient(patient_id) {
 }
 
 function findDischargeSummaryByAdmission(admission_id) {
-  return dataStore.dischargeSummaries.find((s) => s.admission_id === admission_id) || null;
+  return (
+    dataStore.dischargeSummaries.find((s) => s.admission_id === admission_id) ||
+    null
+  );
 }
 
 // DISCHARGE_SUMMARY

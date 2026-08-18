@@ -42,19 +42,44 @@
     },
   };
 
-  // Demo credentials shown on the login page's per-role helper panel.
-  // Matches the seed users in back-end/src/store/dataStore.js exactly —
-  // see back-end/docs/phase2-source-of-truth.md.
-  var mockAccounts = {
-    Patient: [
-      { email: "hamiz@hosp.com", password: "Hamiz@123", displayName: "Hamiz Shams" },
-      { email: "salma@hosp.com", password: "Salma@123", displayName: "Salma Begum" },
-      { email: "john@hosp.com", password: "John@123", displayName: "John Doe" },
-    ],
-    PRE: [{ email: "rekha.pre@hosp.com", password: "Pre@123", displayName: "Rekha Nair" }],
-    HOM: [{ email: "admin@hosp.com", password: "Hom@123", displayName: "Admin User" }],
-    FA: [{ email: "farah.fa@hosp.com", password: "Fa@123", displayName: "Farah Ansari" }],
+  // Demo credentials shown on the login page's per-role helper panel, now
+  // keyed by organization_id since provisioning a second demo org (Apollo
+  // Hospitals, organization_id 2) means a role's demo login differs by
+  // which hospital is selected — see scripts/seed-multitenant.js's header
+  // comment for the source of truth these mirror. Falls back to
+  // organization 1's accounts if a org has none listed (keeps working for
+  // orgs the demo panel doesn't know about, e.g. freshly provisioned ones,
+  // just showing federico-general's accounts as a "here's the shape" hint
+  // — enforceModuleAccess-style graceful degradation over silence).
+  var mockAccountsByOrg = {
+    1: {
+      Patient: [
+        { email: "hamiz@hosp.com", password: "Hamiz@123", displayName: "Hamiz Shams" },
+        { email: "salma@hosp.com", password: "Salma@123", displayName: "Salma Begum" },
+        { email: "john@hosp.com", password: "John@123", displayName: "John Doe" },
+      ],
+      PRE: [
+        { email: "rekha.pre@hosp.com", password: "Pre@123", displayName: "Rekha Nair" },
+        { email: "billing.assist@hosp.com", password: "Assist@123", displayName: "Billing Assist (custom-role demo)" },
+      ],
+      HOM: [{ email: "admin@hosp.com", password: "Hom@123", displayName: "Admin User" }],
+      FA: [{ email: "farah.fa@hosp.com", password: "Fa@123", displayName: "Farah Ansari" }],
+    },
+    2: {
+      Patient: [{ email: "meera@apollo.hosp.com", password: "Apollo@123", displayName: "Meera Subramaniam" }],
+      PRE: [{ email: "priya.pre@apollo.hosp.com", password: "Apollo@123", displayName: "Priya Krishnan" }],
+      HOM: [{ email: "admin@apollo.hosp.com", password: "Apollo@123", displayName: "Apollo Admin" }],
+      FA: [{ email: "rajesh.fa@apollo.hosp.com", password: "Apollo@123", displayName: "Rajesh Iyer" }],
+    },
   };
+
+  function mockAccountsFor(organizationId) {
+    return mockAccountsByOrg[organizationId] || mockAccountsByOrg[1];
+  }
+
+  // Back-compat: organization 1's accounts, for any caller not yet passing
+  // an organizationId.
+  var mockAccounts = mockAccountsByOrg[1];
 
   function getProfile(actor) {
     return actorProfiles[actor || getCurrentActor()] || null;
@@ -74,14 +99,24 @@
   }
 
   /**
-   * Real login. Returns { actor, profile, account } on success, or null
-   * on invalid credentials / network failure — same truthy/falsy contract
-   * the original synchronous version had, just now a Promise.
+   * Real login. `organizationId` is optional — set by the marketplace
+   * "pick an organization first" flow (tasks.md §11); the backend
+   * cross-checks it against the resolved account and rejects a mismatch.
+   * Returns { actor, profile, account } on success, or null on invalid
+   * credentials / network failure — same truthy/falsy contract the
+   * original synchronous version had, just now a Promise. On failure the
+   * caller can inspect `RoleAccess.lastAuthError` for a specific message.
    */
-  async function authenticate(actor, email, password) {
+  var lastAuthError = null;
+
+  async function authenticate(actor, email, password, organizationId) {
+    lastAuthError = null;
     try {
-      var result = await window.ApiClient.auth.login(email, password);
-      if (result.role !== actor) return null; // valid login, wrong role tab
+      var result = await window.ApiClient.auth.login(email, password, organizationId);
+      if (result.role !== actor) {
+        lastAuthError = "That account is not a " + actor + " account.";
+        return null;
+      }
 
       var profile = getProfile(actor);
       if (!profile) return null;
@@ -95,10 +130,12 @@
         patientUhid: result.patient ? result.patient.uhid : null,
         displayName: result.user.name,
         email: result.user.email,
+        tenant: result.tenant || null,
       });
 
       return { actor: actor, profile: profile, account: { email: result.user.email, displayName: result.user.name } };
     } catch (err) {
+      lastAuthError = (err && err.message) || "Login failed. Please try again.";
       return null;
     }
   }
@@ -121,9 +158,21 @@
       patientUhid: result.patient.uhid,
       displayName: result.user.name,
       email: result.user.email,
+      tenant: result.tenant || null,
     });
 
     return result;
+  }
+
+  /** Tenant Context Service (tasks.md §12) — org id/name/branding/enabled modules for the signed-in session. */
+  function getTenantContext() {
+    var session = getSessionInfo();
+    return (session && session.tenant) || null;
+  }
+
+  function hasModule(moduleCode) {
+    var tenant = getTenantContext();
+    return Boolean(tenant && tenant.enabled_modules && tenant.enabled_modules.includes(moduleCode));
   }
 
   function logout() {
@@ -212,7 +261,16 @@
 
     var fallbackUrl = settings.unauthorizedRedirect || getActorHome(currentActor, detectCurrentModule());
     if (settings.alertMessage !== false) {
-      alert("Access Denied: " + currentActor + " cannot open the " + moduleName + " module.");
+      var message = "Access denied — " + currentActor + " cannot open the " + moduleName + " module.";
+      if (window.UIFeedback) {
+        window.UIFeedback.toast(message, "error");
+        // Non-blocking: give the snackbar a moment on screen before leaving
+        // the page, instead of a native alert() that would freeze it.
+        setTimeout(function () { window.location.href = fallbackUrl; }, 1100);
+        return false;
+      }
+      // UIFeedback not loaded on this page (shouldn't happen post-redesign,
+      // kept only as a defensive fallback) — fall through to immediate redirect.
     }
     window.location.href = fallbackUrl;
     return false;
@@ -221,6 +279,7 @@
   window.RoleAccess = {
     profiles: actorProfiles,
     mockAccounts: mockAccounts,
+    mockAccountsFor: mockAccountsFor,
     authenticate: authenticate,
     signupPatient: signupPatient,
     loginAs: loginAs,
@@ -235,5 +294,8 @@
     isSuperUser: isSuperUser,
     isAdmin: isAdmin,
     getSessionInfo: getSessionInfo,
+    getTenantContext: getTenantContext,
+    hasModule: hasModule,
+    get lastAuthError() { return lastAuthError; },
   };
 })();

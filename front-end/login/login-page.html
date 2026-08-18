@@ -8,12 +8,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="../shared/design-tokens.css" />
+    <link rel="stylesheet" href="../shared/material-components.css" />
+    <link rel="stylesheet" href="../shared/ui-feedback.css" />
     <link rel="stylesheet" href="login-page.css" />
 </head>
 
 <body>
-    <div class="luxury-grid-lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-
     <header class="topbar">
         <div class="brand">
             <div class="brand-icon">F</div>
@@ -38,6 +38,15 @@
 
             <form id="login-form" class="login-form">
                 <div id="login-error" class="login-error" aria-live="polite"></div>
+
+                <div class="form-group">
+                    <label for="organization">Hospital</label>
+                    <select id="organization">
+                        <option value="">Loading hospitals…</option>
+                    </select>
+                    <span class="field-hint">Patients: choose the hospital you're registered with. <a href="../marketplace/marketplace-page.html">Browse all hospitals</a>.</span>
+                </div>
+
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input id="email" type="email" placeholder="Enter your mail" />
@@ -78,6 +87,7 @@
   <script src="../shared/constants.js"></script>
     <script src="../shared/api-client.js"></script>
     <script src="../shared/rbac.js"></script>
+    <script src="../shared/ui-feedback.js"></script>
     <script src="login-page.js"></script>
 </body>
 

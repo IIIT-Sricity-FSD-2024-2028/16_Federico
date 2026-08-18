@@ -17,7 +17,10 @@ const { hashPassword } = require('../utils/password');
  */
 function logStep(organizationId, step, status, message) {
   dataStore.provisioningLog.push({
-    id: dataStore.provisioningLog.length > 0 ? Math.max(...dataStore.provisioningLog.map((l) => l.id)) + 1 : 1,
+    id:
+      dataStore.provisioningLog.length > 0
+        ? Math.max(...dataStore.provisioningLog.map((l) => l.id)) + 1
+        : 1,
     organization_id: organizationId,
     step,
     status,
@@ -28,7 +31,10 @@ function logStep(organizationId, step, status, message) {
 
 function generateApiKey(organizationId, label) {
   const newKey = {
-    api_key_id: dataStore.apiKeys.length > 0 ? Math.max(...dataStore.apiKeys.map((k) => k.api_key_id)) + 1 : 1,
+    api_key_id:
+      dataStore.apiKeys.length > 0
+        ? Math.max(...dataStore.apiKeys.map((k) => k.api_key_id)) + 1
+        : 1,
     organization_id: organizationId,
     label: label || 'Default',
     key: `fed_live_${crypto.randomBytes(18).toString('hex')}`,
@@ -54,25 +60,57 @@ function provision(payload) {
     specialties: payload.specialties,
     emergency_available: payload.emergency_available,
   });
-  logStep(organization.organization_id, 'CREATE_ORGANIZATION', 'DONE', `Organization "${organization.name}" created`);
+  logStep(
+    organization.organization_id,
+    'CREATE_ORGANIZATION',
+    'DONE',
+    `Organization "${organization.name}" created`,
+  );
 
-  const hospital = organizationService.createHospital(organization.organization_id, {
-    name: `${organization.name} — Main Campus`,
-    city: payload.city || null,
-    address: payload.contact && payload.contact.address,
-    phone: payload.contact && payload.contact.phone,
-    is_primary: true,
-  });
-  logStep(organization.organization_id, 'GENERATE_CONFIGURATION', 'DONE', `Primary hospital "${hospital.name}" created`);
+  const hospital = organizationService.createHospital(
+    organization.organization_id,
+    {
+      name: `${organization.name} — Main Campus`,
+      city: payload.city || null,
+      address: payload.contact && payload.contact.address,
+      phone: payload.contact && payload.contact.phone,
+      is_primary: true,
+    },
+  );
+  logStep(
+    organization.organization_id,
+    'GENERATE_CONFIGURATION',
+    'DONE',
+    `Primary hospital "${hospital.name}" created`,
+  );
 
-  const { subscription } = subscriptionService.setPlan(organization.organization_id, plan.plan_id);
-  logStep(organization.organization_id, 'ALLOCATE_QUOTAS', 'DONE', `Subscribed to "${plan.name}" — quotas allocated`);
+  const { subscription } = subscriptionService.setPlan(
+    organization.organization_id,
+    plan.plan_id,
+  );
+  logStep(
+    organization.organization_id,
+    'ALLOCATE_QUOTAS',
+    'DONE',
+    `Subscribed to "${plan.name}" — quotas allocated`,
+  );
 
-  const enabledModules = organizationService.setModuleFlags(organization.organization_id, payload.modules || plan.included_modules);
-  logStep(organization.organization_id, 'ENABLE_MODULES', 'DONE', `Enabled modules: ${enabledModules.join(', ') || 'none'}`);
+  const enabledModules = organizationService.setModuleFlags(
+    organization.organization_id,
+    payload.modules || plan.included_modules,
+  );
+  logStep(
+    organization.organization_id,
+    'ENABLE_MODULES',
+    'DONE',
+    `Enabled modules: ${enabledModules.join(', ') || 'none'}`,
+  );
 
   const adminUser = {
-    user_id: dataStore.users.length > 0 ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1 : 101,
+    user_id:
+      dataStore.users.length > 0
+        ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1
+        : 101,
     name: payload.admin_name,
     email: payload.admin_email,
     password_hash: hashPassword(payload.admin_password),
@@ -82,16 +120,33 @@ function provision(payload) {
     created_at: new Date().toISOString(),
   };
   dataStore.users.push(adminUser);
-  logStep(organization.organization_id, 'CREATE_DEFAULT_ADMIN', 'DONE', `Default admin account created (${adminUser.email})`);
+  logStep(
+    organization.organization_id,
+    'CREATE_DEFAULT_ADMIN',
+    'DONE',
+    `Default admin account created (${adminUser.email})`,
+  );
 
-  const apiKey = generateApiKey(organization.organization_id, 'Provisioning default key');
-  logStep(organization.organization_id, 'GENERATE_API_KEY', 'DONE', 'API key generated');
+  const apiKey = generateApiKey(
+    organization.organization_id,
+    'Provisioning default key',
+  );
+  logStep(
+    organization.organization_id,
+    'GENERATE_API_KEY',
+    'DONE',
+    'API key generated',
+  );
 
   return {
     organization,
     hospital,
     subscription,
-    admin: { user_id: adminUser.user_id, name: adminUser.name, email: adminUser.email },
+    admin: {
+      user_id: adminUser.user_id,
+      name: adminUser.name,
+      email: adminUser.email,
+    },
     apiKey,
   };
 }

@@ -6,7 +6,11 @@ const { sendResult } = require('../utils/sendResult');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
 const logger = createLogger('📋 Appointments');
-const FORBIDDEN = { message: 'Forbidden resource', error: 'Forbidden', statusCode: 403 };
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 function findAll(req, res) {
   const apts = scopeToOrg(requestService.findAll(), req);
@@ -25,10 +29,13 @@ function create(req, res) {
 function update(req, res) {
   const { id } = req.params;
   const existing = requestService.findOne(+id);
-  if (existing && !belongsToOrg(existing, req)) return res.status(403).json(FORBIDDEN);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
   const result = requestService.update(+id, req.body);
   const keys = Object.keys(req.body).join(', ');
-  logger.log(`✏️  UPDATED APPOINTMENT  id=${id}  status=${req.body.status || '?'}  fields=[${keys}]`);
+  logger.log(
+    `✏️  UPDATED APPOINTMENT  id=${id}  status=${req.body.status || '?'}  fields=[${keys}]`,
+  );
   sendResult(res, result, 200);
 }
 

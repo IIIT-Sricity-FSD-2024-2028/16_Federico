@@ -20,7 +20,10 @@ const ACTOR_ACCESS = {
   // ownership checks in patient.controller.js (findOne/update/
   // findInsuranceByPatient/createInsurance) — this table alone doesn't
   // express per-record ownership, only which actors may attempt the call.
-  patient: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM', 'PRE', 'Patient'] },
+  patient: {
+    read: ['HOM', 'PRE', 'FA', 'Patient'],
+    write: ['HOM', 'PRE', 'Patient'],
+  },
   ward: { read: ['HOM', 'PRE', 'FA'], write: ['HOM'] },
   inventory: { read: ['HOM', 'FA'], write: ['HOM'] },
   // 'Patient' read here only actually resolves for the single-record
@@ -59,7 +62,10 @@ const ACTOR_ACCESS = {
   // somewhere, but the route-level gate never lets their request
   // through to be checked) is what the full-lifecycle e2e test below
   // caught.
-  preRequest: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM', 'PRE', 'Patient'] },
+  preRequest: {
+    read: ['HOM', 'PRE', 'FA', 'Patient'],
+    write: ['HOM', 'PRE', 'Patient'],
+  },
   // Org-scoped custom-role administration (tasks.md §9 Dynamic RBAC) is an
   // organization-admin responsibility — HOM is this app's org-admin actor.
   rbac: { read: ['HOM'], write: ['HOM'] },
@@ -78,9 +84,17 @@ const ACTOR_ACCESS = {
  * in `customRoles`/`permissions`/`rolePermissions`/`staffRoleAssignments`.
  */
 function dynamicRoleGrants(req, resource, mode) {
-  if (!req.session || !req.session.userId || !req.tenant || !req.tenant.organizationId) return false;
+  if (
+    !req.session ||
+    !req.session.userId ||
+    !req.tenant ||
+    !req.tenant.organizationId
+  )
+    return false;
   const permissionCode = `${resource}:${mode}`;
-  const permission = dataStore.permissions.find((p) => p.permission_code === permissionCode);
+  const permission = dataStore.permissions.find(
+    (p) => p.permission_code === permissionCode,
+  );
   if (!permission) return false;
 
   const assignedRoleIds = dataStore.staffRoleAssignments
@@ -89,11 +103,21 @@ function dynamicRoleGrants(req, resource, mode) {
   if (assignedRoleIds.length === 0) return false;
 
   const orgRoleIds = new Set(
-    dataStore.customRoles.filter((r) => assignedRoleIds.includes(r.custom_role_id) && r.organization_id === req.tenant.organizationId).map((r) => r.custom_role_id),
+    dataStore.customRoles
+      .filter(
+        (r) =>
+          assignedRoleIds.includes(r.custom_role_id) &&
+          r.organization_id === req.tenant.organizationId,
+      )
+      .map((r) => r.custom_role_id),
   );
   if (orgRoleIds.size === 0) return false;
 
-  return dataStore.rolePermissions.some((rp) => orgRoleIds.has(rp.custom_role_id) && rp.permission_id === permission.permission_id);
+  return dataStore.rolePermissions.some(
+    (rp) =>
+      orgRoleIds.has(rp.custom_role_id) &&
+      rp.permission_id === permission.permission_id,
+  );
 }
 
 /**
@@ -109,7 +133,9 @@ function authorize(legacyRoles, resource, mode) {
   return function (req, res, next) {
     const legacyOk = legacyRoles.includes(req.headers['x-role']);
     const allowedActors = ACTOR_ACCESS[resource]?.[mode] || [];
-    const actorOk = Boolean(req.session && allowedActors.includes(req.session.role));
+    const actorOk = Boolean(
+      req.session && allowedActors.includes(req.session.role),
+    );
     const dynamicOk = dynamicRoleGrants(req, resource, mode);
 
     if (legacyOk || actorOk || dynamicOk) return next();

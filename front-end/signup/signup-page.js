@@ -1,10 +1,32 @@
 document.addEventListener("DOMContentLoaded", () => {
   const createButton = document.querySelector(".create-btn");
   const loginShortcut = document.querySelector(".login-shortcut");
+  const orgSelect = document.getElementById("organization");
 
   loginShortcut?.addEventListener("click", () => {
     window.location.href = "../login/login-page.html";
   });
+
+  // Organization Marketplace (tasks.md §4/§11) — a patient picks which
+  // organization they're registering with before anything else. Public
+  // endpoint, no auth needed. Preselects from ?org=<id> if the patient
+  // arrived here from the marketplace's "Register" link.
+  (async function loadOrganizations() {
+    if (!orgSelect) return;
+    var preselect = new URLSearchParams(window.location.search).get("org");
+    try {
+      var organizations = await window.ApiClient.marketplace.organizations();
+      orgSelect.innerHTML = organizations
+        .map((org) => `<option value="${org.organization_id}">${org.name}</option>`)
+        .join("");
+      if (preselect && organizations.some((o) => String(o.organization_id) === preselect)) {
+        orgSelect.value = preselect;
+      }
+    } catch (err) {
+      orgSelect.innerHTML = '<option value="">Could not load hospitals — refresh to retry</option>';
+      window.UIFeedback?.toast("Could not load the list of hospitals. Please refresh.", "error");
+    }
+  })();
 
   createButton?.addEventListener("click", async () => {
     const firstName = valueOf("first-name");
@@ -28,6 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelector(".terms-row input[type='checkbox']")?.checked,
     );
 
+    const organizationId = orgSelect?.value ? Number(orgSelect.value) : null;
+
     if (
       !firstName ||
       !lastName ||
@@ -35,9 +59,10 @@ document.addEventListener("DOMContentLoaded", () => {
       !gender ||
       !email ||
       !phone ||
-      !password
+      !password ||
+      !organizationId
     ) {
-      showToast("Please fill in all required fields.", "warn");
+      showToast(!organizationId ? "Please choose a hospital to register with." : "Please fill in all required fields.", "warn");
       return;
     }
 
@@ -96,6 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
         dob,
         gender,
         blood_group: bloodGroup || undefined,
+        organization_id: organizationId,
       });
 
       // Optional insurance — the backend models it as a separate record
@@ -149,47 +175,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return value.startsWith("Select ") ? "" : value.trim();
   }
 
+  // Thin adapter over the shared Material You snackbar (shared/ui-feedback.js)
+  // — this page previously hand-rolled its own inline-styled toast; that
+  // implementation (and its two near-duplicate copies in patient-billing.js
+  // and patient-book-appointment.js) has been replaced by UIFeedback
+  // everywhere. "warn" here maps to UIFeedback's "warning" type.
   function showToast(message, type = "info") {
-    document.querySelector(".toast-notify")?.remove();
-    const bgColors = { success: "#1a5c3a", warn: "#b45309", info: "#1c2f42" };
-
-    const t = document.createElement("div");
-    t.className = "toast-notify";
-    t.textContent = message;
-
-    Object.assign(t.style, {
-      position: "fixed",
-      bottom: "28px",
-      right: "28px",
-      zIndex: "9999",
-      background: bgColors[type] || bgColors.info,
-      color: "#fff",
-      padding: "13px 20px",
-      borderRadius: "12px",
-      fontSize: "13px",
-      fontWeight: "600",
-      fontFamily: "Inter, sans-serif",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
-      maxWidth: "380px",
-      lineHeight: "1.5",
-      transform: "translateY(80px)",
-      opacity: "0",
-      transition: "transform 280ms ease, opacity 280ms ease",
-    });
-
-    document.body.appendChild(t);
-
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        t.style.transform = "translateY(0)";
-        t.style.opacity = "1";
-      }),
-    );
-
-    setTimeout(() => {
-      t.style.transform = "translateY(80px)";
-      t.style.opacity = "0";
-      setTimeout(() => t.remove(), 300);
-    }, 3500);
+    const mapped = type === "warn" ? "warning" : type;
+    window.UIFeedback?.toast(message, mapped);
   }
 });

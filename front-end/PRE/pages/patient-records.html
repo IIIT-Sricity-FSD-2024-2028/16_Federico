@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>Patient Records</title>
   <link rel="stylesheet" href="../../shared/design-tokens.css">
+  <link rel="stylesheet" href="../../shared/material-components.css">
+  <link rel="stylesheet" href="../../shared/ui-feedback.css">
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/layout.css">
   <link rel="stylesheet" href="../css/components.css">
@@ -52,10 +54,12 @@
   </table>
 </div>
 
-  <script src="../../shared/constants.js"></script>
+  <script>window.APP_MODULE = "PRE";</script>
+<script src="../../shared/constants.js"></script>
 <script src="../../shared/api-client.js"></script>
 <script src="../../shared/rbac.js"></script>
-<script src="../js/auth-guard.js"></script>
+<script src="../../shared/ui-feedback.js"></script>
+<script src="../../shared/auth-guard.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/patient-records.js"></script>
 <script src="../js/logout.js"></script>

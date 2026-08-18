@@ -100,7 +100,9 @@ function create(payload, createdBy) {
   };
   dataStore.preRequests.push(newRequest);
 
-  const patient = dataStore.patients.find((p) => p.patient_id === newRequest.patient_id);
+  const patient = dataStore.patients.find(
+    (p) => p.patient_id === newRequest.patient_id,
+  );
   activityService.log(
     'info',
     `Pre-registration submitted for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`,
@@ -130,7 +132,14 @@ const HOM_STATUS_BY_STATUS = {
 function updateFields(id, patch) {
   const request = findOne(id);
   if (!request) return null;
-  const { doctor_id, requested_date, requested_time, department, ward_type, visit_type } = patch;
+  const {
+    doctor_id,
+    requested_date,
+    requested_time,
+    department,
+    ward_type,
+    visit_type,
+  } = patch;
   if (doctor_id !== undefined) request.doctor_id = doctor_id;
   if (requested_date !== undefined) request.requested_date = requested_date;
   if (requested_time !== undefined) request.requested_time = requested_time;
@@ -152,7 +161,10 @@ function transition(id, toStatus, actorRole, extra) {
   request.status = toStatus;
   request.hom_status = HOM_STATUS_BY_STATUS[toStatus] || request.hom_status;
   request.updated_at = new Date().toISOString();
-  if (isTerminal(toStatus) || ['ADMITTED', 'DISCHARGE_APPROVED'].includes(toStatus)) {
+  if (
+    isTerminal(toStatus) ||
+    ['ADMITTED', 'DISCHARGE_APPROVED'].includes(toStatus)
+  ) {
     request.decided_at = request.decided_at || new Date().toISOString();
   }
 
@@ -176,8 +188,23 @@ function transition(id, toStatus, actorRole, extra) {
     if (admission) admission.status = 'DISCHARGED';
   }
 
-  activityService.log('success', `Pre-request #${id} moved ${request.status}`, { preRequestId: id, actorRole }, request.organization_id);
+  activityService.log(
+    'success',
+    `Pre-request #${id} moved ${request.status}`,
+    { preRequestId: id, actorRole },
+    request.organization_id,
+  );
   return request;
 }
 
-module.exports = { STATUSES, TRANSITIONS, canTransition, isTerminal, findAll, findOne, create, updateFields, transition };
+module.exports = {
+  STATUSES,
+  TRANSITIONS,
+  canTransition,
+  isTerminal,
+  findAll,
+  findOne,
+  create,
+  updateFields,
+  transition,
+};

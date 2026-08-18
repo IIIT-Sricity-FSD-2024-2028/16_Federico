@@ -1,12 +1,12 @@
-/* landing-page.css — Phase 4: Luxury / Editorial (design.txt) */
+/* landing-page.css — Material You (Material Design 3) */
 
-* , *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
     margin: 0;
     font-family: var(--font-body);
-    background: var(--color-bg);
-    color: var(--color-fg);
+    background: var(--md-background);
+    color: var(--md-on-background);
     -webkit-font-smoothing: antialiased;
 }
 
@@ -17,8 +17,8 @@ button, a { font-family: inherit; cursor: pointer; }
     position: relative;
     z-index: 2;
     height: 88px;
-    background: var(--color-bg);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--md-background);
+    border-bottom: 1px solid var(--md-outline-variant);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -28,22 +28,24 @@ button, a { font-family: inherit; cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 12px; }
 
 .brand-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius);
-    background: var(--color-fg);
-    color: var(--color-bg);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     display: grid;
     place-items: center;
     font-family: var(--font-heading);
+    font-weight: 700;
     font-size: 16px;
 }
 
 .brand-text {
     font-family: var(--font-heading);
     font-size: 18px;
-    letter-spacing: 0.02em;
-    color: var(--color-fg);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--md-on-background);
 }
 
 /* ─── Page wrapper ─── */
@@ -52,55 +54,61 @@ button, a { font-family: inherit; cursor: pointer; }
     z-index: 2;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 96px var(--page-pad, 64px) 64px;
+    padding: 56px var(--page-pad, 64px) 64px;
 }
 
-/* ─── Hero section ─── */
+/* ─── Hero section — atmospheric MD3 container with blur-shape glow ─── */
 .hero-section {
+    position: relative;
+    overflow: hidden;
     display: grid;
     grid-template-columns: 1.6fr 1fr;
     gap: 48px;
     align-items: start;
+    border-radius: var(--radius-xxl);
+    background: var(--md-surface-container);
+    padding: 64px var(--page-pad, 64px);
 }
 
-/* ─── Shared card base — defined by a single top line, not a box ─── */
-.hero-card, .info-card, .feature-card {
-    background: transparent;
-    border-radius: var(--radius);
-    box-shadow: none;
-    border-top: 1px solid var(--color-fg);
-}
+.hero-section .md-blur-shape { width: 420px; height: 420px; }
+.hero-section .md-blur-primary { top: -160px; left: -140px; }
+.hero-section .md-blur-tertiary { width: 360px; height: 360px; bottom: -160px; right: -120px; }
 
-/* ─── Hero card ─── */
+/* ─── Hero card — transparent content layer sitting above the blur glow ─── */
 .hero-card {
-    padding: 56px 0 0;
+    position: relative;
+    z-index: 1;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
     min-height: 320px;
 }
 
-/* ─── Badges / overlines ─── */
+/* ─── Badges / chips ─── */
 .hero-badge, .section-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0;
+    gap: 8px;
     font-family: var(--font-body);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
-    color: var(--color-muted-fg);
-    background: transparent;
-    padding: 0;
+    color: var(--md-on-tertiary-container);
+    background: var(--md-tertiary-container);
+    border-radius: var(--radius-full);
+    padding: 8px 16px;
 }
 
-.hero-badge { margin-bottom: 40px; position: relative; }
+.hero-badge { margin-bottom: 32px; }
 
 .hero-badge::before {
     content: "";
-    width: 32px;
-    height: 1px;
-    background: var(--color-accent);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--md-tertiary);
     display: inline-block;
-    margin-right: 14px;
     flex-shrink: 0;
 }
 
@@ -108,26 +116,26 @@ button, a { font-family: inherit; cursor: pointer; }
 .hero-card h1 {
     margin: 0;
     font-family: var(--font-heading);
-    font-weight: 400;
-    font-size: clamp(2.75rem, 5vw, 4.5rem);
-    line-height: 0.98;
+    font-weight: 500;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1.1;
     letter-spacing: -0.01em;
     max-width: 640px;
-    color: var(--color-fg);
+    color: var(--md-on-background);
 }
 
 .hero-card h1 span, .why-section h2 span {
-    font-style: italic;
-    color: var(--color-accent);
-    font-weight: 400;
+    color: var(--md-primary);
+    font-weight: 700;
+    font-style: normal;
 }
 
 .hero-card p {
-    margin: 32px 0 0;
+    margin: 24px 0 0;
     max-width: 460px;
     font-size: 16px;
     line-height: 1.7;
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
     font-weight: 400;
 }
 
@@ -139,48 +147,57 @@ button, a { font-family: inherit; cursor: pointer; }
     flex-wrap: wrap;
 }
 
-/* Primary/secondary button visuals (gold-slide dark button, outline
-   fill-on-hover) are shared across landing/login/signup — see
-   shared/design-tokens.css. */
+/* Primary/secondary button visuals (pill shape, filled/outlined states)
+   are shared across landing/login/signup — see shared/design-tokens.css.
+   Don't override the radius/shape here, only layout. */
 
 /* ─── Side panels ─── */
-.side-panels { display: grid; gap: 32px; }
+.side-panels { position: relative; z-index: 1; display: grid; gap: 24px; }
 
-.info-card { padding: 32px 0 0; }
+.info-card {
+    background: var(--md-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+    padding: 28px;
+    transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
+}
+
+.info-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
 
 .info-card h2 {
-    margin: 0 0 16px;
+    margin: 0 0 12px;
     font-family: var(--font-heading);
     font-size: 20px;
     font-weight: 500;
-    color: var(--color-fg);
+    color: var(--md-on-background);
 }
 
 .info-card p {
     margin: 0;
     font-size: 14px;
     line-height: 1.7;
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
     font-weight: 400;
 }
 
-/* Emergency call button — the one deliberate exception to the
-   monochrome+gold rule: an emergency action is a genuine safety signal,
-   not decoration, so it keeps a clear red for instant recognition. */
+/* Emergency call button — the one deliberate exception to the purple
+   accent rule: an emergency action is a genuine safety signal, not
+   decoration, so it keeps a clear red for instant recognition. Still
+   pill-shaped and tactile like every other button on these pages. */
 .call-btn {
     margin-top: 20px;
     width: 100%;
-    border: 1px solid var(--status-error);
-    border-radius: var(--radius);
+    border: none;
+    border-radius: var(--radius-full);
     height: 52px;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: var(--tracking-button);
     text-transform: uppercase;
-    background: transparent;
-    color: var(--status-error);
-    transition: background var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
+    background: var(--status-error-bg);
+    color: var(--status-error-fg);
+    transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
 
 .call-btn:hover {
@@ -188,17 +205,20 @@ button, a { font-family: inherit; cursor: pointer; }
     color: #fff;
 }
 
+.call-btn:active { transform: scale(0.97); }
+
 /* ─── Locations card ─── */
-.locations-card { padding-bottom: 8px; }
+.locations-card { padding-bottom: 16px; }
 
 .location-item {
     border: none;
-    border-top: 1px solid var(--color-border);
-    border-radius: 0;
-    padding: 20px 0;
+    border-top: 1px solid var(--md-outline-variant);
+    padding: 18px 0;
     background: transparent;
-    transition: padding var(--duration-base) var(--ease-luxury);
+    transition: padding var(--duration-base) var(--ease-standard);
 }
+
+.location-item:first-of-type { border-top: none; padding-top: 0; }
 
 .location-item:hover { padding-left: 8px; }
 
@@ -209,7 +229,7 @@ button, a { font-family: inherit; cursor: pointer; }
     font-family: var(--font-body);
     font-size: 13px;
     line-height: 1.5;
-    color: var(--color-fg);
+    color: var(--md-on-background);
     font-weight: 600;
 }
 
@@ -220,50 +240,49 @@ button, a { font-family: inherit; cursor: pointer; }
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 4px 10px;
-    border-radius: var(--radius);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
     white-space: nowrap;
 }
 
-.location-item p { margin: 10px 0 12px; font-size: 13px; color: var(--color-muted-fg); }
+.location-item p { margin: 10px 0 12px; font-size: 13px; color: var(--md-on-surface-variant); }
 
 .location-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; }
 
 .location-foot a {
-    color: var(--color-fg);
+    color: var(--md-primary);
     text-decoration: none;
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     border-bottom: 1px solid transparent;
-    transition: color var(--duration-base) var(--ease-luxury), border-color var(--duration-base) var(--ease-luxury);
+    transition: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
 }
 
-.location-foot a:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.location-foot a:hover { border-color: var(--md-primary); }
 
 /* ─── Why Federico section ─── */
 .why-section {
     position: relative;
-    padding: 128px 0 96px;
+    padding: 96px 0 80px;
     text-align: left;
-    border-top: 1px solid var(--color-border);
 }
 
-.section-badge { text-transform: uppercase; }
+.section-badge { margin-bottom: 8px; }
 
 .why-section h2 {
-    margin: 24px 0 24px;
+    margin: 20px 0 24px;
     font-family: var(--font-heading);
-    font-size: clamp(2rem, 4vw, 3.25rem);
-    line-height: 1.05;
-    color: var(--color-fg);
-    font-weight: 400;
+    font-size: clamp(1.875rem, 4vw, 3rem);
+    line-height: 1.15;
+    color: var(--md-on-background);
+    font-weight: 500;
     max-width: 720px;
 }
 
 .section-text {
     margin: 0;
     max-width: 560px;
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
     font-size: 16px;
     line-height: 1.7;
     font-weight: 400;
@@ -271,43 +290,66 @@ button, a { font-family: inherit; cursor: pointer; }
 
 /* ─── Feature cards ─── */
 .features-grid {
-    margin-top: 64px;
+    margin-top: 48px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--color-border);
+    gap: 20px;
 }
 
 .feature-card {
     text-align: left;
-    padding: 40px 32px;
-    background: var(--color-bg);
-    border-top: 4px solid transparent;
-    transition: border-color var(--duration-base) var(--ease-luxury), background var(--duration-base) var(--ease-luxury);
+    padding: 32px 28px;
+    background: var(--md-surface-container);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+    transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
     cursor: default;
 }
 
 .feature-card:hover {
-    border-top-color: var(--color-accent);
-    background: rgba(26, 26, 26, 0.015);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-2px);
 }
 
 .feature-card h3 {
-    margin: 0 0 16px;
+    margin: 0 0 12px;
     font-family: var(--font-heading);
     font-size: 20px;
     font-weight: 500;
-    color: var(--color-fg);
-    transition: color var(--duration-base) var(--ease-luxury);
+    color: var(--md-on-background);
+    transition: color var(--duration-base) var(--ease-standard);
 }
 
 .feature-card p {
     margin: 0;
     font-size: 14px;
     line-height: 1.8;
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
     font-weight: 400;
 }
+
+/* ─── Footer ─── */
+.site-footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 24px var(--page-pad, 64px) 32px;
+    color: var(--md-on-surface-variant);
+    font-size: 0.8125rem;
+}
+
+.footer-admin-link {
+    font-size: 0.75rem;
+    color: var(--md-on-surface-variant);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.footer-admin-link:hover { color: var(--md-primary); }
 
 /* ─── Responsive ─── */
 @media (max-width: 1024px) {
@@ -318,15 +360,22 @@ button, a { font-family: inherit; cursor: pointer; }
 @media (max-width: 640px) {
     :root { --page-pad: 24px; }
 
-    .page { padding: 56px 24px 40px; }
+    .page { padding: 40px 24px 40px; }
 
-    .hero-card h1, .why-section h2 { font-size: 2.25rem; }
+    .hero-section { padding: 40px 24px; border-radius: var(--radius-lg); }
 
-    .why-section { padding: 80px 0 64px; }
+    .hero-section .md-blur-shape { width: 260px; height: 260px; }
+    .hero-section .md-blur-tertiary { width: 220px; height: 220px; }
+
+    .hero-card h1, .why-section h2 { font-size: 2rem; }
+
+    .why-section { padding: 64px 0 48px; }
 
     .hero-actions { flex-direction: column; }
 
     .primary-btn, .secondary-btn { width: 100%; text-align: center; }
 
     .location-head, .location-foot { flex-direction: column; align-items: flex-start; }
+
+    .site-footer { padding: 20px 24px 28px; flex-direction: column; align-items: flex-start; }
 }

@@ -46,13 +46,23 @@ function withTenant(req, payload) {
 function scopeToOrg(list, req) {
   const organizationId = req.tenant && req.tenant.organizationId;
   if (!organizationId) return [];
-  return (list || []).filter((record) => record.organization_id === organizationId);
+  return (list || []).filter(
+    (record) => record.organization_id === organizationId,
+  );
 }
 
 /** True if a single record belongs to the caller's organization. */
 function belongsToOrg(record, req) {
   const organizationId = req.tenant && req.tenant.organizationId;
-  return Boolean(record && organizationId && record.organization_id === organizationId);
+  return Boolean(
+    record && organizationId && record.organization_id === organizationId,
+  );
 }
 
-module.exports = { MODULES, MODULE_CODES, withTenant, scopeToOrg, belongsToOrg };
+module.exports = {
+  MODULES,
+  MODULE_CODES,
+  withTenant,
+  scopeToOrg,
+  belongsToOrg,
+};

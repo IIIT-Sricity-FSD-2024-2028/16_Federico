@@ -1,11 +1,15 @@
-/* NAVBAR */
+/* NAVBAR — Material You top app bar: translucent surface, blur, hairline */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--color-bg);
-  padding: 20px 40px;
-  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--md-surface) 92%, transparent);
+  backdrop-filter: blur(12px);
+  padding: 16px 40px;
+  border-bottom: 1px solid var(--md-outline-variant);
   box-shadow: none;
 }
 
@@ -16,14 +20,14 @@
   gap: 12px;
 }
 
-/* Icon */
+/* Icon — brand mark, MD3 style */
 .icon {
-  background: var(--color-fg);
-  color: var(--color-bg);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
   padding: 10px 14px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font-family: var(--font-heading);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 18px;
 }
 
@@ -58,52 +62,51 @@
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 10px 14px;
-  border-radius: var(--radius);
-  border-bottom: 2px solid transparent;
-  transition: color var(--duration-base) var(--ease-luxury), border-color var(--duration-base) var(--ease-luxury);
+  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  border-bottom: none;
+  transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
 .nav-links li a {
   text-decoration: none;
   color: var(--color-muted-fg);
-  transition: color var(--duration-base) var(--ease-luxury);
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
-/* Hover */
+/* Hover — tonal state layer, no more underline */
 .nav-links li:hover {
-  background: transparent;
+  background: color-mix(in srgb, var(--md-primary) 8%, transparent);
   transform: none;
-  border-bottom-color: var(--color-accent);
 }
 
 .nav-links li:hover a {
   color: var(--color-fg);
 }
 
-/* Active */
+/* Active — filled pill chip */
 .nav-links .active {
-  background: transparent;
-  border-bottom-color: var(--color-accent);
+  background: var(--md-secondary-container);
 }
 
 .nav-links .active a {
-  color: var(--color-fg);
+  color: var(--md-on-secondary-container);
+  font-weight: 600;
 }
 
-/* Logout */
+/* Logout — pill outlined danger button */
 .logout {
   background: transparent;
   color: var(--status-error);
   border: 1px solid var(--status-error);
-  padding: 10px 18px;
-  border-radius: var(--radius);
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: var(--tracking-button);
   text-transform: uppercase;
   cursor: pointer;
-  transition: background var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
+  transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
 .logout:hover {
@@ -111,51 +114,50 @@
   color: #fff;
 }
 
-/*  CARDS — defined by a single top line, not a box  */
+/*  CARDS — Material You tonal surface cards  */
 .cards {
   display: flex;
-  gap: 1px;
+  gap: 16px;
   padding: 20px;
-  background: var(--color-border);
+  background: transparent;
 }
 
 .card {
-  background: var(--color-bg);
+  background: var(--md-surface-container);
   padding: 24px;
   flex: 1;
-  border-radius: var(--radius);
-  border-top: 3px solid transparent;
-  transition: border-color var(--duration-base) var(--ease-luxury);
-  box-shadow: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
 }
 
 .card:hover {
-  background: var(--color-bg);
-  transform: none;
-  border-top-color: var(--color-accent);
+  background: var(--md-surface-container);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
 }
 
-/*  CONTAINER */
+/*  CONTAINER — tonal surface  */
 .container {
-  background: var(--color-bg);
+  background: var(--md-surface-container);
   margin: 20px;
   padding: 28px;
-  border-radius: var(--radius);
-  border-top: 1px solid var(--color-fg);
-  box-shadow: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
 }
 
 .container h2 {
   margin-top: 0;
 }
 
-/* TABLE  */
+/* TABLE — tonal surface card  */
 .table-container {
-  background: var(--color-bg);
+  background: var(--md-surface-container);
   margin: 20px;
   padding: 0;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
 }
 
 table {
@@ -166,7 +168,7 @@ table {
 }
 
 th {
-  background: var(--color-muted-bg);
+  background: var(--md-surface-container-high);
   padding: 14px 12px;
   font-size: 11px;
   font-weight: 600;
@@ -183,7 +185,7 @@ td {
 }
 
 tr:hover {
-  background: var(--color-muted-bg);
+  background: var(--md-surface-container-high);
 }
 
 /*  BUTTONS — dark rectangle, gold slide-in overlay on hover (no markup
@@ -195,9 +197,9 @@ tr:hover {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  padding: 10px 18px;
+  padding: 10px 20px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-full);
   cursor: pointer;
   margin: 2px;
   font-family: var(--font-body);
@@ -205,7 +207,11 @@ tr:hover {
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: box-shadow var(--duration-base) var(--ease-luxury), background var(--duration-base) var(--ease-luxury);
+  transition: box-shadow var(--duration-base) var(--ease-standard), background var(--duration-base) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.btn:active {
+  transform: scale(0.96);
 }
 
 /* Approve */
@@ -245,50 +251,39 @@ tr:hover {
 
 .card-hom {
   width: 420px;
-  background: var(--color-bg);
+  background: var(--md-surface-container);
   padding: 32px;
-  border-radius: var(--radius);
-  border-top: 1px solid var(--color-fg);
+  border-radius: var(--radius-lg);
   text-align: center;
-  box-shadow: none;
+  box-shadow: var(--shadow-1);
 }
 
 .card-hom input {
   width: 100%;
-  height: 44px;
-  padding: 0;
+  height: 56px;
+  padding: 0 16px;
   margin: 8px 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  background: transparent;
-  transition: border-color var(--duration-base) var(--ease-luxury);
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
 }
 .card-hom input:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--md-primary);
+  border-bottom-color: var(--md-primary);
+  background: var(--md-surface-container);
 }
 
-/* HOM Buttons — dark/gold slide + outline red, matching the shared
-   .primary-btn / .secondary-btn treatment used on landing/login/signup */
+/* HOM Buttons — filled primary + outlined danger, MD3 pill */
 .btn-blue {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  background: var(--color-fg);
-  color: var(--color-bg);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
 }
-.btn-blue::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--color-accent);
-  transform: translateX(-100%);
-  transition: transform var(--duration-base) var(--ease-luxury);
-  z-index: -1;
-}
-.btn-blue:hover::before {
-  transform: translateX(0);
+.btn-blue:hover {
+  background: color-mix(in srgb, var(--md-primary) 90%, black);
+  box-shadow: var(--shadow-2);
 }
 
 .btn-red {
@@ -309,13 +304,12 @@ tr:hover {
 }
 
 .card-appointment {
-  background: var(--color-bg);
+  background: var(--md-surface-container);
   padding: 32px;
   width: 400px;
-  border-radius: var(--radius);
-  border-top: 1px solid var(--color-fg);
-  box-shadow: none;
-  transition: border-color var(--duration-base) var(--ease-luxury);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow var(--duration-base) var(--ease-standard);
 }
 
 .card-appointment:hover {
@@ -325,24 +319,26 @@ tr:hover {
 .card-appointment input,
 .card-appointment select {
   width: 100%;
-  height: 44px;
-  padding: 0;
+  height: 56px;
+  padding: 0 16px;
   margin: 8px 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  background: transparent;
-  transition: border-color var(--duration-base) var(--ease-luxury);
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
 }
 .card-appointment input:focus,
 .card-appointment select:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--md-primary);
+  border-bottom-color: var(--md-primary);
+  background: var(--md-surface-container);
 }
 .card-appointment input::placeholder {
-  font-family: var(--font-heading);
-  font-style: italic;
+  font-family: var(--font-body);
   color: var(--color-muted-fg);
+  opacity: 0.8;
 }
 
 .appointment-patient-picker {
@@ -370,21 +366,21 @@ tr:hover {
   max-height: 280px;
   overflow-y: auto;
   padding: 8px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  box-shadow: var(--shadow-card-hover);
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--md-surface-container-high);
+  box-shadow: var(--shadow-3);
 }
 
 .appointment-picker-option {
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--duration-base) var(--ease-luxury), background var(--duration-base) var(--ease-luxury);
+  transition: border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
 }
 
 .appointment-picker-option + .appointment-picker-option {
@@ -392,8 +388,8 @@ tr:hover {
 }
 
 .appointment-picker-option:hover {
-  border-color: var(--color-accent);
-  background: var(--color-muted-bg);
+  border-color: var(--md-primary);
+  background: var(--md-surface-container-low);
 }
 
 .appointment-picker-row {
@@ -430,21 +426,20 @@ tr:hover {
 
 .search-box button {
   padding: 10px 16px;
-  border: 1px solid var(--color-fg);
+  border: 1px solid var(--md-outline);
   background: transparent;
-  color: var(--color-fg);
-  border-radius: var(--radius);
+  color: var(--md-primary);
+  border-radius: var(--radius-full);
   margin-left: 8px;
   cursor: pointer;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: background var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
+  transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
 .search-box button:hover {
-  background: var(--color-fg);
-  color: var(--color-bg);
+  background: color-mix(in srgb, var(--md-primary) 8%, transparent);
 }
 
 /* Green Button */
@@ -457,9 +452,10 @@ tr:hover {
   background: var(--status-success-fg);
 }
 
-/*  POPUP — a modal must keep an opaque surface over the scrim; this is
-    the one place a solid card background stays (defined by a top border
-    accent + hairline outline instead of a shadow box, still 0px radius) */
+/*  POPUP — Material You dialog visuals (matches shared/ui-feedback.css's
+    .md-dialog: large radius, elevation-4 shadow, tonal surface) for the
+    real-content popups (new-patient form, search result) that stay local
+    dialogs rather than moving to the generic UIFeedback dialog. */
 .popup {
   display: none;
   position: fixed;
@@ -467,9 +463,10 @@ tr:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(26, 26, 26, 0.55);
+  background: rgba(0, 0, 0, 0.4);
   justify-content: center;
   align-items: center;
+  z-index: 1100;
 }
 
 /* Active popup */
@@ -479,26 +476,33 @@ tr:hover {
 
 /* Popup box */
 .popup-content {
-  background: var(--color-bg);
+  background: var(--md-surface-container-high);
   padding: 32px;
-  border-radius: var(--radius);
-  border-top: 3px solid var(--color-accent);
+  border-radius: var(--radius-xl);
   width: 320px;
   text-align: center;
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-4);
 }
 
 /* Popup inputs */
 .popup-content input,
 .popup-content select {
   width: 100%;
-  height: 44px;
-  padding: 0;
+  height: 56px;
+  padding: 0 16px;
   margin: 10px 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  background: transparent;
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+
+.popup-content input:focus,
+.popup-content select:focus {
+  outline: none;
+  border-bottom-color: var(--md-primary);
+  background: var(--md-surface-container);
 }
 
 .search-result-popup-content {
@@ -512,9 +516,9 @@ tr:hover {
 }
 
 .search-result-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-muted-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--md-surface-container-low);
   padding: 14px 16px;
   margin-bottom: 18px;
 }
@@ -539,56 +543,6 @@ tr:hover {
   color: var(--color-fg);
 }
 
-
-
-/* SUCCESS POPUP  */
- .success-popup {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(26, 26, 26, 0.55);
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.success-box {
-  background: var(--color-bg);
-  padding: 28px 32px;
-  border-radius: var(--radius);
-  border-top: 3px solid var(--status-success);
-  text-align: center;
-  box-shadow: var(--shadow-card-hover);
-  animation: popupFade var(--duration-base) var(--ease-luxury);
-}
-
-.success-box p {
-  font-size: 17px;
-  margin-bottom: 18px;
-  color: var(--status-success-fg);
-  font-weight: 600;
-}
-
-.success-box button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--status-success);
-  color: white;
-  cursor: pointer;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: background var(--duration-base) var(--ease-luxury);
-}
-
-.success-box button:hover {
-  background: var(--status-success-fg);
-}
-
 /* Animation */
 @keyframes popupFade {
   from {
@@ -609,7 +563,7 @@ tr:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(26, 26, 26, 0.6);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -617,13 +571,12 @@ tr:hover {
 }
 
 .suggest-box {
-  background: var(--color-bg);
+  background: var(--md-surface-container-high);
   padding: 32px;
-  border-radius: var(--radius);
-  border-top: 3px solid var(--status-info);
+  border-radius: var(--radius-xl);
   width: 420px;
-  box-shadow: var(--shadow-card-hover);
-  animation: popupFade var(--duration-base) var(--ease-luxury);
+  box-shadow: var(--shadow-4);
+  animation: popupFade var(--duration-base) var(--ease-standard);
 }
 
 .suggest-box h2 {
@@ -647,12 +600,12 @@ tr:hover {
 
 .form-group input {
   width: 100%;
-  height: 44px;
-  padding: 0;
-  border-radius: 0;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  background: transparent;
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
 }
 
 .popup-buttons {
@@ -668,7 +621,7 @@ tr:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(26, 26, 26, 0.6);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -677,13 +630,12 @@ tr:hover {
 
 /* Approve Popup Box */
 .approve-box {
-  background: var(--color-bg);
+  background: var(--md-surface-container-high);
   padding: 32px;
-  border-radius: var(--radius);
-  border-top: 3px solid var(--status-success);
+  border-radius: var(--radius-xl);
   width: 420px;
-  box-shadow: var(--shadow-card-hover);
-  animation: popupFade var(--duration-base) var(--ease-luxury);
+  box-shadow: var(--shadow-4);
+  animation: popupFade var(--duration-base) var(--ease-standard);
   text-align: center;
 }
 
@@ -696,13 +648,13 @@ tr:hover {
 /* Input fields */
 .approve-box input {
   width: 100%;
-  height: 44px;
-  padding: 0;
-  border-radius: 0;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
+  border-bottom: 2px solid var(--md-outline);
   margin-bottom: 12px;
-  background: transparent;
+  background: var(--md-surface-container-low);
 }
 
 /* Buttons spacing */
@@ -750,7 +702,7 @@ tr:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(26, 26, 26, 0.6);
+  background: rgba(0, 0, 0, 0.4);
 
   display: flex;
   justify-content: center;
@@ -759,90 +711,95 @@ tr:hover {
   z-index: 3000;
 }
 
-/* Common box styling */
+/* Common box styling — Material You dialog surface */
 .approve-box,
 .reject-box,
 .suggest-box {
-  background: var(--color-bg);
+  background: var(--md-surface-container-high);
   padding: 32px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
   width: 400px;
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-4);
 
-  animation: popupFade var(--duration-base) var(--ease-luxury);
+  animation: popupFade var(--duration-base) var(--ease-standard);
   text-align: center;
 }
-
-.reject-box { border-top: 3px solid var(--status-error); }
 
 /* Reject textarea fix */
 .reject-box textarea {
   width: 100%;
-  padding: 12px 0;
-  border-radius: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  background: transparent;
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
   margin-top: 10px;
 }
 
-/* Buttons styling */
+/* Buttons styling — pill actions */
 .popup-buttons button {
   flex: 1;
   padding: 12px;
   margin: 5px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  transition: background var(--duration-base) var(--ease-luxury);
+  transition: background var(--duration-fast) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
 
-/* Confirm button */
+/* Confirm button — filled primary */
 .popup-buttons button:first-child {
-  background: var(--color-fg);
-  color: var(--color-bg);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+.popup-buttons button:first-child:hover {
+  background: color-mix(in srgb, var(--md-primary) 90%, black);
+  box-shadow: var(--shadow-2);
 }
 
-/* Cancel/dismiss button */
+/* Cancel/dismiss button — outlined */
 .popup-buttons button:last-child {
   background: transparent;
-  color: var(--color-fg);
-  border: 1px solid var(--color-fg);
+  color: var(--md-primary);
+  border: 1px solid var(--md-outline);
+}
+.popup-buttons button:last-child:hover {
+  background: color-mix(in srgb, var(--md-primary) 8%, transparent);
 }
 
-/* Hover */
-.popup-buttons button:hover {
-  opacity: 0.85;
+.popup-buttons button:active {
+  transform: scale(0.97);
 }
 
 
 
-/* ===== Custom Dropdown ===== */
+/* ===== Custom Dropdown — MD3 filled select ===== */
 .custom-select {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: none;
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
   cursor: pointer;
-  transition: border-color var(--duration-base) var(--ease-luxury);
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
   min-height: 46px;
   box-sizing: border-box;
 }
 
 .custom-select:hover {
-  border-color: var(--color-fg);
+  border-bottom-color: var(--md-on-background);
 }
 
 .custom-select:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-bottom-color: var(--md-primary);
   box-shadow: none;
-  background: var(--color-bg);
+  background: var(--md-surface-container);
 }
 
 
@@ -852,13 +809,13 @@ tr:hover {
   background: transparent;
   color: var(--status-error);
   border: 1px solid var(--status-error);
-  padding: 8px 16px;
-  border-radius: var(--radius);
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  transition: background var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
+  transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
 .discharge-btn:hover {
@@ -891,13 +848,13 @@ tr:hover {
 .popup-kicker {
   display: inline-flex;
   align-items: center;
-  padding: 5px 12px;
-  border-radius: var(--radius);
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  border: 1px solid currentColor;
+  border: none;
 }
 
 .popup-kicker-approve {
@@ -930,11 +887,11 @@ tr:hover {
 .popup-summary-pill {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-fg);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
   font-size: 11px;
   font-weight: 500;
 }
@@ -953,13 +910,13 @@ tr:hover {
 .suggest-box select,
 .reject-box textarea {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 0;
-  border-radius: 0;
+  min-height: 56px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  background: transparent;
-  transition: border-color var(--duration-base) var(--ease-luxury);
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
   box-sizing: border-box;
   font-family: var(--font-body);
   font-size: 14px;
@@ -971,9 +928,9 @@ tr:hover {
 .approve-box input::placeholder,
 .suggest-box input::placeholder,
 .reject-box textarea::placeholder {
-  font-family: var(--font-heading);
-  font-style: italic;
+  font-family: var(--font-body);
   color: var(--color-muted-fg);
+  opacity: 0.8;
 }
 
 .popup-input:focus,
@@ -984,9 +941,9 @@ tr:hover {
 .suggest-box select:focus,
 .reject-box textarea:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-bottom-color: var(--md-primary);
   box-shadow: none;
-  background: transparent;
+  background: var(--md-surface-container);
 }
 
 .popup-textarea,
@@ -1007,10 +964,10 @@ tr:hover {
 .reject-box,
 .suggest-box {
   padding: 36px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
   width: 460px;
   max-width: calc(100vw - 32px);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-4);
   text-align: left;
 }
 
@@ -1026,7 +983,7 @@ tr:hover {
   min-height: 46px;
   padding: 12px 16px;
   margin: 0;
-  border-radius: var(--radius);
+  border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
   font-weight: 600;
@@ -1036,17 +993,19 @@ tr:hover {
 }
 
 .custom-select {
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: none;
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
   min-height: 46px;
   box-sizing: border-box;
 }
 
 .custom-select:focus {
-  border-color: var(--color-accent);
+  border-bottom-color: var(--md-primary);
   box-shadow: none;
+  background: var(--md-surface-container);
 }
 
 @media (max-width: 640px) {
@@ -1081,20 +1040,20 @@ tr:hover {
   width: min(760px, calc(100vw - 64px));
   padding: 32px;
   text-align: left;
-  background: var(--color-bg);
+  background: var(--md-surface-container);
   border: none;
-  border-top: 1px solid var(--color-fg);
-  box-shadow: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
 }
 
 .hom-card-kicker {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-muted-fg);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: var(--tracking-label);
@@ -1119,9 +1078,9 @@ tr:hover {
 
 .hom-form-section {
   padding: 20px;
-  border-radius: var(--radius);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--md-surface-container-low);
+  border: none;
   box-shadow: none;
 }
 
@@ -1130,7 +1089,7 @@ tr:hover {
 }
 
 .hom-form-section-muted {
-  background: var(--color-muted-bg);
+  background: var(--md-surface-container-high);
 }
 
 .hom-section-header {
@@ -1151,10 +1110,10 @@ tr:hover {
 .hom-section-chip {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: transparent;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--md-surface-container-high);
   color: var(--color-muted-fg);
   font-size: 10px;
   font-weight: 600;
@@ -1183,14 +1142,14 @@ tr:hover {
 .card-hom .hom-select,
 .card-hom .hom-textarea {
   width: 100%;
-  height: 44px;
-  padding: 0;
+  height: 56px;
+  padding: 0 16px;
   margin: 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  background: transparent;
-  transition: border-color var(--duration-base) var(--ease-luxury);
+  border-bottom: 2px solid var(--md-outline);
+  background: var(--md-surface-container-low);
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
   box-sizing: border-box;
   font-family: var(--font-body);
   font-size: 14px;
@@ -1198,18 +1157,18 @@ tr:hover {
 }
 
 .hom-input::placeholder {
-  font-family: var(--font-heading);
-  font-style: italic;
+  font-family: var(--font-body);
   color: var(--color-muted-fg);
+  opacity: 0.8;
 }
 
 .hom-input:focus,
 .hom-select:focus,
 .hom-textarea:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-bottom-color: var(--md-primary);
   box-shadow: none;
-  background: transparent;
+  background: var(--md-surface-container);
 }
 
 .hom-select {
@@ -1219,8 +1178,10 @@ tr:hover {
 .hom-textarea {
   min-height: 92px;
   resize: vertical;
-  border: 1px solid var(--color-border) !important;
-  padding: 12px !important;
+  border: none !important;
+  border-bottom: 2px solid var(--md-outline) !important;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
+  padding: 12px 16px !important;
 }
 
 .hom-field-helper {
@@ -1241,7 +1202,7 @@ tr:hover {
   width: 100%;
   margin-top: 18px;
   padding: 14px 16px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 500;
 }
@@ -1259,21 +1220,21 @@ tr:hover {
   max-height: 260px;
   overflow-y: auto;
   padding: 8px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  box-shadow: var(--shadow-card-hover);
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--md-surface-container-high);
+  box-shadow: var(--shadow-3);
 }
 
 .hom-picker-option {
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--duration-base) var(--ease-luxury), background var(--duration-base) var(--ease-luxury);
+  transition: border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
 }
 
 .hom-picker-option + .hom-picker-option {
@@ -1281,8 +1242,8 @@ tr:hover {
 }
 
 .hom-picker-option:hover {
-  border-color: var(--color-accent);
-  background: var(--color-muted-bg);
+  border-color: var(--md-primary);
+  background: var(--md-surface-container-low);
 }
 
 .hom-picker-option-top,
@@ -1300,10 +1261,10 @@ tr:hover {
 }
 
 .hom-picker-status {
-  padding: 4px 8px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: transparent;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--md-surface-container-high);
   color: var(--color-muted-fg);
   font-size: 10px;
   font-weight: 600;
@@ -1328,8 +1289,7 @@ tr:hover {
 
 .hom-table-card {
   margin-top: 12px;
-  border: 1px solid var(--color-border);
-  box-shadow: none;
+  border: none;
 }
 
 .hom-animated-section {
@@ -1358,9 +1318,9 @@ tr:hover {
 .hom-status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: none;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -1368,7 +1328,7 @@ tr:hover {
 }
 
 .hom-ward-pill {
-  background: transparent;
+  background: var(--md-surface-container-high);
   color: var(--color-muted-fg);
 }
 

@@ -25,8 +25,8 @@ let currentStatusFilter = 'ALL';
 let selectedBedRequestId = null;
 let selectedBedId = null;
 
-function showMessage(message) {
-  alert(message);
+function showMessage(message, type = 'error') {
+  window.UIFeedback.toast(message, type);
 }
 
 function initializeDashboardControls() {
@@ -433,7 +433,7 @@ window.selectModalBed = function (bedId) {
 window.approveAdmission = async function () {
   if (!selectedBedRequestId) return;
   if (!selectedBedId) {
-    showMessage('Select a bed before approving.');
+    showMessage('Select a bed before approving.', 'warning');
     return;
   }
   try {

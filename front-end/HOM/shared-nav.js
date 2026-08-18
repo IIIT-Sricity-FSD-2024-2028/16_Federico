@@ -13,29 +13,29 @@ document.addEventListener("DOMContentLoaded", () => {
     <style>
       .top-nav { height: 76px; background: var(--color-bg); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; font-family: var(--font-body); }
       .nav-logo-group { display: flex; align-items: center; gap: 12px; }
-      .nav-logo-icon { width: 32px; height: 32px; border-radius: 0; background: var(--color-fg); color: var(--color-bg); display: grid; place-items: center; font-family: var(--font-heading); font-size: 16px; }
+      .nav-logo-icon { width: 32px; height: 32px; border-radius: var(--radius-sm, 8px); background: var(--color-accent); color: var(--md-on-primary, #fff); display: grid; place-items: center; font-family: var(--font-heading); font-size: 16px; }
       .nav-logo-text { font-family: var(--font-heading); font-size: 19px; display: flex; gap: 6px; }
       .nav-logo-text .federico { color: var(--color-fg); }
       .nav-logo-text .hospital { color: var(--color-muted-fg); font-style: italic; }
 
       .nav-links { display: flex; align-items: center; gap: 4px; }
-      .nav-link { padding: 8px 14px; border-radius: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-muted-fg); text-decoration: none; transition: color var(--duration-base) var(--ease-luxury); cursor: pointer; border: none; border-bottom: 2px solid transparent; background: transparent; }
-      .nav-link:hover { color: var(--color-fg); background: transparent; }
-      .nav-link.active { background: transparent; color: var(--color-fg); border-bottom-color: var(--color-accent); }
+      .nav-link { padding: 10px 16px; border-radius: var(--radius-full, 9999px); font-size: 13px; font-weight: 500; letter-spacing: 0.01em; color: var(--color-muted-fg); text-decoration: none; transition: color var(--duration-base) var(--ease-luxury), background-color var(--duration-fast) var(--ease-luxury); cursor: pointer; border: none; background: transparent; }
+      .nav-link:hover { color: var(--color-fg); background: rgba(103, 80, 164, 0.08); }
+      .nav-link.active { background: var(--md-secondary-container, var(--color-muted-bg)); color: var(--md-on-secondary-container, var(--color-fg)); font-weight: 600; }
 
       .nav-actions { display: flex; align-items: center; gap: 16px; position: relative; }
 
-      .nav-bell { position: relative; background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 0; color: var(--color-muted-fg); transition: color var(--duration-base) var(--ease-luxury); }
-      .nav-bell:hover { background: transparent; color: var(--color-fg); }
+      .nav-bell { position: relative; background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: var(--radius-full, 9999px); color: var(--color-muted-fg); transition: color var(--duration-base) var(--ease-luxury), background-color var(--duration-fast) var(--ease-luxury); }
+      .nav-bell:hover { background: rgba(103, 80, 164, 0.08); color: var(--color-fg); }
       .nav-bell-badge { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: var(--status-error); border-radius: 50%; }
 
-      .nav-profile { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 0; background: transparent; border: 1px solid var(--color-border); cursor: pointer; transition: border-color var(--duration-base) var(--ease-luxury); }
-      .nav-profile:hover { border-color: var(--color-fg); }
-      .nav-avatar { width: 28px; height: 28px; border-radius: 0; background: var(--color-fg); color: var(--color-bg); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
-      .nav-profile-text { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-fg); }
+      .nav-profile { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: var(--radius-full, 9999px); background: transparent; border: 1px solid var(--color-border); cursor: pointer; transition: border-color var(--duration-base) var(--ease-luxury), background-color var(--duration-fast) var(--ease-luxury); }
+      .nav-profile:hover { border-color: var(--color-accent); background: rgba(103, 80, 164, 0.06); }
+      .nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--color-accent); color: var(--md-on-primary, #fff); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
+      .nav-profile-text { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; color: var(--color-fg); }
 
       /* Overlays */
-      .nav-overlay { position: absolute; top: calc(100% + 8px); background: var(--color-bg); border-radius: 0; box-shadow: var(--shadow-card-hover); border: 1px solid var(--color-border); display: none; flex-direction: column; overflow: hidden; z-index: 100; }
+      .nav-overlay { position: absolute; top: calc(100% + 8px); background: var(--color-bg); border-radius: var(--radius-lg, 16px); box-shadow: var(--shadow-card-hover); border: 1px solid var(--color-border); display: none; flex-direction: column; overflow: hidden; z-index: 100; }
       .nav-overlay.active { display: flex; }
 
       #overlay-notifications { width: 360px; right: 140px; }

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Billing Summary | Federico Hospital HOM</title>
     <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
     <link rel="stylesheet" href="global.css">
     <style>
         .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
@@ -19,12 +21,9 @@
         .data-table td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9; }
         .data-table tr:hover td { background-color: #F8FAFC; }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; align-items: center; justify-content: center; padding: 16px; }
-        .modal-overlay.active { display: flex; }
-        .modal-content { background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
-        .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; z-index: 10; }
-        .modal-body { padding: 24px; }
-        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+        /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
+           now live once in global.css (Material You dialog styling) instead
+           of being duplicated in every screen's own <style> block. */
 
         .summary-bar { background: var(--neutral-bg); border-radius: var(--radius-base); padding: 16px; display: flex; align-items: center; justify-content: space-between; }
         .summary-divider { width: 1px; height: 40px; background: var(--border); }
@@ -86,7 +85,7 @@
     </main>
 
     <div class="modal-overlay" id="modal-billing-detail">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h2 class="h2" style="font-size: 20px;" id="bd-title">Billing Details</h2>
                 <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
@@ -150,9 +149,12 @@
         </div>
     </div>
 
-  <script src="../shared/rbac.js"></script>
+  <script>window.APP_MODULE = "HOM";</script>
+<script src="../shared/constants.js"></script>
 <script src="../shared/api-client.js"></script>
-<script src="auth-guard.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/ui-feedback.js"></script>
+<script src="../shared/auth-guard.js"></script>
 <script src="hom-helpers.js"></script>
 <script src="ui-template.js"></script>
 

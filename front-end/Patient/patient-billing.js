@@ -158,33 +158,26 @@ document.addEventListener("DOMContentLoaded", () => {
     el.querySelectorAll("[data-dispatch-id]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const dispatchId = btn.getAttribute("data-dispatch-id") || "";
-        if (!dispatchId) return showToast("Unable to process payment for this bill.", "warn");
+        if (!dispatchId) return UIFeedback.toast("Unable to process payment for this bill.", "warning");
 
         // Patient selects payment method
-        const method = window.prompt(
-          "Select payment method:\nType exactly one of: UPI, CARD, CASH, NETBANKING",
-          "UPI"
-        );
-        if (!method) return; // user cancelled
-
-        const normalised = method.trim().toUpperCase();
-        const validMethods = ["UPI", "CARD", "CASH", "NETBANKING"];
-        if (!validMethods.includes(normalised)) {
-          showToast("Invalid payment method. Type exactly: UPI, CARD, CASH, or NETBANKING.", "warn");
-          return;
-        }
+        const normalised = await UIFeedback.selectOne({
+          title: "Select payment method",
+          options: ["UPI", "CARD", "CASH", "NETBANKING"],
+        });
+        if (!normalised) return; // user cancelled
 
         btn.disabled = true;
         try {
           const paid = await payDispatchedBill(dispatchId, normalised);
           if (!paid) {
-            showToast("Unable to process payment. Please refresh and try again.", "warn");
+            UIFeedback.toast("Unable to process payment. Please refresh and try again.", "warning");
             return;
           }
-          showToast("Payment received — receipt generated.", "success");
+          UIFeedback.toast("Payment received — receipt generated.", "success");
           renderAll();
         } catch (err) {
-          showToast(err?.message || "Payment failed. Please try again.", "warn");
+          UIFeedback.toast(err?.message || "Payment failed. Please try again.", "warning");
         } finally {
           btn.disabled = false;
         }
@@ -269,12 +262,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const sourceId = btn.getAttribute("data-source-id") || "";
         const rowType = btn.getAttribute("data-row-type") || "";
         const rowTitle = btn.getAttribute("data-row-title") || "Digital Copy";
-        if (!sourceType || !sourceId) return showToast("Document source not available.", "warn");
+        if (!sourceType || !sourceId) return UIFeedback.toast("Document source not available.", "warning");
 
         const record = typeof getBillingDocumentByRef === "function"
           ? getBillingDocumentByRef(sourceType, sourceId)
           : null;
-        if (!record) return showToast("Unable to open digital copy.", "warn");
+        if (!record) return UIFeedback.toast("Unable to open digital copy.", "warning");
 
         openDigitalCopy(record, { rowType, rowTitle, sourceType, sourceId });
       });
@@ -284,7 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function openDigitalCopy(record, context = {}) {
     const win = window.open("", "_blank");
     if (!win) {
-      showToast("Please allow popups to view digital copy.", "warn");
+      UIFeedback.toast("Please allow popups to view digital copy.", "warning");
       return;
     }
 
@@ -360,32 +353,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function escapeAttr(value) {
     return escapeHtml(value);
-  }
-
-  function showToast(message, type = "info") {
-    document.querySelector(".toast-notify")?.remove();
-    const colors = { warn: "#7a4b00", info: "#1c2f42", success: "#1a5c3a" };
-    const t = document.createElement("div");
-    t.className = "toast-notify";
-    t.textContent = message;
-    Object.assign(t.style, {
-      position: "fixed", bottom: "28px", right: "28px", zIndex: "9999",
-      background: colors[type] || colors.info, color: "#fff",
-      padding: "13px 20px", borderRadius: "12px", fontSize: "13px",
-      fontWeight: "600", fontFamily: "Inter, sans-serif",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.18)", maxWidth: "380px",
-      lineHeight: "1.5", transform: "translateY(80px)", opacity: "0",
-      transition: "transform 280ms ease, opacity 280ms ease"
-    });
-    document.body.appendChild(t);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      t.style.transform = "translateY(0)";
-      t.style.opacity = "1";
-    }));
-    setTimeout(() => {
-      t.style.transform = "translateY(80px)";
-      t.style.opacity = "0";
-      setTimeout(() => t.remove(), 300);
-    }, 3500);
   }
 });

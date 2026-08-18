@@ -203,7 +203,7 @@ window.closeModals = function () {
 function exportBillingRows() {
   const rows = getFilteredRows();
   if (!rows.length) {
-    alert('There are no billing rows to export for the current search.');
+    window.UIFeedback.toast('There are no billing rows to export for the current search.', 'warning');
     return;
   }
 

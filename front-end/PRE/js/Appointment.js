@@ -2,27 +2,6 @@ let appointmentPatientCatalog = [];
 let appointmentPickerOpen = false;
 let selectedAppointmentPatient = null;
 
-// ── ERROR / SUCCESS HELPERS ─────────────────────────────
-function showError(msg) {
-  document.getElementById('errorMsg').innerText = msg;
-}
-function showPopupError(msg) {
-  document.getElementById('popupError').innerText = msg;
-}
-function clearError() {
-  document.getElementById('errorMsg').innerText = '';
-}
-function clearPopupError() {
-  document.getElementById('popupError').innerText = '';
-}
-function showSuccess(msg) {
-  document.getElementById('successMsg').innerText = msg;
-  document.getElementById('successPopup').style.display = 'flex';
-}
-function closeSuccess() {
-  document.getElementById('successPopup').style.display = 'none';
-}
-
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -49,7 +28,7 @@ function sanitizeAge(value) {
   return String(value || '').replace(/[^0-9]/g, '');
 }
 
-function handleNameInput(inputId, errorRenderer, clearRenderer) {
+function handleNameInput(inputId, errorRenderer) {
   const input = document.getElementById(inputId);
   if (!input) return;
   input.addEventListener('input', () => {
@@ -60,13 +39,12 @@ function handleNameInput(inputId, errorRenderer, clearRenderer) {
       errorRenderer('Name should contain letters only');
       return;
     }
-    if (!input.value.trim()) return clearRenderer();
+    if (!input.value.trim()) return;
     if (!isValidPatientName(input.value)) return errorRenderer('Name should contain letters only');
-    clearRenderer();
   });
 }
 
-function handleAgeInput(inputId, errorRenderer, clearRenderer) {
+function handleAgeInput(inputId, errorRenderer) {
   const input = document.getElementById(inputId);
   if (!input) return;
   input.addEventListener('input', () => {
@@ -77,9 +55,8 @@ function handleAgeInput(inputId, errorRenderer, clearRenderer) {
       errorRenderer('Age only number');
       return;
     }
-    if (!input.value.trim()) return clearRenderer();
+    if (!input.value.trim()) return;
     if (!isValidAge(input.value)) return errorRenderer('Enter age as a positive integer only');
-    clearRenderer();
   });
 }
 
@@ -172,7 +149,6 @@ function renderAppointmentPatientDropdown(query = '') {
       if (!patient) return;
       fillPatientForm(patient);
       setAppointmentPickerVisibility(false);
-      clearError();
     });
   });
 
@@ -214,9 +190,8 @@ function bindAppointmentFormFieldBehavior() {
 
 // ── SEARCH BY PHONE ──────────────────────────────────────
 async function searchPatient() {
-  clearError();
   const phone = document.getElementById('searchPhone').value.trim();
-  if (!isValidPhone(phone)) return showError('Enter valid 10 digit phone');
+  if (!isValidPhone(phone)) return UIFeedback.toast('Enter valid 10 digit phone', 'error');
 
   await loadPatientCatalog();
   const found = appointmentPatientCatalog.find((p) => (p.phone || '').replace(/\D/g, '').endsWith(phone));
@@ -226,42 +201,39 @@ async function searchPatient() {
     setAppointmentPickerVisibility(false);
     openSearchResultPopup(toPickerShape(found));
   } else {
-    showError('Patient not found');
+    UIFeedback.toast('Patient not found', 'error');
   }
 }
 
 function openPatientPopup() {
-  clearPopupError();
-  document.getElementById('patientPopup').style.display = 'flex';
+  document.getElementById('patientPopup').classList.add('active');
 }
 function closePatientPopup() {
-  document.getElementById('patientPopup').style.display = 'none';
+  document.getElementById('patientPopup').classList.remove('active');
 }
 function openSearchResultPopup(patient) {
   const popup = document.getElementById('searchResultPopup');
   document.getElementById('searchResultPatientId').innerText = patient.patientId || '-';
   document.getElementById('searchResultPatientName').innerText = patient.name || '-';
-  if (popup) popup.style.display = 'flex';
+  if (popup) popup.classList.add('active');
 }
 function closeSearchResultPopup() {
   const popup = document.getElementById('searchResultPopup');
-  if (popup) popup.style.display = 'none';
+  if (popup) popup.classList.remove('active');
 }
 
 // ── REGISTER NEW PATIENT (real backend record) ──────────
 async function registerPatient() {
-  clearPopupError();
-
   const name = document.getElementById('newName').value.trim();
   const age = document.getElementById('newAge').value.trim();
   const gender = document.getElementById('newGender').value;
   const phone = document.getElementById('newPhone').value.trim();
   const address = document.getElementById('newAddress').value.trim();
 
-  if (!name || !age || !gender || !phone || !address) return showPopupError('Please fill all required fields');
-  if (!isValidPatientName(name)) return showPopupError('Name should contain letters only');
-  if (!isValidAge(age)) return showPopupError('Enter age as a positive integer only');
-  if (!isValidPhone(phone)) return showPopupError('Phone must be 10 digits');
+  if (!name || !age || !gender || !phone || !address) return UIFeedback.toast('Please fill all required fields', 'error');
+  if (!isValidPatientName(name)) return UIFeedback.toast('Name should contain letters only', 'error');
+  if (!isValidAge(age)) return UIFeedback.toast('Enter age as a positive integer only', 'error');
+  if (!isValidPhone(phone)) return UIFeedback.toast('Phone must be 10 digits', 'error');
 
   // The quick-register form only collects age (not a full DOB) — approximate
   // a DOB from it since the backend's patient record requires one.
@@ -287,18 +259,16 @@ async function registerPatient() {
     document.getElementById('newAddress').value = '';
 
     closePatientPopup();
-    showSuccess(`Patient created successfully — UHID ${patient.uhid}`);
+    UIFeedback.toast(`Patient created successfully — UHID ${patient.uhid}`, 'success');
   } catch (err) {
-    showPopupError(err.message || 'Could not register patient');
+    UIFeedback.toast(err.message || 'Could not register patient', 'error');
   }
 }
 
 // ── CREATE PRE-REQUEST (the actual "appointment" record) ─
 async function createAppointment() {
-  clearError();
-
   if (!selectedAppointmentPatient) {
-    showError('Select an existing patient or register a new one first');
+    UIFeedback.toast('Select an existing patient or register a new one first', 'error');
     return;
   }
 
@@ -307,7 +277,7 @@ async function createAppointment() {
   const visitType = document.getElementById('visitType')?.value || 'Consultation';
 
   if (!appointmentDate || !department) {
-    showError('Please fill all required fields');
+    UIFeedback.toast('Please fill all required fields', 'error');
     return;
   }
 
@@ -319,7 +289,7 @@ async function createAppointment() {
       requested_date: appointmentDate,
     });
 
-    showSuccess('Appointment created successfully — reference #' + result.pre_request_id);
+    UIFeedback.toast('Appointment created successfully — reference #' + result.pre_request_id, 'success');
 
     document.getElementById('patientId').value = '';
     document.getElementById('patientName').value = '';
@@ -334,7 +304,7 @@ async function createAppointment() {
     selectedAppointmentPatient = null;
     setAppointmentPickerVisibility(false);
   } catch (err) {
-    showError(err.message || 'Could not create appointment');
+    UIFeedback.toast(err.message || 'Could not create appointment', 'error');
   }
 }
 
@@ -352,10 +322,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     newAgeInput.step = '1';
   }
 
-  handleNameInput('patientName', showError, clearError);
-  handleNameInput('newName', showPopupError, clearPopupError);
-  handleAgeInput('age', showError, clearError);
-  handleAgeInput('newAge', showPopupError, clearPopupError);
+  handleNameInput('patientName', (msg) => UIFeedback.toast(msg, 'error'));
+  handleNameInput('newName', (msg) => UIFeedback.toast(msg, 'error'));
+  handleAgeInput('age', (msg) => UIFeedback.toast(msg, 'error'));
+  handleAgeInput('newAge', (msg) => UIFeedback.toast(msg, 'error'));
 
   bindAppointmentPatientPicker();
   bindAppointmentFormFieldBehavior();

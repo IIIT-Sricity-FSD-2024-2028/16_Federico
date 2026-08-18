@@ -16,17 +16,6 @@ let candidatePatients = [];
 let selectedCandidate = null;
 let pickerOpen = false;
 
-function showMessage(msg, color = 'green') {
-  const box = document.getElementById('msgBox');
-  if (!box) return;
-  box.innerText = msg;
-  box.style.backgroundColor = color;
-  box.style.display = 'block';
-  setTimeout(() => {
-    box.style.display = 'none';
-  }, 3000);
-}
-
 function getPickerElements() {
   return {
     picker: document.getElementById('patientPicker'),
@@ -158,7 +147,7 @@ function bindPicker() {
 
 async function sendRequest() {
   if (!selectedCandidate) {
-    showMessage('Select a patient from the list', 'red');
+    UIFeedback.toast('Select a patient from the list', 'error');
     return;
   }
 
@@ -172,9 +161,9 @@ async function sendRequest() {
       ward_id: wardId ? Number(wardId) : undefined,
       priority,
     });
-    showMessage('Bed request sent to HOM');
+    UIFeedback.toast('Bed request sent to HOM', 'success');
   } catch (err) {
-    showMessage(err.message || 'Could not send bed request', 'red');
+    UIFeedback.toast(err.message || 'Could not send bed request', 'error');
     return;
   }
 

@@ -5,12 +5,19 @@ const controller = require('../controllers/request.controller');
 const { authorize } = require('../middleware/actorAccess');
 const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
-const { createAppointmentRules, updateAppointmentRules } = require('../validators/request.validators');
+const {
+  createAppointmentRules,
+  updateAppointmentRules,
+} = require('../validators/request.validators');
 
 const router = Router();
 router.use(requireModule('APPOINTMENTS'));
 
-router.get('/', authorize(['ADMIN', 'SUPER_USER'], 'appointment', 'read'), controller.findAll);
+router.get(
+  '/',
+  authorize(['ADMIN', 'SUPER_USER'], 'appointment', 'read'),
+  controller.findAll,
+);
 router.post(
   '/',
   authorize(['SUPER_USER'], 'appointment', 'write'),

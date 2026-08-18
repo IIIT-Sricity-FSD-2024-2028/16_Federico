@@ -19,7 +19,16 @@ describe('services/subscriptionPlan.service', () => {
   });
 
   it('update() merges a patch onto an existing plan', () => {
-    const plan = planService.create({ name: 'Unit Test Tier 2', max_beds: 10, max_users: 5, max_hospitals: 1, storage_gb: 5, api_rate_limit: 30, included_modules: [], price_monthly: 100 });
+    const plan = planService.create({
+      name: 'Unit Test Tier 2',
+      max_beds: 10,
+      max_users: 5,
+      max_hospitals: 1,
+      storage_gb: 5,
+      api_rate_limit: 30,
+      included_modules: [],
+      price_monthly: 100,
+    });
     const updated = planService.update(plan.plan_id, { price_monthly: 150 });
     expect(updated.price_monthly).toBe(150);
     expect(updated.name).toBe('Unit Test Tier 2');

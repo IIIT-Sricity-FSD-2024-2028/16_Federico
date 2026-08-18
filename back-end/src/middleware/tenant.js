@@ -31,7 +31,11 @@ function attachTenant(req, res, next) {
       isPlatformUser: Boolean(req.session.isPlatformUser),
     };
   } else {
-    req.tenant = { organizationId: LEGACY_DEFAULT_ORGANIZATION_ID, hospitalId: null, isPlatformUser: false };
+    req.tenant = {
+      organizationId: LEGACY_DEFAULT_ORGANIZATION_ID,
+      hospitalId: null,
+      isPlatformUser: false,
+    };
   }
   next();
 }
@@ -39,7 +43,11 @@ function attachTenant(req, res, next) {
 /** Rejects Platform Super User sessions (and any session with no org) from org-scoped routes. */
 function requireTenant(req, res, next) {
   if (!req.tenant || !req.tenant.organizationId) {
-    return res.status(403).json({ message: 'This resource requires an organization context', error: 'Forbidden', statusCode: 403 });
+    return res.status(403).json({
+      message: 'This resource requires an organization context',
+      error: 'Forbidden',
+      statusCode: 403,
+    });
   }
   next();
 }
@@ -55,7 +63,9 @@ function requireModule(moduleCode) {
   return function (req, res, next) {
     if (!req.tenant || !req.tenant.organizationId) return next();
     const flag = dataStore.organizationModules.find(
-      (m) => m.organization_id === req.tenant.organizationId && m.module_code === moduleCode,
+      (m) =>
+        m.organization_id === req.tenant.organizationId &&
+        m.module_code === moduleCode,
     );
     if (flag && flag.enabled === false) {
       return res.status(403).json({

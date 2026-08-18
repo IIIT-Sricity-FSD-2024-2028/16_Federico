@@ -127,8 +127,10 @@
     normalizePhone: normalizePhone,
 
     auth: {
-      login: function (email, password) {
-        return request("POST", "/auth/login", { email: email, password: password }, { auth: false });
+      login: function (email, password, organizationId) {
+        var body = { email: email, password: password };
+        if (organizationId) body.organization_id = organizationId;
+        return request("POST", "/auth/login", body, { auth: false });
       },
       signup: function (payload) {
         var body = withNormalizedPhones(payload, ["phone", "emergency_contact_phone"]);
@@ -144,6 +146,124 @@
           // best-effort — clear local session regardless
         }
         clearSession();
+      },
+    },
+
+    // ---- Public organization marketplace (tasks.md §4) — no auth ----
+    marketplace: {
+      organizations: function () {
+        return request("GET", "/marketplace/organizations", undefined, { auth: false });
+      },
+    },
+
+    // ---- Platform Super User (separate session namespace) ----
+    platform: {
+      auth: {
+        login: function (email, password) {
+          return request("POST", "/platform/auth/login", { email: email, password: password }, { auth: false });
+        },
+        me: function () {
+          return request("GET", "/platform/auth/me");
+        },
+        logout: async function () {
+          try {
+            await request("POST", "/platform/auth/logout");
+          } catch (err) {
+            // best-effort
+          }
+          clearSession();
+        },
+      },
+      organizations: {
+        list: function () {
+          return request("GET", "/platform/organizations");
+        },
+        get: function (id) {
+          return request("GET", "/platform/organizations/" + id);
+        },
+        provision: function (payload) {
+          return request("POST", "/platform/organizations", payload);
+        },
+        suspend: function (id) {
+          return request("PUT", "/platform/organizations/" + id + "/suspend");
+        },
+        activate: function (id) {
+          return request("PUT", "/platform/organizations/" + id + "/activate");
+        },
+        remove: function (id) {
+          return request("DELETE", "/platform/organizations/" + id);
+        },
+        provisioningLog: function (id) {
+          return request("GET", "/platform/organizations/" + id + "/provisioning-log");
+        },
+        usage: function (id) {
+          return request("GET", "/platform/organizations/" + id + "/usage");
+        },
+        hospitals: function (id) {
+          return request("GET", "/platform/organizations/" + id + "/hospitals");
+        },
+        addHospital: function (id, payload) {
+          return request("POST", "/platform/organizations/" + id + "/hospitals", payload);
+        },
+        modules: function (id) {
+          return request("GET", "/platform/organizations/" + id + "/modules");
+        },
+        setModule: function (id, moduleCode, enabled) {
+          return request("PUT", "/platform/organizations/" + id + "/modules/" + moduleCode, { enabled: enabled });
+        },
+        apiKeys: function (id) {
+          return request("GET", "/platform/organizations/" + id + "/api-keys");
+        },
+        createApiKey: function (id, label) {
+          return request("POST", "/platform/organizations/" + id + "/api-keys", { label: label });
+        },
+        getSubscription: function (id) {
+          return request("GET", "/platform/organizations/" + id + "/subscription");
+        },
+        setSubscription: function (id, planId) {
+          return request("PUT", "/platform/organizations/" + id + "/subscription", { plan_id: planId });
+        },
+        renewSubscription: function (id) {
+          return request("PUT", "/platform/organizations/" + id + "/subscription/renew");
+        },
+      },
+      apiKeys: {
+        revoke: function (id) {
+          return request("DELETE", "/platform/api-keys/" + id);
+        },
+      },
+      plans: {
+        list: function () {
+          return request("GET", "/platform/plans");
+        },
+        create: function (payload) {
+          return request("POST", "/platform/plans", payload);
+        },
+        update: function (id, patch) {
+          return request("PUT", "/platform/plans/" + id, patch);
+        },
+      },
+      usage: function () {
+        return request("GET", "/platform/usage");
+      },
+    },
+
+    // ---- Org-scoped dynamic RBAC (custom roles) ----
+    rbac: {
+      roles: function () {
+        return request("GET", "/rbac/roles");
+      },
+      createRole: function (payload) {
+        return request("POST", "/rbac/roles", payload);
+      },
+      permissions: function () {
+        return request("GET", "/rbac/permissions");
+      },
+      assignPermission: function (roleId, permissionId) {
+        return request("POST", "/rbac/roles/" + roleId + "/permissions", { permission_id: permissionId });
+      },
+      assignStaffRole: function (userId, customRoleId) {
+        return request("POST", "/rbac/staff/" + userId + "/role", { custom_role_id: customRoleId });
       },
     },
 

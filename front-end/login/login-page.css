@@ -1,12 +1,12 @@
-/* login-page.css — Phase 4: Luxury / Editorial (design.txt) */
+/* login-page.css — Material You (Material Design 3) */
 
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
     margin: 0;
     font-family: var(--font-body);
-    background: var(--color-bg);
-    color: var(--color-fg);
+    background: var(--md-background);
+    color: var(--md-on-background);
     min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
 }
@@ -18,8 +18,8 @@ button, input, a { font-family: inherit; }
     position: relative;
     z-index: 2;
     height: 88px;
-    background: var(--color-bg);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--md-background);
+    border-bottom: 1px solid var(--md-outline-variant);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -29,22 +29,24 @@ button, input, a { font-family: inherit; }
 .brand { display: flex; align-items: center; gap: 12px; }
 
 .brand-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius);
-    background: var(--color-fg);
-    color: var(--color-bg);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     display: grid;
     place-items: center;
     font-family: var(--font-heading);
+    font-weight: 700;
     font-size: 16px;
 }
 
 .brand-name {
     font-family: var(--font-heading);
     font-size: 18px;
-    color: var(--color-fg);
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    color: var(--md-on-background);
+    letter-spacing: 0.01em;
 }
 
 /* ── Page wrapper ── */
@@ -64,78 +66,77 @@ button, input, a { font-family: inherit; }
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 40px;
+    margin-bottom: 32px;
 }
 
 .logo-mark {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius);
-    background: var(--color-fg);
-    color: var(--color-bg);
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     display: grid;
     place-items: center;
     font-family: var(--font-heading);
+    font-weight: 700;
     font-size: 18px;
 }
 
 .login-header h1 {
     margin: 0;
     font-family: var(--font-heading);
-    font-size: 30px;
-    font-weight: 400;
-    letter-spacing: 0.03em;
-    color: var(--color-fg);
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--md-on-background);
 }
 
-/* ── Login card — defined by a top line, not a box ── */
+/* ── Login card — tonal MD3 surface, real elevation ── */
 .login-card {
     width: 100%;
     max-width: 460px;
-    background: transparent;
-    border-radius: var(--radius);
-    border-top: 1px solid var(--color-fg);
-    box-shadow: none;
-    padding: 40px 0 0;
+    background: var(--md-surface-container);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2);
+    padding: 40px 36px 36px;
 }
 
-/* ── Role tabs — thin uppercase tabs, gold underline marks the active role ── */
+/* ── Role tabs — MD3 segmented pill control ── */
 .role-tabs {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    margin-bottom: 40px;
-    background: transparent;
-    padding: 0;
-    border-bottom: 1px solid var(--color-border);
+    gap: 4px;
+    margin-bottom: 32px;
+    background: var(--md-surface-container-low);
+    padding: 4px;
+    border-radius: var(--radius-lg);
 }
 
 .role-tab {
     border: none;
-    border-bottom: 2px solid transparent;
+    border-radius: var(--radius-full);
     background: transparent;
-    color: var(--color-muted-fg);
-    padding: 0 0 14px;
+    color: var(--md-on-surface-variant);
+    padding: 10px 4px;
     font-family: var(--font-body);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     cursor: pointer;
-    transition: color var(--duration-base) var(--ease-luxury), border-color var(--duration-base) var(--ease-luxury);
+    transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
-.role-tab:hover { color: var(--color-fg); }
+.role-tab:hover { color: var(--md-on-background); background: color-mix(in srgb, var(--md-primary) 8%, transparent); }
 
 .role-tab.active {
-    background: transparent;
-    color: var(--color-fg);
-    border-bottom-color: var(--color-accent);
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
     box-shadow: none;
 }
 
 /* ── Form ── */
-.login-form { display: flex; flex-direction: column; gap: 28px; }
+.login-form { display: flex; flex-direction: column; gap: 24px; }
 
 .login-error {
     min-height: 18px;
@@ -147,68 +148,110 @@ button, input, a { font-family: inherit; }
 
 .form-group label {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     font-size: 11px;
     font-weight: 600;
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
 }
 
-/* Underline-only inputs, italic serif placeholder (design.txt "Inputs") */
-.form-group input {
+/* MD3 filled text field — rounded top corners only, tonal fill, 2px
+   bottom border that turns primary-colored on focus. Matches
+   shared/material-components.css .md-field input. */
+.form-group input,
+.form-group select {
     width: 100%;
-    height: 48px;
+    height: 56px;
     border: none;
-    border-bottom: 1px solid var(--color-fg);
+    border-bottom: 2px solid var(--md-outline);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     outline: none;
-    border-radius: 0;
-    background: transparent;
-    padding: 0;
+    background-color: var(--md-surface-container-low);
+    padding: 0 16px;
     font-family: var(--font-body);
     font-size: 15px;
-    color: var(--color-fg);
-    transition: border-color var(--duration-base) var(--ease-luxury);
+    color: var(--md-on-background);
+    transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
+}
+
+.form-group select {
+    appearance: none;
+    cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--md-on-surface-variant) 50%),
+        linear-gradient(135deg, var(--md-on-surface-variant) 50%, transparent 50%);
+    background-position: right 18px center, right 13px center;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
 }
 
 .form-group input::placeholder {
-    font-family: var(--font-heading);
-    font-style: italic;
-    color: var(--color-muted-fg);
+    font-family: var(--font-body);
+    font-style: normal;
+    color: var(--md-on-surface-variant);
+    opacity: 0.8;
 }
 
-.form-group input:focus { border-color: var(--color-accent); box-shadow: none; }
+.form-group input:focus,
+.form-group select:focus {
+    border-bottom-color: var(--md-primary);
+    background-color: var(--md-surface-container);
+    box-shadow: none;
+}
+
+/* Organization / hospital picker helper text */
+.field-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 400;
+    color: var(--md-on-surface-variant);
+}
+
+.field-hint a {
+    color: var(--md-primary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.field-hint a:hover { text-decoration: underline; }
 
 /* ── Remember / Forgot row ── */
 .form-row { display: flex; align-items: center; justify-content: space-between; margin-top: -8px; }
 
-.checkbox-wrap { display: flex; align-items: center; gap: 10px; color: var(--color-muted-fg); font-size: 13px; cursor: pointer; user-select: none; }
+.checkbox-wrap { display: flex; align-items: center; gap: 10px; color: var(--md-on-surface-variant); font-size: 13px; cursor: pointer; user-select: none; }
 
-.checkbox-wrap input { accent-color: var(--color-fg); width: 15px; height: 15px; }
+.checkbox-wrap input { accent-color: var(--md-primary); width: 16px; height: 16px; }
 
 .forgot-link {
     text-decoration: none;
-    color: var(--color-fg);
+    color: var(--md-primary);
     font-size: 13px;
     font-weight: 500;
     border-bottom: 1px solid transparent;
-    transition: color var(--duration-base) var(--ease-luxury), border-color var(--duration-base) var(--ease-luxury);
+    transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
-.forgot-link:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.forgot-link:hover { border-color: var(--md-primary); }
 
-.demo-credential-card { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--color-border); }
+.demo-credential-card {
+    margin-top: 28px;
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    background: var(--md-surface-container-low);
+}
 
 .demo-credential-title {
     font-size: 11px;
     font-weight: 600;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
-    color: var(--color-fg);
+    color: var(--md-on-background);
     margin-bottom: 8px;
 }
 
-.demo-credential-copy { font-size: 13px; color: var(--color-muted-fg); margin-bottom: 16px; }
+.demo-credential-copy { font-size: 13px; color: var(--md-on-surface-variant); margin-bottom: 16px; }
 
 .demo-credential-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -216,24 +259,24 @@ button, input, a { font-family: inherit; }
     display: grid;
     gap: 4px;
     padding: 14px 16px;
-    border-radius: 0;
-    background: var(--color-muted-bg);
+    border-radius: var(--radius-md);
+    background: var(--md-surface);
     border: none;
-    border-left: 2px solid var(--color-border-strong);
+    border-left: 3px solid var(--md-primary);
 }
 
-.demo-credential-row strong { font-family: var(--font-body); font-size: 13px; color: var(--color-fg); }
+.demo-credential-row strong { font-family: var(--font-body); font-size: 13px; color: var(--md-on-background); }
 
-.demo-credential-row span { font-size: 12px; color: var(--color-muted-fg); }
+.demo-credential-row span { font-size: 12px; color: var(--md-on-surface-variant); }
 
-.demo-credential-row code { font-size: 12px; color: var(--color-fg); font-weight: 600; }
+.demo-credential-row code { font-size: 12px; color: var(--md-on-background); font-weight: 600; }
 
-/* ── Login button — dark, gold slide-in on hover ── */
+/* ── Login button — pill-shaped filled MD3 button, tactile press ── */
 .login-action { display: flex; justify-content: center; margin-top: 32px; }
 
 .login-btn {
     width: 280px;
-    box-shadow: var(--shadow-button);
+    box-shadow: none;
 }
 
 /* ── Footer links ── */
@@ -241,22 +284,22 @@ button, input, a { font-family: inherit; }
 
 .login-footer a {
     text-decoration: none;
-    color: var(--color-muted-fg);
+    color: var(--md-on-surface-variant);
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    transition: color var(--duration-base) var(--ease-luxury);
+    transition: color var(--duration-fast) var(--ease-standard);
 }
 
-.login-footer a:hover { color: var(--color-accent); }
+.login-footer a:hover { color: var(--md-primary); }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
     .topbar { padding: 0 24px; }
     .login-wrapper { padding: 40px 20px 32px; }
     .login-header h1 { font-size: 24px; }
-    .login-card { padding: 32px 0 0; }
+    .login-card { padding: 28px 20px 24px; border-radius: var(--radius-lg); }
     .role-tabs { grid-template-columns: repeat(2, 1fr); }
     .form-row { flex-direction: column; align-items: flex-start; gap: 14px; }
     .login-footer { gap: 24px; }

@@ -5,7 +5,10 @@ const controller = require('../controllers/preRequest.controller');
 const { authorize } = require('../middleware/actorAccess');
 const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
-const { createPreRequestRules, updatePreRequestRules } = require('../validators/preRequest.validators');
+const {
+  createPreRequestRules,
+  updatePreRequestRules,
+} = require('../validators/preRequest.validators');
 
 // New Phase 2 resource — no legacy contract to preserve, but still
 // accepts the legacy ADMIN/SUPER_USER header so Swagger/manual testing
@@ -15,8 +18,16 @@ const { createPreRequestRules, updatePreRequestRules } = require('../validators/
 const router = Router();
 router.use(requireModule('ADMISSIONS'));
 
-router.get('/', authorize(['ADMIN', 'SUPER_USER'], 'preRequest', 'read'), controller.findAll);
-router.get('/:id', authorize(['ADMIN', 'SUPER_USER'], 'preRequest', 'read'), controller.findOne);
+router.get(
+  '/',
+  authorize(['ADMIN', 'SUPER_USER'], 'preRequest', 'read'),
+  controller.findAll,
+);
+router.get(
+  '/:id',
+  authorize(['ADMIN', 'SUPER_USER'], 'preRequest', 'read'),
+  controller.findOne,
+);
 router.post(
   '/',
   authorize(['SUPER_USER'], 'preRequest', 'write'),

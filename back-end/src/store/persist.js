@@ -21,7 +21,10 @@ function load() {
       console.log(`[Persist] Restored state from ${DB_PATH}`);
     }
   } catch (err) {
-    console.warn('[Persist] Could not load saved state, starting from seed data:', err.message);
+    console.warn(
+      '[Persist] Could not load saved state, starting from seed data:',
+      err.message,
+    );
   }
 }
 

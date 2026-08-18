@@ -21,13 +21,35 @@ const router = Router();
 // flag ("Admissions & Bed Management" — see utils/tenant.js#MODULES).
 router.use(requireModule('ADMISSIONS'));
 
-router.get('/', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllWards);
-router.post('/', authorize(['SUPER_USER'], 'ward', 'write'), validateBody(createWardRules), controller.createWard);
+router.get(
+  '/',
+  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
+  controller.findAllWards,
+);
+router.post(
+  '/',
+  authorize(['SUPER_USER'], 'ward', 'write'),
+  validateBody(createWardRules),
+  controller.createWard,
+);
 
 // Beds
-router.get('/beds', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllBeds);
-router.get('/:id/beds', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findBedsByWard);
-router.post('/bed', authorize(['SUPER_USER'], 'ward', 'write'), validateBody(createBedRules), controller.createBed);
+router.get(
+  '/beds',
+  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
+  controller.findAllBeds,
+);
+router.get(
+  '/:id/beds',
+  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
+  controller.findBedsByWard,
+);
+router.post(
+  '/bed',
+  authorize(['SUPER_USER'], 'ward', 'write'),
+  validateBody(createBedRules),
+  controller.createBed,
+);
 router.put(
   '/bed/:bedId',
   authorize(['SUPER_USER'], 'ward', 'write'),
@@ -36,7 +58,11 @@ router.put(
 );
 
 // Phase 2 — bed requests (PRE requests, HOM allocates/denies)
-router.get('/bed-requests', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllBedRequests);
+router.get(
+  '/bed-requests',
+  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
+  controller.findAllBedRequests,
+);
 router.post(
   '/bed-requests',
   authorize(['SUPER_USER'], 'admission', 'write'),
@@ -51,7 +77,11 @@ router.put(
 );
 
 // Phase 2 — emergency admissions
-router.get('/emergency', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllEmergencies);
+router.get(
+  '/emergency',
+  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
+  controller.findAllEmergencies,
+);
 router.post(
   '/emergency',
   authorize(['SUPER_USER'], 'admission', 'write'),

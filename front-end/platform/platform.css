@@ -1,0 +1,98 @@
+/* platform.css — Federico Platform Super User portal (Material You) */
+
+body { background: var(--md-background); }
+
+/* ===== Login ===== */
+.platform-auth-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+}
+.platform-login-card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 40px;
+}
+.platform-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.platform-brand-title { font-weight: 600; font-size: 1.1rem; }
+.platform-login-lead { color: var(--md-on-surface-variant); font-size: 0.9rem; line-height: 1.5; margin-bottom: 28px; }
+.platform-login-form { display: flex; flex-direction: column; }
+.platform-demo-hint { margin-top: 20px; font-size: 0.8rem; color: var(--md-on-surface-variant); text-align: center; }
+.platform-demo-hint code { background: var(--md-surface-container-low); padding: 2px 6px; border-radius: var(--radius-xs); }
+
+/* ===== Dashboard shell ===== */
+.topbar-actions { display: flex; align-items: center; gap: 16px; }
+.platform-page { padding: 32px 24px 64px; }
+
+.section-heading { font-size: 1.25rem; font-weight: 500; margin: 32px 0 16px; }
+
+.tab-panel.is-hidden { display: none; }
+
+.panel-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+
+/* ===== Stats ===== */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 24px; }
+.stat-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-1); }
+.stat-card .stat-value { font-size: 2rem; font-weight: 600; color: var(--md-primary); }
+.stat-card .stat-label { font-size: 0.8rem; color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+.org-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.org-mini-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-1); cursor: pointer; transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard); }
+.org-mini-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
+.org-mini-card .org-mini-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.org-mini-mark { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--md-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+.org-mini-card .org-mini-name { font-weight: 600; }
+.org-mini-card .org-mini-meta { font-size: 0.8rem; color: var(--md-on-surface-variant); }
+
+/* ===== Table ===== */
+#org-table td, #org-table th { white-space: nowrap; }
+.org-name-cell { display: flex; align-items: center; gap: 10px; }
+
+/* ===== Dialogs (native <dialog>, styled to match shared/ui-feedback.css's .md-dialog) ===== */
+.md-native-dialog {
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 0;
+  background: var(--md-surface-container-high, var(--md-surface-container));
+  box-shadow: var(--shadow-4);
+  width: min(480px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+}
+.md-native-dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
+.md-native-dialog-wide { width: min(720px, calc(100vw - 48px)); }
+.dialog-form { padding: 28px; overflow-y: auto; max-height: calc(100vh - 112px); }
+.dialog-form .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+
+.detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.detail-panel { padding-top: 16px; }
+.detail-panel.is-hidden { display: none; }
+
+.module-checklist { display: flex; flex-wrap: wrap; gap: 10px; }
+.module-check { display: flex; align-items: center; gap: 6px; background: var(--md-surface-container-low); padding: 8px 14px; border-radius: var(--radius-full); font-size: 0.85rem; cursor: pointer; }
+.module-check input { accent-color: var(--md-primary); }
+
+.kv-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--md-outline-variant); font-size: 0.9rem; }
+.kv-row:last-child { border-bottom: none; }
+.kv-row .kv-label { color: var(--md-on-surface-variant); }
+
+.api-key-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--md-outline-variant); }
+.api-key-value { font-family: monospace; font-size: 0.8rem; background: var(--md-surface-container-low); padding: 4px 8px; border-radius: var(--radius-xs); word-break: break-all; }
+
+.log-entry { padding: 10px 0; border-bottom: 1px solid var(--md-outline-variant); font-size: 0.85rem; }
+.log-entry .log-step { font-weight: 600; }
+.log-entry .log-time { color: var(--md-on-surface-variant); font-size: 0.75rem; }
+
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.plan-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-1); }
+.plan-card .plan-price { font-size: 1.75rem; font-weight: 600; color: var(--md-primary); margin: 8px 0 16px; }
+.plan-card .plan-price small { font-size: 0.9rem; color: var(--md-on-surface-variant); font-weight: 400; }
+.plan-card ul { margin: 0; padding-left: 20px; font-size: 0.85rem; color: var(--md-on-surface-variant); }
+
+@media (max-width: 640px) {
+  .dialog-form .grid-two { grid-template-columns: 1fr; }
+}

@@ -14,7 +14,9 @@ const createBedRules = [
 ];
 
 // UpdateBedStatusDto is NOT a PartialType in the original — status stays required.
-const updateBedStatusRules = [{ field: 'status', checks: ['isNotEmpty', 'isString'] }];
+const updateBedStatusRules = [
+  { field: 'status', checks: ['isNotEmpty', 'isString'] },
+];
 
 // Phase 2 additions
 const createBedRequestRules = [

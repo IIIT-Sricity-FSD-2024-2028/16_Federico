@@ -2,7 +2,6 @@
  * shared/constants.js
  * Single source of truth for all enums, status strings, and config
  * constants used across HOM, FA, PRE, and Patient modules.
- * Loaded before canonical-seed.js in every HTML file.
  */
 (function () {
   window.HospitalConstants = {

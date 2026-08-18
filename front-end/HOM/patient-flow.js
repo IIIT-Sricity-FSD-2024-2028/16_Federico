@@ -175,12 +175,12 @@ function renderPatientsTable() {
     .join('');
 }
 
-function closeModals() {
-  document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
-  currentSelectedRequest = null;
-  setDischargeError('');
-}
-window.closeModals = closeModals;
+// closeModals() now lives in hom-helpers.js (window.closeModals) — see that
+// file for why removing this file's duplicate copy is safe: both
+// openPatientDetail() and openDischargeModal() below already reset
+// currentSelectedRequest and call setDischargeError('') themselves before
+// showing a modal, so the extra resets this duplicate used to do on close
+// were already redundant.
 
 window.switchTab = function (tabId) {
   document.querySelectorAll('.modal-tab').forEach((tab) => tab.classList.remove('active'));
@@ -289,7 +289,7 @@ window.confirmDischarge = async function () {
 function exportPatientFlow() {
   const rows = getFilteredRows();
   if (!rows.length) {
-    alert('There are no patient flow rows to export for the current filters.');
+    window.UIFeedback.toast('There are no patient flow rows to export for the current filters.', 'warning');
     return;
   }
 

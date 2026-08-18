@@ -1,14 +1,17 @@
 :root {
-  /* Federico Luxury/Editorial palette — see ../shared/design-tokens.css.
-     Custom-property NAMES kept identical to the pre-Phase-4 file so every
+  /* Federico HOM — Material You (Material Design 3) local aliases.
+     See ../shared/design-tokens.css for the canonical --md-* token layer
+     and ../shared/material-components.css for the shared .md-* component
+     classes this file's own classes are now styled to match. Custom
+     property NAMES are kept identical to the pre-redesign file so every
      existing rule (and every inline `var(...)` in dashboard.js/beds.js/
-     inventory.js/patient-flow.js/billing.js) picks up the new values with
-     zero JS changes. */
-  --primary: var(--color-fg);
-  --primary-hover: var(--color-accent);
+     inventory.js/patient-flow.js/billing.js/HTML) picks up the new
+     Material You values with zero JS/markup changes. */
+  --primary: var(--color-accent);
+  --primary-hover: color-mix(in srgb, var(--color-accent) 85%, black);
   --primary-light: var(--color-muted-bg);
   --background: var(--color-bg);
-  --surface: var(--color-bg);
+  --surface: var(--md-surface, var(--color-bg));
   --border: var(--color-border);
 
   /* Text Colors */
@@ -18,7 +21,8 @@
 
   /* Status Colors — kept legible/functional (dense ops dashboard: bed
      grids, patient tables, inventory alerts, billing queues), see
-     ../shared/design-tokens.css file header for why. */
+     ../shared/design-tokens.css file header for why. These already match
+     ../shared/material-components.css's .md-chip-*/.badge-* tokens. */
   --success: var(--status-success);
   --success-bg: var(--status-success-bg);
   --success-text: var(--status-success-fg);
@@ -34,14 +38,15 @@
   --neutral-bg: var(--color-muted-bg);
   --neutral-text: var(--color-muted-fg);
 
-  /* Border Radius — strictly rectangular */
-  --radius-sm: 0px;
-  --radius-base: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-full: 0px;
+  /* Border Radius — Material You's organic, generous scale (was forced
+     to 0px for the prior rectangular "Luxury/Editorial" look). */
+  --radius-sm: var(--radius-xs);
+  --radius-base: var(--radius-md);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
 
-  /* Shadows — subtle layered depth */
+  /* Shadows — MD3 elevation scale (see ../shared/design-tokens.css) */
   --shadow-sm: var(--shadow-card);
   --shadow-md: var(--shadow-card-hover);
   --shadow-lg: var(--shadow-image-hover);
@@ -57,7 +62,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* h1-h4/.h1-.h4 already get the Playfair Display treatment from
+/* h1-h4/.h1-.h4 already get the Roboto treatment from
    ../shared/design-tokens.css's universal heading rule; sizes stay as
    originally tuned for this dashboard's density. */
 h1, .h1 { font-size: 32px; font-weight: 600; color: var(--text-primary); margin: 0; }
@@ -84,17 +89,22 @@ small, .text-small { font-size: 12px; font-weight: 400; color: var(--text-muted)
 .flex-row { display: flex; align-items: center; gap: 8px; }
 .flex-col { display: flex; flex-direction: column; gap: 8px; }
 
-/* 1. Badge Component — rectangular chips, functional status colors kept */
+/* 1. Badge Component — MD3 tonal chip, pill-shaped, aligned with
+   ../shared/material-components.css's .md-chip/.badge status tokens. */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  height: 28px;
+  padding: 0 12px;
   border-radius: var(--radius-full);
-  border: 1px solid transparent;
+  border: none;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   line-height: 1;
   white-space: nowrap;
+  background-color: var(--neutral-bg);
+  color: var(--neutral-text);
 }
 .badge-success { background-color: var(--success-bg); color: var(--success-text); }
 .badge-warning { background-color: var(--warning-bg); color: var(--warning-text); }
@@ -102,134 +112,178 @@ small, .text-small { font-size: 12px; font-weight: 400; color: var(--text-muted)
 .badge-info { background-color: var(--info-bg); color: var(--info-text); }
 .badge-neutral { background-color: var(--neutral-bg); color: var(--neutral-text); }
 
-/* 2. Button Component */
+/* 2. Button Component — MD3 pill button, state-layer interaction model.
+   Class names kept identical to the pre-redesign markup (every screen's
+   HTML and every JS-generated string uses .btn/.btn-primary/etc.
+   directly) — only the visual language changes. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   white-space: nowrap;
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-full);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: var(--tracking-button);
-  text-transform: uppercase;
-  transition: box-shadow var(--duration-base) var(--ease-luxury), background-color var(--duration-base) var(--ease-luxury), color var(--duration-base) var(--ease-luxury);
+  transition: background-color var(--duration-fast) var(--ease-standard),
+              box-shadow var(--duration-base) var(--ease-standard),
+              transform var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard),
+              border-color var(--duration-fast) var(--ease-standard);
   cursor: pointer;
   border: 1px solid transparent;
   outline: none;
   position: relative;
 }
 .btn:disabled { opacity: 0.5; pointer-events: none; }
-.btn:focus-visible { box-shadow: 0 0 0 2px var(--color-accent); border-color: var(--color-accent); }
+.btn:active { transform: scale(0.96); }
+.btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* Button Variants */
 .btn-primary {
   background-color: var(--primary);
-  color: var(--color-bg);
-  box-shadow: var(--shadow-button);
-  overflow: hidden;
-  isolation: isolate;
+  color: var(--md-on-primary, #fff);
+  box-shadow: none;
   border-color: var(--primary);
 }
-.btn-primary::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--color-accent);
-  transform: translateX(-100%);
-  transition: transform var(--duration-base) var(--ease-luxury);
-  z-index: -1;
-}
-.btn-primary:hover { box-shadow: var(--shadow-button-hover); }
-.btn-primary:hover::before { transform: translateX(0); }
+.btn-primary:hover { background-color: var(--primary-hover); box-shadow: var(--shadow-2, var(--shadow-md)); }
 
-.btn-secondary { background-color: var(--surface); border-color: var(--border); color: var(--text-primary); }
-.btn-secondary:hover { background-color: var(--neutral-bg); }
+.btn-secondary { background-color: var(--md-secondary-container, var(--surface)); border-color: transparent; color: var(--md-on-secondary-container, var(--text-primary)); }
+.btn-secondary:hover { background-color: color-mix(in srgb, var(--md-secondary-container, var(--neutral-bg)) 85%, black); }
+
 .btn-outline { background-color: transparent; border-color: var(--border); color: var(--text-primary); }
-.btn-outline:hover { background-color: var(--neutral-bg); border-color: var(--color-fg); }
+.btn-outline:hover { background-color: color-mix(in srgb, var(--primary) 8%, transparent); border-color: var(--color-fg); }
+
 .btn-danger { background-color: transparent; border-color: var(--status-error); color: var(--error-text); }
-.btn-danger:hover { background-color: var(--status-error); color: #fff; }
+.btn-danger:hover { background-color: var(--status-error); border-color: var(--status-error); color: #fff; }
 
 /* Button Sizes */
-.btn-default { height: 40px; padding: 12px 24px; }
-.btn-sm { height: 32px; padding: 0 16px; }
-.btn-lg { height: 44px; padding: 12px 32px; }
+.btn-default { height: 40px; padding: 0 24px; }
+.btn-sm { height: 32px; padding: 0 16px; font-size: 12px; }
+.btn-lg { height: 48px; padding: 0 32px; font-size: 15px; }
 
-/* 3. Card Component — defined by a top line, not a boxed shadow */
+/* 3. Card Component — tonal Material You surface, not a bordered box. */
 .card {
-  background-color: var(--surface);
+  background-color: var(--md-surface-container, var(--surface));
   color: var(--text-primary);
   border-radius: var(--radius-lg);
   border: none;
-  border-top: 1px solid var(--color-border-strong);
-  box-shadow: none;
+  box-shadow: var(--shadow-1, var(--shadow-sm));
   display: flex;
   flex-direction: column;
-  transition: box-shadow var(--duration-base) var(--ease-luxury);
+  transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
 }
-.card:hover { box-shadow: var(--shadow-card-hover); }
+.card:hover { box-shadow: var(--shadow-2, var(--shadow-md)); }
 .card-header { padding: 24px 24px 0 24px; display: flex; flex-direction: column; gap: 6px; }
 .card-title { font-family: var(--font-heading); font-size: 18px; font-weight: 500; margin: 0; }
 .card-description { font-size: 14px; color: var(--text-secondary); margin: 0; }
 .card-content { padding: 24px; flex: 1; }
 .card-footer { padding: 0 24px 24px 24px; display: flex; align-items: center; gap: 12px; }
 
-/* 4. Input Component — underline only, italic serif placeholder */
+/* 4. Input Component — MD3 filled text field look. */
 .input {
   height: 44px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid var(--color-fg);
-  border-radius: 0;
-  padding: 0 4px;
+  border-bottom: 2px solid var(--md-outline, var(--border));
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 0 16px;
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--text-primary);
-  background-color: transparent;
-  transition: border-color var(--duration-base) var(--ease-luxury);
+  background-color: var(--md-surface-container-low, var(--neutral-bg));
+  transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
   outline: none;
 }
-.input::placeholder { font-family: var(--font-heading); font-style: italic; color: var(--text-muted); }
-.input:focus { border-color: var(--color-accent); box-shadow: none; }
+.input::placeholder { font-family: var(--font-body); font-style: normal; color: var(--text-muted); opacity: 0.8; }
+.input:focus { border-bottom-color: var(--primary); background-color: var(--md-surface-container, var(--primary-light)); box-shadow: none; }
 .input:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* select elements use .input too via inline styles in JS — underline
-   select arrow color follows the same charcoal/gold language */
+/* select elements use .input too via inline styles in JS — keep the
+   filled-field look and a pointer cursor */
 select.input { cursor: pointer; }
 
-/* 5. Tabs Component */
+/* 5. Tabs Component — MD3 underlined tab row. */
 .tabs { display: flex; flex-direction: column; gap: 16px; }
 .tabs-list {
   display: inline-flex;
-  height: 40px;
+  height: 44px;
   align-items: center;
   justify-content: flex-start;
   border-bottom: 1px solid var(--border);
   width: 100%;
-  gap: 24px;
+  gap: 8px;
 }
 .tabs-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  font: var(--type-label-medium, 500 0.875rem/1.4 var(--font-body));
   color: var(--text-secondary);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 0 4px 10px 4px;
+  padding: 10px 16px;
   cursor: pointer;
-  transition: color var(--duration-base) var(--ease-luxury), border-color var(--duration-base) var(--ease-luxury);
+  transition: color var(--duration-base) var(--ease-standard), border-color var(--duration-base) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
-.tabs-trigger:hover { color: var(--text-primary); }
+.tabs-trigger:hover { color: var(--text-primary); background-color: color-mix(in srgb, var(--primary) 6%, transparent); }
 .tabs-trigger[data-state="active"] {
-  color: var(--text-primary);
-  border-bottom-color: var(--color-accent);
+  color: var(--primary);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
 }
 .tabs-content { display: none; outline: none; }
 .tabs-content[data-state="active"] { display: block; }
+
+/* 6. Modal — the ONE Material You modal-overlay/dialog definition for
+   every HOM screen (previously copy-pasted, near-identically, into each
+   screen's own inline <style> block — see screen-0X-*.html). */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-overlay.active { display: flex; }
+.modal-content {
+  background: var(--md-surface-container-high, var(--md-surface-container));
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-4);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--md-surface-container-high, var(--md-surface-container));
+  z-index: 10;
+}
+.modal-body {
+  padding: 24px;
+}
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  position: sticky;
+  bottom: 0;
+  background: var(--md-surface-container-high, var(--md-surface-container));
+  z-index: 10;
+}

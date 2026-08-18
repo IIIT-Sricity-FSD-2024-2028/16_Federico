@@ -1,4 +1,5 @@
-/* BODY */
+/* BODY — Material You base surface (tokens resolve through
+   shared/design-tokens.css's --md-* purple-seed palette) */
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -10,4 +11,5 @@ body {
 a {
   text-decoration: none;
   color: var(--color-fg);
+  transition: color var(--duration-fast) var(--ease-standard);
 }

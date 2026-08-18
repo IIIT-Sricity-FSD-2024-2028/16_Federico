@@ -11,11 +11,14 @@ describe('AppController (e2e)', () => {
   });
 
   it('rejects protected routes without an x-role header (403)', () => {
-    return request(app).get('/doctor').expect(403).expect((res) => {
-      if (res.body.statusCode !== 403 || res.body.error !== 'Forbidden') {
-        throw new Error('Unexpected forbidden response shape');
-      }
-    });
+    return request(app)
+      .get('/doctor')
+      .expect(403)
+      .expect((res) => {
+        if (res.body.statusCode !== 403 || res.body.error !== 'Forbidden') {
+          throw new Error('Unexpected forbidden response shape');
+        }
+      });
   });
 
   it('allows ADMIN to read doctors', () => {
@@ -29,7 +32,8 @@ describe('AppController (e2e)', () => {
       .send({ name: '' })
       .expect(400)
       .expect((res) => {
-        if (!Array.isArray(res.body.message)) throw new Error('Expected message array');
+        if (!Array.isArray(res.body.message))
+          throw new Error('Expected message array');
       });
   });
 
@@ -38,7 +42,8 @@ describe('AppController (e2e)', () => {
       .get('/totally-unmatched-route')
       .expect(404)
       .expect((res) => {
-        if (res.body.error !== 'Not Found') throw new Error('Unexpected 404 shape');
+        if (res.body.error !== 'Not Found')
+          throw new Error('Unexpected 404 shape');
       });
   });
 });
@@ -72,7 +77,8 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .set('Authorization', `Bearer ${pre.body.token}`)
       .send({ patient_id: 201, department: 'Cardiology', visit_type: 'ADMIT' })
       .expect(201);
-    if (created.body.status !== 'PENDING') throw new Error('Expected PENDING status on create');
+    if (created.body.status !== 'PENDING')
+      throw new Error('Expected PENDING status on create');
 
     // HOM (not FA/PRE) can read it back
     await request(app)
@@ -94,12 +100,13 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .expect(403);
   });
 
-  it('prevents a patient from reading another patient\'s bills', async () => {
+  it("prevents a patient from reading another patient's bills", async () => {
     const patient = await request(app)
       .post('/auth/login')
       .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
       .expect(200);
-    if (patient.body.patient.patient_id !== 201) throw new Error('Expected patient_id 201');
+    if (patient.body.patient.patient_id !== 201)
+      throw new Error('Expected patient_id 201');
 
     await request(app)
       .get('/billing/patient/202/bills')
@@ -120,16 +127,34 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
     const auth = `Bearer ${patient.body.token}`;
 
     await request(app).get('/patient').set('Authorization', auth).expect(403);
-    await request(app).get('/patient/insurance/all').set('Authorization', auth).expect(403);
-    await request(app).get('/billing/payments').set('Authorization', auth).expect(403);
-    await request(app).get('/billing/receipts').set('Authorization', auth).expect(403);
-    await request(app).get('/billing/ledger/701').set('Authorization', auth).expect(403);
-    await request(app).get('/billing/ledger/801/entries').set('Authorization', auth).expect(403);
+    await request(app)
+      .get('/patient/insurance/all')
+      .set('Authorization', auth)
+      .expect(403);
+    await request(app)
+      .get('/billing/payments')
+      .set('Authorization', auth)
+      .expect(403);
+    await request(app)
+      .get('/billing/receipts')
+      .set('Authorization', auth)
+      .expect(403);
+    await request(app)
+      .get('/billing/ledger/701')
+      .set('Authorization', auth)
+      .expect(403);
+    await request(app)
+      .get('/billing/ledger/801/entries')
+      .set('Authorization', auth)
+      .expect(403);
     // Own record must still work
-    await request(app).get('/patient/201').set('Authorization', auth).expect(200);
+    await request(app)
+      .get('/patient/201')
+      .set('Authorization', auth)
+      .expect(200);
   });
 
-  it('blocks a patient from reading or cancelling another patient\'s pre-request, and from self-approving their own', async () => {
+  it("blocks a patient from reading or cancelling another patient's pre-request, and from self-approving their own", async () => {
     const pre = await request(app)
       .post('/auth/login')
       .send({ email: 'rekha.pre@hosp.com', password: 'Pre@123' })
@@ -197,7 +222,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .expect(200);
 
     if (list.body.some((pr) => pr.patient_id !== 201)) {
-      throw new Error('Patient list leaked another patient\'s pre-request');
+      throw new Error("Patient list leaked another patient's pre-request");
     }
   });
 });
@@ -206,7 +231,10 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
   const app = createApp();
 
   async function login(email, password) {
-    const res = await request(app).post('/auth/login').send({ email, password }).expect(200);
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(200);
     return `Bearer ${res.body.token}`;
   }
 
@@ -220,18 +248,32 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .send({ patient_id: 202, department: 'Orthopedics', visit_type: 'Admit' })
       .expect(201);
     const id = created.body.pre_request_id;
-    if (created.body.status !== 'PENDING') throw new Error('Expected PENDING on create');
+    if (created.body.status !== 'PENDING')
+      throw new Error('Expected PENDING on create');
 
     // FA has no business approving intake
     const fa = await login('farah.fa@hosp.com', 'Fa@123');
-    await request(app).put(`/pre-requests/${id}`).set('Authorization', fa).send({ status: 'APPROVED' }).expect(403);
+    await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', fa)
+      .send({ status: 'APPROVED' })
+      .expect(403);
 
     // PRE approves
-    const approved = await request(app).put(`/pre-requests/${id}`).set('Authorization', pre).send({ status: 'APPROVED' }).expect(200);
-    if (approved.body.status !== 'APPROVED') throw new Error('Expected APPROVED');
+    const approved = await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', pre)
+      .send({ status: 'APPROVED' })
+      .expect(200);
+    if (approved.body.status !== 'APPROVED')
+      throw new Error('Expected APPROVED');
 
     // ADMITTED can never be set directly, by anyone, even HOM
-    await request(app).put(`/pre-requests/${id}`).set('Authorization', hom).send({ status: 'ADMITTED' }).expect(403);
+    await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', hom)
+      .send({ status: 'ADMITTED' })
+      .expect(403);
 
     // HOM allocates a bed via the bed-request flow — THIS drives ADMITTED
     const bedReq = await request(app)
@@ -239,7 +281,10 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', pre)
       .send({ patient_id: 202, pre_request_id: id, ward_id: 1 })
       .expect(201);
-    const beds = await request(app).get('/ward/beds').set('Authorization', hom).expect(200);
+    const beds = await request(app)
+      .get('/ward/beds')
+      .set('Authorization', hom)
+      .expect(200);
     const freeBed = beds.body.find((b) => b.status === 'AVAILABLE');
     await request(app)
       .put(`/ward/bed-requests/${bedReq.body.bed_request_id}`)
@@ -247,22 +292,49 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .send({ bed_id: freeBed.bed_id })
       .expect(200);
 
-    const afterAllocation = await request(app).get(`/pre-requests/${id}`).set('Authorization', hom).expect(200);
-    if (afterAllocation.body.status !== 'ADMITTED') throw new Error('Expected bed allocation to drive status to ADMITTED');
-    if (afterAllocation.body.bed_id !== freeBed.bed_id) throw new Error('Expected bed_id to be set on the pre-request');
+    const afterAllocation = await request(app)
+      .get(`/pre-requests/${id}`)
+      .set('Authorization', hom)
+      .expect(200);
+    if (afterAllocation.body.status !== 'ADMITTED')
+      throw new Error('Expected bed allocation to drive status to ADMITTED');
+    if (afterAllocation.body.bed_id !== freeBed.bed_id)
+      throw new Error('Expected bed_id to be set on the pre-request');
 
-    const bedAfterAllocation = await request(app).get('/ward/beds').set('Authorization', hom).expect(200);
-    if (bedAfterAllocation.body.find((b) => b.bed_id === freeBed.bed_id).status !== 'OCCUPIED') {
+    const bedAfterAllocation = await request(app)
+      .get('/ward/beds')
+      .set('Authorization', hom)
+      .expect(200);
+    if (
+      bedAfterAllocation.body.find((b) => b.bed_id === freeBed.bed_id)
+        .status !== 'OCCUPIED'
+    ) {
       throw new Error('Expected allocated bed to be OCCUPIED');
     }
 
     // PRE requests discharge — HOM cannot skip PRE and request it themselves
-    await request(app).put(`/pre-requests/${id}`).set('Authorization', hom).send({ status: 'DISCHARGE_REQUESTED' }).expect(403);
-    await request(app).put(`/pre-requests/${id}`).set('Authorization', pre).send({ status: 'DISCHARGE_REQUESTED' }).expect(200);
+    await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', hom)
+      .send({ status: 'DISCHARGE_REQUESTED' })
+      .expect(403);
+    await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', pre)
+      .send({ status: 'DISCHARGE_REQUESTED' })
+      .expect(200);
 
     // HOM coordinates and approves the discharge — PRE cannot self-approve
-    await request(app).put(`/pre-requests/${id}`).set('Authorization', pre).send({ status: 'DISCHARGE_APPROVED' }).expect(403);
-    await request(app).put(`/pre-requests/${id}`).set('Authorization', hom).send({ status: 'DISCHARGE_APPROVED' }).expect(200);
+    await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', pre)
+      .send({ status: 'DISCHARGE_APPROVED' })
+      .expect(403);
+    await request(app)
+      .put(`/pre-requests/${id}`)
+      .set('Authorization', hom)
+      .send({ status: 'DISCHARGE_APPROVED' })
+      .expect(200);
 
     // PRE gives the final sign-off — this must release the bed
     const discharged = await request(app)
@@ -270,11 +342,20 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', pre)
       .send({ status: 'DISCHARGED' })
       .expect(200);
-    if (discharged.body.status !== 'DISCHARGED') throw new Error('Expected DISCHARGED');
+    if (discharged.body.status !== 'DISCHARGED')
+      throw new Error('Expected DISCHARGED');
 
-    const bedAfterDischarge = await request(app).get('/ward/beds').set('Authorization', hom).expect(200);
-    if (bedAfterDischarge.body.find((b) => b.bed_id === freeBed.bed_id).status !== 'AVAILABLE') {
-      throw new Error('Expected bed to be released (AVAILABLE) after discharge');
+    const bedAfterDischarge = await request(app)
+      .get('/ward/beds')
+      .set('Authorization', hom)
+      .expect(200);
+    if (
+      bedAfterDischarge.body.find((b) => b.bed_id === freeBed.bed_id).status !==
+      'AVAILABLE'
+    ) {
+      throw new Error(
+        'Expected bed to be released (AVAILABLE) after discharge',
+      );
     }
   });
 
@@ -283,7 +364,11 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
     const created = await request(app)
       .post('/pre-requests')
       .set('Authorization', pre)
-      .send({ patient_id: 203, department: 'General Medicine', visit_type: 'Consultation' })
+      .send({
+        patient_id: 203,
+        department: 'General Medicine',
+        visit_type: 'Consultation',
+      })
       .expect(201);
 
     await request(app)
@@ -300,7 +385,11 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
     const created = await request(app)
       .post('/pre-requests')
       .set('Authorization', pre)
-      .send({ patient_id: 201, department: 'Cardiology', visit_type: 'Consultation' })
+      .send({
+        patient_id: 201,
+        department: 'Cardiology',
+        visit_type: 'Consultation',
+      })
       .expect(201);
     const id = created.body.pre_request_id;
 
@@ -309,7 +398,8 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', pre)
       .send({ requested_date: '2026-09-01', requested_time: '11:00 AM' })
       .expect(200);
-    if (rescheduled.body.requested_time !== '11:00 AM') throw new Error('Expected field update to apply');
+    if (rescheduled.body.requested_time !== '11:00 AM')
+      throw new Error('Expected field update to apply');
 
     await request(app)
       .put(`/pre-requests/${id}`)
@@ -323,45 +413,82 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
   const app = createApp();
 
   async function login(email, password) {
-    const res = await request(app).post('/auth/login').send({ email, password }).expect(200);
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(200);
     return res.body;
   }
 
   async function platformLogin() {
     const res = await request(app)
       .post('/platform/auth/login')
-      .send({ email: 'platform@federico.com', password: 'Federico@Platform123' })
+      .send({
+        email: 'platform@federico.com',
+        password: 'Federico@Platform123',
+      })
       .expect(200);
     return `Bearer ${res.body.token}`;
   }
 
   it('/marketplace/organizations is public and lists only ACTIVE organizations', async () => {
-    const res = await request(app).get('/marketplace/organizations').expect(200);
-    if (!Array.isArray(res.body) || res.body.length < 2) throw new Error('Expected at least the 2 seeded organizations');
-    if (res.body.some((o) => o.status)) throw new Error('Marketplace listing must not leak internal fields like status');
-    if (!res.body.every((o) => o.name && o.branches)) throw new Error('Expected name/branches on every listing');
+    const res = await request(app)
+      .get('/marketplace/organizations')
+      .expect(200);
+    if (!Array.isArray(res.body) || res.body.length < 2)
+      throw new Error('Expected at least the 2 seeded organizations');
+    if (res.body.some((o) => o.status))
+      throw new Error(
+        'Marketplace listing must not leak internal fields like status',
+      );
+    if (!res.body.every((o) => o.name && o.branches))
+      throw new Error('Expected name/branches on every listing');
   });
 
   it('Platform Super User can manage organizations but is hard-blocked from patient/billing/inventory/doctor data', async () => {
     const platform = await platformLogin();
 
-    await request(app).get('/platform/organizations').set('Authorization', platform).expect(200);
-    await request(app).get('/platform/organizations/1/usage').set('Authorization', platform).expect(200);
+    await request(app)
+      .get('/platform/organizations')
+      .set('Authorization', platform)
+      .expect(200);
+    await request(app)
+      .get('/platform/organizations/1/usage')
+      .set('Authorization', platform)
+      .expect(200);
 
-    await request(app).get('/patient').set('Authorization', platform).expect(403);
-    await request(app).get('/doctor').set('Authorization', platform).expect(403);
-    await request(app).get('/billing/services').set('Authorization', platform).expect(403);
-    await request(app).get('/inventory/items').set('Authorization', platform).expect(403);
+    await request(app)
+      .get('/patient')
+      .set('Authorization', platform)
+      .expect(403);
+    await request(app)
+      .get('/doctor')
+      .set('Authorization', platform)
+      .expect(403);
+    await request(app)
+      .get('/billing/services')
+      .set('Authorization', platform)
+      .expect(403);
+    await request(app)
+      .get('/inventory/items')
+      .set('Authorization', platform)
+      .expect(403);
   });
 
   it('a non-platform session cannot reach /platform/* routes', async () => {
     const hom = await login('admin@hosp.com', 'Hom@123');
-    await request(app).get('/platform/organizations').set('Authorization', `Bearer ${hom.token}`).expect(403);
+    await request(app)
+      .get('/platform/organizations')
+      .set('Authorization', `Bearer ${hom.token}`)
+      .expect(403);
   });
 
   it('provisioning creates a new organization whose default admin can log in and immediately use it', async () => {
     const platform = await platformLogin();
-    const plans = await request(app).get('/platform/plans').set('Authorization', platform).expect(200);
+    const plans = await request(app)
+      .get('/platform/plans')
+      .set('Authorization', platform)
+      .expect(200);
     const starter = plans.body.find((p) => p.name === 'Starter');
 
     const provisioned = await request(app)
@@ -376,56 +503,108 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
         modules: ['APPOINTMENTS', 'ADMISSIONS'],
       })
       .expect(201);
-    if (!provisioned.body.organization || !provisioned.body.apiKey) throw new Error('Expected organization + apiKey in provisioning result');
+    if (!provisioned.body.organization || !provisioned.body.apiKey)
+      throw new Error('Expected organization + apiKey in provisioning result');
 
-    const newAdmin = await login('admin@test-provisioning.hosp.com', 'TestAdmin@123');
-    if (newAdmin.tenant.organization_id !== provisioned.body.organization.organization_id) {
-      throw new Error('New admin session not scoped to the newly provisioned organization');
+    const newAdmin = await login(
+      'admin@test-provisioning.hosp.com',
+      'TestAdmin@123',
+    );
+    if (
+      newAdmin.tenant.organization_id !==
+      provisioned.body.organization.organization_id
+    ) {
+      throw new Error(
+        'New admin session not scoped to the newly provisioned organization',
+      );
     }
     if (newAdmin.tenant.enabled_modules.includes('BILLING')) {
-      throw new Error('BILLING was not in the requested module list and must not be enabled');
+      throw new Error(
+        'BILLING was not in the requested module list and must not be enabled',
+      );
     }
 
     // Freshly provisioned org starts with no doctors of its own.
-    const doctors = await request(app).get('/doctor').set('Authorization', `Bearer ${newAdmin.token}`).expect(200);
-    if (doctors.body.length !== 0) throw new Error('New organization must not see another organization\'s doctors');
+    const doctors = await request(app)
+      .get('/doctor')
+      .set('Authorization', `Bearer ${newAdmin.token}`)
+      .expect(200);
+    if (doctors.body.length !== 0)
+      throw new Error(
+        "New organization must not see another organization's doctors",
+      );
   });
 
   it('cross-organization data is fully isolated between Federico General (org 1) and Apollo Hospitals (org 2)', async () => {
     const federicoHom = await login('admin@hosp.com', 'Hom@123');
     const apolloHom = await login('admin@apollo.hosp.com', 'Apollo@123');
-    if (federicoHom.tenant.organization_id === apolloHom.tenant.organization_id) throw new Error('Seeded demo orgs must differ');
+    if (federicoHom.tenant.organization_id === apolloHom.tenant.organization_id)
+      throw new Error('Seeded demo orgs must differ');
 
-    const federicoDoctors = await request(app).get('/doctor').set('Authorization', `Bearer ${federicoHom.token}`).expect(200);
-    const apolloDoctors = await request(app).get('/doctor').set('Authorization', `Bearer ${apolloHom.token}`).expect(200);
-    if (federicoDoctors.body.some((d) => apolloDoctors.body.some((ad) => ad.doctor_id === d.doctor_id))) {
+    const federicoDoctors = await request(app)
+      .get('/doctor')
+      .set('Authorization', `Bearer ${federicoHom.token}`)
+      .expect(200);
+    const apolloDoctors = await request(app)
+      .get('/doctor')
+      .set('Authorization', `Bearer ${apolloHom.token}`)
+      .expect(200);
+    if (
+      federicoDoctors.body.some((d) =>
+        apolloDoctors.body.some((ad) => ad.doctor_id === d.doctor_id),
+      )
+    ) {
       throw new Error('Doctor lists must not overlap between organizations');
     }
 
     // Apollo cannot read a Federico doctor by ID either (empty body = not-found, this app's existing convention).
     const federicoDoctorId = federicoDoctors.body[0].doctor_id;
-    const crossOrgRead = await request(app).get(`/doctor/${federicoDoctorId}`).set('Authorization', `Bearer ${apolloHom.token}`).expect(200);
-    if (crossOrgRead.body && crossOrgRead.body.doctor_id) throw new Error('Apollo must not be able to read a Federico doctor record');
+    const crossOrgRead = await request(app)
+      .get(`/doctor/${federicoDoctorId}`)
+      .set('Authorization', `Bearer ${apolloHom.token}`)
+      .expect(200);
+    if (crossOrgRead.body && crossOrgRead.body.doctor_id)
+      throw new Error(
+        'Apollo must not be able to read a Federico doctor record',
+      );
   });
 
   it('feature flags differ per organization: Apollo (INSURANCE off) is blocked, Federico General (INSURANCE on) is not', async () => {
     const federicoHom = await login('admin@hosp.com', 'Hom@123');
     const apolloHom = await login('admin@apollo.hosp.com', 'Apollo@123');
 
-    await request(app).get('/patient/insurance/all').set('Authorization', `Bearer ${federicoHom.token}`).expect(200);
-    await request(app).get('/patient/insurance/all').set('Authorization', `Bearer ${apolloHom.token}`).expect(403);
+    await request(app)
+      .get('/patient/insurance/all')
+      .set('Authorization', `Bearer ${federicoHom.token}`)
+      .expect(200);
+    await request(app)
+      .get('/patient/insurance/all')
+      .set('Authorization', `Bearer ${apolloHom.token}`)
+      .expect(403);
 
     // Apollo's plan also excludes INVENTORY.
-    await request(app).get('/inventory/items').set('Authorization', `Bearer ${apolloHom.token}`).expect(403);
+    await request(app)
+      .get('/inventory/items')
+      .set('Authorization', `Bearer ${apolloHom.token}`)
+      .expect(403);
   });
 
   it('dynamic RBAC: a PRE account with no fixed billing access gets billing:read via a custom role', async () => {
     const plainPre = await login('rekha.pre@hosp.com', 'Pre@123');
-    await request(app).get('/billing/services').set('Authorization', `Bearer ${plainPre.token}`).expect(403);
+    await request(app)
+      .get('/billing/services')
+      .set('Authorization', `Bearer ${plainPre.token}`)
+      .expect(403);
 
     const billingAssist = await login('billing.assist@hosp.com', 'Assist@123');
-    if (billingAssist.role !== 'PRE') throw new Error('Expected the RBAC demo account to still be a fixed PRE actor');
-    await request(app).get('/billing/services').set('Authorization', `Bearer ${billingAssist.token}`).expect(200);
+    if (billingAssist.role !== 'PRE')
+      throw new Error(
+        'Expected the RBAC demo account to still be a fixed PRE actor',
+      );
+    await request(app)
+      .get('/billing/services')
+      .set('Authorization', `Bearer ${billingAssist.token}`)
+      .expect(200);
 
     // The grant must not leak into billing WRITE (only billing:read was assigned).
     await request(app)
@@ -436,7 +615,11 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
   });
 
   it('legacy x-role-only callers keep seeing organization 1 exactly as before (backward compatibility)', async () => {
-    const res = await request(app).get('/doctor').set('x-role', 'ADMIN').expect(200);
-    if (res.body.some((d) => d.organization_id !== 1)) throw new Error('Legacy caller must only see organization 1 data');
+    const res = await request(app)
+      .get('/doctor')
+      .set('x-role', 'ADMIN')
+      .expect(200);
+    if (res.body.some((d) => d.organization_id !== 1))
+      throw new Error('Legacy caller must only see organization 1 data');
   });
 });

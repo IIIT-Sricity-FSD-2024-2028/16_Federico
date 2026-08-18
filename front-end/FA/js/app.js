@@ -35,10 +35,10 @@ window.render = render;
 const H = () => window.FAHelpers;
 
 function statusBadge(row) {
-    if (!row.ledger) return `<span style="background: var(--status-warning-bg); color: var(--status-warning-fg); padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 600;">Ledger Pending</span>`;
-    if (row.ledger.status === 'PAID') return `<span style="background: var(--status-success-bg); color: var(--status-success-fg); padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 600;">Paid</span>`;
-    if (row.ledger.status === 'DISPATCHED') return `<span style="background: var(--status-info-bg); color: var(--status-info-fg); padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 600;">Dispatched</span>`;
-    return `<span style="background: var(--status-warning-bg); color: var(--status-warning-fg); padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 600;">Active</span>`;
+    if (!row.ledger) return `<span class="badge badge-warning">Ledger Pending</span>`;
+    if (row.ledger.status === 'PAID') return `<span class="badge badge-success">Paid</span>`;
+    if (row.ledger.status === 'DISPATCHED') return `<span class="badge badge-info">Dispatched</span>`;
+    return `<span class="badge badge-warning">Active</span>`;
 }
 
 async function renderDashboard() {
@@ -55,7 +55,7 @@ async function renderDashboard() {
             <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${H().escapeHtml(r.bed.bed_number || '-')}</span></td>
             <td style="padding: 16px 20px;">${statusBadge(r)}</td>
             <td style="padding: 16px 20px;">
-                <button class="btn-primary" style="padding: 8px 16px; font-size: 12px; border-radius: 0;" onclick="${r.ledger ? `navigate('#/ledger', ${r.admission.admission_id})` : `window.FAActions.createLedgerAndOpen(${r.admission.admission_id})`}">${r.ledger ? 'Open Ledger' : 'Create Ledger'}</button>
+                <button class="btn-primary" style="padding: 8px 16px; font-size: 12px;" onclick="${r.ledger ? `navigate('#/ledger', ${r.admission.admission_id})` : `window.FAActions.createLedgerAndOpen(${r.admission.admission_id})`}">${r.ledger ? 'Open Ledger' : 'Create Ledger'}</button>
             </td>
         </tr>
     `).join('');
@@ -66,7 +66,7 @@ async function renderDashboard() {
             <td style="padding: 16px 20px;">${H().escapeHtml(r.patient.uhid || '-')}</td>
             <td style="padding: 16px 20px;">${H().escapeHtml(r.bed.bed_number || '-')}</td>
             <td style="padding: 16px 20px;">HOM</td>
-            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 16px; font-size: 12px; border-radius: 0;" onclick="window.FAActions.createLedgerAndOpen(${r.admission.admission_id})">Create Ledger</button></td>
+            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 16px; font-size: 12px;" onclick="window.FAActions.createLedgerAndOpen(${r.admission.admission_id})">Create Ledger</button></td>
         </tr>
     `).join('');
 
@@ -75,8 +75,8 @@ async function renderDashboard() {
             <td style="padding: 16px 20px;"><strong>${H().escapeHtml(r.patient.name || '-')}</strong></td>
             <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${r.admission.admission_id}</span></td>
             <td style="padding: 16px 20px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 500;">${H().escapeHtml(r.bed.bed_number || '-')}</span></td>
-            <td style="padding: 16px 20px;"><span style="background: var(--status-warning-bg); color: var(--status-warning-fg); padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 600;">HOM Approved</span></td>
-            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 16px; font-size: 12px; border-radius: 0;" onclick="navigate('#/discharge', ${r.admission.admission_id})">Open Billing</button></td>
+            <td style="padding: 16px 20px;"><span class="badge badge-warning">HOM Approved</span></td>
+            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 16px; font-size: 12px;" onclick="navigate('#/discharge', ${r.admission.admission_id})">Open Billing</button></td>
         </tr>
     `).join('');
 
@@ -87,8 +87,8 @@ async function renderDashboard() {
             <td style="padding: 16px 20px;"><strong>${H().escapeHtml(admissionRow?.patient.name || '-')}</strong></td>
             <td style="padding: 16px 20px;">${H().escapeHtml(admissionRow?.patient.uhid || '-')}</td>
             <td style="padding: 16px 20px;">${H().formatCurrency(rcpt.amount)}</td>
-            <td style="padding: 16px 20px;"><span style="background: var(--status-success-bg); color: var(--status-success-fg); padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 600;">Paid — ${H().escapeHtml(rcpt.payment_mode)}</span></td>
-            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 16px; font-size: 12px; border-radius: 0;" onclick="window.FAActions.printReceipt(${rcpt.receipt_id})">Print</button></td>
+            <td style="padding: 16px 20px;"><span class="badge badge-success">Paid — ${H().escapeHtml(rcpt.payment_mode)}</span></td>
+            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 16px; font-size: 12px;" onclick="window.FAActions.printReceipt(${rcpt.receipt_id})">Print</button></td>
         </tr>
     `;
     }).join('');
@@ -111,7 +111,7 @@ async function renderDashboard() {
             </div>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; margin-top: 32px; border: 1px solid var(--color-border);">
+        <div class="card" style="padding: 0; overflow: hidden; margin-top: 32px;">
             <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: var(--color-bg);">
                 <h3 style="margin: 0; font-size: 16px; color: var(--color-fg); font-weight: 700;">Patient Billing Queue</h3>
             </div>
@@ -129,10 +129,10 @@ async function renderDashboard() {
             </table>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px; border: 1px solid var(--color-border);">
+        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px;">
             <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: var(--color-bg); display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin: 0; font-size: 16px; color: var(--color-fg); font-weight: 700;">New Admissions Awaiting Ledger Setup</h3>
-                <span style="background: ${pendingLedger.length ? 'var(--status-warning-bg)' : 'var(--status-success-bg)'}; color: ${pendingLedger.length ? 'var(--status-warning-fg)' : 'var(--status-success-fg)'}; padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 700;">${pendingLedger.length} Pending</span>
+                <span class="badge ${pendingLedger.length ? 'badge-warning' : 'badge-success'}">${pendingLedger.length} Pending</span>
             </div>
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
@@ -148,10 +148,10 @@ async function renderDashboard() {
             </table>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px; border: 1px solid var(--color-border);">
+        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px;">
             <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: var(--color-bg); display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin: 0; font-size: 16px; color: var(--color-fg); font-weight: 700;">HOM Requests: Discharge & Final Billing</h3>
-                <span style="background: ${dischargeReady.length ? 'var(--status-warning-bg)' : 'var(--status-success-bg)'}; color: ${dischargeReady.length ? 'var(--status-warning-fg)' : 'var(--status-success-fg)'}; padding: 4px 10px; border-radius: 0; font-size: 12px; font-weight: 700;">${dischargeReady.length} Open</span>
+                <span class="badge ${dischargeReady.length ? 'badge-warning' : 'badge-success'}">${dischargeReady.length} Open</span>
             </div>
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
@@ -167,7 +167,7 @@ async function renderDashboard() {
             </table>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px; border: 1px solid var(--color-border);">
+        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px;">
             <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: var(--color-bg); display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin: 0; font-size: 16px; color: var(--color-fg); font-weight: 700;">Recent Receipts</h3>
             </div>
@@ -202,7 +202,7 @@ async function renderCharges() {
     const recentRows = recentEntries.map((e) => `
         <tr style="border-bottom: 1px solid var(--color-border);">
             <td style="padding: 16px 20px;"><strong>${H().escapeHtml(e.patientName || '-')}</strong></td>
-            <td style="padding: 16px 20px;"><span class="uhid-badge" style="background: var(--color-muted-bg); padding: 4px 8px; border-radius: 0; font-family: monospace; font-size: 12px;">${H().escapeHtml(e.uhid || '-')}</span></td>
+            <td style="padding: 16px 20px;"><span class="uhid-badge">${H().escapeHtml(e.uhid || '-')}</span></td>
             <td style="padding: 16px 20px; color: var(--color-fg);">${H().escapeHtml(servicesById[e.service_id]?.service_name || 'Service #' + e.service_id)}</td>
             <td style="padding: 16px 20px; text-align: center;"><strong>${e.quantity}</strong></td>
             <td style="padding: 16px 20px;">${H().formatCurrency(e.amount)}</td>
@@ -212,27 +212,27 @@ async function renderCharges() {
     return `
         <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Charges</h2>
 
-        <div class="card" style="padding: 24px; border: 1px solid var(--color-border); margin-bottom: 24px;">
+        <div class="card" style="padding: 24px; margin-bottom: 24px;">
             <h3 style="margin: 0 0 16px 0; font-size: 16px; color: var(--color-fg);">Add a Charge to an Admission</h3>
             <div style="display: grid; grid-template-columns: 2fr 2fr 100px 140px; gap: 12px; align-items: end;">
-                <div>
-                    <label style="display:block; font-size: 12px; color: var(--color-muted-fg); margin-bottom: 6px;">Admission</label>
-                    <select id="charge-admission" style="width: 100%; padding: 10px; border: 1px solid var(--color-fg); border-radius: 0;"><option value="">Select patient...</option>${admissionOptions}</select>
+                <div class="md-field" style="margin-bottom: 0;">
+                    <label>Admission</label>
+                    <select id="charge-admission"><option value="">Select patient...</option>${admissionOptions}</select>
                 </div>
-                <div>
-                    <label style="display:block; font-size: 12px; color: var(--color-muted-fg); margin-bottom: 6px;">Service</label>
-                    <select id="charge-service" style="width: 100%; padding: 10px; border: 1px solid var(--color-fg); border-radius: 0;"><option value="">Select service...</option>${serviceOptions}</select>
+                <div class="md-field" style="margin-bottom: 0;">
+                    <label>Service</label>
+                    <select id="charge-service"><option value="">Select service...</option>${serviceOptions}</select>
                 </div>
-                <div>
-                    <label style="display:block; font-size: 12px; color: var(--color-muted-fg); margin-bottom: 6px;">Qty</label>
-                    <input id="charge-qty" type="number" min="1" value="1" style="width: 100%; padding: 10px; border: 1px solid var(--color-fg); border-radius: 0;">
+                <div class="md-field" style="margin-bottom: 0;">
+                    <label>Qty</label>
+                    <input id="charge-qty" type="number" min="1" value="1">
                 </div>
-                <button class="btn-primary" style="padding: 10px; border-radius: 0;" onclick="window.FAActions.addChargeFromForm()">Add Charge</button>
+                <button class="btn-primary" style="padding: 10px;" onclick="window.FAActions.addChargeFromForm()">Add Charge</button>
             </div>
             <div id="charges-form-error" style="display:none; margin-top: 12px; font-size: 12px; color: var(--status-error); font-weight: 600;"></div>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--color-border);">
+        <div class="card" style="padding: 0; overflow: hidden;">
             <div style="padding: 20px; border-bottom: 1px solid var(--color-border);"><h3 style="margin: 0; font-size: 16px; color: var(--color-fg); font-weight: 700;">Recent Charges</h3></div>
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
@@ -267,7 +267,7 @@ async function renderLedger() {
             <div class="card" style="padding: 40px; text-align: center;">
                 <h2 style="color: var(--status-warning-fg);">Ledger not created yet</h2>
                 <p style="color: var(--color-muted-fg);">This patient has been admitted, but finance has not initialized the ledger yet.</p>
-                <button class="btn-primary" style="padding: 10px 18px; border-radius: 0;" onclick="window.FAActions.createLedgerAndOpen(${row.admission.admission_id})">Create Ledger Now</button>
+                <button class="btn-primary" style="padding: 10px 18px;" onclick="window.FAActions.createLedgerAndOpen(${row.admission.admission_id})">Create Ledger Now</button>
             </div>
         `;
     }
@@ -288,24 +288,24 @@ async function renderLedger() {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')} <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span></h2>
             <div style="display: flex; gap: 12px;">
-                <button style="background: var(--color-muted-fg); color: white; border: none; padding: 10px 20px; border-radius: 0; font-weight: 600; cursor: pointer; font-size: 13px;" onclick="navigate('#/eod', ${row.admission.admission_id})">EOD Billing</button>
-                <button class="btn-primary" style="padding: 10px 20px; border-radius: 0; font-size: 13px; background: ${row.dischargeApproved ? 'var(--color-fg)' : 'var(--color-muted-bg)'};" onclick="${row.dischargeApproved ? `navigate('#/discharge', ${row.admission.admission_id})` : "alert('Waiting for HOM discharge approval for this patient.')"}">${row.dischargeApproved ? 'Discharge' : 'Await HOM Approval'}</button>
+                <button class="md-btn md-btn-tonal" style="padding: 0 20px;" onclick="navigate('#/eod', ${row.admission.admission_id})">EOD Billing</button>
+                <button class="btn-primary" style="padding: 10px 20px; font-size: 13px; background: ${row.dischargeApproved ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${row.dischargeApproved ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'};" onclick="${row.dischargeApproved ? `navigate('#/discharge', ${row.admission.admission_id})` : "window.UIFeedback.toast('Waiting for HOM discharge approval for this patient.', 'warning')"}">${row.dischargeApproved ? 'Discharge' : 'Await HOM Approval'}</button>
             </div>
         </div>
 
-        <div class="card" style="padding: 20px; border: 1px solid var(--color-border); margin-bottom: 24px; display: grid; grid-template-columns: 2fr 100px 140px; gap: 12px; align-items: end;">
-            <div>
-                <label style="display:block; font-size: 12px; color: var(--color-muted-fg); margin-bottom: 6px;">Add a service</label>
-                <select id="ledger-add-service" style="width: 100%; padding: 10px; border: 1px solid var(--color-fg); border-radius: 0;"><option value="">Select service...</option>${serviceOptions}</select>
+        <div class="card" style="padding: 20px; margin-bottom: 24px; display: grid; grid-template-columns: 2fr 100px 140px; gap: 12px; align-items: end;">
+            <div class="md-field" style="margin-bottom: 0;">
+                <label>Add a service</label>
+                <select id="ledger-add-service"><option value="">Select service...</option>${serviceOptions}</select>
             </div>
-            <div>
-                <label style="display:block; font-size: 12px; color: var(--color-muted-fg); margin-bottom: 6px;">Qty</label>
-                <input id="ledger-add-qty" type="number" min="1" value="1" style="width: 100%; padding: 10px; border: 1px solid var(--color-fg); border-radius: 0;">
+            <div class="md-field" style="margin-bottom: 0;">
+                <label>Qty</label>
+                <input id="ledger-add-qty" type="number" min="1" value="1">
             </div>
-            <button class="btn-primary" style="padding: 10px; border-radius: 0;" onclick="window.FAActions.addChargeToCurrentLedger(${row.admission.admission_id}, ${row.ledger.ledger_id})">Add to Ledger</button>
+            <button class="btn-primary" style="padding: 10px;" onclick="window.FAActions.addChargeToCurrentLedger(${row.admission.admission_id}, ${row.ledger.ledger_id})">Add to Ledger</button>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--color-border);">
+        <div class="card" style="padding: 0; overflow: hidden;">
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
                     <tr>
@@ -356,23 +356,23 @@ async function renderEodBilling() {
         <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">EOD Dispatcher | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-            <div class="card" style="padding: 24px; border: 1px solid var(--color-border); display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
                     <h3 style="margin: 0 0 16px 0; font-size: 16px; color: var(--color-fg);">Current Ledger Total</h3>
                     <div style="font-size: 32px; font-weight: 800; color: var(--color-accent); margin-bottom: 20px;">${H().formatCurrency(total)}</div>
                     ${row.ledger && entries.length ? `
-                        <div style="margin-bottom: 24px; padding: 12px; background: var(--color-muted-bg); border-radius: 0;">
+                        <div style="margin-bottom: 24px; padding: 16px; background: var(--color-muted-bg); border-radius: var(--radius-md);">
                             <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Included in this bill:</div>
                             ${breakdownRows}
                         </div>
                     ` : `<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">${row.ledger ? 'No charges recorded yet.' : 'No ledger exists for this admission yet.'}</p>`}
                 </div>
-                <button onclick="window.FAActions.dispatchCurrent(${row.ledger ? row.ledger.ledger_id : 'null'})" style="width: 100%; background: ${canDispatch ? 'var(--color-fg)' : 'var(--color-muted-bg)'}; color: white; border: none; padding: 14px; border-radius: 0; font-weight: 700; cursor: ${canDispatch ? 'pointer' : 'not-allowed'}; font-size: 14px;" ${canDispatch ? '' : 'disabled'}>
+                <button onclick="window.FAActions.dispatchCurrent(${row.ledger ? row.ledger.ledger_id : 'null'})" style="width: 100%; background: ${canDispatch ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${canDispatch ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'}; border: none; padding: 14px; border-radius: var(--radius-full); font-weight: 700; cursor: ${canDispatch ? 'pointer' : 'not-allowed'}; font-size: 14px;" ${canDispatch ? '' : 'disabled'}>
                     ${!row.ledger ? 'No Ledger Yet' : row.ledger.status !== 'OPEN' ? 'Already Dispatched' : total === 0 ? 'Nothing to Dispatch' : 'Dispatch Bill to Patient'}
                 </button>
             </div>
 
-            <div class="card" style="padding: 24px; border: 1px solid var(--color-border); height: fit-content;">
+            <div class="card" style="padding: 24px; height: fit-content;">
                 <h3 style="margin: 0 0 16px 0; font-size: 16px; color: var(--color-fg);">Recently Dispatched</h3>
                 <div>${historyRows || '<p style="color: var(--text-muted); font-size: 14px;">No other bills have been dispatched yet.</p>'}</div>
             </div>
@@ -415,7 +415,7 @@ async function renderDischarge() {
                 <h2 style="color: var(--color-accent);">Payment Received</h2>
                 <p>Billing is finalized. <a href="#/receipts" style="color: var(--color-accent);">View Receipt</a></p>
                 <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
-                    <button class="btn-primary" style="padding: 12px 20px; border-radius: 0; background: var(--color-fg);" onclick="window.FAActions.printDischargeSummary(${row.admission.admission_id})">🖨️ Print Discharge Summary</button>
+                    <button class="btn-primary" style="padding: 12px 20px;" onclick="window.FAActions.printDischargeSummary(${row.admission.admission_id})">🖨️ Print Discharge Summary</button>
                 </div>
             </div>
         `;
@@ -426,7 +426,7 @@ async function renderDischarge() {
     return `
         <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
 
-        <div class="card" style="padding: 32px; border: 1px solid var(--color-border); display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
+        <div class="card" style="padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
             <div>
                 <h3 style="margin: 0 0 20px 0; font-size: 18px; color: var(--color-fg);">Bill Summary</h3>
                 <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--color-border); color: var(--color-muted-fg); font-size: 15px;">
@@ -435,14 +435,14 @@ async function renderDischarge() {
                 <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--color-border); color: var(--status-error); font-size: 15px;">
                     <span>Insurance Deduction (${H().escapeHtml(insurance?.provider_name || 'None')})</span><span>- ${H().formatCurrency(coverageLimit)}</span>
                 </div>
-                <div style="margin-top: 12px;">
-                    <label style="font-size: 12px; color: var(--color-muted-fg);">Override Deduction (Rs)</label>
-                    <input type="number" id="coverage-override" value="${coverageLimit}" min="0" max="${grossTotal}" style="width:100%; padding:8px; border:1px solid var(--color-fg); border-radius:0; margin-top:4px;">
+                <div class="md-field" style="margin: 12px 0 0;">
+                    <label>Override Deduction (Rs)</label>
+                    <input type="number" id="coverage-override" value="${coverageLimit}" min="0" max="${grossTotal}">
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 16px 0; color: var(--color-accent); font-size: 16px; font-weight: 700; margin-bottom: 20px;">
                     <span>Net Payable</span><span id="net-payable-preview">${H().formatCurrency(Math.max(0, grossTotal - coverageLimit))}</span>
                 </div>
-                <button class="btn-primary" style="width: 100%; padding: 14px; border-radius: 0; font-weight: 700; font-size: 13px; background: var(--color-fg);" onclick="window.FAActions.generateDischargeSummary(${row.admission.admission_id})">
+                <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; font-size: 13px;" onclick="window.FAActions.generateDischargeSummary(${row.admission.admission_id})">
                     📄 Generate Discharge Summary
                 </button>
             </div>
@@ -451,16 +451,16 @@ async function renderDischarge() {
                 <h3 style="margin: 0 0 20px 0; font-size: 18px; color: var(--color-fg);">Payment</h3>
                 ${!row.ledger ? `
                     <p style="color: var(--color-muted-fg); font-size: 14px;">No ledger exists for this admission yet.</p>
-                    <button class="btn-primary" style="width: 100%; padding: 14px; border-radius: 0; font-weight: 700;" onclick="window.FAActions.createLedgerAndOpen(${row.admission.admission_id})">Create Ledger</button>
+                    <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700;" onclick="window.FAActions.createLedgerAndOpen(${row.admission.admission_id})">Create Ledger</button>
                 ` : !dispatched ? `
                     <p style="color: var(--color-muted-fg); font-size: 14px; margin-bottom: 16px;">Dispatch the bill so the patient can pay online, or record a manual payment for a walk-in.</p>
-                    <button class="btn-primary" style="width: 100%; padding: 14px; border-radius: 0; font-weight: 700; margin-bottom: 12px;" onclick="window.FAActions.dispatchCurrent(${row.ledger.ledger_id})">Dispatch Bill to Patient</button>
-                    <button class="btn-primary" style="width: 100%; padding: 14px; border-radius: 0; font-weight: 700; background: var(--color-muted-fg);" onclick="window.FAActions.recordCashPayment(${row.ledger.ledger_id})">Record Cash Payment</button>
+                    <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; margin-bottom: 12px;" onclick="window.FAActions.dispatchCurrent(${row.ledger.ledger_id})">Dispatch Bill to Patient</button>
+                    <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; background: var(--md-secondary-container); color: var(--md-on-secondary-container);" onclick="window.FAActions.recordCashPayment(${row.ledger.ledger_id})">Record Cash Payment</button>
                 ` : `
-                    <div style="margin-bottom: 16px; padding: 14px; border-radius: 0; background: var(--color-muted-bg); color: var(--color-muted-fg); font-size: 13px;">
+                    <div style="margin-bottom: 16px; padding: 16px; border-radius: var(--radius-md); background: var(--color-muted-bg); color: var(--color-muted-fg); font-size: 13px;">
                         Bill dispatched — the patient can pay from their own billing page. You can also record cash collected in person below.
                     </div>
-                    <button class="btn-primary" style="width: 100%; padding: 14px; border-radius: 0; font-weight: 700;" onclick="window.FAActions.recordCashPayment(${row.ledger.ledger_id})">Record Cash Payment</button>
+                    <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700;" onclick="window.FAActions.recordCashPayment(${row.ledger.ledger_id})">Record Cash Payment</button>
                 `}
                 <div id="discharge-payment-error" style="display:none; margin-top: 12px; font-size: 12px; color: var(--status-error); font-weight: 600;"></div>
             </div>
@@ -479,8 +479,8 @@ async function renderReceipts() {
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
             <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Payment Receipts</h2>
             <div style="display: flex; gap: 12px;">
-                <input type="text" id="receipt-search" placeholder="Search Patient or UHID..." style="padding: 10px 14px; border: 1px solid var(--color-fg); border-radius: 0; font-size: 13px; outline: none; width: 250px; font-family: inherit;" onkeyup="window.FAActions.filterReceipts()">
-                <select id="receipt-filter" style="padding: 10px 14px; border: 1px solid var(--color-fg); border-radius: 0; font-size: 13px; outline: none; font-family: inherit; background: var(--color-bg);" onchange="window.FAActions.filterReceipts()">
+                <input type="text" id="receipt-search" placeholder="Search Patient or UHID..." style="padding: 10px 16px; border: none; border-radius: var(--radius-full); font-size: 13px; outline: none; width: 250px; font-family: inherit; background: var(--md-surface-container-high); color: var(--md-on-background);" onkeyup="window.FAActions.filterReceipts()">
+                <select id="receipt-filter" style="padding: 10px 16px; border: none; border-radius: var(--radius-full); font-size: 13px; outline: none; font-family: inherit; background: var(--md-surface-container-high); color: var(--md-on-background);" onchange="window.FAActions.filterReceipts()">
                     <option value="ALL">All Payment Methods</option>
                     <option value="UPI">UPI</option>
                     <option value="CARD">Card</option>
@@ -490,7 +490,7 @@ async function renderReceipts() {
             </div>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--color-border);">
+        <div class="card" style="padding: 0; overflow: hidden;">
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
                     <tr>
@@ -520,8 +520,8 @@ function generateReceiptRows(receipts, patientsById) {
             <td style="padding: 16px 20px; color: var(--color-muted-fg); font-size: 13px;">${H().formatDateTime(r.generated_at)}</td>
             <td style="padding: 16px 20px; color: var(--color-fg); font-weight: 600;">${H().escapeHtml(patient.name || '-')}</td>
             <td style="padding: 16px 20px; font-weight: 800; color: var(--color-accent);">${H().formatCurrency(r.amount)}</td>
-            <td style="padding: 16px 20px;"><span style="background: var(--color-muted-bg); color: var(--color-muted-fg); padding: 4px 10px; border-radius: 0; font-size: 11px; font-weight: 700; border: 1px solid var(--color-border);">${mode}</span></td>
-            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 14px; font-size: 12px; border-radius: 0; background: var(--color-fg);" onclick="window.FAActions.printReceipt(${r.receipt_id})">🖨️ Print</button></td>
+            <td style="padding: 16px 20px;"><span class="badge">${mode}</span></td>
+            <td style="padding: 16px 20px;"><button class="btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="window.FAActions.printReceipt(${r.receipt_id})">🖨️ Print</button></td>
         </tr>
     `;
     }).join('');

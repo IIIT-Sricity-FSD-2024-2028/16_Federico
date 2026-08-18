@@ -1546,6 +1546,32 @@
       }
     },
     "/platform/organizations/{id}/subscription": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Get an organization's current subscription + plan",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
       "put": {
         "tags": [
           "Platform"

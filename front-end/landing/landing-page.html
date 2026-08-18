@@ -7,12 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="../shared/design-tokens.css" />
+    <link rel="stylesheet" href="../shared/material-components.css" />
     <link rel="stylesheet" href="landing-page.css" />
   </head>
     
   <body>
-    <div class="luxury-grid-lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-
     <header class="topbar">
       <div class="brand">
         <div class="brand-icon">F</div>
@@ -22,6 +21,8 @@
 
     <main class="page">
       <section class="hero-section">
+        <div class="md-blur-shape md-blur-primary" aria-hidden="true"></div>
+        <div class="md-blur-shape md-blur-tertiary" aria-hidden="true"></div>
         <div class="hero-card">
           <span class="hero-badge">24/7 Support Available</span>
 
@@ -41,6 +42,9 @@
             </button>
             <button id="signup-btn" class="secondary-btn" type="button">
               Create Account
+            </button>
+            <button id="marketplace-btn" class="secondary-btn" type="button">
+              Browse Hospitals
             </button>
           </div>
         </div>
@@ -135,6 +139,11 @@
         </div>
       </section>
     </main>
+
+    <footer class="site-footer">
+      <span>© 2026 Federico Cloud Platform</span>
+      <a href="../platform/platform-login.html" class="footer-admin-link">Federico staff — Platform Admin</a>
+    </footer>
 
   <script src="../shared/constants.js"></script>
     <script src="../shared/rbac.js"></script>

@@ -14,7 +14,9 @@ function requestLogger(req, res, next) {
   res.on('finish', () => {
     const { statusCode } = res;
     const duration = Date.now() - start;
-    console.log(`[HTTP] ${method} ${originalUrl} ${statusCode} - ${duration}ms`);
+    console.log(
+      `[HTTP] ${method} ${originalUrl} ${statusCode} - ${duration}ms`,
+    );
   });
   next();
 }

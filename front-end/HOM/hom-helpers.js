@@ -124,6 +124,22 @@
     return BED_STYLES[status] || { bg: '#ffffff', border: '#E2E8F0', text: '#1E293B', label: status || 'Unknown' };
   }
 
+  /**
+   * closeModals() — the ONE shared modal-dismiss helper for HOM.
+   * Previously redefined identically (same `.modal-overlay` query/loop)
+   * in both beds.js and patient-flow.js. Each of those files' extra
+   * per-page state resets (currentDetailBedId, selectedRequestId, etc.)
+   * were already redundant — every open*Modal() function in those files
+   * re-initializes its own state at the top before showing the modal —
+   * so consolidating the shared DOM-hiding logic here changes no
+   * observable behavior. Exposed as a bare global (not just under
+   * HOMHelpers) because every screen's modal markup calls it directly via
+   * `onclick="closeModals()"`.
+   */
+  function closeModals() {
+    document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
+  }
+
   window.HOMHelpers = {
     statusLabel,
     statusVariant,
@@ -135,5 +151,7 @@
     daysSince,
     joinPreRequestsWithPatients,
     bedStyle,
+    closeModals,
   };
+  window.closeModals = closeModals;
 })();

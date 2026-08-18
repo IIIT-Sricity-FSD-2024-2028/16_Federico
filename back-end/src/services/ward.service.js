@@ -10,7 +10,10 @@ function findAllWards() {
 
 function createWard(ward) {
   const newWard = {
-    ward_id: dataStore.wards.length > 0 ? Math.max(...dataStore.wards.map((w) => w.ward_id)) + 1 : 1,
+    ward_id:
+      dataStore.wards.length > 0
+        ? Math.max(...dataStore.wards.map((w) => w.ward_id)) + 1
+        : 1,
     ...ward,
   };
   dataStore.wards.push(newWard);
@@ -28,7 +31,10 @@ function findBedsByWard(ward_id) {
 
 function createBed(bed) {
   const newBed = {
-    bed_id: dataStore.beds.length > 0 ? Math.max(...dataStore.beds.map((b) => b.bed_id)) + 1 : 11,
+    bed_id:
+      dataStore.beds.length > 0
+        ? Math.max(...dataStore.beds.map((b) => b.bed_id)) + 1
+        : 11,
     ...bed,
   };
   dataStore.beds.push(newBed);
@@ -69,7 +75,9 @@ function createBedRequest(payload, requestedBy) {
   };
   dataStore.bedRequests.push(newRequest);
 
-  const patient = dataStore.patients.find((p) => p.patient_id === newRequest.patient_id);
+  const patient = dataStore.patients.find(
+    (p) => p.patient_id === newRequest.patient_id,
+  );
   activityService.log(
     'info',
     `Bed requested for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`,
@@ -90,12 +98,22 @@ function updateBedRequest(id, patch) {
       request.bed_id = patch.bed_id;
       request.status = 'ALLOCATED';
       request.decided_at = new Date().toISOString();
-      activityService.log('success', `Bed ${bed.bed_number} allocated (bed request #${id})`, { bedRequestId: id }, request.organization_id);
+      activityService.log(
+        'success',
+        `Bed ${bed.bed_number} allocated (bed request #${id})`,
+        { bedRequestId: id },
+        request.organization_id,
+      );
     }
   } else if (patch.status === 'DENIED') {
     request.status = 'DENIED';
     request.decided_at = new Date().toISOString();
-    activityService.log('warning', `Bed request #${id} denied`, { bedRequestId: id }, request.organization_id);
+    activityService.log(
+      'warning',
+      `Bed request #${id} denied`,
+      { bedRequestId: id },
+      request.organization_id,
+    );
   }
 
   return request;
@@ -113,7 +131,9 @@ function createEmergency(payload, createdBy) {
   const newEmergency = {
     emergency_id:
       dataStore.emergencyNotifications.length > 0
-        ? Math.max(...dataStore.emergencyNotifications.map((e) => e.emergency_id)) + 1
+        ? Math.max(
+            ...dataStore.emergencyNotifications.map((e) => e.emergency_id),
+          ) + 1
         : 1,
     patient_id: payload.patient_id || null,
     bed_id: payload.bed_id || null,
@@ -139,7 +159,9 @@ function createEmergency(payload, createdBy) {
 }
 
 function updateEmergency(id, patch) {
-  const emergency = dataStore.emergencyNotifications.find((e) => e.emergency_id === id);
+  const emergency = dataStore.emergencyNotifications.find(
+    (e) => e.emergency_id === id,
+  );
   if (!emergency) return null;
   Object.assign(emergency, patch);
   return emergency;

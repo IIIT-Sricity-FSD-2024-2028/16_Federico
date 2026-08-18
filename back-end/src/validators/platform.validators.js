@@ -24,7 +24,9 @@ const createHospitalRules = [
 
 const setModuleFlagRules = [{ field: 'enabled', checks: ['isBoolean'] }];
 
-const createApiKeyRules = [{ field: 'label', checks: ['isString'], optional: true }];
+const createApiKeyRules = [
+  { field: 'label', checks: ['isString'], optional: true },
+];
 
 const createPlanRules = [
   { field: 'name', checks: ['isNotEmpty', 'isString'] },
@@ -36,7 +38,9 @@ const createPlanRules = [
   { field: 'price_monthly', checks: ['isNotEmpty', 'isNumber'] },
 ];
 
-const setSubscriptionRules = [{ field: 'plan_id', checks: ['isNotEmpty', 'isInt'] }];
+const setSubscriptionRules = [
+  { field: 'plan_id', checks: ['isNotEmpty', 'isInt'] },
+];
 
 module.exports = {
   platformLoginRules,

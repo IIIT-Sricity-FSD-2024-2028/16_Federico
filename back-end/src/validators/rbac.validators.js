@@ -5,8 +5,16 @@ const createRoleRules = [
   { field: 'description', checks: ['isString'], optional: true },
 ];
 
-const assignPermissionRules = [{ field: 'permission_id', checks: ['isNotEmpty', 'isInt'] }];
+const assignPermissionRules = [
+  { field: 'permission_id', checks: ['isNotEmpty', 'isInt'] },
+];
 
-const assignStaffRoleRules = [{ field: 'custom_role_id', checks: ['isNotEmpty', 'isInt'] }];
+const assignStaffRoleRules = [
+  { field: 'custom_role_id', checks: ['isNotEmpty', 'isInt'] },
+];
 
-module.exports = { createRoleRules, assignPermissionRules, assignStaffRoleRules };
+module.exports = {
+  createRoleRules,
+  assignPermissionRules,
+  assignStaffRoleRules,
+};

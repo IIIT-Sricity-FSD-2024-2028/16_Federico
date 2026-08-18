@@ -1,16 +1,3 @@
-function showSuccess(msg) {
-  const el = document.getElementById('successMsg');
-  const popup = document.getElementById('successPopup');
-  if (el && popup) {
-    el.innerText = msg;
-    popup.style.display = 'flex';
-  }
-}
-function closeSuccess() {
-  const popup = document.getElementById('successPopup');
-  if (popup) popup.style.display = 'none';
-}
-
 async function loadJoined() {
   const [preRequests, patients, doctors] = await Promise.all([
     window.ApiClient.preRequests.list(),
@@ -67,15 +54,15 @@ async function setVisitType(id, value) {
 
     if (value === 'Emergency') {
       await window.ApiClient.preRequests.update(id, { status: 'EMERGENCY' });
-      showSuccess('Visit type set to Emergency — request a bed from the HOM Requests page.');
+      UIFeedback.toast('Visit type set to Emergency — request a bed from the HOM Requests page.', 'success');
     } else if (value === 'Consultation') {
       await window.ApiClient.preRequests.update(id, { status: 'CONSULTATION_DONE' });
-      showSuccess('Consultation completed and closed.');
+      UIFeedback.toast('Consultation completed and closed.', 'success');
     } else if (value === 'Admit') {
-      showSuccess('Marked for admission — request a bed from the HOM Requests page.');
+      UIFeedback.toast('Marked for admission — request a bed from the HOM Requests page.', 'success');
     }
   } catch (err) {
-    showSuccess(err.message || 'Could not update visit type');
+    UIFeedback.toast(err.message || 'Could not update visit type', 'error');
   }
 
   updateDashboardCounters();

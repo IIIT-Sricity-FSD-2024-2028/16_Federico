@@ -1,6 +1,11 @@
 'use strict';
 
-const { withTenant, scopeToOrg, belongsToOrg, MODULE_CODES } = require('./tenant');
+const {
+  withTenant,
+  scopeToOrg,
+  belongsToOrg,
+  MODULE_CODES,
+} = require('./tenant');
 
 describe('utils/tenant', () => {
   describe('withTenant', () => {

@@ -1,13 +1,20 @@
 :root {
-    /* --primary maps to charcoal (matches the app's solid dark buttons) —
-       the old teal accent is gone; text-emphasis moments (stat figures,
-       totals, links) use --color-accent (gold) directly in app.js instead. */
-    --primary: var(--color-fg);
-    --primary-dark: var(--color-fg);
+    /* Back-compat aliases kept so template strings in js/app.js (which still
+       reference these names) keep resolving to the Material You tokens
+       defined in shared/design-tokens.css. --primary now points at the MD3
+       purple seed rather than the old charcoal. */
+    --primary: var(--md-primary);
+    --primary-dark: var(--md-primary);
     --bg-light: var(--color-bg);
-    --transition: all var(--duration-base) var(--ease-luxury);
-    --shadow-sm: var(--shadow-card);
-    --shadow-md: var(--shadow-card-hover);
+    --transition: all var(--duration-base) var(--ease-standard);
+    --shadow-sm: var(--shadow-1);
+    --shadow-md: var(--shadow-2);
+
+    /* js/app.js references --text-muted extensively but no prior token
+       layer ever defined it — it silently resolved to nothing. Alias it to
+       the MD3 "on-surface-variant" tone so every muted label/caption in the
+       dashboard tables actually renders. */
+    --text-muted: var(--md-on-surface-variant);
 }
 
 /* 1. Global Reset & Body */
@@ -17,79 +24,64 @@ body {
     color: var(--color-fg);
 }
 
-/* 2. Interactive Cards — defined by a single top line, not a box */
+/* 2. Tonal surface cards — Material You elevation via shadow + tonal fill,
+   no border. */
 .card {
-    background: var(--color-bg);
-    border-radius: var(--radius);
+    background: var(--md-surface-container);
+    border-radius: var(--radius-lg);
     padding: 24px;
     border: none;
-    border-top: 1px solid var(--color-fg);
-    box-shadow: none;
-    transition: var(--transition);
+    box-shadow: var(--shadow-1);
+    transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
 }
 
 .card:hover {
-    transform: none;
-    box-shadow: var(--shadow-card-hover);
-    border-color: var(--color-fg);
+    box-shadow: var(--shadow-2);
 }
 
-/* 3. Buttons — dark rectangle, gold layer slides in from the left on
-   hover (no markup change: the pseudo-element sits behind the button's
-   own text within its own stacking context). */
+/* 3. Buttons — MD3 filled pill button with a soft state-layer hover. */
 .btn-primary {
     position: relative;
-    overflow: hidden;
-    isolation: isolate;
-    background: var(--color-fg);
-    color: var(--color-bg);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     border: none;
     padding: 10px 20px;
-    border-radius: var(--radius);
+    border-radius: var(--radius-full);
     font-family: var(--font-body);
     font-weight: 500;
     font-size: 12px;
     letter-spacing: var(--tracking-button);
     text-transform: uppercase;
     cursor: pointer;
-    box-shadow: var(--shadow-button);
-    transition: box-shadow var(--duration-base) var(--ease-luxury);
-}
-
-.btn-primary::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--color-accent);
-    transform: translateX(-100%);
-    transition: transform var(--duration-base) var(--ease-luxury);
-    z-index: -1;
+    box-shadow: none;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-base) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
 }
 
 .btn-primary:hover {
-    box-shadow: var(--shadow-button-hover);
-    transform: none;
+    background: color-mix(in srgb, var(--md-primary) 90%, black);
+    box-shadow: var(--shadow-2);
 }
-.btn-primary:hover::before { transform: translateX(0); }
 
-.btn-primary:active { transform: none; }
+.btn-primary:active { transform: scale(0.97); }
 
 .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
-.btn-primary:disabled::before { display: none; }
 
 /* 4. Table Row Hover */
 .data-table tr { transition: background var(--duration-fast) ease; }
 
-.data-table tr:hover { background-color: var(--color-muted-bg); }
+.data-table tr:hover { background-color: var(--md-surface-container-low); }
 
-/* 5. Status Pill Effects — kept functional, restyled to the rectangular
-   luxury chip treatment */
+/* 5. Status pill — legacy .status/.status-pending/.status-cleared classes
+   kept functional (in case any older markup still uses them) and restyled
+   to the same pill-chip treatment as the shared .badge component. */
 .status {
-    padding: 4px 10px;
-    border-radius: var(--radius);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -101,6 +93,6 @@ body {
 .status-cleared { background: var(--status-success-bg); color: var(--status-success-fg); }
 
 /* 6. Navigation Link Hover */
-nav span, nav a { cursor: pointer; transition: color var(--duration-base) var(--ease-luxury); }
+nav span, nav a { cursor: pointer; transition: color var(--duration-base) var(--ease-standard); }
 
-nav span:hover { color: var(--color-accent); }
+nav span:hover { color: var(--md-primary); }

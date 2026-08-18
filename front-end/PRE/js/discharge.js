@@ -1,16 +1,3 @@
-function showSuccess(msg) {
-  const el = document.getElementById('successMsg');
-  const popup = document.getElementById('successPopup');
-  if (el && popup) {
-    el.innerText = msg;
-    popup.style.display = 'flex';
-  }
-}
-function closeSuccess() {
-  const popup = document.getElementById('successPopup');
-  if (popup) popup.style.display = 'none';
-}
-
 async function loadJoined() {
   const [preRequests, patients, doctors, beds] = await Promise.all([
     window.ApiClient.preRequests.list(),
@@ -88,11 +75,11 @@ async function renderApproved() {
 async function finalApprove(id) {
   try {
     await window.ApiClient.preRequests.update(id, { status: 'DISCHARGED' });
-    showSuccess('Discharge finalized — bed released.');
+    UIFeedback.toast('Discharge finalized — bed released.', 'success');
     renderDischarge();
     renderApproved();
   } catch (err) {
-    showSuccess(err.message || 'Could not finalize discharge');
+    UIFeedback.toast(err.message || 'Could not finalize discharge', 'error');
   }
 }
 

@@ -4,11 +4,16 @@ const dataStore = require('../store/dataStore');
 const planService = require('./subscriptionPlan.service');
 
 function findByOrg(organizationId) {
-  return dataStore.subscriptions.find((s) => s.organization_id === organizationId) || null;
+  return (
+    dataStore.subscriptions.find((s) => s.organization_id === organizationId) ||
+    null
+  );
 }
 
 function materializeQuotas(organizationId, plan) {
-  const existing = dataStore.resourceQuotas.find((q) => q.organization_id === organizationId);
+  const existing = dataStore.resourceQuotas.find(
+    (q) => q.organization_id === organizationId,
+  );
   const values = {
     max_beds: plan.max_beds,
     max_users: plan.max_users,
@@ -42,7 +47,11 @@ function setPlan(organizationId, planId) {
     subscription.updated_at = now.toISOString();
   } else {
     subscription = {
-      subscription_id: dataStore.subscriptions.length > 0 ? Math.max(...dataStore.subscriptions.map((s) => s.subscription_id)) + 1 : 1,
+      subscription_id:
+        dataStore.subscriptions.length > 0
+          ? Math.max(...dataStore.subscriptions.map((s) => s.subscription_id)) +
+            1
+          : 1,
       organization_id: organizationId,
       plan_id: planId,
       status: 'ACTIVE',

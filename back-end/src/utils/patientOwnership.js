@@ -10,7 +10,11 @@
  * there's exactly one place to get this right, and one place to audit.
  */
 function forbidsOtherPatient(req, patientId) {
-  return Boolean(req.session && req.session.role === 'Patient' && req.session.patientId !== patientId);
+  return Boolean(
+    req.session &&
+    req.session.role === 'Patient' &&
+    req.session.patientId !== patientId,
+  );
 }
 
 /**

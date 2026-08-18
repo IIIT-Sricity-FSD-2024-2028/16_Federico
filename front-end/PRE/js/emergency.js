@@ -1,16 +1,3 @@
-function showSuccess(msg) {
-  const el = document.getElementById('successMsg');
-  const popup = document.getElementById('successPopup');
-  if (el && popup) {
-    el.innerText = msg;
-    popup.style.display = 'flex';
-  }
-}
-function closeSuccess() {
-  const popup = document.getElementById('successPopup');
-  if (popup) popup.style.display = 'none';
-}
-
 async function renderEmergencyRecords() {
   const table = document.getElementById('admittedTable');
   if (!table) return;
@@ -71,10 +58,10 @@ async function renderEmergencyRecords() {
 async function dischargePatient(id) {
   try {
     await window.ApiClient.preRequests.update(id, { status: 'DISCHARGE_REQUESTED' });
-    showSuccess('Patient sent to Discharge Request');
+    UIFeedback.toast('Patient sent to Discharge Request', 'success');
     renderEmergencyRecords();
   } catch (err) {
-    showSuccess(err.message || 'Could not request discharge');
+    UIFeedback.toast(err.message || 'Could not request discharge', 'error');
   }
 }
 

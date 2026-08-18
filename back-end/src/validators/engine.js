@@ -47,7 +47,8 @@ const MESSAGES = {
   isNotEmpty: (field) => `${field} should not be empty`,
   isString: (field) => `${field} must be a string`,
   isInt: (field) => `${field} must be an integer number`,
-  isNumber: (field) => `${field} must be a number conforming to the specified constraints`,
+  isNumber: (field) =>
+    `${field} must be a number conforming to the specified constraints`,
   isBoolean: (field) => `${field} must be a boolean value`,
   isEmail: (field) => `${field} must be an email`,
   isISO8601: (field) => `${field} must be a valid ISO 8601 date string`,

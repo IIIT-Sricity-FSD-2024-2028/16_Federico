@@ -21,7 +21,11 @@ const createPatientRules = [
   { field: 'blood_group', checks: ['isString'], optional: true },
   { field: 'address', checks: ['isString'], optional: true },
   { field: 'emergency_contact_name', checks: ['isString'], optional: true },
-  { field: 'emergency_contact_phone', checks: ['isPhoneNumber'], optional: true },
+  {
+    field: 'emergency_contact_phone',
+    checks: ['isPhoneNumber'],
+    optional: true,
+  },
 ];
 
 const updatePatientRules = partial(createPatientRules);
@@ -42,4 +46,8 @@ const createPatientInsuranceRules = [
   { field: 'copay_percentage', checks: ['isNumber'], optional: true },
 ];
 
-module.exports = { createPatientRules, updatePatientRules, createPatientInsuranceRules };
+module.exports = {
+  createPatientRules,
+  updatePatientRules,
+  createPatientInsuranceRules,
+};

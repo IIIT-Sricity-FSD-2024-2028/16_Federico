@@ -26,11 +26,17 @@ function findById(id) {
 
 function create(payload) {
   const newOrg = {
-    organization_id: dataStore.organizations.length > 0 ? Math.max(...dataStore.organizations.map((o) => o.organization_id)) + 1 : 1,
+    organization_id:
+      dataStore.organizations.length > 0
+        ? Math.max(...dataStore.organizations.map((o) => o.organization_id)) + 1
+        : 1,
     name: payload.name,
     slug: slugify(payload.name),
     status: 'ACTIVE',
-    branding: payload.branding || { initial: (payload.name || '?').trim().charAt(0).toUpperCase(), primary_color: '#6750A4' },
+    branding: payload.branding || {
+      initial: (payload.name || '?').trim().charAt(0).toUpperCase(),
+      primary_color: '#6750A4',
+    },
     contact: payload.contact || { phone: null, email: null, address: null },
     specialties: payload.specialties || [],
     emergency_available: Boolean(payload.emergency_available),
@@ -60,7 +66,9 @@ function remove(id) {
 // ---- Hospitals (branches) ----
 
 function hospitalsFor(organizationId) {
-  return dataStore.hospitals.filter((h) => h.organization_id === organizationId);
+  return dataStore.hospitals.filter(
+    (h) => h.organization_id === organizationId,
+  );
 }
 
 function primaryHospitalFor(organizationId) {
@@ -71,7 +79,10 @@ function primaryHospitalFor(organizationId) {
 function createHospital(organizationId, payload) {
   const isFirst = hospitalsFor(organizationId).length === 0;
   const newHospital = {
-    hospital_id: dataStore.hospitals.length > 0 ? Math.max(...dataStore.hospitals.map((h) => h.hospital_id)) + 1 : 1,
+    hospital_id:
+      dataStore.hospitals.length > 0
+        ? Math.max(...dataStore.hospitals.map((h) => h.hospital_id)) + 1
+        : 1,
     organization_id: organizationId,
     name: payload.name,
     city: payload.city || null,
@@ -90,7 +101,9 @@ function createHospital(organizationId, payload) {
 function setModuleFlags(organizationId, enabledCodes) {
   const enabledSet = new Set(enabledCodes || []);
   MODULE_CODES.forEach((code) => {
-    const existing = dataStore.organizationModules.find((m) => m.organization_id === organizationId && m.module_code === code);
+    const existing = dataStore.organizationModules.find(
+      (m) => m.organization_id === organizationId && m.module_code === code,
+    );
     if (existing) {
       existing.enabled = enabledSet.has(code);
       existing.updated_at = new Date().toISOString();
@@ -107,24 +120,35 @@ function setModuleFlags(organizationId, enabledCodes) {
 }
 
 function setModuleFlag(organizationId, moduleCode, enabled) {
-  const existing = dataStore.organizationModules.find((m) => m.organization_id === organizationId && m.module_code === moduleCode);
+  const existing = dataStore.organizationModules.find(
+    (m) => m.organization_id === organizationId && m.module_code === moduleCode,
+  );
   if (existing) {
     existing.enabled = enabled;
     existing.updated_at = new Date().toISOString();
     return existing;
   }
-  const newFlag = { organization_id: organizationId, module_code: moduleCode, enabled, updated_at: new Date().toISOString() };
+  const newFlag = {
+    organization_id: organizationId,
+    module_code: moduleCode,
+    enabled,
+    updated_at: new Date().toISOString(),
+  };
   dataStore.organizationModules.push(newFlag);
   return newFlag;
 }
 
 function enabledModulesFor(organizationId) {
-  return dataStore.organizationModules.filter((m) => m.organization_id === organizationId && m.enabled).map((m) => m.module_code);
+  return dataStore.organizationModules
+    .filter((m) => m.organization_id === organizationId && m.enabled)
+    .map((m) => m.module_code);
 }
 
 function allModuleFlagsFor(organizationId) {
   return MODULE_CODES.map((code) => {
-    const flag = dataStore.organizationModules.find((m) => m.organization_id === organizationId && m.module_code === code);
+    const flag = dataStore.organizationModules.find(
+      (m) => m.organization_id === organizationId && m.module_code === code,
+    );
     return { module_code: code, enabled: flag ? flag.enabled : false };
   });
 }
@@ -132,17 +156,24 @@ function allModuleFlagsFor(organizationId) {
 // ---- Usage / quotas ----
 
 function quotasFor(organizationId) {
-  return dataStore.resourceQuotas.find((q) => q.organization_id === organizationId) || null;
+  return (
+    dataStore.resourceQuotas.find(
+      (q) => q.organization_id === organizationId,
+    ) || null
+  );
 }
 
 function usageFor(organizationId) {
-  const count = (arr) => arr.filter((r) => r.organization_id === organizationId).length;
+  const count = (arr) =>
+    arr.filter((r) => r.organization_id === organizationId).length;
   return {
     hospitals: hospitalsFor(organizationId).length,
     users: count(dataStore.users),
     patients: count(dataStore.patients),
     beds: count(dataStore.beds),
-    beds_occupied: dataStore.beds.filter((b) => b.organization_id === organizationId && b.status === 'OCCUPIED').length,
+    beds_occupied: dataStore.beds.filter(
+      (b) => b.organization_id === organizationId && b.status === 'OCCUPIED',
+    ).length,
     quotas: quotasFor(organizationId),
   };
 }
@@ -157,7 +188,11 @@ function marketplaceListing() {
       name: o.name,
       slug: o.slug,
       branding: o.branding,
-      branches: hospitalsFor(o.organization_id).map((h) => ({ hospital_id: h.hospital_id, name: h.name, city: h.city })),
+      branches: hospitalsFor(o.organization_id).map((h) => ({
+        hospital_id: h.hospital_id,
+        name: h.name,
+        city: h.city,
+      })),
       specialties: o.specialties,
       emergency_available: o.emergency_available,
       contact: o.contact,

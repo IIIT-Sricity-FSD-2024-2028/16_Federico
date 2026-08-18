@@ -15,7 +15,11 @@ const {
 const router = Router();
 router.use(requireModule('INVENTORY'));
 
-router.get('/items', authorize(['ADMIN', 'SUPER_USER'], 'inventory', 'read'), controller.findAllItems);
+router.get(
+  '/items',
+  authorize(['ADMIN', 'SUPER_USER'], 'inventory', 'read'),
+  controller.findAllItems,
+);
 router.post(
   '/items',
   authorize(['SUPER_USER'], 'inventory', 'write'),
@@ -29,7 +33,11 @@ router.put(
   controller.updateItem,
 );
 
-router.get('/requests', authorize(['ADMIN', 'SUPER_USER'], 'inventory', 'read'), controller.findAllRequests);
+router.get(
+  '/requests',
+  authorize(['ADMIN', 'SUPER_USER'], 'inventory', 'read'),
+  controller.findAllRequests,
+);
 router.post(
   '/requests',
   authorize(['SUPER_USER'], 'inventory', 'write'),

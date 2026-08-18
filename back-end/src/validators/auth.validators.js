@@ -19,7 +19,11 @@ const signupRules = [
   { field: 'blood_group', checks: ['isString'], optional: true },
   { field: 'address', checks: ['isString'], optional: true },
   { field: 'emergency_contact_name', checks: ['isString'], optional: true },
-  { field: 'emergency_contact_phone', checks: ['isPhoneNumber'], optional: true },
+  {
+    field: 'emergency_contact_phone',
+    checks: ['isPhoneNumber'],
+    optional: true,
+  },
 ];
 
 module.exports = { loginRules, signupRules };
