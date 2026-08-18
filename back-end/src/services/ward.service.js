@@ -62,15 +62,20 @@ function createBedRequest(payload, requestedBy) {
     status: 'PENDING',
     bed_id: null,
     requested_by: requestedBy || null,
+    organization_id: payload.organization_id || null,
+    hospital_id: payload.hospital_id || null,
     requested_at: new Date().toISOString(),
     decided_at: null,
   };
   dataStore.bedRequests.push(newRequest);
 
   const patient = dataStore.patients.find((p) => p.patient_id === newRequest.patient_id);
-  activityService.log('info', `Bed requested for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`, {
-    bedRequestId: newRequest.bed_request_id,
-  });
+  activityService.log(
+    'info',
+    `Bed requested for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`,
+    { bedRequestId: newRequest.bed_request_id },
+    newRequest.organization_id,
+  );
 
   return newRequest;
 }
@@ -85,12 +90,12 @@ function updateBedRequest(id, patch) {
       request.bed_id = patch.bed_id;
       request.status = 'ALLOCATED';
       request.decided_at = new Date().toISOString();
-      activityService.log('success', `Bed ${bed.bed_number} allocated (bed request #${id})`, { bedRequestId: id });
+      activityService.log('success', `Bed ${bed.bed_number} allocated (bed request #${id})`, { bedRequestId: id }, request.organization_id);
     }
   } else if (patch.status === 'DENIED') {
     request.status = 'DENIED';
     request.decided_at = new Date().toISOString();
-    activityService.log('warning', `Bed request #${id} denied`, { bedRequestId: id });
+    activityService.log('warning', `Bed request #${id} denied`, { bedRequestId: id }, request.organization_id);
   }
 
   return request;
@@ -115,15 +120,20 @@ function createEmergency(payload, createdBy) {
     department: payload.department || null,
     status: 'PENDING',
     created_by: createdBy || null,
+    organization_id: payload.organization_id || null,
+    hospital_id: payload.hospital_id || null,
     created_at: new Date().toISOString(),
   };
   dataStore.emergencyNotifications.push(newEmergency);
 
   if (newEmergency.bed_id) updateBedStatus(newEmergency.bed_id, 'OCCUPIED');
 
-  activityService.log('error', `Emergency admission — bed ${newEmergency.bed_id || 'TBD'}`, {
-    emergencyId: newEmergency.emergency_id,
-  });
+  activityService.log(
+    'error',
+    `Emergency admission — bed ${newEmergency.bed_id || 'TBD'}`,
+    { emergencyId: newEmergency.emergency_id },
+    newEmergency.organization_id,
+  );
 
   return newEmergency;
 }

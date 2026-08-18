@@ -3,6 +3,7 @@
 const { Router } = require('express');
 const controller = require('../controllers/billing.controller');
 const { authorize } = require('../middleware/actorAccess');
+const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createServiceRules,
@@ -13,6 +14,7 @@ const {
 } = require('../validators/billing.validators');
 
 const router = Router();
+router.use(requireModule('BILLING'));
 
 // Services
 router.get('/services', authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'), controller.findAllServices);

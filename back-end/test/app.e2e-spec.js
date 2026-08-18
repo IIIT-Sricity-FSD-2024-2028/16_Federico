@@ -318,3 +318,125 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .expect(403);
   });
 });
+
+describe('Multi-tenancy — Platform Super User, organizations, feature flags, dynamic RBAC (e2e)', () => {
+  const app = createApp();
+
+  async function login(email, password) {
+    const res = await request(app).post('/auth/login').send({ email, password }).expect(200);
+    return res.body;
+  }
+
+  async function platformLogin() {
+    const res = await request(app)
+      .post('/platform/auth/login')
+      .send({ email: 'platform@federico.com', password: 'Federico@Platform123' })
+      .expect(200);
+    return `Bearer ${res.body.token}`;
+  }
+
+  it('/marketplace/organizations is public and lists only ACTIVE organizations', async () => {
+    const res = await request(app).get('/marketplace/organizations').expect(200);
+    if (!Array.isArray(res.body) || res.body.length < 2) throw new Error('Expected at least the 2 seeded organizations');
+    if (res.body.some((o) => o.status)) throw new Error('Marketplace listing must not leak internal fields like status');
+    if (!res.body.every((o) => o.name && o.branches)) throw new Error('Expected name/branches on every listing');
+  });
+
+  it('Platform Super User can manage organizations but is hard-blocked from patient/billing/inventory/doctor data', async () => {
+    const platform = await platformLogin();
+
+    await request(app).get('/platform/organizations').set('Authorization', platform).expect(200);
+    await request(app).get('/platform/organizations/1/usage').set('Authorization', platform).expect(200);
+
+    await request(app).get('/patient').set('Authorization', platform).expect(403);
+    await request(app).get('/doctor').set('Authorization', platform).expect(403);
+    await request(app).get('/billing/services').set('Authorization', platform).expect(403);
+    await request(app).get('/inventory/items').set('Authorization', platform).expect(403);
+  });
+
+  it('a non-platform session cannot reach /platform/* routes', async () => {
+    const hom = await login('admin@hosp.com', 'Hom@123');
+    await request(app).get('/platform/organizations').set('Authorization', `Bearer ${hom.token}`).expect(403);
+  });
+
+  it('provisioning creates a new organization whose default admin can log in and immediately use it', async () => {
+    const platform = await platformLogin();
+    const plans = await request(app).get('/platform/plans').set('Authorization', platform).expect(200);
+    const starter = plans.body.find((p) => p.name === 'Starter');
+
+    const provisioned = await request(app)
+      .post('/platform/organizations')
+      .set('Authorization', platform)
+      .send({
+        name: 'Test Provisioning Hospital',
+        admin_name: 'Test Admin',
+        admin_email: 'admin@test-provisioning.hosp.com',
+        admin_password: 'TestAdmin@123',
+        plan_id: starter.plan_id,
+        modules: ['APPOINTMENTS', 'ADMISSIONS'],
+      })
+      .expect(201);
+    if (!provisioned.body.organization || !provisioned.body.apiKey) throw new Error('Expected organization + apiKey in provisioning result');
+
+    const newAdmin = await login('admin@test-provisioning.hosp.com', 'TestAdmin@123');
+    if (newAdmin.tenant.organization_id !== provisioned.body.organization.organization_id) {
+      throw new Error('New admin session not scoped to the newly provisioned organization');
+    }
+    if (newAdmin.tenant.enabled_modules.includes('BILLING')) {
+      throw new Error('BILLING was not in the requested module list and must not be enabled');
+    }
+
+    // Freshly provisioned org starts with no doctors of its own.
+    const doctors = await request(app).get('/doctor').set('Authorization', `Bearer ${newAdmin.token}`).expect(200);
+    if (doctors.body.length !== 0) throw new Error('New organization must not see another organization\'s doctors');
+  });
+
+  it('cross-organization data is fully isolated between Federico General (org 1) and Apollo Hospitals (org 2)', async () => {
+    const federicoHom = await login('admin@hosp.com', 'Hom@123');
+    const apolloHom = await login('admin@apollo.hosp.com', 'Apollo@123');
+    if (federicoHom.tenant.organization_id === apolloHom.tenant.organization_id) throw new Error('Seeded demo orgs must differ');
+
+    const federicoDoctors = await request(app).get('/doctor').set('Authorization', `Bearer ${federicoHom.token}`).expect(200);
+    const apolloDoctors = await request(app).get('/doctor').set('Authorization', `Bearer ${apolloHom.token}`).expect(200);
+    if (federicoDoctors.body.some((d) => apolloDoctors.body.some((ad) => ad.doctor_id === d.doctor_id))) {
+      throw new Error('Doctor lists must not overlap between organizations');
+    }
+
+    // Apollo cannot read a Federico doctor by ID either (empty body = not-found, this app's existing convention).
+    const federicoDoctorId = federicoDoctors.body[0].doctor_id;
+    const crossOrgRead = await request(app).get(`/doctor/${federicoDoctorId}`).set('Authorization', `Bearer ${apolloHom.token}`).expect(200);
+    if (crossOrgRead.body && crossOrgRead.body.doctor_id) throw new Error('Apollo must not be able to read a Federico doctor record');
+  });
+
+  it('feature flags differ per organization: Apollo (INSURANCE off) is blocked, Federico General (INSURANCE on) is not', async () => {
+    const federicoHom = await login('admin@hosp.com', 'Hom@123');
+    const apolloHom = await login('admin@apollo.hosp.com', 'Apollo@123');
+
+    await request(app).get('/patient/insurance/all').set('Authorization', `Bearer ${federicoHom.token}`).expect(200);
+    await request(app).get('/patient/insurance/all').set('Authorization', `Bearer ${apolloHom.token}`).expect(403);
+
+    // Apollo's plan also excludes INVENTORY.
+    await request(app).get('/inventory/items').set('Authorization', `Bearer ${apolloHom.token}`).expect(403);
+  });
+
+  it('dynamic RBAC: a PRE account with no fixed billing access gets billing:read via a custom role', async () => {
+    const plainPre = await login('rekha.pre@hosp.com', 'Pre@123');
+    await request(app).get('/billing/services').set('Authorization', `Bearer ${plainPre.token}`).expect(403);
+
+    const billingAssist = await login('billing.assist@hosp.com', 'Assist@123');
+    if (billingAssist.role !== 'PRE') throw new Error('Expected the RBAC demo account to still be a fixed PRE actor');
+    await request(app).get('/billing/services').set('Authorization', `Bearer ${billingAssist.token}`).expect(200);
+
+    // The grant must not leak into billing WRITE (only billing:read was assigned).
+    await request(app)
+      .post('/billing/services')
+      .set('Authorization', `Bearer ${billingAssist.token}`)
+      .send({ service_name: 'Should Be Blocked', base_cost: 100 })
+      .expect(403);
+  });
+
+  it('legacy x-role-only callers keep seeing organization 1 exactly as before (backward compatibility)', async () => {
+    const res = await request(app).get('/doctor').set('x-role', 'ADMIN').expect(200);
+    if (res.body.some((d) => d.organization_id !== 1)) throw new Error('Legacy caller must only see organization 1 data');
+  });
+});

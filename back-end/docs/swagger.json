@@ -1011,6 +1011,704 @@
         }
       }
     },
+    "/marketplace/organizations": {
+      "get": {
+        "tags": [
+          "Marketplace"
+        ],
+        "summary": "Public directory of active organizations",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/auth/login": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Platform Super User login",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/auth/me": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Current Platform Super User",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List all organizations",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Provision a new organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Get an organization by ID",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Delete (soft) an organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/suspend": {
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Suspend an organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/activate": {
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Activate an organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/provisioning-log": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Provisioning audit trail for an organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/usage": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Resource usage for an organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/usage": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Platform-wide usage summary",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/hospitals": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List an organization's hospital branches",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Add a hospital branch",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/modules": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List feature-flag state for an organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/modules/{moduleCode}": {
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Enable/disable a module",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "moduleCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/api-keys": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List API keys for an organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Generate a new API key",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/api-keys/{id}": {
+      "delete": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Revoke an API key",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/plans": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List subscription plans",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Create a subscription plan",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/plans/{id}": {
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Update a subscription plan",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/subscription": {
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Set/upgrade/downgrade an organization's plan",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/subscription/renew": {
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Renew an organization's subscription",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/roles": {
+      "get": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "List custom roles for the caller's organization",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Create a custom role",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/permissions": {
+      "get": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "List the fixed permission catalog",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/roles/{id}/permissions": {
+      "post": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Grant a permission to a custom role",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/staff/{userId}/role": {
+      "post": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Assign a custom role to a staff user",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "tags": [],

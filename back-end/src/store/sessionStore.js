@@ -9,9 +9,18 @@ const crypto = require('crypto');
  */
 const sessions = new Map();
 
-function createSession({ userId, role, patientId }) {
+function createSession({ userId, role, patientId, organizationId, hospitalId, isPlatformUser }) {
   const token = crypto.randomBytes(24).toString('hex');
-  sessions.set(token, { token, userId, role, patientId: patientId || null, createdAt: new Date().toISOString() });
+  sessions.set(token, {
+    token,
+    userId,
+    role,
+    patientId: patientId || null,
+    organizationId: organizationId || null,
+    hospitalId: hospitalId || null,
+    isPlatformUser: Boolean(isPlatformUser),
+    createdAt: new Date().toISOString(),
+  });
   return token;
 }
 

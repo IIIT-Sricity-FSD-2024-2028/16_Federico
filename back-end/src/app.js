@@ -7,6 +7,7 @@ const { requestLogger } = require('./middleware/requestLogger');
 const { notFoundHandler } = require('./middleware/notFoundHandler');
 const { errorHandler } = require('./middleware/errorHandler');
 const { attachSession } = require('./middleware/session');
+const { attachTenant } = require('./middleware/tenant');
 const { persistOnMutation } = require('./middleware/persistOnMutation');
 const { setupSwagger } = require('./config/swagger');
 const routes = require('./routes');
@@ -30,6 +31,7 @@ function createApp() {
 
   app.use(requestLogger);
   app.use(attachSession);
+  app.use(attachTenant);
   app.use(persistOnMutation);
 
   app.use(routes);

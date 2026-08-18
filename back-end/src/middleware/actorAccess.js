@@ -12,6 +12,8 @@
  * inventory operations, FA owns billing, Patient can read their own
  * things and book appointments.
  */
+const dataStore = require('../store/dataStore');
+
 const ACTOR_ACCESS = {
   doctor: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM'] },
   // 'Patient' read/write is further restricted to their OWN record by
@@ -58,10 +60,48 @@ const ACTOR_ACCESS = {
   // through to be checked) is what the full-lifecycle e2e test below
   // caught.
   preRequest: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM', 'PRE', 'Patient'] },
+  // Org-scoped custom-role administration (tasks.md §9 Dynamic RBAC) is an
+  // organization-admin responsibility — HOM is this app's org-admin actor.
+  rbac: { read: ['HOM'], write: ['HOM'] },
 };
 
 /**
- * `authorize(legacyRoles, resource, mode)` — combined guard.
+ * Dynamic RBAC — org-defined custom roles (tasks.md §9), OR'd into
+ * `authorize()` alongside the two static checks below. Purely additive:
+ * every existing `authorize(['SUPER_USER'], 'ward', 'write')` call site
+ * keeps working unchanged for the four fixed SRS actors; this only ever
+ * grants ADDITIONAL access to a staff user who's been assigned a custom
+ * role carrying the matching `resource:mode` permission. Deliberately
+ * separate from `ACTOR_ACCESS` (a static, fixed table) rather than
+ * replacing it — see `src/store/dataStore.js`'s `roles` table, which is
+ * the fixed 4-actor table this must never collide with; custom roles live
+ * in `customRoles`/`permissions`/`rolePermissions`/`staffRoleAssignments`.
+ */
+function dynamicRoleGrants(req, resource, mode) {
+  if (!req.session || !req.session.userId || !req.tenant || !req.tenant.organizationId) return false;
+  const permissionCode = `${resource}:${mode}`;
+  const permission = dataStore.permissions.find((p) => p.permission_code === permissionCode);
+  if (!permission) return false;
+
+  const assignedRoleIds = dataStore.staffRoleAssignments
+    .filter((a) => a.user_id === req.session.userId)
+    .map((a) => a.custom_role_id);
+  if (assignedRoleIds.length === 0) return false;
+
+  const orgRoleIds = new Set(
+    dataStore.customRoles.filter((r) => assignedRoleIds.includes(r.custom_role_id) && r.organization_id === req.tenant.organizationId).map((r) => r.custom_role_id),
+  );
+  if (orgRoleIds.size === 0) return false;
+
+  return dataStore.rolePermissions.some((rp) => orgRoleIds.has(rp.custom_role_id) && rp.permission_id === permission.permission_id);
+}
+
+/**
+ * `authorize(legacyRoles, resource, mode)` — combined guard. A request
+ * passes if ANY of three independent checks pass:
+ *  - legacy `x-role` header (Phase 1 contract, untouched)
+ *  - the caller's fixed actor role is in `ACTOR_ACCESS[resource][mode]`
+ *  - the caller has a custom role (this org) granting `resource:mode`
  * `legacyRoles`: e.g. ['ADMIN', 'SUPER_USER'] or ['SUPER_USER'], exactly
  * what the Phase 1 route already required for this handler.
  */
@@ -70,8 +110,9 @@ function authorize(legacyRoles, resource, mode) {
     const legacyOk = legacyRoles.includes(req.headers['x-role']);
     const allowedActors = ACTOR_ACCESS[resource]?.[mode] || [];
     const actorOk = Boolean(req.session && allowedActors.includes(req.session.role));
+    const dynamicOk = dynamicRoleGrants(req, resource, mode);
 
-    if (legacyOk || actorOk) return next();
+    if (legacyOk || actorOk || dynamicOk) return next();
 
     return res.status(403).json({
       message: 'Forbidden resource',

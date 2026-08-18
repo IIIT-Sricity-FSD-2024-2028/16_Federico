@@ -20,6 +20,12 @@ const authRoutes = require('./auth.routes');
 const preRequestRoutes = require('./preRequest.routes');
 const activityRoutes = require('./activity.routes');
 
+// Multi-tenancy additions — Platform Super User, Organization Marketplace,
+// dynamic RBAC (tasks.md).
+const platformRoutes = require('./platform.routes');
+const marketplaceRoutes = require('./marketplace.routes');
+const rbacRoutes = require('./rbac.routes');
+
 const router = Router();
 
 router.get('/', appController.getHello);
@@ -36,5 +42,9 @@ router.use('/admission', admissionRoutes);
 router.use('/auth', authRoutes);
 router.use('/pre-requests', preRequestRoutes);
 router.use('/activity-log', activityRoutes);
+
+router.use('/platform', platformRoutes);
+router.use('/marketplace', marketplaceRoutes);
+router.use('/rbac', rbacRoutes);
 
 module.exports = router;

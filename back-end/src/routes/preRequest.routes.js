@@ -3,6 +3,7 @@
 const { Router } = require('express');
 const controller = require('../controllers/preRequest.controller');
 const { authorize } = require('../middleware/actorAccess');
+const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const { createPreRequestRules, updatePreRequestRules } = require('../validators/preRequest.validators');
 
@@ -12,6 +13,7 @@ const { createPreRequestRules, updatePreRequestRules } = require('../validators/
 // (not 'admission'/'appointment') since Patient needs read/write here,
 // scoped to their own records only — enforced in the controller.
 const router = Router();
+router.use(requireModule('ADMISSIONS'));
 
 router.get('/', authorize(['ADMIN', 'SUPER_USER'], 'preRequest', 'read'), controller.findAll);
 router.get('/:id', authorize(['ADMIN', 'SUPER_USER'], 'preRequest', 'read'), controller.findOne);

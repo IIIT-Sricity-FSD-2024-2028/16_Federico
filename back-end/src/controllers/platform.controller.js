@@ -1,0 +1,201 @@
+'use strict';
+
+const platformAuthService = require('../services/platformAuth.service');
+const organizationService = require('../services/organization.service');
+const subscriptionPlanService = require('../services/subscriptionPlan.service');
+const subscriptionService = require('../services/subscription.service');
+const provisioningService = require('../services/provisioning.service');
+const dataStore = require('../store/dataStore');
+const { createLogger } = require('../utils/logger');
+const { sendResult } = require('../utils/sendResult');
+
+const logger = createLogger('🛰️  Platform');
+
+// ---- Platform auth ----
+
+function login(req, res) {
+  const { email, password } = req.body;
+  const result = platformAuthService.login(email, password);
+  if (result.error) {
+    logger.log(`❌ PLATFORM LOGIN FAILED  email=${email}`);
+    return res.status(401).json({ message: 'Invalid email or password', error: 'Unauthorized', statusCode: 401 });
+  }
+  logger.log(`✅ PLATFORM LOGIN  email=${email}`);
+  res.status(200).json(result);
+}
+
+function me(req, res) {
+  const result = platformAuthService.me(req.session);
+  if (!result) return res.status(401).json({ message: 'Authentication required', error: 'Unauthorized', statusCode: 401 });
+  res.status(200).json(result);
+}
+
+function logout(req, res) {
+  const header = req.headers['authorization'] || '';
+  const [, token] = header.split(' ');
+  if (token) platformAuthService.logout(token);
+  res.status(200).json({ success: true });
+}
+
+// ---- Organizations ----
+
+function findAllOrganizations(req, res) {
+  sendResult(res, organizationService.findAll(), 200);
+}
+
+function findOrganization(req, res) {
+  sendResult(res, organizationService.findById(+req.params.id), 200);
+}
+
+function createOrganization(req, res) {
+  const result = provisioningService.provision(req.body);
+  if (result.error) {
+    return res.status(400).json({ message: 'Unknown subscription plan', error: 'Bad Request', statusCode: 400 });
+  }
+  logger.log(`✅ PROVISIONED ORGANIZATION  id=${result.organization.organization_id}  name="${result.organization.name}"`);
+  sendResult(res, result, 201);
+}
+
+function suspendOrganization(req, res) {
+  const result = organizationService.setStatus(+req.params.id, 'SUSPENDED');
+  if (result) logger.log(`⏸️  SUSPENDED  organization_id=${result.organization_id}`);
+  sendResult(res, result, 200);
+}
+
+function activateOrganization(req, res) {
+  const result = organizationService.setStatus(+req.params.id, 'ACTIVE');
+  if (result) logger.log(`▶️  ACTIVATED  organization_id=${result.organization_id}`);
+  sendResult(res, result, 200);
+}
+
+function deleteOrganization(req, res) {
+  const result = organizationService.remove(+req.params.id);
+  if (result) logger.log(`🗑️  DELETED  organization_id=${result.organization_id}`);
+  sendResult(res, result, 200);
+}
+
+function provisioningLog(req, res) {
+  const organizationId = +req.params.id;
+  sendResult(res, dataStore.provisioningLog.filter((l) => l.organization_id === organizationId), 200);
+}
+
+function usage(req, res) {
+  sendResult(res, organizationService.usageFor(+req.params.id), 200);
+}
+
+function platformUsage(req, res) {
+  const organizations = organizationService.findAll();
+  sendResult(
+    res,
+    {
+      total_organizations: organizations.length,
+      active_organizations: organizations.filter((o) => o.status === 'ACTIVE').length,
+      suspended_organizations: organizations.filter((o) => o.status === 'SUSPENDED').length,
+      total_users: dataStore.users.length,
+      total_patients: dataStore.patients.length,
+      total_hospitals: dataStore.hospitals.length,
+      organizations: organizations.map((o) => ({ organization_id: o.organization_id, name: o.name, status: o.status, ...organizationService.usageFor(o.organization_id) })),
+    },
+    200,
+  );
+}
+
+// ---- Hospitals (branches) ----
+
+function findHospitals(req, res) {
+  sendResult(res, organizationService.hospitalsFor(+req.params.id), 200);
+}
+
+function createHospital(req, res) {
+  const result = organizationService.createHospital(+req.params.id, req.body);
+  logger.log(`✅ BRANCH CREATED  hospital_id=${result.hospital_id}  organization_id=${result.organization_id}`);
+  sendResult(res, result, 201);
+}
+
+// ---- Feature flags ----
+
+function findModuleFlags(req, res) {
+  sendResult(res, organizationService.allModuleFlagsFor(+req.params.id), 200);
+}
+
+function setModuleFlag(req, res) {
+  const result = organizationService.setModuleFlag(+req.params.id, req.params.moduleCode, Boolean(req.body.enabled));
+  logger.log(`🚩 MODULE FLAG  organization_id=${req.params.id}  module=${req.params.moduleCode}  enabled=${req.body.enabled}`);
+  sendResult(res, result, 200);
+}
+
+// ---- API keys ----
+
+function findApiKeys(req, res) {
+  sendResult(res, dataStore.apiKeys.filter((k) => k.organization_id === +req.params.id), 200);
+}
+
+function createApiKey(req, res) {
+  const result = provisioningService.generateApiKey(+req.params.id, req.body.label);
+  logger.log(`🔑 API KEY GENERATED  organization_id=${req.params.id}`);
+  sendResult(res, result, 201);
+}
+
+function revokeApiKey(req, res) {
+  const key = dataStore.apiKeys.find((k) => k.api_key_id === +req.params.id);
+  if (!key) return sendResult(res, null, 200);
+  key.revoked_at = new Date().toISOString();
+  sendResult(res, key, 200);
+}
+
+// ---- Subscription plans ----
+
+function findAllPlans(req, res) {
+  sendResult(res, subscriptionPlanService.findAll(), 200);
+}
+
+function createPlan(req, res) {
+  const result = subscriptionPlanService.create(req.body);
+  logger.log(`✅ PLAN CREATED  id=${result.plan_id}  name="${result.name}"`);
+  sendResult(res, result, 201);
+}
+
+function updatePlan(req, res) {
+  sendResult(res, subscriptionPlanService.update(+req.params.id, req.body), 200);
+}
+
+// ---- Subscriptions ----
+
+function setSubscription(req, res) {
+  const result = subscriptionService.setPlan(+req.params.id, req.body.plan_id);
+  if (result.error) return res.status(400).json({ message: 'Unknown subscription plan', error: 'Bad Request', statusCode: 400 });
+  logger.log(`📦 SUBSCRIPTION SET  organization_id=${req.params.id}  plan_id=${req.body.plan_id}`);
+  sendResult(res, result, 200);
+}
+
+function renewSubscription(req, res) {
+  const result = subscriptionService.renew(+req.params.id);
+  sendResult(res, result, 200);
+}
+
+module.exports = {
+  login,
+  me,
+  logout,
+  findAllOrganizations,
+  findOrganization,
+  createOrganization,
+  suspendOrganization,
+  activateOrganization,
+  deleteOrganization,
+  provisioningLog,
+  usage,
+  platformUsage,
+  findHospitals,
+  createHospital,
+  findModuleFlags,
+  setModuleFlag,
+  findApiKeys,
+  createApiKey,
+  revokeApiKey,
+  findAllPlans,
+  createPlan,
+  updatePlan,
+  setSubscription,
+  renewSubscription,
+};

@@ -92,13 +92,18 @@ function createPayment(payment) {
         patient_id: admission.patient_id,
         amount: newPayment.amount_paid,
         payment_mode: newPayment.payment_mode,
+        organization_id: newPayment.organization_id || null,
+        hospital_id: newPayment.hospital_id || null,
         generated_at: new Date().toISOString(),
       };
       dataStore.receipts.push(newReceipt);
 
-      activityService.log('success', `Payment of ${newPayment.amount_paid} received for admission #${admission.admission_id}`, {
-        paymentId: newPayment.payment_id,
-      });
+      activityService.log(
+        'success',
+        `Payment of ${newPayment.amount_paid} received for admission #${admission.admission_id}`,
+        { paymentId: newPayment.payment_id },
+        newPayment.organization_id,
+      );
     }
   }
 
@@ -117,10 +122,12 @@ function dispatchLedger(ledger_id) {
   ledger.dispatched_at = new Date().toISOString();
 
   const admission = dataStore.admissions.find((a) => a.admission_id === ledger.admission_id);
-  activityService.log('info', `Bill dispatched to patient for admission #${ledger.admission_id}`, {
-    ledgerId: ledger_id,
-    patientId: admission ? admission.patient_id : null,
-  });
+  activityService.log(
+    'info',
+    `Bill dispatched to patient for admission #${ledger.admission_id}`,
+    { ledgerId: ledger_id, patientId: admission ? admission.patient_id : null },
+    ledger.organization_id,
+  );
 
   return ledger;
 }

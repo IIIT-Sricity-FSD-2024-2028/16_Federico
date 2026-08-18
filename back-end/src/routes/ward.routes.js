@@ -3,6 +3,7 @@
 const { Router } = require('express');
 const controller = require('../controllers/ward.controller');
 const { authorize } = require('../middleware/actorAccess');
+const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createWardRules,
@@ -15,6 +16,10 @@ const {
 } = require('../validators/ward.validators');
 
 const router = Router();
+
+// Wards/beds/bed-requests/emergency all live under the ADMISSIONS module
+// flag ("Admissions & Bed Management" — see utils/tenant.js#MODULES).
+router.use(requireModule('ADMISSIONS'));
 
 router.get('/', authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'), controller.findAllWards);
 router.post('/', authorize(['SUPER_USER'], 'ward', 'write'), validateBody(createWardRules), controller.createWard);

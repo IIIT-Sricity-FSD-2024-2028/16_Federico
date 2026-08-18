@@ -92,6 +92,8 @@ function create(payload, createdBy) {
     bed_id: null,
     reject_reason: null,
     created_by: createdBy || null,
+    organization_id: payload.organization_id || null,
+    hospital_id: payload.hospital_id || null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     decided_at: null,
@@ -99,9 +101,12 @@ function create(payload, createdBy) {
   dataStore.preRequests.push(newRequest);
 
   const patient = dataStore.patients.find((p) => p.patient_id === newRequest.patient_id);
-  activityService.log('info', `Pre-registration submitted for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`, {
-    preRequestId: newRequest.pre_request_id,
-  });
+  activityService.log(
+    'info',
+    `Pre-registration submitted for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`,
+    { preRequestId: newRequest.pre_request_id },
+    newRequest.organization_id,
+  );
 
   return newRequest;
 }
@@ -171,7 +176,7 @@ function transition(id, toStatus, actorRole, extra) {
     if (admission) admission.status = 'DISCHARGED';
   }
 
-  activityService.log('success', `Pre-request #${id} moved ${request.status}`, { preRequestId: id, actorRole });
+  activityService.log('success', `Pre-request #${id} moved ${request.status}`, { preRequestId: id, actorRole }, request.organization_id);
   return request;
 }
 

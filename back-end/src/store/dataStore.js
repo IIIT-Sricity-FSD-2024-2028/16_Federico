@@ -1,30 +1,6 @@
 'use strict';
 
-/**
- * In-memory data store — direct port of the NestJS `DataService`, extended
- * with a realistic demo dataset. A `require()`'d module is cached by Node, so
- * every file that requires this module shares the same object reference
- * (equivalent to the `@Global() @Injectable()` singleton it replaces).
- *
- * The bulk data below (patients, doctors, wards/beds, appointments, and
- * every patient's pre-request/admission/billing lifecycle) is generated
- * by scripts/seed-demo-data.js, which drives the real service layer
- * directly so every foreign key, ID sequence, and cascade (bed
- * allocation -> admission, payment -> receipt, every transition ->
- * activity log entry) is exactly what the real API would have produced.
- * Do not hand-edit the generated sections below — re-run the script.
- *
- * Demo credentials (Phase 2 real auth) — password_hash values are real
- * bcrypt hashes, plaintext documented here and in README.md:
- *   HOM     admin@hosp.com      / Hom@123
- *   PRE     rekha.pre@hosp.com  / Pre@123
- *   FA      farah.fa@hosp.com   / Fa@123
- *   Patient hamiz@hosp.com      / Hamiz@123
- *   Patient salma@hosp.com      / Salma@123
- *   Patient john@hosp.com       / John@123
- */
 const dataStore = {
-  stateVersion: '3.0.0',
 
   roles: [
     {
@@ -51,7 +27,9 @@ const dataStore = {
       "email": "admin@hosp.com",
       "password_hash": "$2a$10$nilm1vg5pIZ9C5i9gz.hwOB/WMWSzXvRinSsrnqwV1QqT2pZTS5R2",
       "role_id": 1,
-      "created_at": "2026-03-01 10:00:00"
+      "created_at": "2026-03-01 10:00:00",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "user_id": 102,
@@ -59,7 +37,9 @@ const dataStore = {
       "email": "hamiz@hosp.com",
       "password_hash": "$2a$10$wtsS0xsMDJQGpnggKdy2se/.ociBQyZ17e8sGbQ3tXnBgQ966DeuS",
       "role_id": 2,
-      "created_at": "2026-03-02 11:30:00"
+      "created_at": "2026-03-02 11:30:00",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "user_id": 103,
@@ -67,7 +47,9 @@ const dataStore = {
       "email": "salma@hosp.com",
       "password_hash": "$2a$10$u1bvXPu4YeKnLW8uYa8aUe63Ud28j6Dwdh6ZhMWmd14Lz.F8EwgZO",
       "role_id": 2,
-      "created_at": "2026-03-02 11:30:00"
+      "created_at": "2026-03-02 11:30:00",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "user_id": 104,
@@ -75,7 +57,9 @@ const dataStore = {
       "email": "john@hosp.com",
       "password_hash": "$2a$10$IKsvae62kmrQTiauYPmxN.HvDUON0euqu0Bug3CMlPKKjIp3oo0Jm",
       "role_id": 2,
-      "created_at": "2026-03-02 11:30:00"
+      "created_at": "2026-03-02 11:30:00",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "user_id": 105,
@@ -83,7 +67,9 @@ const dataStore = {
       "email": "rekha.pre@hosp.com",
       "password_hash": "$2a$10$GBx3dZtybae0OQeNKKYZf.s52vAY8MiW6007MZP.No9epNmPyzIW.",
       "role_id": 4,
-      "created_at": "2026-03-02 11:30:00"
+      "created_at": "2026-03-02 11:30:00",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "user_id": 106,
@@ -91,7 +77,59 @@ const dataStore = {
       "email": "farah.fa@hosp.com",
       "password_hash": "$2a$10$1TCl4eaJ1gCM4AeahNrK9eG0W7Pd0cQNY1OuUms02YwgHBWuztx3u",
       "role_id": 3,
-      "created_at": "2026-03-02 11:30:00"
+      "created_at": "2026-03-02 11:30:00",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "user_id": 107,
+      "name": "Apollo Admin",
+      "email": "admin@apollo.hosp.com",
+      "password_hash": "$2a$10$hHydnUrsgmTkT/odpz7PROXGvFmkg.MqYjSckfR9bKqxWDPftyKwG",
+      "role_id": 1,
+      "organization_id": 2,
+      "hospital_id": 2,
+      "created_at": "2026-08-18T11:39:52.382Z"
+    },
+    {
+      "user_id": 108,
+      "name": "Priya Krishnan",
+      "email": "priya.pre@apollo.hosp.com",
+      "password_hash": "$2a$10$K6IqVEqsEkiAU9I3LrRhDuEYVGXfSOCcgs8iRgxIeLjy1fnOv5Zbi",
+      "role_id": 4,
+      "organization_id": 2,
+      "hospital_id": 2,
+      "created_at": "2026-08-18T11:39:52.443Z"
+    },
+    {
+      "user_id": 109,
+      "name": "Rajesh Iyer",
+      "email": "rajesh.fa@apollo.hosp.com",
+      "password_hash": "$2a$10$W6Naf/.A2/64ISvw7LELheBgAoEhdZbTflczM01NSvxQJL2o05DBu",
+      "role_id": 3,
+      "organization_id": 2,
+      "hospital_id": 2,
+      "created_at": "2026-08-18T11:39:52.503Z"
+    },
+    {
+      "user_id": 110,
+      "name": "Meera Subramaniam",
+      "email": "meera@apollo.hosp.com",
+      "password_hash": "$2a$10$xfFCMXzfn48y3NUhWStSpOoVjqYYTd0.y2kg9pYKoYVlvegrxqgqG",
+      "role_id": 2,
+      "organization_id": 2,
+      "hospital_id": 2,
+      "created_at": "2026-08-18T11:39:52.562Z"
+    },
+    {
+      "user_id": 111,
+      "name": "Billing Assist (PRE)",
+      "email": "billing.assist@hosp.com",
+      "password_hash": "$2a$10$Sitz6pXNiGT/0TMeuz0DDuoNFXrD2aGTCRgp8r6NizmnJzC5Wy4oi",
+      "role_id": 4,
+      "organization_id": 1,
+      "hospital_id": 1,
+      "created_at": "2026-08-18T11:39:52.623Z"
     }
   ],
   patients: [
@@ -106,7 +144,9 @@ const dataStore = {
       "blood_group": "O+",
       "address": "12 MG Road, Hyderabad",
       "emergency_contact_name": "Amina Begum",
-      "emergency_contact_phone": "+91-9000011111"
+      "emergency_contact_phone": "+91-9000011111",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 202,
@@ -119,7 +159,9 @@ const dataStore = {
       "blood_group": "A+",
       "address": "45 Beach Road, Visakhapatnam",
       "emergency_contact_name": "Salma Begum",
-      "emergency_contact_phone": "+91-9888877777"
+      "emergency_contact_phone": "+91-9888877777",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 203,
@@ -132,7 +174,9 @@ const dataStore = {
       "blood_group": "B+",
       "address": "78 Cyber City, Bangalore",
       "emergency_contact_name": "Jane Doe",
-      "emergency_contact_phone": "+91-9988776600"
+      "emergency_contact_phone": "+91-9988776600",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 204,
@@ -145,7 +189,9 @@ const dataStore = {
       "address": "61 Koramangala, Bangalore",
       "emergency_contact_name": "Pooja Gupta",
       "emergency_contact_phone": "+91-9647110665",
-      "uhid": "UHID-666359"
+      "uhid": "UHID-666359",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 205,
@@ -158,7 +204,9 @@ const dataStore = {
       "address": "9 Anna Salai, Chennai",
       "emergency_contact_name": "Amit Sharma",
       "emergency_contact_phone": "+91-9479841485",
-      "uhid": "UHID-926282"
+      "uhid": "UHID-926282",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 206,
@@ -171,7 +219,9 @@ const dataStore = {
       "address": "30 Jubilee Hills, Hyderabad",
       "emergency_contact_name": "Kavya Verma",
       "emergency_contact_phone": "+91-9666709995",
-      "uhid": "UHID-257207"
+      "uhid": "UHID-257207",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 207,
@@ -184,7 +234,9 @@ const dataStore = {
       "address": "61 Koramangala, Bangalore",
       "emergency_contact_name": "Deepak Verma",
       "emergency_contact_phone": "+91-9665827119",
-      "uhid": "UHID-390221"
+      "uhid": "UHID-390221",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 208,
@@ -197,7 +249,9 @@ const dataStore = {
       "address": "61 Koramangala, Bangalore",
       "emergency_contact_name": "Priya Menon",
       "emergency_contact_phone": "+91-9636196327",
-      "uhid": "UHID-573814"
+      "uhid": "UHID-573814",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 209,
@@ -210,7 +264,9 @@ const dataStore = {
       "address": "18 Civil Lines, Pune",
       "emergency_contact_name": "Arjun Malhotra",
       "emergency_contact_phone": "+91-9802320337",
-      "uhid": "UHID-128624"
+      "uhid": "UHID-128624",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 210,
@@ -223,7 +279,9 @@ const dataStore = {
       "address": "3 Banjara Hills, Hyderabad",
       "emergency_contact_name": "Anjali Desai",
       "emergency_contact_phone": "+91-9557204842",
-      "uhid": "UHID-161423"
+      "uhid": "UHID-161423",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 211,
@@ -236,7 +294,9 @@ const dataStore = {
       "address": "42 Salt Lake, Kolkata",
       "emergency_contact_name": "Deepak Sharma",
       "emergency_contact_phone": "+91-9659010124",
-      "uhid": "UHID-399345"
+      "uhid": "UHID-399345",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 212,
@@ -249,7 +309,9 @@ const dataStore = {
       "address": "42 Salt Lake, Kolkata",
       "emergency_contact_name": "Pooja Menon",
       "emergency_contact_phone": "+91-9308069896",
-      "uhid": "UHID-978131"
+      "uhid": "UHID-978131",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 213,
@@ -262,7 +324,9 @@ const dataStore = {
       "address": "42 Salt Lake, Kolkata",
       "emergency_contact_name": "Ajay Nair",
       "emergency_contact_phone": "+91-9317255282",
-      "uhid": "UHID-845417"
+      "uhid": "UHID-845417",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 214,
@@ -275,7 +339,9 @@ const dataStore = {
       "address": "61 Koramangala, Bangalore",
       "emergency_contact_name": "Priya Malhotra",
       "emergency_contact_phone": "+91-9335681951",
-      "uhid": "UHID-487771"
+      "uhid": "UHID-487771",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 215,
@@ -288,7 +354,9 @@ const dataStore = {
       "address": "3 Banjara Hills, Hyderabad",
       "emergency_contact_name": "Rahul Gupta",
       "emergency_contact_phone": "+91-9274250352",
-      "uhid": "UHID-474649"
+      "uhid": "UHID-474649",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 216,
@@ -301,7 +369,9 @@ const dataStore = {
       "address": "30 Jubilee Hills, Hyderabad",
       "emergency_contact_name": "Meera Nair",
       "emergency_contact_phone": "+91-9380891871",
-      "uhid": "UHID-741921"
+      "uhid": "UHID-741921",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 217,
@@ -314,7 +384,9 @@ const dataStore = {
       "address": "7 Sector 17, Chandigarh",
       "emergency_contact_name": "Karan Chatterjee",
       "emergency_contact_phone": "+91-9907465505",
-      "uhid": "UHID-100313"
+      "uhid": "UHID-100313",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 218,
@@ -327,7 +399,9 @@ const dataStore = {
       "address": "3 Banjara Hills, Hyderabad",
       "emergency_contact_name": "Priya Bose",
       "emergency_contact_phone": "+91-9652467036",
-      "uhid": "UHID-535472"
+      "uhid": "UHID-535472",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 219,
@@ -340,7 +414,9 @@ const dataStore = {
       "address": "9 Anna Salai, Chennai",
       "emergency_contact_name": "Rahul Kulkarni",
       "emergency_contact_phone": "+91-9116473644",
-      "uhid": "UHID-118038"
+      "uhid": "UHID-118038",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 220,
@@ -353,7 +429,9 @@ const dataStore = {
       "address": "221 MG Road, Bangalore",
       "emergency_contact_name": "Neha Kulkarni",
       "emergency_contact_phone": "+91-9859524774",
-      "uhid": "UHID-611204"
+      "uhid": "UHID-611204",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 221,
@@ -366,7 +444,9 @@ const dataStore = {
       "address": "30 Jubilee Hills, Hyderabad",
       "emergency_contact_name": "Nikhil Iyer",
       "emergency_contact_phone": "+91-9104509973",
-      "uhid": "UHID-372324"
+      "uhid": "UHID-372324",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 222,
@@ -379,7 +459,9 @@ const dataStore = {
       "address": "221 MG Road, Bangalore",
       "emergency_contact_name": "Meera Verma",
       "emergency_contact_phone": "+91-9350466957",
-      "uhid": "UHID-659353"
+      "uhid": "UHID-659353",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 223,
@@ -392,7 +474,9 @@ const dataStore = {
       "address": "3 Banjara Hills, Hyderabad",
       "emergency_contact_name": "Arjun Kulkarni",
       "emergency_contact_phone": "+91-9192725682",
-      "uhid": "UHID-455817"
+      "uhid": "UHID-455817",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 224,
@@ -405,7 +489,9 @@ const dataStore = {
       "address": "14 Park Street, Kolkata",
       "emergency_contact_name": "Kavya Rao",
       "emergency_contact_phone": "+91-9579060608",
-      "uhid": "UHID-703861"
+      "uhid": "UHID-703861",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 225,
@@ -418,7 +504,9 @@ const dataStore = {
       "address": "9 Anna Salai, Chennai",
       "emergency_contact_name": "Arjun Iyer",
       "emergency_contact_phone": "+91-9517259481",
-      "uhid": "UHID-409800"
+      "uhid": "UHID-409800",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 226,
@@ -431,7 +519,9 @@ const dataStore = {
       "address": "3 Banjara Hills, Hyderabad",
       "emergency_contact_name": "Anita Sharma",
       "emergency_contact_phone": "+91-9693424046",
-      "uhid": "UHID-847882"
+      "uhid": "UHID-847882",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 227,
@@ -444,7 +534,9 @@ const dataStore = {
       "address": "11 Nungambakkam, Chennai",
       "emergency_contact_name": "Arjun Sharma",
       "emergency_contact_phone": "+91-9841565561",
-      "uhid": "UHID-727282"
+      "uhid": "UHID-727282",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "patient_id": 228,
@@ -457,7 +549,25 @@ const dataStore = {
       "address": "11 Nungambakkam, Chennai",
       "emergency_contact_name": "Deepika Verma",
       "emergency_contact_phone": "+91-9339376533",
-      "uhid": "UHID-340133"
+      "uhid": "UHID-340133",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "patient_id": 229,
+      "created_at": "2026-08-18T11:39:52.504Z",
+      "name": "Meera Subramaniam",
+      "phone": "+91-9944556677",
+      "dob": "1975-03-14",
+      "gender": "Female",
+      "blood_group": "B+",
+      "address": "22 Cardiology Row, Chennai",
+      "emergency_contact_name": "Karthik Subramaniam",
+      "emergency_contact_phone": "+91-9944556678",
+      "organization_id": 2,
+      "hospital_id": 2,
+      "uhid": "UHID-134127",
+      "user_id": 110
     }
   ],
   patientInsurances: [
@@ -471,7 +581,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 150000,
-      "copay_percentage": 10
+      "copay_percentage": 10,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 302,
@@ -484,7 +596,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 200000,
-      "copay_percentage": 0
+      "copay_percentage": 0,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 303,
@@ -497,7 +611,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 50000,
-      "copay_percentage": 20
+      "copay_percentage": 20,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 304,
@@ -510,7 +626,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 75000,
-      "copay_percentage": 15
+      "copay_percentage": 15,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 305,
@@ -523,7 +641,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 75000,
-      "copay_percentage": 10
+      "copay_percentage": 10,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 306,
@@ -536,7 +656,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 75000,
-      "copay_percentage": 15
+      "copay_percentage": 15,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 307,
@@ -549,7 +671,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 75000,
-      "copay_percentage": 10
+      "copay_percentage": 10,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 308,
@@ -562,7 +686,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 75000,
-      "copay_percentage": 20
+      "copay_percentage": 20,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 309,
@@ -575,7 +701,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 150000,
-      "copay_percentage": 10
+      "copay_percentage": 10,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "insurance_id": 310,
@@ -588,7 +716,9 @@ const dataStore = {
       "valid_from": "2025-01-01",
       "valid_to": "2027-12-31",
       "coverage_limit": 150000,
-      "copay_percentage": 0
+      "copay_percentage": 0,
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   patientInsuranceDocuments: [],
@@ -598,98 +728,153 @@ const dataStore = {
       "name": "Dr. Arjun Mehta",
       "specialization": "Cardiology",
       "phone": "8881112222",
-      "email": "arjun.m@hosp.com"
+      "email": "arjun.m@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 402,
       "name": "Dr. Sneha Reddy",
       "specialization": "Neurology",
       "phone": "8883334444",
-      "email": "sneha.r@hosp.com"
+      "email": "sneha.r@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 403,
       "name": "Dr. Priya Sharma",
       "specialization": "Pediatrics",
       "phone": "8885556666",
-      "email": "priya.s@hosp.com"
+      "email": "priya.s@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 404,
       "name": "Dr. Vikram Singh",
       "specialization": "Orthopedics",
       "phone": "8887778888",
-      "email": "vikram.s@hosp.com"
+      "email": "vikram.s@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 405,
       "name": "Dr. Anjali Gupta",
       "specialization": "Dermatology",
       "phone": "8889990000",
-      "email": "anjali.g@hosp.com"
+      "email": "anjali.g@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 406,
       "name": "Dr. Rajesh Khanna",
       "specialization": "Oncology",
       "phone": "8881113333",
-      "email": "rajesh.k@hosp.com"
+      "email": "rajesh.k@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 407,
       "name": "Dr. Suresh Iyer",
       "specialization": "Gastroenterology",
       "phone": "8882224444",
-      "email": "suresh.i@hosp.com"
+      "email": "suresh.i@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 408,
       "name": "Dr. Meena Kumari",
       "specialization": "Gynecology",
       "phone": "8883335555",
-      "email": "meena.k@hosp.com"
+      "email": "meena.k@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 409,
       "name": "Dr. Kavita Rao",
       "specialization": "General Medicine",
       "phone": "+91-8884440001",
-      "email": "kavita.rao@hosp.com"
+      "email": "kavita.rao@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 410,
       "name": "Dr. Farhan Ahmed",
       "specialization": "Surgery",
       "phone": "+91-8884440002",
-      "email": "farhan.ahmed@hosp.com"
+      "email": "farhan.ahmed@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 411,
       "name": "Dr. Neha Joshi",
       "specialization": "Emergency Medicine",
       "phone": "+91-8884440003",
-      "email": "neha.joshi@hosp.com"
+      "email": "neha.joshi@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 412,
       "name": "Dr. Rohan Kapoor",
       "specialization": "Pulmonology",
       "phone": "+91-8884440004",
-      "email": "rohan.kapoor@hosp.com"
+      "email": "rohan.kapoor@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 413,
       "name": "Dr. Ayesha Khan",
       "specialization": "ENT",
       "phone": "+91-8884440005",
-      "email": "ayesha.khan@hosp.com"
+      "email": "ayesha.khan@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "doctor_id": 414,
       "name": "Dr. Manoj Pillai",
       "specialization": "Psychiatry",
       "phone": "+91-8884440006",
-      "email": "manoj.pillai@hosp.com"
+      "email": "manoj.pillai@hosp.com",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "doctor_id": 415,
+      "name": "Dr. Lakshmi Menon",
+      "specialization": "Cardiology",
+      "phone": "+91-8990001001",
+      "email": "lakshmi.menon@apollo.hosp.com",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "doctor_id": 416,
+      "name": "Dr. Arvind Nair",
+      "specialization": "Neurology",
+      "phone": "+91-8990001002",
+      "email": "arvind.nair@apollo.hosp.com",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "doctor_id": 417,
+      "name": "Dr. Divya Krishnan",
+      "specialization": "Oncology",
+      "phone": "+91-8990001003",
+      "email": "divya.krishnan@apollo.hosp.com",
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   doctorAvailabilities: [
@@ -699,7 +884,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 502,
@@ -707,7 +894,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "14:00:00",
       "end_time": "17:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 503,
@@ -715,7 +904,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "10:00:00",
       "end_time": "13:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 504,
@@ -723,7 +914,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 505,
@@ -731,7 +924,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 506,
@@ -739,7 +934,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "13:00:00",
       "end_time": "16:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 507,
@@ -747,7 +944,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "11:00:00",
       "end_time": "14:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 508,
@@ -755,7 +954,9 @@ const dataStore = {
       "available_date": "2026-05-05",
       "start_time": "16:00:00",
       "end_time": "19:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 509,
@@ -763,7 +964,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 510,
@@ -771,7 +974,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 511,
@@ -779,7 +984,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 512,
@@ -787,7 +994,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 513,
@@ -795,7 +1004,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 514,
@@ -803,7 +1014,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 515,
@@ -811,7 +1024,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 516,
@@ -819,7 +1034,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 517,
@@ -827,7 +1044,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 518,
@@ -835,7 +1054,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 519,
@@ -843,7 +1064,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 520,
@@ -851,7 +1074,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 521,
@@ -859,7 +1084,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 522,
@@ -867,7 +1094,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 523,
@@ -875,7 +1104,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 524,
@@ -883,7 +1114,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 525,
@@ -891,7 +1124,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 526,
@@ -899,7 +1134,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 527,
@@ -907,7 +1144,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 528,
@@ -915,7 +1154,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 529,
@@ -923,7 +1164,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 530,
@@ -931,7 +1174,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 531,
@@ -939,7 +1184,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 532,
@@ -947,7 +1194,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 533,
@@ -955,7 +1204,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 534,
@@ -963,7 +1214,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 535,
@@ -971,7 +1224,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 536,
@@ -979,7 +1234,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 537,
@@ -987,7 +1244,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 538,
@@ -995,7 +1254,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 539,
@@ -1003,7 +1264,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 540,
@@ -1011,7 +1274,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 541,
@@ -1019,7 +1284,9 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 542,
@@ -1027,7 +1294,9 @@ const dataStore = {
       "available_date": "2026-08-21",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 543,
@@ -1035,7 +1304,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 544,
@@ -1043,7 +1314,9 @@ const dataStore = {
       "available_date": "2026-08-19",
       "start_time": "09:00:00",
       "end_time": "12:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 545,
@@ -1051,7 +1324,9 @@ const dataStore = {
       "available_date": "2026-08-18",
       "start_time": "12:00:00",
       "end_time": "15:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "availability_id": 546,
@@ -1059,7 +1334,39 @@ const dataStore = {
       "available_date": "2026-08-20",
       "start_time": "15:00:00",
       "end_time": "18:00:00",
-      "status": "Available"
+      "status": "Available",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "availability_id": 547,
+      "doctor_id": 415,
+      "available_date": "2026-08-20",
+      "start_time": "9:00:00",
+      "end_time": "11:00:00",
+      "status": "Available",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "availability_id": 548,
+      "doctor_id": 416,
+      "available_date": "2026-08-20",
+      "start_time": "11:00:00",
+      "end_time": "13:00:00",
+      "status": "Available",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "availability_id": 549,
+      "doctor_id": 417,
+      "available_date": "2026-08-20",
+      "start_time": "13:00:00",
+      "end_time": "15:00:00",
+      "status": "Available",
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   appointments: [
@@ -1071,7 +1378,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-19T12:00:00",
       "visit_type": "Follow-up",
       "status": "CONFIRMED",
-      "created_by": 222
+      "created_by": 222,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 602,
@@ -1081,7 +1390,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-18T09:00:00",
       "visit_type": "Follow-up",
       "status": "CONFIRMED",
-      "created_by": 216
+      "created_by": 216,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 603,
@@ -1091,7 +1402,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-20T09:00:00",
       "visit_type": "Follow-up",
       "status": "CONFIRMED",
-      "created_by": 201
+      "created_by": 201,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 604,
@@ -1101,7 +1414,9 @@ const dataStore = {
       "scheduled_datetime": "2026-05-05T13:00:00",
       "visit_type": "Check-up",
       "status": "CONFIRMED",
-      "created_by": 224
+      "created_by": 224,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 605,
@@ -1111,7 +1426,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-21T15:00:00",
       "visit_type": "Consultation",
       "status": "CONFIRMED",
-      "created_by": 204
+      "created_by": 204,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 606,
@@ -1121,7 +1438,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-20T15:00:00",
       "visit_type": "Consultation",
       "status": "CONFIRMED",
-      "created_by": 207
+      "created_by": 207,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 607,
@@ -1131,7 +1450,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-20T09:00:00",
       "visit_type": "Check-up",
       "status": "CONFIRMED",
-      "created_by": 225
+      "created_by": 225,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 608,
@@ -1141,7 +1462,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-19T12:00:00",
       "visit_type": "Follow-up",
       "status": "CONFIRMED",
-      "created_by": 226
+      "created_by": 226,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 609,
@@ -1151,7 +1474,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-18T15:00:00",
       "visit_type": "Check-up",
       "status": "CONFIRMED",
-      "created_by": 203
+      "created_by": 203,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "appointment_id": 610,
@@ -1161,7 +1486,9 @@ const dataStore = {
       "scheduled_datetime": "2026-08-21T15:00:00",
       "visit_type": "Check-up",
       "status": "CONFIRMED",
-      "created_by": 228
+      "created_by": 228,
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   wards: [
@@ -1169,37 +1496,57 @@ const dataStore = {
       "ward_id": 1,
       "ward_name": "General Ward A",
       "total_beds": 20,
-      "description": "North Wing Floor 1"
+      "description": "North Wing Floor 1",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ward_id": 2,
       "ward_name": "ICU - 01",
       "total_beds": 10,
-      "description": "Critical Care Unit"
+      "description": "Critical Care Unit",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ward_id": 3,
       "ward_name": "General Ward B",
       "total_beds": 14,
-      "description": "General Ward B — Federico Hospital"
+      "description": "General Ward B — Federico Hospital",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ward_id": 4,
       "ward_name": "ICU - 02",
       "total_beds": 6,
-      "description": "ICU - 02 — Federico Hospital"
+      "description": "ICU - 02 — Federico Hospital",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ward_id": 5,
       "ward_name": "Pediatric Ward",
       "total_beds": 10,
-      "description": "Pediatric Ward — Federico Hospital"
+      "description": "Pediatric Ward — Federico Hospital",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ward_id": 6,
       "ward_name": "Maternity Ward",
       "total_beds": 8,
-      "description": "Maternity Ward — Federico Hospital"
+      "description": "Maternity Ward — Federico Hospital",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "ward_id": 7,
+      "ward_name": "Cardiac Care Unit",
+      "total_beds": 8,
+      "description": "Apollo Chennai — Cardiac Care Unit",
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   beds: [
@@ -1207,337 +1554,513 @@ const dataStore = {
       "bed_id": 11,
       "ward_id": 1,
       "bed_number": "G-101",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 22,
       "ward_id": 2,
       "bed_number": "ICU-05",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 23,
       "ward_id": 3,
       "bed_number": "GB-01",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 24,
       "ward_id": 3,
       "bed_number": "GB-02",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 25,
       "ward_id": 3,
       "bed_number": "GB-03",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 26,
       "ward_id": 3,
       "bed_number": "GB-04",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 27,
       "ward_id": 3,
       "bed_number": "GB-05",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 28,
       "ward_id": 3,
       "bed_number": "GB-06",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 29,
       "ward_id": 3,
       "bed_number": "GB-07",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 30,
       "ward_id": 3,
       "bed_number": "GB-08",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 31,
       "ward_id": 3,
       "bed_number": "GB-09",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 32,
       "ward_id": 3,
       "bed_number": "GB-10",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 33,
       "ward_id": 3,
       "bed_number": "GB-11",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 34,
       "ward_id": 3,
       "bed_number": "GB-12",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 35,
       "ward_id": 3,
       "bed_number": "GB-13",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 36,
       "ward_id": 3,
       "bed_number": "GB-14",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 37,
       "ward_id": 4,
       "bed_number": "ICU2-01",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 38,
       "ward_id": 4,
       "bed_number": "ICU2-02",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 39,
       "ward_id": 4,
       "bed_number": "ICU2-03",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 40,
       "ward_id": 4,
       "bed_number": "ICU2-04",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 41,
       "ward_id": 4,
       "bed_number": "ICU2-05",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 42,
       "ward_id": 4,
       "bed_number": "ICU2-06",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 43,
       "ward_id": 5,
       "bed_number": "PED-01",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 44,
       "ward_id": 5,
       "bed_number": "PED-02",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 45,
       "ward_id": 5,
       "bed_number": "PED-03",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 46,
       "ward_id": 5,
       "bed_number": "PED-04",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 47,
       "ward_id": 5,
       "bed_number": "PED-05",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 48,
       "ward_id": 5,
       "bed_number": "PED-06",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 49,
       "ward_id": 5,
       "bed_number": "PED-07",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 50,
       "ward_id": 5,
       "bed_number": "PED-08",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 51,
       "ward_id": 5,
       "bed_number": "PED-09",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 52,
       "ward_id": 5,
       "bed_number": "PED-10",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 53,
       "ward_id": 6,
       "bed_number": "MAT-01",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 54,
       "ward_id": 6,
       "bed_number": "MAT-02",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 55,
       "ward_id": 6,
       "bed_number": "MAT-03",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 56,
       "ward_id": 6,
       "bed_number": "MAT-04",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 57,
       "ward_id": 6,
       "bed_number": "MAT-05",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 58,
       "ward_id": 6,
       "bed_number": "MAT-06",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 59,
       "ward_id": 6,
       "bed_number": "MAT-07",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 60,
       "ward_id": 6,
       "bed_number": "MAT-08",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 61,
       "ward_id": 1,
       "bed_number": "G-102",
-      "status": "OCCUPIED"
+      "status": "OCCUPIED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 62,
       "ward_id": 1,
       "bed_number": "G-103",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 63,
       "ward_id": 1,
       "bed_number": "G-104",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 64,
       "ward_id": 1,
       "bed_number": "G-105",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 65,
       "ward_id": 1,
       "bed_number": "G-106",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 66,
       "ward_id": 1,
       "bed_number": "G-107",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 67,
       "ward_id": 1,
       "bed_number": "G-108",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 68,
       "ward_id": 1,
       "bed_number": "G-109",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 69,
       "ward_id": 1,
       "bed_number": "G-110",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 70,
       "ward_id": 1,
       "bed_number": "G-111",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 71,
       "ward_id": 1,
       "bed_number": "G-112",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 72,
       "ward_id": 1,
       "bed_number": "G-113",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 73,
       "ward_id": 1,
       "bed_number": "G-114",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 74,
       "ward_id": 2,
       "bed_number": "ICU-06",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 75,
       "ward_id": 2,
       "bed_number": "ICU-07",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_id": 76,
       "ward_id": 2,
       "bed_number": "ICU-08",
-      "status": "AVAILABLE"
+      "status": "AVAILABLE",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "bed_id": 77,
+      "ward_id": 7,
+      "bed_number": "CCU-01",
+      "status": "OCCUPIED",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "bed_id": 78,
+      "ward_id": 7,
+      "bed_number": "CCU-02",
+      "status": "AVAILABLE",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "bed_id": 79,
+      "ward_id": 7,
+      "bed_number": "CCU-03",
+      "status": "AVAILABLE",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "bed_id": 80,
+      "ward_id": 7,
+      "bed_number": "CCU-04",
+      "status": "AVAILABLE",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "bed_id": 81,
+      "ward_id": 7,
+      "bed_number": "CCU-05",
+      "status": "AVAILABLE",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "bed_id": 82,
+      "ward_id": 7,
+      "bed_number": "CCU-06",
+      "status": "AVAILABLE",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "bed_id": 83,
+      "ward_id": 7,
+      "bed_number": "CCU-07",
+      "status": "AVAILABLE",
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "bed_id": 84,
+      "ward_id": 7,
+      "bed_number": "CCU-08",
+      "status": "AVAILABLE",
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   admissions: [
@@ -1547,7 +2070,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 212,
       "bed_id": 53,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 702,
@@ -1555,7 +2080,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 220,
       "bed_id": 54,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 703,
@@ -1563,7 +2090,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 220,
       "bed_id": 43,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 704,
@@ -1571,7 +2100,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 210,
       "bed_id": 55,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 705,
@@ -1579,7 +2110,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 207,
       "bed_id": 61,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 706,
@@ -1588,7 +2121,9 @@ const dataStore = {
       "patient_id": 211,
       "bed_id": 22,
       "status": "PAYMENT_CONFIRMED",
-      "receipt_sent_to_hom": true
+      "receipt_sent_to_hom": true,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 707,
@@ -1596,7 +2131,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 203,
       "bed_id": 23,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 708,
@@ -1604,7 +2141,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 218,
       "bed_id": 37,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 709,
@@ -1612,7 +2151,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 223,
       "bed_id": 44,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 710,
@@ -1620,7 +2161,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 228,
       "bed_id": 45,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 711,
@@ -1628,7 +2171,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 212,
       "bed_id": 56,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 712,
@@ -1636,7 +2181,9 @@ const dataStore = {
       "appointment_id": null,
       "patient_id": 201,
       "bed_id": 46,
-      "status": "ADMITTED"
+      "status": "ADMITTED",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 713,
@@ -1645,7 +2192,9 @@ const dataStore = {
       "patient_id": 219,
       "bed_id": 24,
       "status": "DISCHARGED",
-      "receipt_sent_to_hom": true
+      "receipt_sent_to_hom": true,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 714,
@@ -1654,7 +2203,9 @@ const dataStore = {
       "patient_id": 206,
       "bed_id": 62,
       "status": "DISCHARGED",
-      "receipt_sent_to_hom": true
+      "receipt_sent_to_hom": true,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 715,
@@ -1663,7 +2214,9 @@ const dataStore = {
       "patient_id": 215,
       "bed_id": 74,
       "status": "DISCHARGED",
-      "receipt_sent_to_hom": true
+      "receipt_sent_to_hom": true,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 716,
@@ -1672,7 +2225,9 @@ const dataStore = {
       "patient_id": 208,
       "bed_id": 62,
       "status": "DISCHARGED",
-      "receipt_sent_to_hom": true
+      "receipt_sent_to_hom": true,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 717,
@@ -1681,7 +2236,9 @@ const dataStore = {
       "patient_id": 216,
       "bed_id": 62,
       "status": "DISCHARGED",
-      "receipt_sent_to_hom": true
+      "receipt_sent_to_hom": true,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "admission_id": 718,
@@ -1690,7 +2247,18 @@ const dataStore = {
       "patient_id": 225,
       "bed_id": 62,
       "status": "DISCHARGED",
-      "receipt_sent_to_hom": true
+      "receipt_sent_to_hom": true,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "admission_id": 719,
+      "admit_time": "2026-08-18T11:39:52.563Z",
+      "patient_id": 229,
+      "bed_id": 77,
+      "status": "ADMITTED",
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   dischargeSummaries: [
@@ -1700,7 +2268,9 @@ const dataStore = {
       "admission_id": 713,
       "patient_id": 219,
       "discharge_notes": "Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.",
-      "final_amount": 16300
+      "final_amount": 16300,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "summary_id": 2,
@@ -1708,7 +2278,9 @@ const dataStore = {
       "admission_id": 714,
       "patient_id": 206,
       "discharge_notes": "Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.",
-      "final_amount": 33300
+      "final_amount": 33300,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "summary_id": 3,
@@ -1716,7 +2288,9 @@ const dataStore = {
       "admission_id": 715,
       "patient_id": 215,
       "discharge_notes": "Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.",
-      "final_amount": 8300
+      "final_amount": 8300,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "summary_id": 4,
@@ -1724,7 +2298,9 @@ const dataStore = {
       "admission_id": 716,
       "patient_id": 208,
       "discharge_notes": "Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.",
-      "final_amount": 41400
+      "final_amount": 41400,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "summary_id": 5,
@@ -1732,7 +2308,9 @@ const dataStore = {
       "admission_id": 717,
       "patient_id": 216,
       "discharge_notes": "Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.",
-      "final_amount": 32050
+      "final_amount": 32050,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "summary_id": 6,
@@ -1740,74 +2318,123 @@ const dataStore = {
       "admission_id": 718,
       "patient_id": 225,
       "discharge_notes": "Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.",
-      "final_amount": 22750
+      "final_amount": 22750,
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   services: [
     {
       "service_id": 1,
       "service_name": "Consultation Fee",
-      "base_cost": 500
+      "base_cost": 500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 2,
       "service_name": "Room Rent",
-      "base_cost": 5000
+      "base_cost": 5000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 3,
       "service_name": "Neurology Consultation",
-      "base_cost": 800
+      "base_cost": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 4,
       "service_name": "EEG",
-      "base_cost": 2500
+      "base_cost": 2500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 5,
       "service_name": "CT Scan",
-      "base_cost": 6000
+      "base_cost": 6000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 6,
       "service_name": "MRI Brain",
-      "base_cost": 12000
+      "base_cost": 12000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 7,
       "service_name": "Blood Test",
-      "base_cost": 400
+      "base_cost": 400,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 8,
       "service_name": "Physiotherapy Session",
-      "base_cost": 900
+      "base_cost": 900,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 9,
       "service_name": "Nursing Care (per day)",
-      "base_cost": 1200
+      "base_cost": 1200,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 10,
       "service_name": "Pharmacy Charges",
-      "base_cost": 650
+      "base_cost": 650,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 11,
       "service_name": "X-Ray",
-      "base_cost": 1500
+      "base_cost": 1500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 12,
       "service_name": "Dialysis Session",
-      "base_cost": 8000
+      "base_cost": 8000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "service_id": 13,
       "service_name": "ICU Charges (per day)",
-      "base_cost": 9500
+      "base_cost": 9500,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "service_id": 14,
+      "service_name": "Bed Charge (CCU)",
+      "base_cost": 3500,
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "service_id": 15,
+      "service_name": "Cardiac Consultation",
+      "base_cost": 1800,
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "service_id": 16,
+      "service_name": "ECG",
+      "base_cost": 900,
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   ledgers: [
@@ -1815,105 +2442,145 @@ const dataStore = {
       "ledger_id": 801,
       "created_at": "2026-08-17T17:19:41.443Z",
       "admission_id": 701,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 802,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 702,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 803,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 703,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 804,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 704,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 805,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 706,
       "status": "PAID",
-      "dispatched_at": "2026-08-17T17:19:41.445Z"
+      "dispatched_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 806,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 707,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 807,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 709,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 808,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 710,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 809,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 712,
-      "status": "OPEN"
+      "status": "OPEN",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 810,
       "created_at": "2026-08-17T17:19:41.444Z",
       "admission_id": 711,
       "status": "DISPATCHED",
-      "dispatched_at": "2026-08-17T17:19:41.445Z"
+      "dispatched_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 811,
       "created_at": "2026-08-17T17:19:41.445Z",
       "admission_id": 713,
       "status": "PAID",
-      "dispatched_at": "2026-08-17T17:19:41.445Z"
+      "dispatched_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 812,
       "created_at": "2026-08-17T17:19:41.445Z",
       "admission_id": 714,
       "status": "PAID",
-      "dispatched_at": "2026-08-17T17:19:41.445Z"
+      "dispatched_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 813,
       "created_at": "2026-08-17T17:19:41.445Z",
       "admission_id": 715,
       "status": "PAID",
-      "dispatched_at": "2026-08-17T17:19:41.445Z"
+      "dispatched_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 814,
       "created_at": "2026-08-17T17:19:41.446Z",
       "admission_id": 716,
       "status": "PAID",
-      "dispatched_at": "2026-08-17T17:19:41.446Z"
+      "dispatched_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 815,
       "created_at": "2026-08-17T17:19:41.446Z",
       "admission_id": 717,
       "status": "PAID",
-      "dispatched_at": "2026-08-17T17:19:41.446Z"
+      "dispatched_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "ledger_id": 816,
       "created_at": "2026-08-17T17:19:41.446Z",
       "admission_id": 718,
       "status": "PAID",
-      "dispatched_at": "2026-08-17T17:19:41.446Z"
+      "dispatched_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "ledger_id": 817,
+      "created_at": "2026-08-18T11:39:52.563Z",
+      "admission_id": 719,
+      "status": "OPEN",
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   ledgerEntries: [
@@ -1924,7 +2591,9 @@ const dataStore = {
       "service_id": 6,
       "quantity": 3,
       "unit_price": 12000,
-      "amount": 36000
+      "amount": 36000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -1933,7 +2602,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 1,
       "unit_price": 900,
-      "amount": 900
+      "amount": 900,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -1942,7 +2613,9 @@ const dataStore = {
       "service_id": 11,
       "quantity": 2,
       "unit_price": 1500,
-      "amount": 3000
+      "amount": 3000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -1951,7 +2624,9 @@ const dataStore = {
       "service_id": 9,
       "quantity": 1,
       "unit_price": 1200,
-      "amount": 1200
+      "amount": 1200,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -1960,7 +2635,9 @@ const dataStore = {
       "service_id": 2,
       "quantity": 3,
       "unit_price": 5000,
-      "amount": 15000
+      "amount": 15000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -1969,7 +2646,9 @@ const dataStore = {
       "service_id": 12,
       "quantity": 1,
       "unit_price": 8000,
-      "amount": 8000
+      "amount": 8000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -1978,7 +2657,9 @@ const dataStore = {
       "service_id": 7,
       "quantity": 3,
       "unit_price": 400,
-      "amount": 1200
+      "amount": 1200,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -1987,7 +2668,9 @@ const dataStore = {
       "service_id": 5,
       "quantity": 1,
       "unit_price": 6000,
-      "amount": 6000
+      "amount": 6000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -1996,7 +2679,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 2,
       "unit_price": 900,
-      "amount": 1800
+      "amount": 1800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2005,7 +2690,9 @@ const dataStore = {
       "service_id": 2,
       "quantity": 1,
       "unit_price": 5000,
-      "amount": 5000
+      "amount": 5000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2014,7 +2701,9 @@ const dataStore = {
       "service_id": 6,
       "quantity": 1,
       "unit_price": 12000,
-      "amount": 12000
+      "amount": 12000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2023,7 +2712,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 2,
       "unit_price": 900,
-      "amount": 1800
+      "amount": 1800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2032,7 +2723,9 @@ const dataStore = {
       "service_id": 12,
       "quantity": 1,
       "unit_price": 8000,
-      "amount": 8000
+      "amount": 8000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2041,7 +2734,9 @@ const dataStore = {
       "service_id": 4,
       "quantity": 2,
       "unit_price": 2500,
-      "amount": 5000
+      "amount": 5000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2050,7 +2745,9 @@ const dataStore = {
       "service_id": 3,
       "quantity": 1,
       "unit_price": 800,
-      "amount": 800
+      "amount": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2059,7 +2756,9 @@ const dataStore = {
       "service_id": 12,
       "quantity": 1,
       "unit_price": 8000,
-      "amount": 8000
+      "amount": 8000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2068,7 +2767,9 @@ const dataStore = {
       "service_id": 10,
       "quantity": 3,
       "unit_price": 650,
-      "amount": 1950
+      "amount": 1950,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2077,7 +2778,9 @@ const dataStore = {
       "service_id": 11,
       "quantity": 3,
       "unit_price": 1500,
-      "amount": 4500
+      "amount": 4500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2086,7 +2789,9 @@ const dataStore = {
       "service_id": 3,
       "quantity": 3,
       "unit_price": 800,
-      "amount": 2400
+      "amount": 2400,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2095,7 +2800,9 @@ const dataStore = {
       "service_id": 4,
       "quantity": 3,
       "unit_price": 2500,
-      "amount": 7500
+      "amount": 7500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2104,7 +2811,9 @@ const dataStore = {
       "service_id": 3,
       "quantity": 1,
       "unit_price": 800,
-      "amount": 800
+      "amount": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2113,7 +2822,9 @@ const dataStore = {
       "service_id": 6,
       "quantity": 2,
       "unit_price": 12000,
-      "amount": 24000
+      "amount": 24000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2122,7 +2833,9 @@ const dataStore = {
       "service_id": 2,
       "quantity": 1,
       "unit_price": 5000,
-      "amount": 5000
+      "amount": 5000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2131,7 +2844,9 @@ const dataStore = {
       "service_id": 13,
       "quantity": 2,
       "unit_price": 9500,
-      "amount": 19000
+      "amount": 19000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2140,7 +2855,9 @@ const dataStore = {
       "service_id": 10,
       "quantity": 3,
       "unit_price": 650,
-      "amount": 1950
+      "amount": 1950,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2149,7 +2866,9 @@ const dataStore = {
       "service_id": 1,
       "quantity": 2,
       "unit_price": 500,
-      "amount": 1000
+      "amount": 1000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2158,7 +2877,9 @@ const dataStore = {
       "service_id": 3,
       "quantity": 3,
       "unit_price": 800,
-      "amount": 2400
+      "amount": 2400,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2167,7 +2888,9 @@ const dataStore = {
       "service_id": 2,
       "quantity": 3,
       "unit_price": 5000,
-      "amount": 15000
+      "amount": 15000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2176,7 +2899,9 @@ const dataStore = {
       "service_id": 13,
       "quantity": 2,
       "unit_price": 9500,
-      "amount": 19000
+      "amount": 19000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2185,7 +2910,9 @@ const dataStore = {
       "service_id": 7,
       "quantity": 3,
       "unit_price": 400,
-      "amount": 1200
+      "amount": 1200,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2194,7 +2921,9 @@ const dataStore = {
       "service_id": 6,
       "quantity": 3,
       "unit_price": 12000,
-      "amount": 36000
+      "amount": 36000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2203,7 +2932,9 @@ const dataStore = {
       "service_id": 9,
       "quantity": 3,
       "unit_price": 1200,
-      "amount": 3600
+      "amount": 3600,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2212,7 +2943,9 @@ const dataStore = {
       "service_id": 11,
       "quantity": 3,
       "unit_price": 1500,
-      "amount": 4500
+      "amount": 4500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2221,7 +2954,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 3,
       "unit_price": 900,
-      "amount": 2700
+      "amount": 2700,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2230,7 +2965,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 3,
       "unit_price": 900,
-      "amount": 2700
+      "amount": 2700,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2239,7 +2976,9 @@ const dataStore = {
       "service_id": 13,
       "quantity": 1,
       "unit_price": 9500,
-      "amount": 9500
+      "amount": 9500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2248,7 +2987,9 @@ const dataStore = {
       "service_id": 2,
       "quantity": 2,
       "unit_price": 5000,
-      "amount": 10000
+      "amount": 10000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2257,7 +2998,9 @@ const dataStore = {
       "service_id": 5,
       "quantity": 1,
       "unit_price": 6000,
-      "amount": 6000
+      "amount": 6000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2266,7 +3009,9 @@ const dataStore = {
       "service_id": 2,
       "quantity": 2,
       "unit_price": 5000,
-      "amount": 10000
+      "amount": 10000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2275,7 +3020,9 @@ const dataStore = {
       "service_id": 11,
       "quantity": 3,
       "unit_price": 1500,
-      "amount": 4500
+      "amount": 4500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2284,7 +3031,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 2,
       "unit_price": 900,
-      "amount": 1800
+      "amount": 1800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2293,7 +3042,9 @@ const dataStore = {
       "service_id": 10,
       "quantity": 2,
       "unit_price": 650,
-      "amount": 1300
+      "amount": 1300,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2302,7 +3053,9 @@ const dataStore = {
       "service_id": 11,
       "quantity": 3,
       "unit_price": 1500,
-      "amount": 4500
+      "amount": 4500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2311,7 +3064,9 @@ const dataStore = {
       "service_id": 7,
       "quantity": 2,
       "unit_price": 400,
-      "amount": 800
+      "amount": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2320,7 +3075,9 @@ const dataStore = {
       "service_id": 6,
       "quantity": 2,
       "unit_price": 12000,
-      "amount": 24000
+      "amount": 24000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2329,7 +3086,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 3,
       "unit_price": 900,
-      "amount": 2700
+      "amount": 2700,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2338,7 +3097,9 @@ const dataStore = {
       "service_id": 7,
       "quantity": 2,
       "unit_price": 400,
-      "amount": 800
+      "amount": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2347,7 +3108,9 @@ const dataStore = {
       "service_id": 4,
       "quantity": 1,
       "unit_price": 2500,
-      "amount": 2500
+      "amount": 2500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2356,7 +3119,9 @@ const dataStore = {
       "service_id": 3,
       "quantity": 1,
       "unit_price": 800,
-      "amount": 800
+      "amount": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2365,7 +3130,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 3,
       "unit_price": 900,
-      "amount": 2700
+      "amount": 2700,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2374,7 +3141,9 @@ const dataStore = {
       "service_id": 1,
       "quantity": 3,
       "unit_price": 500,
-      "amount": 1500
+      "amount": 1500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2383,7 +3152,9 @@ const dataStore = {
       "service_id": 8,
       "quantity": 3,
       "unit_price": 900,
-      "amount": 2700
+      "amount": 2700,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2392,7 +3163,9 @@ const dataStore = {
       "service_id": 4,
       "quantity": 2,
       "unit_price": 2500,
-      "amount": 5000
+      "amount": 5000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2401,7 +3174,9 @@ const dataStore = {
       "service_id": 6,
       "quantity": 2,
       "unit_price": 12000,
-      "amount": 24000
+      "amount": 24000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2410,7 +3185,9 @@ const dataStore = {
       "service_id": 11,
       "quantity": 3,
       "unit_price": 1500,
-      "amount": 4500
+      "amount": 4500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2419,7 +3196,9 @@ const dataStore = {
       "service_id": 3,
       "quantity": 2,
       "unit_price": 800,
-      "amount": 1600
+      "amount": 1600,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 6,
@@ -2428,7 +3207,9 @@ const dataStore = {
       "service_id": 9,
       "quantity": 3,
       "unit_price": 1200,
-      "amount": 3600
+      "amount": 3600,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2437,7 +3218,9 @@ const dataStore = {
       "service_id": 2,
       "quantity": 2,
       "unit_price": 5000,
-      "amount": 10000
+      "amount": 10000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2446,7 +3229,9 @@ const dataStore = {
       "service_id": 10,
       "quantity": 1,
       "unit_price": 650,
-      "amount": 650
+      "amount": 650,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2455,7 +3240,9 @@ const dataStore = {
       "service_id": 7,
       "quantity": 2,
       "unit_price": 400,
-      "amount": 800
+      "amount": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2464,7 +3251,9 @@ const dataStore = {
       "service_id": 12,
       "quantity": 2,
       "unit_price": 8000,
-      "amount": 16000
+      "amount": 16000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2473,7 +3262,9 @@ const dataStore = {
       "service_id": 9,
       "quantity": 3,
       "unit_price": 1200,
-      "amount": 3600
+      "amount": 3600,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 6,
@@ -2482,7 +3273,9 @@ const dataStore = {
       "service_id": 1,
       "quantity": 2,
       "unit_price": 500,
-      "amount": 1000
+      "amount": 1000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 1,
@@ -2491,7 +3284,9 @@ const dataStore = {
       "service_id": 11,
       "quantity": 3,
       "unit_price": 1500,
-      "amount": 4500
+      "amount": 4500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 2,
@@ -2500,7 +3295,9 @@ const dataStore = {
       "service_id": 3,
       "quantity": 1,
       "unit_price": 800,
-      "amount": 800
+      "amount": 800,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 3,
@@ -2509,7 +3306,9 @@ const dataStore = {
       "service_id": 12,
       "quantity": 1,
       "unit_price": 8000,
-      "amount": 8000
+      "amount": 8000,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 4,
@@ -2518,7 +3317,9 @@ const dataStore = {
       "service_id": 4,
       "quantity": 3,
       "unit_price": 2500,
-      "amount": 7500
+      "amount": 7500,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "entry_id": 5,
@@ -2527,7 +3328,42 @@ const dataStore = {
       "service_id": 10,
       "quantity": 3,
       "unit_price": 650,
-      "amount": 1950
+      "amount": 1950,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "entry_id": 1,
+      "entry_time": "2026-08-18T11:39:52.563Z",
+      "ledger_id": 817,
+      "service_id": 14,
+      "quantity": 1,
+      "unit_price": 3500,
+      "amount": 3500,
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "entry_id": 2,
+      "entry_time": "2026-08-18T11:39:52.563Z",
+      "ledger_id": 817,
+      "service_id": 15,
+      "quantity": 1,
+      "unit_price": 1800,
+      "amount": 1800,
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "entry_id": 3,
+      "entry_time": "2026-08-18T11:39:52.563Z",
+      "ledger_id": 817,
+      "service_id": 16,
+      "quantity": 1,
+      "unit_price": 900,
+      "amount": 900,
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   insurances: [],
@@ -2537,49 +3373,63 @@ const dataStore = {
       "payment_time": "2026-08-17T17:19:41.445Z",
       "ledger_id": 805,
       "amount_paid": 8800,
-      "payment_mode": "CASH"
+      "payment_mode": "CASH",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "payment_id": 902,
       "payment_time": "2026-08-17T17:19:41.445Z",
       "ledger_id": 811,
       "amount_paid": 16300,
-      "payment_mode": "NETBANKING"
+      "payment_mode": "NETBANKING",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "payment_id": 903,
       "payment_time": "2026-08-17T17:19:41.445Z",
       "ledger_id": 812,
       "amount_paid": 33300,
-      "payment_mode": "CARD"
+      "payment_mode": "CARD",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "payment_id": 904,
       "payment_time": "2026-08-17T17:19:41.445Z",
       "ledger_id": 813,
       "amount_paid": 8300,
-      "payment_mode": "CARD"
+      "payment_mode": "CARD",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "payment_id": 905,
       "payment_time": "2026-08-17T17:19:41.446Z",
       "ledger_id": 814,
       "amount_paid": 41400,
-      "payment_mode": "CASH"
+      "payment_mode": "CASH",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "payment_id": 906,
       "payment_time": "2026-08-17T17:19:41.446Z",
       "ledger_id": 815,
       "amount_paid": 32050,
-      "payment_mode": "CARD"
+      "payment_mode": "CARD",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "payment_id": 907,
       "payment_time": "2026-08-17T17:19:41.446Z",
       "ledger_id": 816,
       "amount_paid": 22750,
-      "payment_mode": "UPI"
+      "payment_mode": "UPI",
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   inventoryItems: [
@@ -2589,7 +3439,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 500,
       "reorder_level": 100,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 20,
@@ -2597,7 +3449,9 @@ const dataStore = {
       "category": "Medicine",
       "stock_quantity": 1200,
       "reorder_level": 200,
-      "service_id": 1
+      "service_id": 1,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 21,
@@ -2605,7 +3459,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 340,
       "reorder_level": 150,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 22,
@@ -2613,7 +3469,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 60,
       "reorder_level": 80,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 23,
@@ -2621,7 +3479,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 210,
       "reorder_level": 100,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 24,
@@ -2629,7 +3489,9 @@ const dataStore = {
       "category": "Equipment",
       "stock_quantity": 45,
       "reorder_level": 40,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 25,
@@ -2637,7 +3499,9 @@ const dataStore = {
       "category": "Linen",
       "stock_quantity": 180,
       "reorder_level": 60,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 26,
@@ -2645,7 +3509,9 @@ const dataStore = {
       "category": "Equipment",
       "stock_quantity": 12,
       "reorder_level": 8,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 27,
@@ -2653,7 +3519,9 @@ const dataStore = {
       "category": "Equipment",
       "stock_quantity": 22,
       "reorder_level": 15,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 28,
@@ -2661,7 +3529,9 @@ const dataStore = {
       "category": "Equipment",
       "stock_quantity": 8,
       "reorder_level": 20,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 29,
@@ -2669,7 +3539,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 30,
       "reorder_level": 25,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 30,
@@ -2677,7 +3549,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 90,
       "reorder_level": 100,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 31,
@@ -2685,7 +3559,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 55,
       "reorder_level": 50,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "item_id": 32,
@@ -2693,7 +3569,9 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 400,
       "reorder_level": 150,
-      "service_id": null
+      "service_id": null,
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   purchaseRequests: [
@@ -2703,7 +3581,9 @@ const dataStore = {
       "item_id": 22,
       "quantity_requested": 160,
       "status": "PENDING",
-      "requested_by": 101
+      "requested_by": 101,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "request_id": 2,
@@ -2711,7 +3591,9 @@ const dataStore = {
       "item_id": 28,
       "quantity_requested": 40,
       "status": "APPROVED",
-      "requested_by": 101
+      "requested_by": 101,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "request_id": 3,
@@ -2719,7 +3601,9 @@ const dataStore = {
       "item_id": 30,
       "quantity_requested": 200,
       "status": "PENDING",
-      "requested_by": 101
+      "requested_by": 101,
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   preRequests: [
@@ -2740,7 +3624,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.442Z",
       "updated_at": "2026-08-17T17:19:41.442Z",
-      "decided_at": "2026-08-17T17:19:41.442Z"
+      "decided_at": "2026-08-17T17:19:41.442Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 2,
@@ -2759,7 +3645,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.442Z",
       "updated_at": "2026-08-17T17:19:41.442Z",
-      "decided_at": "2026-08-17T17:19:41.442Z"
+      "decided_at": "2026-08-17T17:19:41.442Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 3,
@@ -2778,7 +3666,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.442Z",
       "updated_at": "2026-08-17T17:19:41.442Z",
-      "decided_at": "2026-08-17T17:19:41.443Z"
+      "decided_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 4,
@@ -2797,7 +3687,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": null
+      "decided_at": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 5,
@@ -2816,7 +3708,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": null
+      "decided_at": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 6,
@@ -2835,7 +3729,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": null
+      "decided_at": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 7,
@@ -2854,7 +3750,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": null
+      "decided_at": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 8,
@@ -2873,7 +3771,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": "2026-08-17T17:19:41.443Z"
+      "decided_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 9,
@@ -2892,7 +3792,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": "2026-08-17T17:19:41.443Z"
+      "decided_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 10,
@@ -2911,7 +3813,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": null
+      "decided_at": null,
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 11,
@@ -2930,7 +3834,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": "2026-08-17T17:19:41.443Z"
+      "decided_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 12,
@@ -2949,7 +3855,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.443Z",
       "updated_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": "2026-08-17T17:19:41.443Z"
+      "decided_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 13,
@@ -2968,7 +3876,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 14,
@@ -2987,7 +3897,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 15,
@@ -3006,7 +3918,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 16,
@@ -3025,7 +3939,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 17,
@@ -3044,7 +3960,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 18,
@@ -3063,7 +3981,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 19,
@@ -3082,7 +4002,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 20,
@@ -3101,7 +4023,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 21,
@@ -3120,7 +4044,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 22,
@@ -3139,7 +4065,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.444Z",
       "updated_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 23,
@@ -3158,7 +4086,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.445Z",
       "updated_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 24,
@@ -3177,7 +4107,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.445Z",
       "updated_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 25,
@@ -3196,7 +4128,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.445Z",
       "updated_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 26,
@@ -3215,7 +4149,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.445Z",
       "updated_at": "2026-08-17T17:19:41.446Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 27,
@@ -3234,7 +4170,9 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.446Z",
       "updated_at": "2026-08-17T17:19:41.446Z",
-      "decided_at": "2026-08-17T17:19:41.446Z"
+      "decided_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "pre_request_id": 28,
@@ -3253,7 +4191,30 @@ const dataStore = {
       "created_by": 105,
       "created_at": "2026-08-17T17:19:41.446Z",
       "updated_at": "2026-08-17T17:19:41.446Z",
-      "decided_at": "2026-08-17T17:19:41.446Z"
+      "decided_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "pre_request_id": 29,
+      "patient_id": 229,
+      "appointment_id": null,
+      "department": "Cardiology",
+      "doctor_id": 415,
+      "visit_type": "Admit",
+      "ward_type": null,
+      "requested_date": null,
+      "requested_time": null,
+      "status": "ADMITTED",
+      "hom_status": "Bed confirmed",
+      "bed_id": 77,
+      "reject_reason": null,
+      "created_by": 107,
+      "organization_id": 2,
+      "hospital_id": 2,
+      "created_at": "2026-08-18T11:39:52.563Z",
+      "updated_at": "2026-08-18T11:39:52.563Z",
+      "decided_at": "2026-08-18T11:39:52.563Z"
     }
   ],
   bedRequests: [
@@ -3267,7 +4228,9 @@ const dataStore = {
       "bed_id": 53,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": "2026-08-17T17:19:41.443Z"
+      "decided_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 2,
@@ -3279,7 +4242,9 @@ const dataStore = {
       "bed_id": 54,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.443Z",
-      "decided_at": "2026-08-17T17:19:41.443Z"
+      "decided_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 3,
@@ -3291,7 +4256,9 @@ const dataStore = {
       "bed_id": 43,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 4,
@@ -3303,7 +4270,9 @@ const dataStore = {
       "bed_id": 55,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 5,
@@ -3315,7 +4284,9 @@ const dataStore = {
       "bed_id": 61,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 6,
@@ -3327,7 +4298,9 @@ const dataStore = {
       "bed_id": 22,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 7,
@@ -3339,7 +4312,9 @@ const dataStore = {
       "bed_id": 23,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 8,
@@ -3351,7 +4326,9 @@ const dataStore = {
       "bed_id": 37,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 9,
@@ -3363,7 +4340,9 @@ const dataStore = {
       "bed_id": 44,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 10,
@@ -3375,7 +4354,9 @@ const dataStore = {
       "bed_id": 45,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 11,
@@ -3387,7 +4368,9 @@ const dataStore = {
       "bed_id": 56,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 12,
@@ -3399,7 +4382,9 @@ const dataStore = {
       "bed_id": 46,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.444Z",
-      "decided_at": "2026-08-17T17:19:41.444Z"
+      "decided_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 13,
@@ -3411,7 +4396,9 @@ const dataStore = {
       "bed_id": 24,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 14,
@@ -3423,7 +4410,9 @@ const dataStore = {
       "bed_id": 62,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 15,
@@ -3435,7 +4424,9 @@ const dataStore = {
       "bed_id": 74,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 16,
@@ -3447,7 +4438,9 @@ const dataStore = {
       "bed_id": 62,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.445Z",
-      "decided_at": "2026-08-17T17:19:41.445Z"
+      "decided_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 17,
@@ -3459,7 +4452,9 @@ const dataStore = {
       "bed_id": 62,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.446Z",
-      "decided_at": "2026-08-17T17:19:41.446Z"
+      "decided_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "bed_request_id": 18,
@@ -3471,7 +4466,23 @@ const dataStore = {
       "bed_id": 62,
       "requested_by": 105,
       "requested_at": "2026-08-17T17:19:41.446Z",
-      "decided_at": "2026-08-17T17:19:41.446Z"
+      "decided_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "bed_request_id": 19,
+      "pre_request_id": 29,
+      "patient_id": 229,
+      "ward_id": 7,
+      "priority": "NORMAL",
+      "status": "ALLOCATED",
+      "bed_id": 77,
+      "requested_by": 107,
+      "organization_id": 2,
+      "hospital_id": 2,
+      "requested_at": "2026-08-18T11:39:52.563Z",
+      "decided_at": "2026-08-18T11:39:52.563Z"
     }
   ],
   emergencyNotifications: [
@@ -3482,7 +4493,9 @@ const dataStore = {
       "department": "Emergency Medicine",
       "status": "PENDING",
       "created_by": 105,
-      "created_at": "2026-08-15T09:00:00.000Z"
+      "created_at": "2026-08-15T09:00:00.000Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "emergency_id": 2,
@@ -3491,7 +4504,9 @@ const dataStore = {
       "department": "Emergency Medicine",
       "status": "PENDING",
       "created_by": 105,
-      "created_at": "2026-08-17T09:00:00.000Z"
+      "created_at": "2026-08-17T09:00:00.000Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "emergency_id": 3,
@@ -3500,7 +4515,9 @@ const dataStore = {
       "department": "Emergency Medicine",
       "status": "PENDING",
       "created_by": 105,
-      "created_at": "2026-08-16T09:00:00.000Z"
+      "created_at": "2026-08-16T09:00:00.000Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "emergency_id": 4,
@@ -3509,7 +4526,9 @@ const dataStore = {
       "department": "Emergency Medicine",
       "status": "PENDING",
       "created_by": 105,
-      "created_at": "2026-08-16T09:00:00.000Z"
+      "created_at": "2026-08-16T09:00:00.000Z",
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   receipts: [
@@ -3521,7 +4540,9 @@ const dataStore = {
       "patient_id": 211,
       "amount": 8800,
       "payment_mode": "CASH",
-      "generated_at": "2026-08-17T17:19:41.445Z"
+      "generated_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "receipt_id": 2,
@@ -3531,7 +4552,9 @@ const dataStore = {
       "patient_id": 219,
       "amount": 16300,
       "payment_mode": "NETBANKING",
-      "generated_at": "2026-08-17T17:19:41.445Z"
+      "generated_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "receipt_id": 3,
@@ -3541,7 +4564,9 @@ const dataStore = {
       "patient_id": 206,
       "amount": 33300,
       "payment_mode": "CARD",
-      "generated_at": "2026-08-17T17:19:41.445Z"
+      "generated_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "receipt_id": 4,
@@ -3551,7 +4576,9 @@ const dataStore = {
       "patient_id": 215,
       "amount": 8300,
       "payment_mode": "CARD",
-      "generated_at": "2026-08-17T17:19:41.445Z"
+      "generated_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "receipt_id": 5,
@@ -3561,7 +4588,9 @@ const dataStore = {
       "patient_id": 208,
       "amount": 41400,
       "payment_mode": "CASH",
-      "generated_at": "2026-08-17T17:19:41.446Z"
+      "generated_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "receipt_id": 6,
@@ -3571,7 +4600,9 @@ const dataStore = {
       "patient_id": 216,
       "amount": 32050,
       "payment_mode": "CARD",
-      "generated_at": "2026-08-17T17:19:41.446Z"
+      "generated_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "receipt_id": 7,
@@ -3581,10 +4612,64 @@ const dataStore = {
       "patient_id": 225,
       "amount": 22750,
       "payment_mode": "UPI",
-      "generated_at": "2026-08-17T17:19:41.446Z"
+      "generated_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
   activityLog: [
+    {
+      "id": 155,
+      "type": "success",
+      "text": "Pre-request #29 moved ADMITTED",
+      "meta": {
+        "preRequestId": 29,
+        "actorRole": "HOM"
+      },
+      "organization_id": 2,
+      "created_at": "2026-08-18T11:39:52.563Z"
+    },
+    {
+      "id": 154,
+      "type": "success",
+      "text": "Bed CCU-01 allocated (bed request #19)",
+      "meta": {
+        "bedRequestId": 19
+      },
+      "organization_id": 2,
+      "created_at": "2026-08-18T11:39:52.563Z"
+    },
+    {
+      "id": 153,
+      "type": "info",
+      "text": "Bed requested for Meera Subramaniam",
+      "meta": {
+        "bedRequestId": 19
+      },
+      "organization_id": 2,
+      "created_at": "2026-08-18T11:39:52.563Z"
+    },
+    {
+      "id": 152,
+      "type": "success",
+      "text": "Pre-request #29 moved APPROVED",
+      "meta": {
+        "preRequestId": 29,
+        "actorRole": "PRE"
+      },
+      "organization_id": 2,
+      "created_at": "2026-08-18T11:39:52.563Z"
+    },
+    {
+      "id": 151,
+      "type": "info",
+      "text": "Pre-registration submitted for Meera Subramaniam",
+      "meta": {
+        "preRequestId": 29
+      },
+      "organization_id": 2,
+      "created_at": "2026-08-18T11:39:52.563Z"
+    },
     {
       "id": 150,
       "type": "success",
@@ -3593,7 +4678,9 @@ const dataStore = {
         "preRequestId": 28,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 149,
@@ -3602,7 +4689,9 @@ const dataStore = {
       "meta": {
         "paymentId": 907
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 148,
@@ -3612,7 +4701,9 @@ const dataStore = {
         "ledgerId": 816,
         "patientId": 225
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 147,
@@ -3622,7 +4713,9 @@ const dataStore = {
         "preRequestId": 28,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 146,
@@ -3632,7 +4725,9 @@ const dataStore = {
         "preRequestId": 28,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 145,
@@ -3642,7 +4737,9 @@ const dataStore = {
         "preRequestId": 28,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 144,
@@ -3651,7 +4748,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 18
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 143,
@@ -3660,7 +4759,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 18
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 142,
@@ -3670,7 +4771,9 @@ const dataStore = {
         "preRequestId": 28,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 141,
@@ -3679,7 +4782,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 28
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 140,
@@ -3689,7 +4794,9 @@ const dataStore = {
         "preRequestId": 27,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 139,
@@ -3698,7 +4805,9 @@ const dataStore = {
       "meta": {
         "paymentId": 906
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 138,
@@ -3708,7 +4817,9 @@ const dataStore = {
         "ledgerId": 815,
         "patientId": 216
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 137,
@@ -3718,7 +4829,9 @@ const dataStore = {
         "preRequestId": 27,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 136,
@@ -3728,7 +4841,9 @@ const dataStore = {
         "preRequestId": 27,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 135,
@@ -3738,7 +4853,9 @@ const dataStore = {
         "preRequestId": 27,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 134,
@@ -3747,7 +4864,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 17
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 133,
@@ -3756,7 +4875,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 17
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 132,
@@ -3766,7 +4887,9 @@ const dataStore = {
         "preRequestId": 27,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 131,
@@ -3775,7 +4898,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 27
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 130,
@@ -3785,7 +4910,9 @@ const dataStore = {
         "preRequestId": 26,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 129,
@@ -3794,7 +4921,9 @@ const dataStore = {
       "meta": {
         "paymentId": 905
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 128,
@@ -3804,7 +4933,9 @@ const dataStore = {
         "ledgerId": 814,
         "patientId": 208
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 127,
@@ -3814,7 +4945,9 @@ const dataStore = {
         "preRequestId": 26,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 126,
@@ -3824,7 +4957,9 @@ const dataStore = {
         "preRequestId": 26,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.446Z"
+      "created_at": "2026-08-17T17:19:41.446Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 125,
@@ -3834,7 +4969,9 @@ const dataStore = {
         "preRequestId": 26,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 124,
@@ -3843,7 +4980,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 16
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 123,
@@ -3852,7 +4991,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 16
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 122,
@@ -3862,7 +5003,9 @@ const dataStore = {
         "preRequestId": 26,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 121,
@@ -3871,7 +5014,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 26
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 120,
@@ -3881,7 +5026,9 @@ const dataStore = {
         "preRequestId": 25,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 119,
@@ -3890,7 +5037,9 @@ const dataStore = {
       "meta": {
         "paymentId": 904
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 118,
@@ -3900,7 +5049,9 @@ const dataStore = {
         "ledgerId": 813,
         "patientId": 215
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 117,
@@ -3910,7 +5061,9 @@ const dataStore = {
         "preRequestId": 25,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 116,
@@ -3920,7 +5073,9 @@ const dataStore = {
         "preRequestId": 25,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 115,
@@ -3930,7 +5085,9 @@ const dataStore = {
         "preRequestId": 25,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 114,
@@ -3939,7 +5096,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 15
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 113,
@@ -3948,7 +5107,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 15
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 112,
@@ -3958,7 +5119,9 @@ const dataStore = {
         "preRequestId": 25,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 111,
@@ -3967,7 +5130,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 25
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 110,
@@ -3977,7 +5142,9 @@ const dataStore = {
         "preRequestId": 24,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 109,
@@ -3986,7 +5153,9 @@ const dataStore = {
       "meta": {
         "paymentId": 903
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 108,
@@ -3996,7 +5165,9 @@ const dataStore = {
         "ledgerId": 812,
         "patientId": 206
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 107,
@@ -4006,7 +5177,9 @@ const dataStore = {
         "preRequestId": 24,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 106,
@@ -4016,7 +5189,9 @@ const dataStore = {
         "preRequestId": 24,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 105,
@@ -4026,7 +5201,9 @@ const dataStore = {
         "preRequestId": 24,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 104,
@@ -4035,7 +5212,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 14
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 103,
@@ -4044,7 +5223,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 14
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 102,
@@ -4054,7 +5235,9 @@ const dataStore = {
         "preRequestId": 24,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 101,
@@ -4063,7 +5246,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 24
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 100,
@@ -4073,7 +5258,9 @@ const dataStore = {
         "preRequestId": 23,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 99,
@@ -4082,7 +5269,9 @@ const dataStore = {
       "meta": {
         "paymentId": 902
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 98,
@@ -4092,7 +5281,9 @@ const dataStore = {
         "ledgerId": 811,
         "patientId": 219
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 97,
@@ -4102,7 +5293,9 @@ const dataStore = {
         "preRequestId": 23,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 96,
@@ -4112,7 +5305,9 @@ const dataStore = {
         "preRequestId": 23,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 95,
@@ -4122,7 +5317,9 @@ const dataStore = {
         "preRequestId": 23,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 94,
@@ -4131,7 +5328,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 13
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 93,
@@ -4140,7 +5339,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 13
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 92,
@@ -4150,7 +5351,9 @@ const dataStore = {
         "preRequestId": 23,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 91,
@@ -4159,7 +5362,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 23
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 90,
@@ -4168,7 +5373,9 @@ const dataStore = {
       "meta": {
         "paymentId": 901
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 89,
@@ -4178,7 +5385,9 @@ const dataStore = {
         "ledgerId": 805,
         "patientId": 211
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 88,
@@ -4188,7 +5397,9 @@ const dataStore = {
         "preRequestId": 16,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 87,
@@ -4198,7 +5409,9 @@ const dataStore = {
         "ledgerId": 810,
         "patientId": 212
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 86,
@@ -4208,7 +5421,9 @@ const dataStore = {
         "preRequestId": 21,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 85,
@@ -4218,7 +5433,9 @@ const dataStore = {
         "preRequestId": 14,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 84,
@@ -4228,7 +5445,9 @@ const dataStore = {
         "preRequestId": 16,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 83,
@@ -4238,7 +5457,9 @@ const dataStore = {
         "preRequestId": 19,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.445Z"
+      "created_at": "2026-08-17T17:19:41.445Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 82,
@@ -4248,7 +5469,9 @@ const dataStore = {
         "preRequestId": 14,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 81,
@@ -4258,7 +5481,9 @@ const dataStore = {
         "preRequestId": 21,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 80,
@@ -4268,7 +5493,9 @@ const dataStore = {
         "preRequestId": 22,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 79,
@@ -4277,7 +5504,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 12
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 78,
@@ -4286,7 +5515,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 12
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 77,
@@ -4296,7 +5527,9 @@ const dataStore = {
         "preRequestId": 22,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 76,
@@ -4305,7 +5538,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 22
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 75,
@@ -4315,7 +5550,9 @@ const dataStore = {
         "preRequestId": 21,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 74,
@@ -4324,7 +5561,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 11
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 73,
@@ -4333,7 +5572,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 11
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 72,
@@ -4343,7 +5584,9 @@ const dataStore = {
         "preRequestId": 21,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 71,
@@ -4352,7 +5595,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 21
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 70,
@@ -4362,7 +5607,9 @@ const dataStore = {
         "preRequestId": 20,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 69,
@@ -4371,7 +5618,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 10
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 68,
@@ -4380,7 +5629,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 10
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 67,
@@ -4390,7 +5641,9 @@ const dataStore = {
         "preRequestId": 20,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 66,
@@ -4399,7 +5652,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 20
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 65,
@@ -4409,7 +5664,9 @@ const dataStore = {
         "preRequestId": 19,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 64,
@@ -4418,7 +5675,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 9
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 63,
@@ -4427,7 +5686,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 9
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 62,
@@ -4437,7 +5698,9 @@ const dataStore = {
         "preRequestId": 19,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 61,
@@ -4446,7 +5709,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 19
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 60,
@@ -4456,7 +5721,9 @@ const dataStore = {
         "preRequestId": 18,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 59,
@@ -4465,7 +5732,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 8
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 58,
@@ -4474,7 +5743,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 8
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 57,
@@ -4484,7 +5755,9 @@ const dataStore = {
         "preRequestId": 18,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 56,
@@ -4493,7 +5766,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 18
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 55,
@@ -4503,7 +5778,9 @@ const dataStore = {
         "preRequestId": 17,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 54,
@@ -4512,7 +5789,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 7
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 53,
@@ -4521,7 +5800,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 7
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 52,
@@ -4531,7 +5812,9 @@ const dataStore = {
         "preRequestId": 17,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 51,
@@ -4540,7 +5823,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 17
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 50,
@@ -4550,7 +5835,9 @@ const dataStore = {
         "preRequestId": 16,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 49,
@@ -4559,7 +5846,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 6
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 48,
@@ -4568,7 +5857,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 6
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 47,
@@ -4578,7 +5869,9 @@ const dataStore = {
         "preRequestId": 16,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 46,
@@ -4587,7 +5880,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 16
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 45,
@@ -4597,7 +5892,9 @@ const dataStore = {
         "preRequestId": 15,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 44,
@@ -4606,7 +5903,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 5
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 43,
@@ -4615,7 +5914,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 5
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 42,
@@ -4625,7 +5926,9 @@ const dataStore = {
         "preRequestId": 15,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 41,
@@ -4634,7 +5937,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 15
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 40,
@@ -4644,7 +5949,9 @@ const dataStore = {
         "preRequestId": 14,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 39,
@@ -4653,7 +5960,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 4
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 38,
@@ -4662,7 +5971,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 4
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 37,
@@ -4672,7 +5983,9 @@ const dataStore = {
         "preRequestId": 14,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 36,
@@ -4681,7 +5994,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 14
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 35,
@@ -4691,7 +6006,9 @@ const dataStore = {
         "preRequestId": 13,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 34,
@@ -4700,7 +6017,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 3
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 33,
@@ -4709,7 +6028,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 3
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 32,
@@ -4719,7 +6040,9 @@ const dataStore = {
         "preRequestId": 13,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 31,
@@ -4728,7 +6051,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 13
       },
-      "created_at": "2026-08-17T17:19:41.444Z"
+      "created_at": "2026-08-17T17:19:41.444Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 30,
@@ -4738,7 +6063,9 @@ const dataStore = {
         "preRequestId": 12,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 29,
@@ -4747,7 +6074,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 2
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 28,
@@ -4756,7 +6085,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 2
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 27,
@@ -4766,7 +6097,9 @@ const dataStore = {
         "preRequestId": 12,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 26,
@@ -4776,7 +6109,9 @@ const dataStore = {
         "preRequestId": 12,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 25,
@@ -4785,7 +6120,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 12
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 24,
@@ -4795,7 +6132,9 @@ const dataStore = {
         "preRequestId": 11,
         "actorRole": "HOM"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 23,
@@ -4804,7 +6143,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 1
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 22,
@@ -4813,7 +6154,9 @@ const dataStore = {
       "meta": {
         "bedRequestId": 1
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 21,
@@ -4823,7 +6166,9 @@ const dataStore = {
         "preRequestId": 11,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 20,
@@ -4833,7 +6178,9 @@ const dataStore = {
         "preRequestId": 11,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 19,
@@ -4842,7 +6189,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 11
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 18,
@@ -4852,7 +6201,9 @@ const dataStore = {
         "preRequestId": 10,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 17,
@@ -4861,7 +6212,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 10
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 16,
@@ -4871,7 +6224,9 @@ const dataStore = {
         "preRequestId": 9,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 15,
@@ -4881,7 +6236,9 @@ const dataStore = {
         "preRequestId": 9,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 14,
@@ -4890,7 +6247,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 9
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 13,
@@ -4900,7 +6259,9 @@ const dataStore = {
         "preRequestId": 8,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 12,
@@ -4910,7 +6271,9 @@ const dataStore = {
         "preRequestId": 8,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 11,
@@ -4919,7 +6282,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 8
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 10,
@@ -4928,7 +6293,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 7
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 9,
@@ -4937,7 +6304,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 6
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 8,
@@ -4946,7 +6315,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 5
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 7,
@@ -4955,7 +6326,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 4
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 6,
@@ -4965,7 +6338,9 @@ const dataStore = {
         "preRequestId": 3,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.443Z"
+      "created_at": "2026-08-17T17:19:41.443Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 5,
@@ -4974,7 +6349,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 3
       },
-      "created_at": "2026-08-17T17:19:41.442Z"
+      "created_at": "2026-08-17T17:19:41.442Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 4,
@@ -4984,7 +6361,9 @@ const dataStore = {
         "preRequestId": 2,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.442Z"
+      "created_at": "2026-08-17T17:19:41.442Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 3,
@@ -4993,7 +6372,9 @@ const dataStore = {
       "meta": {
         "preRequestId": 2
       },
-      "created_at": "2026-08-17T17:19:41.442Z"
+      "created_at": "2026-08-17T17:19:41.442Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 2,
@@ -5003,7 +6384,9 @@ const dataStore = {
         "preRequestId": 1,
         "actorRole": "PRE"
       },
-      "created_at": "2026-08-17T17:19:41.442Z"
+      "created_at": "2026-08-17T17:19:41.442Z",
+      "organization_id": 1,
+      "hospital_id": 1
     },
     {
       "id": 1,
@@ -5012,9 +6395,447 @@ const dataStore = {
       "meta": {
         "preRequestId": 1
       },
-      "created_at": "2026-08-17T17:19:41.442Z"
+      "created_at": "2026-08-17T17:19:41.442Z",
+      "organization_id": 1,
+      "hospital_id": 1
     }
   ],
+  organizations: [
+    {
+      "organization_id": 1,
+      "name": "Federico General Hospital",
+      "slug": "federico-general",
+      "status": "ACTIVE",
+      "branding": {
+        "initial": "F",
+        "primary_color": "#6750A4"
+      },
+      "contact": {
+        "phone": "+91-4000000001",
+        "email": "contact@federicogeneral.hosp.com",
+        "address": "1 Federico Way, Hyderabad"
+      },
+      "specialties": [
+        "General Medicine",
+        "Cardiology",
+        "Neurology",
+        "Orthopedics",
+        "Pediatrics",
+        "Emergency Medicine"
+      ],
+      "emergency_available": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "organization_id": 2,
+      "name": "Apollo Hospitals",
+      "slug": "apollo-hospitals",
+      "status": "ACTIVE",
+      "branding": {
+        "initial": "A",
+        "primary_color": "#6750A4"
+      },
+      "contact": {
+        "phone": "+91-4400000002",
+        "email": "contact@apollohospitals.example",
+        "address": "1 Cardiology Row, Chennai"
+      },
+      "specialties": [
+        "Cardiology",
+        "Neurology",
+        "Oncology"
+      ],
+      "emergency_available": true,
+      "created_at": "2026-08-18T11:39:52.322Z",
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    }
+  ],
+  hospitals: [
+    {
+      "hospital_id": 1,
+      "organization_id": 1,
+      "name": "Federico General — Main Campus",
+      "city": "Hyderabad",
+      "address": "1 Federico Way, Hyderabad",
+      "phone": "+91-4000000001",
+      "is_primary": true,
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "hospital_id": 2,
+      "organization_id": 2,
+      "name": "Apollo Hospitals — Main Campus",
+      "city": "Chennai",
+      "address": "1 Cardiology Row, Chennai",
+      "phone": "+91-4400000002",
+      "is_primary": true,
+      "created_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "hospital_id": 3,
+      "organization_id": 2,
+      "name": "Apollo Hospitals — Bangalore",
+      "city": "Bangalore",
+      "address": null,
+      "phone": null,
+      "is_primary": false,
+      "created_at": "2026-08-18T11:39:52.382Z"
+    }
+  ],
+  subscriptionPlans: [
+    {
+      "plan_id": 1,
+      "name": "Starter",
+      "max_beds": 25,
+      "max_users": 15,
+      "max_hospitals": 1,
+      "storage_gb": 10,
+      "api_rate_limit": 60,
+      "included_modules": [
+        "APPOINTMENTS",
+        "ADMISSIONS",
+        "BILLING"
+      ],
+      "price_monthly": 4999,
+      "created_at": "2026-08-18T11:39:52.249Z"
+    },
+    {
+      "plan_id": 2,
+      "name": "Professional",
+      "max_beds": 100,
+      "max_users": 60,
+      "max_hospitals": 3,
+      "storage_gb": 100,
+      "api_rate_limit": 300,
+      "included_modules": [
+        "APPOINTMENTS",
+        "ADMISSIONS",
+        "INVENTORY",
+        "BILLING",
+        "INSURANCE"
+      ],
+      "price_monthly": 14999,
+      "created_at": "2026-08-18T11:39:52.250Z"
+    },
+    {
+      "plan_id": 3,
+      "name": "Enterprise",
+      "max_beds": 100000,
+      "max_users": 100000,
+      "max_hospitals": 100,
+      "storage_gb": 5000,
+      "api_rate_limit": 2000,
+      "included_modules": [
+        "APPOINTMENTS",
+        "ADMISSIONS",
+        "INVENTORY",
+        "BILLING",
+        "INSURANCE",
+        "ANALYTICS"
+      ],
+      "price_monthly": 49999,
+      "created_at": "2026-08-18T11:39:52.250Z"
+    }
+  ],
+  subscriptions: [
+    {
+      "subscription_id": 1,
+      "organization_id": 1,
+      "plan_id": 2,
+      "status": "ACTIVE",
+      "started_at": "2026-08-18T11:39:52.250Z",
+      "renews_at": "2026-09-18T11:39:52.250Z",
+      "updated_at": "2026-08-18T11:39:52.250Z"
+    },
+    {
+      "subscription_id": 2,
+      "organization_id": 2,
+      "plan_id": 1,
+      "status": "ACTIVE",
+      "started_at": "2026-08-18T11:39:52.322Z",
+      "renews_at": "2026-09-18T11:39:52.322Z",
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    }
+  ],
+  organizationModules: [
+    {
+      "organization_id": 1,
+      "module_code": "APPOINTMENTS",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.250Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "ADMISSIONS",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "INVENTORY",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "BILLING",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "INSURANCE",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "ANALYTICS",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "APPOINTMENTS",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "ADMISSIONS",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "INVENTORY",
+      "enabled": false,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "BILLING",
+      "enabled": true,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "INSURANCE",
+      "enabled": false,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "ANALYTICS",
+      "enabled": false,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    }
+  ],
+  resourceQuotas: [
+    {
+      "organization_id": 1,
+      "max_beds": 100,
+      "max_users": 60,
+      "max_hospitals": 3,
+      "storage_gb": 100,
+      "api_rate_limit": 300,
+      "updated_at": "2026-08-18T11:39:52.250Z"
+    },
+    {
+      "organization_id": 2,
+      "max_beds": 25,
+      "max_users": 15,
+      "max_hospitals": 1,
+      "storage_gb": 10,
+      "api_rate_limit": 60,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    }
+  ],
+  apiKeys: [
+    {
+      "api_key_id": 1,
+      "organization_id": 2,
+      "label": "Provisioning default key",
+      "key": "fed_live_6f1f43972c28f2078112b2a6b439a7c06ae5",
+      "created_at": "2026-08-18T11:39:52.382Z",
+      "revoked_at": null
+    }
+  ],
+  customRoles: [
+    {
+      "custom_role_id": 1,
+      "organization_id": 1,
+      "role_name": "Billing Assistant",
+      "description": "Read-only billing access for front-desk billing questions",
+      "created_at": "2026-08-18T11:39:52.623Z"
+    }
+  ],
+  permissions: [
+    {
+      "permission_id": 1,
+      "permission_code": "doctor:read",
+      "description": "View doctor records"
+    },
+    {
+      "permission_id": 2,
+      "permission_code": "doctor:write",
+      "description": "Manage doctor records"
+    },
+    {
+      "permission_id": 3,
+      "permission_code": "patient:read",
+      "description": "View patient records"
+    },
+    {
+      "permission_id": 4,
+      "permission_code": "patient:write",
+      "description": "Manage patient records"
+    },
+    {
+      "permission_id": 5,
+      "permission_code": "ward:read",
+      "description": "View ward records"
+    },
+    {
+      "permission_id": 6,
+      "permission_code": "ward:write",
+      "description": "Manage ward records"
+    },
+    {
+      "permission_id": 7,
+      "permission_code": "inventory:read",
+      "description": "View inventory records"
+    },
+    {
+      "permission_id": 8,
+      "permission_code": "inventory:write",
+      "description": "Manage inventory records"
+    },
+    {
+      "permission_id": 9,
+      "permission_code": "billing:read",
+      "description": "View billing records"
+    },
+    {
+      "permission_id": 10,
+      "permission_code": "billing:write",
+      "description": "Manage billing records"
+    },
+    {
+      "permission_id": 11,
+      "permission_code": "payment:write",
+      "description": "Manage payment records"
+    },
+    {
+      "permission_id": 12,
+      "permission_code": "ledgerEntry:write",
+      "description": "Manage ledgerEntry records"
+    },
+    {
+      "permission_id": 13,
+      "permission_code": "appointment:read",
+      "description": "View appointment records"
+    },
+    {
+      "permission_id": 14,
+      "permission_code": "appointment:write",
+      "description": "Manage appointment records"
+    },
+    {
+      "permission_id": 15,
+      "permission_code": "admission:read",
+      "description": "View admission records"
+    },
+    {
+      "permission_id": 16,
+      "permission_code": "admission:write",
+      "description": "Manage admission records"
+    },
+    {
+      "permission_id": 17,
+      "permission_code": "preRequest:read",
+      "description": "View preRequest records"
+    },
+    {
+      "permission_id": 18,
+      "permission_code": "preRequest:write",
+      "description": "Manage preRequest records"
+    }
+  ],
+  rolePermissions: [
+    {
+      "custom_role_id": 1,
+      "permission_id": 9
+    }
+  ],
+  staffRoleAssignments: [
+    {
+      "user_id": 111,
+      "custom_role_id": 1,
+      "assigned_at": "2026-08-18T11:39:52.623Z"
+    }
+  ],
+  platformSuperUsers: [
+    {
+      "platform_user_id": 1,
+      "name": "Federico Platform Ops",
+      "email": "platform@federico.com",
+      "password_hash": "$2a$10$0YITUBmB/wwdleThDe30M.r3abIatIN4BX4SQSnJfjjsMsvEu00l2",
+      "created_at": "2026-08-18T11:39:52.322Z"
+    }
+  ],
+  provisioningLog: [
+    {
+      "id": 1,
+      "organization_id": 2,
+      "step": "CREATE_ORGANIZATION",
+      "status": "DONE",
+      "message": "Organization \"Apollo Hospitals\" created",
+      "created_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "id": 2,
+      "organization_id": 2,
+      "step": "GENERATE_CONFIGURATION",
+      "status": "DONE",
+      "message": "Primary hospital \"Apollo Hospitals — Main Campus\" created",
+      "created_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "id": 3,
+      "organization_id": 2,
+      "step": "ALLOCATE_QUOTAS",
+      "status": "DONE",
+      "message": "Subscribed to \"Starter\" — quotas allocated",
+      "created_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "id": 4,
+      "organization_id": 2,
+      "step": "ENABLE_MODULES",
+      "status": "DONE",
+      "message": "Enabled modules: APPOINTMENTS, ADMISSIONS, BILLING",
+      "created_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "id": 5,
+      "organization_id": 2,
+      "step": "CREATE_DEFAULT_ADMIN",
+      "status": "DONE",
+      "message": "Default admin account created (admin@apollo.hosp.com)",
+      "created_at": "2026-08-18T11:39:52.382Z"
+    },
+    {
+      "id": 6,
+      "organization_id": 2,
+      "step": "GENERATE_API_KEY",
+      "status": "DONE",
+      "message": "API key generated",
+      "created_at": "2026-08-18T11:39:52.382Z"
+    }
+  ],
+  platformActivityLog: [],
 };
 
 module.exports = dataStore;
