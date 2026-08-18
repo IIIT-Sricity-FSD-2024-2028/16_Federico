@@ -17,6 +17,9 @@ body { background: var(--md-background); }
   z-index: 1;
   width: min(420px, 100%);
   padding: 40px;
+  border-radius: var(--radius-xl);
+  animation: md-page-enter var(--duration-emphasis) var(--ease-emphasized) both;
+  animation-delay: 80ms;
 }
 .platform-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
 .platform-brand-title { font-weight: 600; font-size: 1.1rem; }
@@ -41,6 +44,12 @@ body { background: var(--md-background); }
 .stat-card .stat-value { font-size: 2rem; font-weight: 600; color: var(--md-primary); }
 .stat-card .stat-label { font-size: 0.8rem; color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
 
+.activity-entry { display: flex; align-items: baseline; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--md-outline-variant); font-size: 0.85rem; flex-wrap: wrap; }
+.activity-entry:last-child { border-bottom: none; }
+.activity-entry-label { font-weight: 600; }
+.activity-entry-detail { color: var(--md-on-surface-variant); flex: 1; }
+.activity-entry-time { color: var(--md-on-surface-variant); font-size: 0.75rem; white-space: nowrap; }
+
 .org-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .org-mini-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-1); cursor: pointer; transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard); }
 .org-mini-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
@@ -53,20 +62,8 @@ body { background: var(--md-background); }
 #org-table td, #org-table th { white-space: nowrap; }
 .org-name-cell { display: flex; align-items: center; gap: 10px; }
 
-/* ===== Dialogs (native <dialog>, styled to match shared/ui-feedback.css's .md-dialog) ===== */
-.md-native-dialog {
-  border: none;
-  border-radius: var(--radius-xl);
-  padding: 0;
-  background: var(--md-surface-container-high, var(--md-surface-container));
-  box-shadow: var(--shadow-4);
-  width: min(480px, calc(100vw - 48px));
-  max-height: calc(100vh - 64px);
-}
-.md-native-dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
-.md-native-dialog-wide { width: min(720px, calc(100vw - 48px)); }
-.dialog-form { padding: 28px; overflow-y: auto; max-height: calc(100vh - 112px); }
-.dialog-form .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+/* Native <dialog> glass styling now lives in shared/material-components.css
+   (.md-native-dialog*) so any app can reuse it, not just Platform. */
 
 .detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .detail-panel { padding-top: 16px; }

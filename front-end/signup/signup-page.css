@@ -52,11 +52,17 @@ button, input, select, a { font-family: inherit; }
 }
 
 .signup-card {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 620px;
-    background: var(--md-surface-container);
+    /* Liquid glass — floats over the two blur shapes behind it. */
+    background: color-mix(in srgb, var(--md-surface-container) 78%, transparent);
+    backdrop-filter: blur(22px) saturate(1.6);
+    -webkit-backdrop-filter: blur(22px) saturate(1.6);
+    border: 1px solid color-mix(in srgb, white 35%, transparent);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-2);
+    box-shadow: var(--shadow-2), inset 0 1px 0 color-mix(in srgb, white 40%, transparent);
     padding: 48px 40px 44px;
 }
 

@@ -175,6 +175,63 @@
     return Boolean(tenant && tenant.enabled_modules && tenant.enabled_modules.includes(moduleCode));
   }
 
+  /**
+   * Tenant Context Service, frontend half (tasks.md §12: "The frontend
+   * dynamically updates: Organization Logo, Theme, Enabled Modules,
+   * Navigation"). Each app's brand markup differs (see comments below),
+   * so this targets each app's known subtitle element directly rather
+   * than guessing a universal selector; apps whose nav is built after
+   * auth-guard.js runs (HOM's shared-nav.js) call this again themselves
+   * once their nav DOM actually exists — see that file's own call site.
+   *
+   * Safe to call multiple times / before a tenant exists (no-ops quietly).
+   */
+  function applyTenantBranding() {
+    var tenant = getTenantContext();
+
+    // Feature-flag nav hiding — any element, in any app, tagged
+    // data-requires-module="CODE" is hidden when that module is off for
+    // the signed-in session's organization. Runs regardless of whether a
+    // brand subtitle element was found below.
+    var moduleGatedEls = document.querySelectorAll("[data-requires-module]");
+    for (var i = 0; i < moduleGatedEls.length; i++) {
+      var el = moduleGatedEls[i];
+      var code = el.getAttribute("data-requires-module");
+      el.style.display = hasModule(code) ? "" : "none";
+    }
+
+    if (!tenant || !tenant.organization_name) return;
+
+    // HOM: shared-nav.js renders `<span class="hospital">Hospital</span>` —
+    // replace the generic placeholder with the real organization name.
+    var homSubtitle = document.querySelector(".nav-logo-text .hospital");
+    if (homSubtitle) homSubtitle.textContent = tenant.organization_name;
+
+    // Patient: `.brand-text` renders `<strong>Federico</strong><span>...</span>` —
+    // same replacement.
+    var patientSubtitle = document.querySelector(".brand-text span");
+    if (patientSubtitle) patientSubtitle.textContent = tenant.organization_name;
+
+    // FA: `.logo-group` has no subtitle element at all — add one once.
+    var faLogoGroup = document.querySelector(".logo-group");
+    if (faLogoGroup && !faLogoGroup.querySelector(".tenant-org-label")) {
+      var faLabel = document.createElement("span");
+      faLabel.className = "tenant-org-label";
+      faLabel.textContent = tenant.organization_name;
+      faLogoGroup.appendChild(faLabel);
+    }
+
+    // PRE: `.logo .text` has `<h2>Federico</h2><p>role label</p>` — append
+    // the organization name as its own line, once.
+    var preLogoText = document.querySelector(".logo .text");
+    if (preLogoText && !preLogoText.querySelector(".tenant-org-label")) {
+      var preLabel = document.createElement("p");
+      preLabel.className = "tenant-org-label";
+      preLabel.textContent = tenant.organization_name;
+      preLogoText.appendChild(preLabel);
+    }
+  }
+
   function logout() {
     if (window.ApiClient) {
       window.ApiClient.auth.logout(); // best-effort async server-side invalidation
@@ -295,6 +352,7 @@
     isAdmin: isAdmin,
     getSessionInfo: getSessionInfo,
     getTenantContext: getTenantContext,
+    applyTenantBranding: applyTenantBranding,
     hasModule: hasModule,
     get lastAuthError() { return lastAuthError; },
   };

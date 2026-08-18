@@ -5,6 +5,7 @@ const organizationService = require('../services/organization.service');
 const subscriptionPlanService = require('../services/subscriptionPlan.service');
 const subscriptionService = require('../services/subscription.service');
 const provisioningService = require('../services/provisioning.service');
+const platformActivityService = require('../services/platformActivity.service');
 const dataStore = require('../store/dataStore');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
@@ -68,28 +69,59 @@ function createOrganization(req, res) {
   logger.log(
     `✅ PROVISIONED ORGANIZATION  id=${result.organization.organization_id}  name="${result.organization.name}"`,
   );
+  platformActivityService.log(
+    req.session.userId,
+    'PROVISION_ORGANIZATION',
+    result.organization.organization_id,
+    `Provisioned "${result.organization.name}"`,
+  );
   sendResult(res, result, 201);
 }
 
 function suspendOrganization(req, res) {
   const result = organizationService.setStatus(+req.params.id, 'SUSPENDED');
-  if (result)
+  if (result) {
     logger.log(`⏸️  SUSPENDED  organization_id=${result.organization_id}`);
+    platformActivityService.log(
+      req.session.userId,
+      'SUSPEND_ORGANIZATION',
+      result.organization_id,
+      `Suspended "${result.name}"`,
+    );
+  }
   sendResult(res, result, 200);
 }
 
 function activateOrganization(req, res) {
   const result = organizationService.setStatus(+req.params.id, 'ACTIVE');
-  if (result)
+  if (result) {
     logger.log(`▶️  ACTIVATED  organization_id=${result.organization_id}`);
+    platformActivityService.log(
+      req.session.userId,
+      'ACTIVATE_ORGANIZATION',
+      result.organization_id,
+      `Activated "${result.name}"`,
+    );
+  }
   sendResult(res, result, 200);
 }
 
 function deleteOrganization(req, res) {
   const result = organizationService.remove(+req.params.id);
-  if (result)
+  if (result) {
     logger.log(`🗑️  DELETED  organization_id=${result.organization_id}`);
+    platformActivityService.log(
+      req.session.userId,
+      'DELETE_ORGANIZATION',
+      result.organization_id,
+      `Deleted "${result.name}"`,
+    );
+  }
   sendResult(res, result, 200);
+}
+
+function activityLog(req, res) {
+  sendResult(res, platformActivityService.findAll(), 200);
 }
 
 function provisioningLog(req, res) {
@@ -161,6 +193,12 @@ function setModuleFlag(req, res) {
   logger.log(
     `🚩 MODULE FLAG  organization_id=${req.params.id}  module=${req.params.moduleCode}  enabled=${req.body.enabled}`,
   );
+  platformActivityService.log(
+    req.session.userId,
+    'SET_MODULE_FLAG',
+    +req.params.id,
+    `${req.params.moduleCode} ${req.body.enabled ? 'enabled' : 'disabled'}`,
+  );
   sendResult(res, result, 200);
 }
 
@@ -199,6 +237,12 @@ function findAllPlans(req, res) {
 function createPlan(req, res) {
   const result = subscriptionPlanService.create(req.body);
   logger.log(`✅ PLAN CREATED  id=${result.plan_id}  name="${result.name}"`);
+  platformActivityService.log(
+    req.session.userId,
+    'CREATE_PLAN',
+    null,
+    `Created plan "${result.name}"`,
+  );
   sendResult(res, result, 201);
 }
 
@@ -231,11 +275,24 @@ function setSubscription(req, res) {
   logger.log(
     `📦 SUBSCRIPTION SET  organization_id=${req.params.id}  plan_id=${req.body.plan_id}`,
   );
+  platformActivityService.log(
+    req.session.userId,
+    'SET_SUBSCRIPTION',
+    +req.params.id,
+    `Plan set to "${result.plan.name}"`,
+  );
   sendResult(res, result, 200);
 }
 
 function renewSubscription(req, res) {
   const result = subscriptionService.renew(+req.params.id);
+  if (result)
+    platformActivityService.log(
+      req.session.userId,
+      'RENEW_SUBSCRIPTION',
+      +req.params.id,
+      'Subscription renewed',
+    );
   sendResult(res, result, 200);
 }
 
@@ -250,6 +307,7 @@ module.exports = {
   activateOrganization,
   deleteOrganization,
   provisioningLog,
+  activityLog,
   usage,
   platformUsage,
   findHospitals,

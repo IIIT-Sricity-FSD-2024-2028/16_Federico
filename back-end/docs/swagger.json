@@ -1283,6 +1283,24 @@
         }
       }
     },
+    "/platform/activity-log": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Platform Super User action audit trail",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
     "/platform/organizations/{id}/hospitals": {
       "get": {
         "tags": [
@@ -1705,6 +1723,68 @@
             "description": "Successful response"
           }
         }
+      },
+      "get": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Get a custom role's currently granted permissions",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/roles/{id}/permissions/{permissionId}": {
+      "delete": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Revoke a permission from a custom role",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
       }
     },
     "/rbac/staff/{userId}/role": {
@@ -1726,6 +1806,60 @@
             "schema": {
               "type": "string"
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/staff/{userId}/role/{roleId}": {
+      "delete": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Remove a custom role from a staff user",
+        "security": [
+          {
+            "x-role": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/staff": {
+      "get": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "List staff in the caller's organization with their roles",
+        "security": [
+          {
+            "x-role": []
           }
         ],
         "responses": {

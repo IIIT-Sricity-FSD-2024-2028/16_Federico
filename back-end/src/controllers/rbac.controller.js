@@ -41,6 +41,28 @@ function assignPermission(req, res) {
   sendResult(res, result, 200);
 }
 
+function permissionsForRole(req, res) {
+  const role = rbacService.findRole(req.tenant.organizationId, +req.params.id);
+  if (!role)
+    return res
+      .status(404)
+      .json({ message: 'Role not found', error: 'Not Found', statusCode: 404 });
+  sendResult(res, rbacService.permissionsForRole(role.custom_role_id), 200);
+}
+
+function unassignPermission(req, res) {
+  const role = rbacService.findRole(req.tenant.organizationId, +req.params.id);
+  if (!role)
+    return res
+      .status(404)
+      .json({ message: 'Role not found', error: 'Not Found', statusCode: 404 });
+  const result = rbacService.unassignPermission(
+    role.custom_role_id,
+    +req.params.permissionId,
+  );
+  sendResult(res, result, 200);
+}
+
 // A custom role may only ever be assigned to a staff account (HOM/PRE/FA)
 // belonging to the SAME organization — never a Patient, never cross-org.
 function assignStaffRole(req, res) {
@@ -74,10 +96,42 @@ function assignStaffRole(req, res) {
   sendResult(res, result, 200);
 }
 
+// Same org/non-Patient guard as assignStaffRole above — removing a role
+// from a user outside the caller's org (or from a Patient, who can never
+// have one) is refused rather than silently no-op-ing.
+function unassignStaffRole(req, res) {
+  const targetUser = dataStore.users.find(
+    (u) => u.user_id === +req.params.userId,
+  );
+  if (
+    !targetUser ||
+    targetUser.organization_id !== req.tenant.organizationId ||
+    targetUser.role_id === 2
+  ) {
+    return res.status(403).json(FORBIDDEN);
+  }
+  const result = rbacService.unassignStaffRole(
+    targetUser.user_id,
+    +req.params.roleId,
+  );
+  logger.log(
+    `➖ ROLE UNASSIGNED  user_id=${targetUser.user_id}  role_id=${req.params.roleId}`,
+  );
+  sendResult(res, result, 200);
+}
+
+function listStaff(req, res) {
+  sendResult(res, rbacService.staffFor(req.tenant.organizationId), 200);
+}
+
 module.exports = {
   listRoles,
   createRole,
   listPermissions,
+  permissionsForRole,
   assignPermission,
+  unassignPermission,
   assignStaffRole,
+  unassignStaffRole,
+  listStaff,
 };

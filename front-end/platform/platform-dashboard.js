@@ -33,13 +33,24 @@
   var plansCache = [];
   var orgsCache = [];
 
+  // Cross-fades a panel in instead of an instant display swap — restarts
+  // the CSS animation by forcing a reflow between remove/add (a class that
+  // was never removed won't replay its animation on its own).
+  function fadeIn(el) {
+    el.classList.remove("md-fade-switch");
+    void el.offsetWidth;
+    el.classList.add("md-fade-switch");
+  }
+
   // ---- Tabs ----
   document.querySelectorAll(".md-tabs [data-tab]").forEach(function (tab) {
     tab.addEventListener("click", function () {
       document.querySelectorAll(".md-tabs [data-tab]").forEach(function (t) { t.classList.remove("is-active"); });
       document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.add("is-hidden"); });
       tab.classList.add("is-active");
-      document.getElementById("panel-" + tab.dataset.tab).classList.remove("is-hidden");
+      var panel = document.getElementById("panel-" + tab.dataset.tab);
+      panel.classList.remove("is-hidden");
+      fadeIn(panel);
     });
   });
 
@@ -82,6 +93,8 @@
       document.querySelectorAll("#overview-org-list .org-mini-card").forEach(function (card) {
         card.addEventListener("click", function () { openOrgDetail(+card.dataset.orgId); });
       });
+
+      loadActivityFeed(usage.organizations);
     } catch (err) {
       document.getElementById("platform-stats").innerHTML = '<div class="md-empty-state"><span>Could not load platform usage.</span></div>';
       window.UIFeedback.toast(err.message || "Could not load platform usage.", "error");
@@ -95,6 +108,49 @@
     if (status === "ACTIVE") return "md-chip-success";
     if (status === "SUSPENDED") return "md-chip-warning";
     return "md-chip-error";
+  }
+
+  var ACTION_LABELS = {
+    PROVISION_ORGANIZATION: "Provisioned organization",
+    SUSPEND_ORGANIZATION: "Suspended organization",
+    ACTIVATE_ORGANIZATION: "Activated organization",
+    DELETE_ORGANIZATION: "Deleted organization",
+    SET_MODULE_FLAG: "Changed a module flag",
+    CREATE_PLAN: "Created a subscription plan",
+    SET_SUBSCRIPTION: "Changed a subscription",
+    RENEW_SUBSCRIPTION: "Renewed a subscription",
+  };
+
+  // tasks.md §3's "Monitor Platform Usage" responsibility — every
+  // Platform Super User action (provision/suspend/activate/delete an org,
+  // module/plan/subscription changes) is logged server-side and shown here.
+  async function loadActivityFeed(organizations) {
+    var feed = document.getElementById("platform-activity-feed");
+    try {
+      var entries = await window.ApiClient.platform.activityLog();
+      if (entries.length === 0) {
+        feed.innerHTML = '<div class="md-empty-state"><span>No platform activity yet.</span></div>';
+        return;
+      }
+      var orgNameById = {};
+      (organizations || []).forEach(function (o) { orgNameById[o.organization_id] = o.name; });
+
+      feed.innerHTML = entries
+        .slice(0, 12)
+        .map(function (entry) {
+          var orgName = orgNameById[entry.target_organization_id];
+          return (
+            '<div class="activity-entry">' +
+            '<span class="activity-entry-label">' + (ACTION_LABELS[entry.action] || entry.action) + (orgName ? " — " + orgName : "") + '</span>' +
+            '<span class="activity-entry-detail">' + (entry.details || "") + '</span>' +
+            '<span class="activity-entry-time">' + new Date(entry.created_at).toLocaleString() + '</span>' +
+            '</div>'
+          );
+        })
+        .join("");
+    } catch (err) {
+      feed.innerHTML = '<div class="md-empty-state"><span>Could not load activity.</span></div>';
+    }
   }
 
   // ---- Organizations table ----
@@ -216,7 +272,9 @@
       document.querySelectorAll("#org-detail-dialog [data-detail-tab]").forEach(function (t) { t.classList.remove("is-active"); });
       document.querySelectorAll("#org-detail-dialog .detail-panel").forEach(function (p) { p.classList.add("is-hidden"); });
       tab.classList.add("is-active");
-      document.getElementById("detail-" + tab.dataset.detailTab).classList.remove("is-hidden");
+      var detailPanel = document.getElementById("detail-" + tab.dataset.detailTab);
+      detailPanel.classList.remove("is-hidden");
+      fadeIn(detailPanel);
     });
   });
 

@@ -19,6 +19,14 @@
   var ok = window.RoleAccess.enforceModuleAccess(window.APP_MODULE);
   if (!ok) return;
 
+  // Tenant Context Service (tasks.md §12) — org name in the header, nav
+  // items hidden per feature flag. Safe here for FA/PRE/Patient, whose
+  // header markup is already parsed by the time this script (loaded at
+  // the bottom of <body>) runs. HOM's nav is built later, dynamically, by
+  // shared-nav.js — that file calls this again itself once its nav DOM
+  // exists (calling it here too is harmless, just a no-op for HOM).
+  window.RoleAccess.applyTenantBranding();
+
   // The Patient app previously exposed a window.PatientSession global from
   // its own auth-guard copy — several Patient pages read it directly.
   // Preserved here so no Patient-app call site needs to change.

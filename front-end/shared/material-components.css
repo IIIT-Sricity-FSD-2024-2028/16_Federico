@@ -154,9 +154,12 @@
   justify-content: space-between;
   height: 64px;
   padding: 0 24px;
-  background: color-mix(in srgb, var(--md-surface) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--md-outline-variant);
+  /* Liquid glass — floating chrome over scrolling content. */
+  background: color-mix(in srgb, var(--md-surface) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-bottom: 1px solid color-mix(in srgb, var(--md-on-background) 8%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, white 40%, transparent) inset;
 }
 .md-topbar .md-brand { display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 1.125rem; }
 .md-topbar .md-brand-mark {
@@ -257,3 +260,114 @@
   .md-hero { border-radius: var(--radius-lg); padding: 32px 20px; }
   .md-nav-rail { display: none; }
 }
+
+/* =========================================================
+   Liquid glass — for chrome that floats OVER other content
+   (topbars, dialogs, cards sitting on hero blur shapes), never
+   for primary content surfaces (those stay MD3 tonal per
+   design.txt). Reserved use, not a replacement for .md-card.
+   ========================================================= */
+.md-glass {
+  position: relative;
+  background: color-mix(in srgb, var(--md-surface) 62%, transparent);
+  backdrop-filter: blur(20px) saturate(1.7);
+  -webkit-backdrop-filter: blur(20px) saturate(1.7);
+  border: 1px solid color-mix(in srgb, var(--md-on-background) 8%, transparent);
+  box-shadow:
+    0 12px 40px rgba(28, 27, 31, 0.14),
+    inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+  isolation: isolate;
+  overflow: hidden;
+}
+/* Signature liquid-glass sheen — a soft diagonal highlight suggesting
+   refracted light across the surface, not a flat tint. */
+.md-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, color-mix(in srgb, white 30%, transparent) 0%, transparent 45%);
+  pointer-events: none;
+}
+.md-glass-strong {
+  background: color-mix(in srgb, var(--md-surface) 78%, transparent);
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+}
+.md-glass-subtle {
+  background: color-mix(in srgb, var(--md-surface) 40%, transparent);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  box-shadow: 0 8px 28px rgba(28, 27, 31, 0.10);
+}
+/* For glass sitting on a dark/colored background (e.g. the Platform login
+   hero) rather than the light app background. */
+.md-glass-on-dark {
+  background: color-mix(in srgb, white 14%, transparent);
+  border-color: color-mix(in srgb, white 18%, transparent);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 color-mix(in srgb, white 30%, transparent);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  /* Graceful fallback for browsers without backdrop-filter — a solid
+     tonal surface instead of a see-through one, never a broken/invisible one. */
+  .md-glass, .md-glass-strong, .md-glass-subtle { background: var(--md-surface-container); }
+  .md-glass-on-dark { background: color-mix(in srgb, black 30%, var(--md-surface-container)); }
+}
+
+/* =========================================================
+   Native <dialog> — liquid-glass surface + emphasized-decelerate
+   motion, matching shared/ui-feedback.css's .md-dialog. Use for any
+   form/detail dialog built on the real <dialog> element (showModal()/
+   close()) rather than the scrim-div pattern ui-feedback.js uses for
+   simple alert/confirm/toast — e.g. multi-field forms, tabbed detail
+   panels. Originally built for the Platform portal, promoted here so
+   every app can reuse it.
+   ========================================================= */
+.md-native-dialog {
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 0;
+  background: color-mix(in srgb, var(--md-surface-container-high, var(--md-surface-container)) 88%, transparent);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid color-mix(in srgb, white 30%, transparent);
+  box-shadow: var(--shadow-4), inset 0 1px 0 color-mix(in srgb, white 35%, transparent);
+  width: min(480px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+
+  /* Smooth open/close for native <dialog> — progressive enhancement via
+     @starting-style + allow-discrete; browsers without support just show/
+     hide the dialog instantly (identical to the prior behavior), never broken. */
+  opacity: 0;
+  transform: scale(0.94) translateY(12px);
+  transition: opacity var(--duration-emphasis) var(--ease-emphasized),
+              transform var(--duration-emphasis) var(--ease-emphasized),
+              overlay var(--duration-emphasis) var(--ease-emphasized) allow-discrete,
+              display var(--duration-emphasis) var(--ease-emphasized) allow-discrete;
+}
+.md-native-dialog[open] {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+@starting-style {
+  .md-native-dialog[open] {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+}
+.md-native-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity var(--duration-emphasis) var(--ease-emphasized) allow-discrete;
+}
+.md-native-dialog[open]::backdrop { opacity: 1; }
+@starting-style {
+  .md-native-dialog[open]::backdrop { opacity: 0; }
+}
+.md-native-dialog-wide { width: min(720px, calc(100vw - 48px)); }
+.dialog-form { padding: 28px; overflow-y: auto; max-height: calc(100vh - 112px); }
+.dialog-form .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }

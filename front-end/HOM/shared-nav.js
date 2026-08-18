@@ -72,8 +72,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <a href="screen-01-dashboard.html" class="nav-link" data-flow="nav-dashboard">Dashboard</a>
         <a href="screen-02-bed-management.html" class="nav-link" data-flow="nav-beds">Bed Management</a>
         <a href="screen-03-patient-flow.html" class="nav-link" data-flow="nav-patients">Patient Flow</a>
-        <a href="screen-04-inventory.html" class="nav-link" data-flow="nav-inventory">Inventory</a>
+        <a href="screen-04-inventory.html" class="nav-link" data-flow="nav-inventory" data-requires-module="INVENTORY">Inventory</a>
         <a href="screen-05-billing.html" class="nav-link" data-flow="nav-billing">Billing Summary</a>
+        <a href="screen-06-admin.html" class="nav-link" data-flow="nav-admin">Admin</a>
       </div>
 
       <div class="nav-actions">
@@ -143,6 +144,12 @@ document.addEventListener("DOMContentLoaded", () => {
   `;
 
   navContainer.innerHTML = navHTML;
+
+  // Tenant Context Service (tasks.md §12) — the nav DOM only exists from
+  // this point on, so this must run here rather than relying on
+  // shared/auth-guard.js's earlier call (which no-ops for HOM since the
+  // .nav-logo-text/.hospital span didn't exist yet when it ran).
+  window.RoleAccess?.applyTenantBranding?.();
 
   const currentProfile = window.RoleAccess?.getProfile?.();
   const avatar = document.getElementById('nav-avatar');

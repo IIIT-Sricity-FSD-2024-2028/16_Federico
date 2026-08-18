@@ -170,6 +170,12 @@ const ROUTES = [
   [
     'Platform',
     'get',
+    '/platform/activity-log',
+    'Platform Super User action audit trail',
+  ],
+  [
+    'Platform',
+    'get',
     '/platform/organizations/{id}/hospitals',
     "List an organization's hospital branches",
   ],
@@ -242,9 +248,33 @@ const ROUTES = [
   ],
   [
     'RBAC',
+    'get',
+    '/rbac/roles/{id}/permissions',
+    "Get a custom role's currently granted permissions",
+  ],
+  [
+    'RBAC',
+    'delete',
+    '/rbac/roles/{id}/permissions/{permissionId}',
+    'Revoke a permission from a custom role',
+  ],
+  [
+    'RBAC',
     'post',
     '/rbac/staff/{userId}/role',
     'Assign a custom role to a staff user',
+  ],
+  [
+    'RBAC',
+    'delete',
+    '/rbac/staff/{userId}/role/{roleId}',
+    'Remove a custom role from a staff user',
+  ],
+  [
+    'RBAC',
+    'get',
+    '/rbac/staff',
+    "List staff in the caller's organization with their roles",
   ],
 ];
 

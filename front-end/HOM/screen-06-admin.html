@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Admin | Federico Hospital HOM</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
+    <link rel="stylesheet" href="global.css">
+    <style>
+        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
+        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+        .admin-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+        @media (max-width: 960px) { .admin-grid { grid-template-columns: 1fr; } }
+
+        .role-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--duration-fast) var(--ease-standard); border-radius: var(--radius-sm); }
+        .role-row:hover { background: color-mix(in srgb, var(--primary) 6%, transparent); padding-left: 8px; padding-right: 8px; }
+        .role-row:last-child { border-bottom: none; }
+        .role-row.is-selected { background: var(--md-secondary-container); padding-left: 8px; padding-right: 8px; }
+        .role-row-name { font-weight: 600; }
+        .role-row-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+        .permission-checklist { display: flex; flex-direction: column; gap: 4px; max-height: 360px; overflow-y: auto; }
+        .permission-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-radius: var(--radius-sm); }
+        .permission-row:hover { background: color-mix(in srgb, var(--primary) 6%, transparent); }
+        .permission-row input { accent-color: var(--primary); width: 16px; height: 16px; }
+        .permission-row code { font-size: 12px; background: var(--md-surface-container-low); padding: 2px 6px; border-radius: var(--radius-xs); }
+
+        .staff-role-chip { display: inline-flex; align-items: center; gap: 4px; }
+        .staff-role-chip button { border: none; background: transparent; color: inherit; cursor: pointer; opacity: 0.6; font-size: 11px; padding: 0; line-height: 1; }
+        .staff-role-chip button:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Organization Admin</h1>
+                <p class="body-text">Create custom roles and grant your staff extra access beyond their fixed HOM/PRE/FA permissions — Dynamic RBAC (tasks.md §9).</p>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+            <div class="card">
+                <div class="card-header" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h2 class="card-title">Custom Roles</h2>
+                        <p class="card-description">Click a role to manage its permissions.</p>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div id="roles-list"><div class="md-empty-state"><span>Loading roles…</span></div></div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-default" id="new-role-btn" style="width: 100%;">+ Create Role</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" id="permissions-card-title">Select a role</h2>
+                    <p class="card-description" id="permissions-card-desc">Choose a custom role on the left to grant it permissions.</p>
+                </div>
+                <div class="card-content">
+                    <div class="permission-checklist" id="permissions-checklist">
+                        <div class="md-empty-state"><span>No role selected.</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h2" style="margin: 40px 0 16px;">Staff &amp; Roles</h2>
+        <div class="table-container" style="overflow-x: auto; width: 100%; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg);">
+            <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr>
+                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Name</th>
+                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Email</th>
+                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Fixed Role</th>
+                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Custom Roles</th>
+                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Grant a Role</th>
+                    </tr>
+                </thead>
+                <tbody id="staff-tbody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <dialog id="role-dialog" class="md-native-dialog">
+        <form id="role-form" class="dialog-form">
+            <h2 class="md-dialog-title">Create a Custom Role</h2>
+            <div class="md-field"><label for="role-name">Role name</label><input id="role-name" required placeholder="e.g. Billing Manager" /></div>
+            <div class="md-field"><label for="role-description">Description</label><input id="role-description" placeholder="What can this role do?" /></div>
+            <div class="md-dialog-actions">
+                <button type="button" class="btn btn-outline btn-default" id="role-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-default">Create</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>window.APP_MODULE = "HOM";</script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/ui-feedback.js"></script>
+<script src="../shared/auth-guard.js"></script>
+<script src="hom-helpers.js"></script>
+<script src="ui-template.js"></script>
+
+<script src="shared-nav.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

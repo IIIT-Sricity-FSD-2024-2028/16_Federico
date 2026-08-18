@@ -47,6 +47,12 @@ document.addEventListener("DOMContentLoaded", () => {
         `,
       )
       .join("");
+
+    // Cross-fade the swapped content in instead of an instant content jump
+    // — restart the CSS animation (a class left in place won't replay it).
+    helperBox.classList.remove("md-fade-switch");
+    void helperBox.offsetWidth;
+    helperBox.classList.add("md-fade-switch");
   }
 
   function clearError() {

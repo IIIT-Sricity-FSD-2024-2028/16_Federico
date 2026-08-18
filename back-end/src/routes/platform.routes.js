@@ -55,6 +55,7 @@ router.get(
 );
 router.get('/organizations/:id/usage', ...gate, controller.usage);
 router.get('/usage', ...gate, controller.platformUsage);
+router.get('/activity-log', ...gate, controller.activityLog);
 
 // Hospitals (branches)
 router.get('/organizations/:id/hospitals', ...gate, controller.findHospitals);

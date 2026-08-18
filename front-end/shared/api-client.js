@@ -246,6 +246,9 @@
       usage: function () {
         return request("GET", "/platform/usage");
       },
+      activityLog: function () {
+        return request("GET", "/platform/activity-log");
+      },
     },
 
     // ---- Org-scoped dynamic RBAC (custom roles) ----
@@ -259,11 +262,23 @@
       permissions: function () {
         return request("GET", "/rbac/permissions");
       },
+      permissionsForRole: function (roleId) {
+        return request("GET", "/rbac/roles/" + roleId + "/permissions");
+      },
       assignPermission: function (roleId, permissionId) {
         return request("POST", "/rbac/roles/" + roleId + "/permissions", { permission_id: permissionId });
       },
+      unassignPermission: function (roleId, permissionId) {
+        return request("DELETE", "/rbac/roles/" + roleId + "/permissions/" + permissionId);
+      },
       assignStaffRole: function (userId, customRoleId) {
         return request("POST", "/rbac/staff/" + userId + "/role", { custom_role_id: customRoleId });
+      },
+      unassignStaffRole: function (userId, customRoleId) {
+        return request("DELETE", "/rbac/staff/" + userId + "/role/" + customRoleId);
+      },
+      staff: function () {
+        return request("GET", "/rbac/staff");
       },
     },
 

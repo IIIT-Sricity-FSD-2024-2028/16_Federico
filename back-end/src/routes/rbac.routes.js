@@ -39,12 +39,36 @@ router.post(
   validateBody(assignPermissionRules),
   controller.assignPermission,
 );
+router.get(
+  '/roles/:id/permissions',
+  requireTenant,
+  authorize(['SUPER_USER'], 'rbac', 'read'),
+  controller.permissionsForRole,
+);
+router.delete(
+  '/roles/:id/permissions/:permissionId',
+  requireTenant,
+  authorize(['SUPER_USER'], 'rbac', 'write'),
+  controller.unassignPermission,
+);
 router.post(
   '/staff/:userId/role',
   requireTenant,
   authorize(['SUPER_USER'], 'rbac', 'write'),
   validateBody(assignStaffRoleRules),
   controller.assignStaffRole,
+);
+router.delete(
+  '/staff/:userId/role/:roleId',
+  requireTenant,
+  authorize(['SUPER_USER'], 'rbac', 'write'),
+  controller.unassignStaffRole,
+);
+router.get(
+  '/staff',
+  requireTenant,
+  authorize(['SUPER_USER'], 'rbac', 'read'),
+  controller.listStaff,
 );
 
 module.exports = router;

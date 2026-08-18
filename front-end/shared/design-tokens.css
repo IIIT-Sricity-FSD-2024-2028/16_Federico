@@ -124,12 +124,18 @@
   --shadow-image-hover: var(--shadow-3);
   --shadow-inner-border: inset 0 0 0 1px var(--md-outline-variant);
 
-  /* ---- Motion: Material You's signature emphasized-decelerate easing ---- */
+  /* ---- Motion: Material You's signature emphasized-decelerate easing.
+     Durations sit at the upper end of MD3's guidance (200/300/500ms caps)
+     deliberately — short-end values read as "instant" on real hardware,
+     especially for the larger surfaces (dialogs, page content) this app
+     animates most. ---- */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.3, 0, 0.1, 1); /* slightly more pronounced deceleration, for entrances */
   --ease-luxury: var(--ease-standard); /* back-compat alias */
-  --duration-fast: 200ms;
-  --duration-base: 300ms;
+  --duration-fast: 220ms;
+  --duration-base: 360ms;
   --duration-slow: 500ms;
+  --duration-emphasis: 450ms; /* dialogs, page-level reveals */
   --duration-image: 400ms;
 
   --tracking-label: 0.01em;
@@ -141,6 +147,7 @@
     --duration-fast: 0ms;
     --duration-base: 0ms;
     --duration-slow: 0ms;
+    --duration-emphasis: 0ms;
     --duration-image: 0ms;
   }
   *, *::before, *::after {
@@ -162,6 +169,66 @@ html, body {
 
 body { margin: 0; }
 
+/* ---- Universal motion safety net ----
+   Every interactive/surface element gets a baseline transition even if a
+   page's own CSS never declared one — this is what actually fixes the
+   "everything feels instant" problem: hover/focus/press states across the
+   app were inconsistent about opting into `--duration-*`/`--ease-standard`
+   individually. A more specific rule elsewhere (e.g. a bespoke card hover)
+   still wins by CSS specificity; this only fills gaps. */
+a, button, input, select, textarea,
+.card, [class*="card"], [class*="btn"], [class*="chip"], [class*="badge"],
+[class*="nav"], [class*="tab"], [class*="modal"], [class*="dialog"],
+[class*="popup"] {
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+/* ---- Page entrance ----
+   Traditional multi-page navigation (this app has no client router) means
+   every click is a hard reload — the single biggest source of "instant"
+   feeling. This fades+lifts the whole page in on load, which reads as a
+   deliberate transition instead of a jump-cut, without touching any page's
+   markup (applies to <body> globally). */
+@keyframes md-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+body {
+  animation: md-page-enter var(--duration-emphasis) var(--ease-emphasized) both;
+}
+
+/* ---- Cross-document View Transitions (progressive enhancement) ----
+   In browsers that support it (Chromium 126+), this cross-fades between
+   full-page navigations within the same app instead of a hard cut —
+   browsers without support simply ignore this at-rule and navigate as
+   before, so it's a strict improvement, never a regression. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-emphasis);
+  animation-timing-function: var(--ease-emphasized);
+}
+
+/* ---- Tab-panel cross-fade ----
+   Opt in per element with `.md-fade-switch` on the panel container (see
+   material-components.css .md-tabs / login role-tabs) instead of an
+   instant display:none swap. */
+@keyframes md-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.md-fade-switch {
+  animation: md-fade-in var(--duration-base) var(--ease-standard) both;
+}
+
 /* ---- Universal heading treatment ---- */
 h1, h2, h3, h4,
 .h1, .h2, .h3, .h4 {
@@ -177,6 +244,25 @@ h3, .h3 { font: var(--type-title-large); }
 h4, .h4 { font-size: 1.125rem; font-weight: 500; }
 
 a { color: var(--md-primary); }
+
+/* ---- Tenant Context Service — organization name shown next to the
+   Federico brand mark (tasks.md §12). See shared/rbac.js#applyTenantBranding.
+   A small tonal chip rather than plain text so it reads clearly whether it
+   lands inline next to the wordmark (FA/HOM) or stacked under it (PRE). ---- */
+.tenant-org-label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--md-on-secondary-container);
+  background: var(--md-secondary-container);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  margin: 0;
+  line-height: 1.3;
+  white-space: nowrap;
+}
 
 /* ---- Uppercase overline label ---- */
 .label, .overline {
