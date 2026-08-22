@@ -623,3 +623,134 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
       throw new Error('Legacy caller must only see organization 1 data');
   });
 });
+
+describe('Admin role — org-wide analytics, wardAdmin/inventoryCatalog, RBAC ownership (e2e)', () => {
+  const app = createApp();
+
+  async function login(email, password) {
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(200);
+    return res.body;
+  }
+
+  it('the seeded Admin account logs in as Admin, distinct from the seeded HOM account', async () => {
+    const admin = await login('owner@hosp.com', 'Owner@123');
+    if (admin.role !== 'Admin') throw new Error('Expected Admin role');
+
+    const hom = await login('admin@hosp.com', 'Hom@123');
+    if (hom.role !== 'HOM') throw new Error('Expected HOM role');
+  });
+
+  it('Admin — not HOM — can create, resize, and delete a ward', async () => {
+    const admin = await login('owner@hosp.com', 'Owner@123');
+    const hom = await login('admin@hosp.com', 'Hom@123');
+    const adminAuth = `Bearer ${admin.token}`;
+    const homAuth = `Bearer ${hom.token}`;
+
+    await request(app)
+      .post('/ward')
+      .set('Authorization', homAuth)
+      .send({ ward_name: 'HOM Should Not Create This', total_beds: 2 })
+      .expect(403);
+
+    const created = await request(app)
+      .post('/ward')
+      .set('Authorization', adminAuth)
+      .send({ ward_name: 'e2e Test Ward', total_beds: 2 })
+      .expect(201);
+    const wardId = created.body.ward_id;
+
+    await request(app)
+      .put(`/ward/${wardId}`)
+      .set('Authorization', adminAuth)
+      .send({ total_beds: 4 })
+      .expect(200);
+
+    const beds = await request(app)
+      .get(`/ward/${wardId}/beds`)
+      .set('Authorization', adminAuth)
+      .expect(200);
+    if (beds.body.length !== 4) throw new Error('Expected 4 beds after resize');
+
+    await request(app)
+      .delete(`/ward/${wardId}`)
+      .set('Authorization', homAuth)
+      .expect(403);
+    await request(app)
+      .delete(`/ward/${wardId}`)
+      .set('Authorization', adminAuth)
+      .expect(200);
+  });
+
+  it('Admin — not HOM — can create and delete an inventory catalog item; HOM keeps stock read/update access', async () => {
+    const admin = await login('owner@hosp.com', 'Owner@123');
+    const hom = await login('admin@hosp.com', 'Hom@123');
+    const adminAuth = `Bearer ${admin.token}`;
+    const homAuth = `Bearer ${hom.token}`;
+
+    await request(app)
+      .post('/inventory/items')
+      .set('Authorization', homAuth)
+      .send({ item_name: 'HOM Should Not Create This', category: 'Consumable', stock_quantity: 5, reorder_level: 1 })
+      .expect(403);
+
+    const created = await request(app)
+      .post('/inventory/items')
+      .set('Authorization', adminAuth)
+      .send({ item_name: 'e2e Test Item', category: 'Consumable', stock_quantity: 5, reorder_level: 1 })
+      .expect(201);
+
+    await request(app)
+      .get('/inventory/items')
+      .set('Authorization', homAuth)
+      .expect(200);
+    await request(app)
+      .put(`/inventory/items/${created.body.item_id}`)
+      .set('Authorization', homAuth)
+      .send({ stock_quantity: 4 })
+      .expect(200);
+
+    await request(app)
+      .delete(`/inventory/items/${created.body.item_id}`)
+      .set('Authorization', homAuth)
+      .expect(403);
+    await request(app)
+      .delete(`/inventory/items/${created.body.item_id}`)
+      .set('Authorization', adminAuth)
+      .expect(200);
+  });
+
+  it('RBAC/custom-role administration moved to Admin — HOM can no longer reach it', async () => {
+    const admin = await login('owner@hosp.com', 'Owner@123');
+    const hom = await login('admin@hosp.com', 'Hom@123');
+
+    await request(app)
+      .get('/rbac/roles')
+      .set('Authorization', `Bearer ${hom.token}`)
+      .expect(403);
+    await request(app)
+      .get('/rbac/roles')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200);
+  });
+
+  it("Admin gets read access to ward/inventory/billing/patient/admission for hospital-wide analytics, but no operational write access", async () => {
+    const admin = await login('owner@hosp.com', 'Owner@123');
+    const adminAuth = `Bearer ${admin.token}`;
+
+    await request(app).get('/ward').set('Authorization', adminAuth).expect(200);
+    await request(app).get('/inventory/items').set('Authorization', adminAuth).expect(200);
+    await request(app).get('/billing/services').set('Authorization', adminAuth).expect(200);
+    await request(app).get('/patient').set('Authorization', adminAuth).expect(200);
+    await request(app).get('/admission').set('Authorization', adminAuth).expect(200);
+
+    // Operational writes stay HOM/PRE/FA's job, not Admin's.
+    await request(app)
+      .put('/ward/bed/1')
+      .set('Authorization', adminAuth)
+      .send({ status: 'MAINTENANCE' })
+      .expect(403);
+  });
+});

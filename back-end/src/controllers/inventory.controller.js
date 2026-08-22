@@ -33,6 +33,16 @@ function updateItem(req, res) {
   sendResult(res, inventoryService.updateItem(+req.params.id, req.body), 200);
 }
 
+function deleteItem(req, res) {
+  const existing = inventoryService
+    .findAllItems()
+    .find((i) => i.item_id === +req.params.id);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+  logger.log(`🗑️  ITEM DELETED  id=${req.params.id}`);
+  sendResult(res, inventoryService.deleteItem(+req.params.id), 200);
+}
+
 function findAllRequests(req, res) {
   sendResult(res, scopeToOrg(inventoryService.findAllRequests(), req), 200);
 }
@@ -62,6 +72,7 @@ module.exports = {
   findAllItems,
   createItem,
   updateItem,
+  deleteItem,
   findAllRequests,
   createRequest,
   updateRequest,

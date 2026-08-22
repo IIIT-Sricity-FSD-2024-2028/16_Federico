@@ -20,6 +20,82 @@ function createWard(ward) {
   return newWard;
 }
 
+function bedNumberPrefix(wardName) {
+  return String(wardName || 'WARD')
+    .replace(/[^a-zA-Z]/g, '')
+    .toUpperCase()
+    .slice(0, 4) || 'WARD';
+}
+
+/**
+ * Admin-only structural edit (see wardAdmin in middleware/actorAccess.js) —
+ * distinct from HOM's day-to-day updateBedStatus. Renaming just patches the
+ * ward; retargeting total_beds auto-creates/removes AVAILABLE beds to
+ * reach the new count, refusing to shrink below the currently OCCUPIED
+ * count (those beds are in use — Admin can't will them away).
+ */
+function updateWard(ward_id, patch) {
+  const ward = dataStore.wards.find((w) => w.ward_id === ward_id);
+  if (!ward) return null;
+
+  if (patch.ward_name !== undefined) ward.ward_name = patch.ward_name;
+  if (patch.description !== undefined) ward.description = patch.description;
+
+  if (patch.total_beds !== undefined) {
+    const beds = findBedsByWard(ward_id);
+    const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;
+    const target = Number(patch.total_beds);
+
+    if (target < occupied) {
+      return {
+        error: 'BEDS_OCCUPIED',
+        message: `Cannot reduce ${ward.ward_name} below its ${occupied} currently occupied bed(s)`,
+      };
+    }
+
+    if (target > beds.length) {
+      const prefix = bedNumberPrefix(ward.ward_name);
+      for (let i = beds.length + 1; i <= target; i++) {
+        createBed({
+          ward_id,
+          bed_number: `${prefix}-${String(i).padStart(2, '0')}`,
+          status: 'AVAILABLE',
+          organization_id: ward.organization_id,
+          hospital_id: ward.hospital_id,
+        });
+      }
+    } else if (target < beds.length) {
+      const removable = beds
+        .filter((b) => b.status !== 'OCCUPIED')
+        .slice(0, beds.length - target);
+      const removeIds = new Set(removable.map((b) => b.bed_id));
+      dataStore.beds = dataStore.beds.filter((b) => !removeIds.has(b.bed_id));
+    }
+
+    ward.total_beds = target;
+  }
+
+  return ward;
+}
+
+/** Admin-only (see wardAdmin). Refuses to delete a ward with any OCCUPIED bed. */
+function deleteWard(ward_id) {
+  const ward = dataStore.wards.find((w) => w.ward_id === ward_id);
+  if (!ward) return null;
+
+  const beds = findBedsByWard(ward_id);
+  if (beds.some((b) => b.status === 'OCCUPIED')) {
+    return {
+      error: 'WARD_HAS_OCCUPIED_BEDS',
+      message: `Cannot delete ${ward.ward_name} — it has occupied beds`,
+    };
+  }
+
+  dataStore.wards = dataStore.wards.filter((w) => w.ward_id !== ward_id);
+  dataStore.beds = dataStore.beds.filter((b) => b.ward_id !== ward_id);
+  return { deleted: true, ward_id };
+}
+
 // BED
 function findAllBeds() {
   return dataStore.beds;
@@ -170,6 +246,9 @@ function updateEmergency(id, patch) {
 module.exports = {
   findAllWards,
   createWard,
+  updateWard,
+  deleteWard,
+  bedNumberPrefix,
   findAllBeds,
   findBedsByWard,
   createBed,

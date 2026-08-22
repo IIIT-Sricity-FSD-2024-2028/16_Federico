@@ -49,11 +49,12 @@ describe('services/provisioning.service', () => {
     );
     expect(enabledModules.sort()).toEqual(['APPOINTMENTS', 'BILLING'].sort());
 
-    // Default admin is a real, immediately-usable login (role_id 1 = HOM).
+    // Default admin is a real, immediately-usable login (role_id 5 = Admin,
+    // the org's owner/super user — above HOM, not HOM itself).
     const adminUser = dataStore.users.find(
       (u) => u.user_id === result.admin.user_id,
     );
-    expect(adminUser.role_id).toBe(1);
+    expect(adminUser.role_id).toBe(5);
     expect(adminUser.organization_id).toBe(result.organization.organization_id);
     expect(verifyPassword('ProvAdmin@123', adminUser.password_hash)).toBe(true);
 
@@ -67,9 +68,37 @@ describe('services/provisioning.service', () => {
       'ALLOCATE_QUOTAS',
       'ENABLE_MODULES',
       'CREATE_DEFAULT_ADMIN',
+      'SEED_DEFAULT_WARDS',
+      'SEED_DEFAULT_INVENTORY',
       'GENERATE_API_KEY',
     ]);
     expect(log.every((l) => l.status === 'DONE')).toBe(true);
+
+    // A brand-new hospital no longer starts with zero wards/inventory —
+    // the standard 6 department/ward pairs + starter catalog are seeded.
+    const wards = dataStore.wards.filter(
+      (w) => w.organization_id === result.organization.organization_id,
+    );
+    expect(wards.map((w) => w.ward_name).sort()).toEqual(
+      [
+        'ICU',
+        'General Ward',
+        'Surgical Ward',
+        'Pediatric Ward',
+        'Emergency Ward',
+        'Maternity Ward',
+      ].sort(),
+    );
+    const beds = dataStore.beds.filter(
+      (b) => b.organization_id === result.organization.organization_id,
+    );
+    expect(beds.length).toBe(wards.reduce((sum, w) => sum + w.total_beds, 0));
+    expect(beds.every((b) => b.status === 'AVAILABLE')).toBe(true);
+
+    const items = dataStore.inventoryItems.filter(
+      (i) => i.organization_id === result.organization.organization_id,
+    );
+    expect(items.length).toBeGreaterThan(0);
   });
 
   it('provision() respects an explicit modules list instead of defaulting to the plan', () => {

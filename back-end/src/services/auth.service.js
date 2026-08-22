@@ -6,8 +6,7 @@ const activityService = require('./activity.service');
 const organizationService = require('./organization.service');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { createSession, destroySession } = require('../store/sessionStore');
-
-const ROLE_ID_TO_NAME = { 1: 'HOM', 2: 'Patient', 3: 'FA', 4: 'PRE' };
+const { ROLE_ID_TO_NAME } = require('../utils/roles');
 
 function roleNameFor(user) {
   return ROLE_ID_TO_NAME[user.role_id] || null;

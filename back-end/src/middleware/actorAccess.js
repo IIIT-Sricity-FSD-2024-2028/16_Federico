@@ -15,17 +15,24 @@
 const dataStore = require('../store/dataStore');
 
 const ACTOR_ACCESS = {
-  doctor: { read: ['HOM', 'PRE', 'FA', 'Patient'], write: ['HOM'] },
+  doctor: { read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'], write: ['HOM'] },
   // 'Patient' read/write is further restricted to their OWN record by
   // ownership checks in patient.controller.js (findOne/update/
   // findInsuranceByPatient/createInsurance) — this table alone doesn't
   // express per-record ownership, only which actors may attempt the call.
   patient: {
-    read: ['HOM', 'PRE', 'FA', 'Patient'],
+    read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
     write: ['HOM', 'PRE', 'Patient'],
   },
-  ward: { read: ['HOM', 'PRE', 'FA'], write: ['HOM'] },
-  inventory: { read: ['HOM', 'FA'], write: ['HOM'] },
+  ward: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM'] },
+  inventory: { read: ['HOM', 'FA', 'Admin'], write: ['HOM'] },
+  // Structural ward/inventory-catalog changes (create/rename/retarget/
+  // delete a ward, add/remove a catalog item) are an Admin responsibility,
+  // separate from HOM's day-to-day bed-status/stock-usage writes above —
+  // same "narrow resource key per actor slice" pattern as
+  // billing/payment/ledgerEntry below.
+  wardAdmin: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
+  inventoryCatalog: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
   // 'Patient' read here only actually resolves for the single-record
   // views (findPatientBills/findReceiptsByPatient/findDischargeSummary,
   // all ownership-checked) and the shared services price list. The
@@ -33,7 +40,7 @@ const ACTOR_ACCESS = {
   // (findAllPayments, findAllReceipts, findLedgerByAdmission,
   // findLedgerEntries) explicitly deny Patient in billing.controller.js
   // since there's no single patientId to scope them to.
-  billing: { read: ['HOM', 'FA', 'Patient'], write: ['FA'] },
+  billing: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA'] },
   // Scoped narrower than 'billing' write: a Patient may only ever POST
   // their own payment (the "Pay Now" action, enforced in the controller
   // by ledger ownership) — never create services/ledgers/entries or
@@ -50,7 +57,7 @@ const ACTOR_ACCESS = {
   // (properly ownership-scoped there) — this endpoint has no per-record
   // ownership check, so Patient is deliberately NOT granted write here.
   appointment: { read: ['HOM', 'PRE', 'FA'], write: ['PRE'] },
-  admission: { read: ['HOM', 'PRE', 'FA'], write: ['HOM', 'PRE'] },
+  admission: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'PRE'] },
   // Patient may read/write pre-requests, but only their OWN (findAll
   // filters to it, findOne/update 403 on mismatch), and only ever CANCEL
   // one of their own PENDING requests (update rejects any other field or
@@ -67,8 +74,9 @@ const ACTOR_ACCESS = {
     write: ['HOM', 'PRE', 'Patient'],
   },
   // Org-scoped custom-role administration (tasks.md §9 Dynamic RBAC) is an
-  // organization-admin responsibility — HOM is this app's org-admin actor.
-  rbac: { read: ['HOM'], write: ['HOM'] },
+  // Admin responsibility — Admin is this app's org-admin actor (HOM is
+  // purely operational and no longer reaches this; see front-end/Admin/).
+  rbac: { read: ['Admin'], write: ['Admin'] },
 };
 
 /**

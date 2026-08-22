@@ -26,6 +26,16 @@ function updateItem(item_id, patch) {
   return item;
 }
 
+/** Admin-only catalog removal (see inventoryCatalog in middleware/actorAccess.js). */
+function deleteItem(item_id) {
+  const item = dataStore.inventoryItems.find((i) => i.item_id === item_id);
+  if (!item) return null;
+  dataStore.inventoryItems = dataStore.inventoryItems.filter(
+    (i) => i.item_id !== item_id,
+  );
+  return { deleted: true, item_id };
+}
+
 // PURCHASE_REQUEST
 function findAllRequests() {
   return dataStore.purchaseRequests;
@@ -57,6 +67,7 @@ module.exports = {
   findAllItems,
   createItem,
   updateItem,
+  deleteItem,
   findAllRequests,
   createRequest,
   updateRequest,

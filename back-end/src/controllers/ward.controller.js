@@ -26,6 +26,44 @@ function createWard(req, res) {
   sendResult(res, result, 201);
 }
 
+function updateWard(req, res) {
+  const existing = wardService
+    .findAllWards()
+    .find((w) => w.ward_id === +req.params.id);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+
+  const result = wardService.updateWard(+req.params.id, req.body);
+  if (result && result.error) {
+    return res.status(400).json({
+      message: result.message,
+      error: 'Bad Request',
+      statusCode: 400,
+    });
+  }
+  logger.log(`✏️  WARD UPDATE  ward_id=${req.params.id}`);
+  sendResult(res, result, 200);
+}
+
+function deleteWard(req, res) {
+  const existing = wardService
+    .findAllWards()
+    .find((w) => w.ward_id === +req.params.id);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+
+  const result = wardService.deleteWard(+req.params.id);
+  if (result && result.error) {
+    return res.status(400).json({
+      message: result.message,
+      error: 'Bad Request',
+      statusCode: 400,
+    });
+  }
+  logger.log(`🗑️  WARD DELETED  ward_id=${req.params.id}`);
+  sendResult(res, result, 200);
+}
+
 function findAllBeds(req, res) {
   sendResult(res, scopeToOrg(wardService.findAllBeds(), req), 200);
 }
@@ -154,6 +192,8 @@ function updateEmergency(req, res) {
 module.exports = {
   findAllWards,
   createWard,
+  updateWard,
+  deleteWard,
   findAllBeds,
   findBedsByWard,
   createBed,

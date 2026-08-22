@@ -7,6 +7,7 @@ const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createWardRules,
+  updateWardRules,
   createBedRules,
   updateBedStatusRules,
   createBedRequestRules,
@@ -28,9 +29,20 @@ router.get(
 );
 router.post(
   '/',
-  authorize(['SUPER_USER'], 'ward', 'write'),
+  authorize(['SUPER_USER'], 'wardAdmin', 'write'),
   validateBody(createWardRules),
   controller.createWard,
+);
+router.put(
+  '/:id',
+  authorize(['SUPER_USER'], 'wardAdmin', 'write'),
+  validateBody(updateWardRules),
+  controller.updateWard,
+);
+router.delete(
+  '/:id',
+  authorize(['SUPER_USER'], 'wardAdmin', 'delete'),
+  controller.deleteWard,
 );
 
 // Beds

@@ -1,6 +1,7 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { ROLE_ID_TO_NAME } = require('../utils/roles');
 
 /**
  * Fixed permission catalog — the `resource:mode` pairs `actorAccess.js`'s
@@ -17,8 +18,14 @@ const PERMISSION_CATALOG = [
   ['patient', 'write'],
   ['ward', 'read'],
   ['ward', 'write'],
+  ['wardAdmin', 'read'],
+  ['wardAdmin', 'write'],
+  ['wardAdmin', 'delete'],
   ['inventory', 'read'],
   ['inventory', 'write'],
+  ['inventoryCatalog', 'read'],
+  ['inventoryCatalog', 'write'],
+  ['inventoryCatalog', 'delete'],
   ['billing', 'read'],
   ['billing', 'write'],
   ['payment', 'write'],
@@ -142,16 +149,21 @@ function rolesForUser(userId) {
   );
 }
 
-// Fixed actor roles (see auth.service.js's ROLE_ID_TO_NAME — replicated
-// here rather than imported, since auth.service.js keeps it private and
-// this is a small, stable, cross-cutting constant, same reasoning as
-// MODULE_CATALOG being duplicated on the frontend).
-const ROLE_ID_TO_NAME = { 1: 'HOM', 2: 'Patient', 3: 'FA', 4: 'PRE' };
-
-/** Every non-Patient user in the organization, with their fixed actor role and any custom roles — the roster the "assign a custom role" admin UI picks from. */
+/**
+ * Every HOM/PRE/FA user in the organization, with their fixed actor role
+ * and any custom roles — the roster the "assign a custom role" admin UI
+ * picks from. Patient (role_id 2) and Admin (role_id 5) are excluded:
+ * Patient isn't staff, and Admin is the one managing this roster, not an
+ * entry on it.
+ */
 function staffFor(organizationId) {
   return dataStore.users
-    .filter((u) => u.organization_id === organizationId && u.role_id !== 2)
+    .filter(
+      (u) =>
+        u.organization_id === organizationId &&
+        u.role_id !== 2 &&
+        u.role_id !== 5,
+    )
     .map((u) => ({
       user_id: u.user_id,
       name: u.name,

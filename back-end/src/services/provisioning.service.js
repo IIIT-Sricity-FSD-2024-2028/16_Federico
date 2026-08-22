@@ -5,7 +5,13 @@ const dataStore = require('../store/dataStore');
 const organizationService = require('./organization.service');
 const subscriptionService = require('./subscription.service');
 const planService = require('./subscriptionPlan.service');
+const wardService = require('./ward.service');
+const inventoryService = require('./inventory.service');
 const { hashPassword } = require('../utils/password');
+const {
+  DEFAULT_DEPARTMENTS,
+  DEFAULT_INVENTORY_ITEMS,
+} = require('../config/defaultClinicalCatalog');
 
 /**
  * Provisioning Engine (tasks.md §6) — the one place a new tenant gets
@@ -26,6 +32,47 @@ function logStep(organizationId, step, status, message) {
     status,
     message,
     created_at: new Date().toISOString(),
+  });
+}
+
+/**
+ * Every newly provisioned hospital used to start with zero wards, zero
+ * departments and zero inventory — nothing forced a standard baseline, so
+ * each org's data shape was whatever got typed in by hand later (and
+ * nothing ever got typed in for a demo/test org, since there was no UI to
+ * do it). Seeds the standard 6 department/ward pairs + starter inventory
+ * from config/defaultClinicalCatalog.js; Admin can add/remove from here
+ * afterwards via the wardAdmin/inventoryCatalog endpoints.
+ */
+function seedDefaultClinicalBaseline(organizationId, hospitalId) {
+  DEFAULT_DEPARTMENTS.forEach(({ wardName, defaultBeds }) => {
+    const ward = wardService.createWard({
+      ward_name: wardName,
+      total_beds: defaultBeds,
+      description: `${wardName} — default baseline`,
+      organization_id: organizationId,
+      hospital_id: hospitalId,
+    });
+
+    const prefix = wardService.bedNumberPrefix(wardName);
+    for (let i = 1; i <= defaultBeds; i++) {
+      wardService.createBed({
+        ward_id: ward.ward_id,
+        bed_number: `${prefix}-${String(i).padStart(2, '0')}`,
+        status: 'AVAILABLE',
+        organization_id: organizationId,
+        hospital_id: hospitalId,
+      });
+    }
+  });
+
+  DEFAULT_INVENTORY_ITEMS.forEach((item) => {
+    inventoryService.createItem({
+      ...item,
+      service_id: null,
+      organization_id: organizationId,
+      hospital_id: hospitalId,
+    });
   });
 }
 
@@ -114,7 +161,7 @@ function provision(payload) {
     name: payload.admin_name,
     email: payload.admin_email,
     password_hash: hashPassword(payload.admin_password),
-    role_id: 1, // HOM — the organization's default administrator (see auth.service.js ROLE_ID_TO_NAME)
+    role_id: 5, // Admin — the organization's owner/super user, above HOM (see utils/roles.js ROLE_ID_TO_NAME)
     organization_id: organization.organization_id,
     hospital_id: hospital.hospital_id,
     created_at: new Date().toISOString(),
@@ -125,6 +172,20 @@ function provision(payload) {
     'CREATE_DEFAULT_ADMIN',
     'DONE',
     `Default admin account created (${adminUser.email})`,
+  );
+
+  seedDefaultClinicalBaseline(organization.organization_id, hospital.hospital_id);
+  logStep(
+    organization.organization_id,
+    'SEED_DEFAULT_WARDS',
+    'DONE',
+    `Seeded ${DEFAULT_DEPARTMENTS.length} default department/ward pairs`,
+  );
+  logStep(
+    organization.organization_id,
+    'SEED_DEFAULT_INVENTORY',
+    'DONE',
+    `Seeded ${DEFAULT_INVENTORY_ITEMS.length} default inventory items`,
   );
 
   const apiKey = generateApiKey(
@@ -151,4 +212,9 @@ function provision(payload) {
   };
 }
 
-module.exports = { provision, generateApiKey, logStep };
+module.exports = {
+  provision,
+  generateApiKey,
+  logStep,
+  seedDefaultClinicalBaseline,
+};

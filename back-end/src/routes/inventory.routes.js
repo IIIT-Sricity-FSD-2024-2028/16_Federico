@@ -22,7 +22,7 @@ router.get(
 );
 router.post(
   '/items',
-  authorize(['SUPER_USER'], 'inventory', 'write'),
+  authorize(['SUPER_USER'], 'inventoryCatalog', 'write'),
   validateBody(createInventoryItemRules),
   controller.createItem,
 );
@@ -31,6 +31,11 @@ router.put(
   authorize(['SUPER_USER'], 'inventory', 'write'),
   validateBody(updateInventoryItemRules),
   controller.updateItem,
+);
+router.delete(
+  '/items/:id',
+  authorize(['SUPER_USER'], 'inventoryCatalog', 'delete'),
+  controller.deleteItem,
 );
 
 router.get(

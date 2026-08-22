@@ -7,6 +7,13 @@ const createWardRules = [
   { field: 'description', checks: ['isString'], optional: true },
 ];
 
+// Admin-only structural edit (see wardAdmin in middleware/actorAccess.js) — every field optional, PATCH-style.
+const updateWardRules = [
+  { field: 'ward_name', checks: ['isString'], optional: true },
+  { field: 'total_beds', checks: ['isInt'], optional: true },
+  { field: 'description', checks: ['isString'], optional: true },
+];
+
 const createBedRules = [
   { field: 'ward_id', checks: ['isNotEmpty', 'isInt'] },
   { field: 'bed_number', checks: ['isNotEmpty', 'isString'] },
@@ -44,6 +51,7 @@ const updateEmergencyRules = [
 
 module.exports = {
   createWardRules,
+  updateWardRules,
   createBedRules,
   updateBedStatusRules,
   createBedRequestRules,

@@ -18,6 +18,10 @@ const dataStore = {
       role_id: 4,
       role_name: 'PRE',
     },
+    {
+      role_id: 5,
+      role_name: 'Admin',
+    },
   ],
   users: [
     {
@@ -140,6 +144,28 @@ const dataStore = {
       organization_id: 1,
       hospital_id: 1,
       created_at: '2026-08-18T11:39:52.623Z',
+    },
+    {
+      user_id: 112,
+      name: 'Hospital Owner',
+      email: 'owner@hosp.com',
+      password_hash:
+        '$2a$10$B9QNnSMVanxRIv/.9cNlsuNIo9Fx1R0pghrEZgUaqwAyDRAnLjiFW',
+      role_id: 5,
+      organization_id: 1,
+      hospital_id: 1,
+      created_at: '2026-08-18T11:39:52.700Z',
+    },
+    {
+      user_id: 113,
+      name: 'Apollo Owner',
+      email: 'owner@apollo.hosp.com',
+      password_hash:
+        '$2a$10$NQq6rwiaDzJs0moUTtv9teuzE864rV4vbnYnuyxnAMJzmizUfvOo2',
+      role_id: 5,
+      organization_id: 2,
+      hospital_id: 2,
+      created_at: '2026-08-18T11:39:52.700Z',
     },
   ],
   patients: [
