@@ -47,6 +47,7 @@ Two ways to authenticate, checked additively (either is sufficient):
 
    | Actor | Email | Password |
    |---|---|---|
+   | Admin | owner@hosp.com | Owner@123 |
    | HOM | admin@hosp.com | Hom@123 |
    | PRE | rekha.pre@hosp.com | Pre@123 |
    | FA | farah.fa@hosp.com | Fa@123 |

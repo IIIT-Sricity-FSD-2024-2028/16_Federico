@@ -24,8 +24,8 @@ const DEFAULT_DEPARTMENTS = [
 ];
 
 const DEFAULT_INVENTORY_ITEMS = [
-  { item_name: 'Paracetamol 500mg', category: 'Medication', stock_quantity: 1000, reorder_level: 200 },
-  { item_name: 'Amoxicillin 500mg', category: 'Medication', stock_quantity: 500, reorder_level: 100 },
+  { item_name: 'Paracetamol 500mg', category: 'Medicine', stock_quantity: 1000, reorder_level: 200 },
+  { item_name: 'Amoxicillin 500mg', category: 'Medicine', stock_quantity: 500, reorder_level: 100 },
   { item_name: 'IV Normal Saline 500ml', category: 'Consumable', stock_quantity: 300, reorder_level: 60 },
   { item_name: 'Surgical Gloves (Box of 100)', category: 'Consumable', stock_quantity: 200, reorder_level: 50 },
   { item_name: 'Syringe 5ml', category: 'Consumable', stock_quantity: 500, reorder_level: 100 },

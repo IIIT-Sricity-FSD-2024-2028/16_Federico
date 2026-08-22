@@ -340,6 +340,12 @@
       create: function (payload) {
         return request("POST", "/ward", payload);
       },
+      update: function (wardId, patch) {
+        return request("PUT", "/ward/" + wardId, patch);
+      },
+      remove: function (wardId) {
+        return request("DELETE", "/ward/" + wardId);
+      },
       beds: function () {
         return request("GET", "/ward/beds");
       },
@@ -389,6 +395,9 @@
         },
         update: function (id, patch) {
           return request("PUT", "/inventory/items/" + id, patch);
+        },
+        remove: function (id) {
+          return request("DELETE", "/inventory/items/" + id);
         },
       },
       requests: {

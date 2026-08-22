@@ -15,6 +15,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadAndRender();
 });
 
+// Delegated click handling for the billing table's "View" action — one
+// listener instead of a per-row onclick="openBillingDetail(...)" string
+// plus a matching window.openBillingDetail global (see renderTable() below).
+document.addEventListener('click', (event) => {
+  const trigger = event.target.closest('[data-action="billing-detail"]');
+  if (!trigger) return;
+  openBillingDetail(Number(trigger.dataset.ledgerId));
+});
+
 let billingSearch = '';
 let billingRows = [];
 
@@ -131,14 +140,10 @@ function renderTable() {
   const rows = getFilteredRows();
   document.getElementById('pagination-text').innerText = `Showing 1-${rows.length} of ${rows.length} ledgers`;
 
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="padding: 24px; text-align: center; color: var(--text-secondary);">No billing ledgers match the current search.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = rows
-    .map(
-      (row) => `
+  window.DomTable.renderRows(tbody, rows, {
+    colspan: 7,
+    emptyMessage: 'No billing ledgers match the current search.',
+    toRow: (row) => `
       <tr>
         <td style="font-weight: 500; color: var(--text-primary);">${window.HOMHelpers.escapeHtml(row.patient?.name || '-')}</td>
         <td style="color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(row.patient?.uhid || '-')}</td>
@@ -146,14 +151,13 @@ function renderTable() {
         <td style="color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(row.bed?.bed_number || '-')}</td>
         <td style="font-weight: 600; color: var(--text-primary);">${window.HOMHelpers.formatCurrency(row.total)}</td>
         <td>${window.UI.Badge({ variant: ledgerStatusVariant(row.ledger.status), children: row.ledger.status })}</td>
-        <td>${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'View', onClick: `openBillingDetail(${row.ledger.ledger_id})` })}</td>
+        <td>${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'View', dataAttrs: { action: 'billing-detail', ledgerId: row.ledger.ledger_id } })}</td>
       </tr>
     `,
-    )
-    .join('');
+  });
 }
 
-window.openBillingDetail = async function (ledgerId) {
+async function openBillingDetail(ledgerId) {
   const row = billingRows.find((r) => r.ledger.ledger_id === ledgerId);
   if (!row) return;
 
@@ -194,11 +198,7 @@ window.openBillingDetail = async function (ledgerId) {
     : `<p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No payments recorded yet.</p>`;
 
   document.getElementById('modal-billing-detail').classList.add('active');
-};
-
-window.closeModals = function () {
-  document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
-};
+}
 
 function exportBillingRows() {
   const rows = getFilteredRows();

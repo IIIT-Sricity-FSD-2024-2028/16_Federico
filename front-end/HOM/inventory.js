@@ -19,6 +19,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadAndRender();
 });
 
+// Delegated click handling for the inventory table/sidebar's per-item
+// actions — one listener instead of each generated row baking its own
+// onclick="openLogUsageModal(...)"/"openRestockModal(...)" string.
+document.addEventListener('click', (event) => {
+  const trigger = event.target.closest('[data-action]');
+  if (!trigger) return;
+  if (trigger.dataset.action === 'log-usage') window.openLogUsageModal(Number(trigger.dataset.itemId));
+  if (trigger.dataset.action === 'restock') window.openRestockModal(Number(trigger.dataset.itemId));
+});
+
 function bindControls() {
   const searchInput = document.getElementById('inventory-search');
   if (searchInput) {
@@ -115,13 +125,11 @@ function renderTable() {
   if (!tbody) return;
 
   const items = getFilteredItems();
-  if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="padding: 24px; text-align: center; color: var(--text-secondary);">No inventory items match the current search.</td></tr>`;
-    return;
-  }
 
-  tbody.innerHTML = items
-    .map((item) => {
+  window.DomTable.renderRows(tbody, items, {
+    colspan: 7,
+    emptyMessage: 'No inventory items match the current search.',
+    toRow: (item) => {
       let status = 'Adequate';
       let variant = 'success';
       if (item.stock_quantity < item.reorder_level) {
@@ -140,14 +148,14 @@ function renderTable() {
           <td>${window.UI.Badge({ variant, children: status })}</td>
           <td>
             <div style="display: flex; gap: 8px;">
-              ${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Use', onClick: `openLogUsageModal(${item.item_id})` })}
-              ${window.UI.Button({ variant: 'outline', size: 'sm', children: 'Reorder', onClick: `openRestockModal(${item.item_id})` })}
+              ${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Use', dataAttrs: { action: 'log-usage', itemId: item.item_id } })}
+              ${window.UI.Button({ variant: 'outline', size: 'sm', children: 'Reorder', dataAttrs: { action: 'restock', itemId: item.item_id } })}
             </div>
           </td>
         </tr>
       `;
-    })
-    .join('');
+    },
+  });
 }
 
 function renderSidebar() {
@@ -167,7 +175,7 @@ function renderSidebar() {
       <div class="alert-card">
         <p style="font-size: 14px; font-weight: 500; color: var(--error-text); margin: 0 0 4px 0;">${window.HOMHelpers.escapeHtml(item.item_name)}</p>
         <p style="font-size: 12px; color: var(--error-text); margin: 0 0 8px 0;">${item.stock_quantity} units remaining</p>
-        ${window.UI.Button({ variant: 'danger', size: 'sm', className: 'w-full', children: 'Reorder Now', onClick: `openRestockModal(${item.item_id})` })}
+        ${window.UI.Button({ variant: 'danger', size: 'sm', className: 'w-full', children: 'Reorder Now', dataAttrs: { action: 'restock', itemId: item.item_id } })}
       </div>
     `,
         )

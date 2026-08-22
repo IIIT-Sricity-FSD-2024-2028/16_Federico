@@ -74,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <a href="screen-03-patient-flow.html" class="nav-link" data-flow="nav-patients">Patient Flow</a>
         <a href="screen-04-inventory.html" class="nav-link" data-flow="nav-inventory" data-requires-module="INVENTORY">Inventory</a>
         <a href="screen-05-billing.html" class="nav-link" data-flow="nav-billing">Billing Summary</a>
-        <a href="screen-06-admin.html" class="nav-link" data-flow="nav-admin">Admin</a>
       </div>
 
       <div class="nav-actions">

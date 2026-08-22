@@ -8,6 +8,14 @@ function findAllWards() {
   return dataStore.wards;
 }
 
+/**
+ * Also creates `ward.total_beds` matching AVAILABLE bed records — the
+ * original version only ever wrote the ward row itself (nothing on the
+ * frontend called this endpoint before Admin/departments.js, so the gap
+ * between a ward's `total_beds` field and its actual bed records went
+ * unnoticed). `updateWard` below already does the equivalent "grow to
+ * target" step when resizing; this is that same step at creation time.
+ */
 function createWard(ward) {
   const newWard = {
     ward_id:
@@ -17,6 +25,21 @@ function createWard(ward) {
     ...ward,
   };
   dataStore.wards.push(newWard);
+
+  const targetBeds = Number(ward.total_beds) || 0;
+  if (targetBeds > 0) {
+    const prefix = bedNumberPrefix(newWard.ward_name);
+    for (let i = 1; i <= targetBeds; i++) {
+      createBed({
+        ward_id: newWard.ward_id,
+        bed_number: `${prefix}-${String(i).padStart(2, '0')}`,
+        status: 'AVAILABLE',
+        organization_id: newWard.organization_id,
+        hospital_id: newWard.hospital_id,
+      });
+    }
+  }
+
   return newWard;
 }
 

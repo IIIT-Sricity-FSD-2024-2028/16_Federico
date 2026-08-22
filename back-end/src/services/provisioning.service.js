@@ -46,24 +46,15 @@ function logStep(organizationId, step, status, message) {
  */
 function seedDefaultClinicalBaseline(organizationId, hospitalId) {
   DEFAULT_DEPARTMENTS.forEach(({ wardName, defaultBeds }) => {
-    const ward = wardService.createWard({
+    // createWard() creates the matching bed records itself when
+    // total_beds is set — no need to also loop-create them here.
+    wardService.createWard({
       ward_name: wardName,
       total_beds: defaultBeds,
       description: `${wardName} — default baseline`,
       organization_id: organizationId,
       hospital_id: hospitalId,
     });
-
-    const prefix = wardService.bedNumberPrefix(wardName);
-    for (let i = 1; i <= defaultBeds; i++) {
-      wardService.createBed({
-        ward_id: ward.ward_id,
-        bed_number: `${prefix}-${String(i).padStart(2, '0')}`,
-        status: 'AVAILABLE',
-        organization_id: organizationId,
-        hospital_id: hospitalId,
-      });
-    }
   });
 
   DEFAULT_INVENTORY_ITEMS.forEach((item) => {

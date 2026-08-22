@@ -1,13 +1,13 @@
 /**
- * admin.js — Organization Admin screen (Dynamic RBAC, tasks.md §9).
+ * admin.js — Roles & Staff (Dynamic RBAC, tasks.md §9).
  *
- * Lets HOM (the organization's default administrator — see
- * back-end/src/services/provisioning.service.js, which creates the org's
- * default admin as a HOM-role user) create custom roles, grant them
- * permissions from the fixed catalog, and assign them to staff — on top
- * of, never instead of, the fixed HOM/PRE/FA actor permissions. Backed by
- * back-end/src/routes/rbac.routes.js, which existed with zero frontend
- * before this screen.
+ * Lets Admin — the organization's owner/super user, above HOM (see
+ * back-end/src/services/provisioning.service.js) — create custom roles,
+ * grant them permissions from the fixed catalog, and assign them to HOM/
+ * PRE/FA staff — on top of, never instead of, their fixed actor
+ * permissions. Backed by back-end/src/routes/rbac.routes.js. Moved here
+ * from HOM/admin.js — RBAC administration is Admin's job, not HOM's (see
+ * table.md issue #1).
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -44,8 +44,8 @@ function renderRolesList() {
       (role) => `
         <div class="role-row${role.custom_role_id === selectedRoleId ? ' is-selected' : ''}" data-role-id="${role.custom_role_id}">
           <div>
-            <div class="role-row-name">${escapeHtml(role.role_name)}</div>
-            <div class="role-row-meta">${escapeHtml(role.description || 'No description')}</div>
+            <div class="role-row-name">${window.Formatters.escapeHtml(role.role_name)}</div>
+            <div class="role-row-meta">${window.Formatters.escapeHtml(role.description || 'No description')}</div>
           </div>
           <span class="badge badge-neutral">›</span>
         </div>
@@ -85,8 +85,8 @@ async function selectRole(roleId) {
       return `
         <label class="permission-row">
           <input type="checkbox" data-permission-id="${permission.permission_id}" ${checked} />
-          <code>${escapeHtml(permission.permission_code)}</code>
-          <span style="color: var(--text-secondary); font-size: 12px;">${escapeHtml(permission.description || '')}</span>
+          <code>${window.Formatters.escapeHtml(permission.permission_code)}</code>
+          <span style="color: var(--text-secondary); font-size: 12px;">${window.Formatters.escapeHtml(permission.description || '')}</span>
         </label>
       `;
     })
@@ -161,7 +161,7 @@ function renderStaffTable(staff) {
         .map(
           (role) => `
             <span class="badge badge-info staff-role-chip" data-user-id="${member.user_id}" data-role-id="${role.custom_role_id}">
-              ${escapeHtml(role.role_name)}
+              ${window.Formatters.escapeHtml(role.role_name)}
               <button type="button" title="Remove role" data-remove-role>✕</button>
             </span>
           `,
@@ -170,16 +170,16 @@ function renderStaffTable(staff) {
 
       const roleOptions = rolesCache
         .filter((r) => !member.custom_roles.some((cr) => cr.custom_role_id === r.custom_role_id))
-        .map((r) => `<option value="${r.custom_role_id}">${escapeHtml(r.role_name)}</option>`)
+        .map((r) => `<option value="${r.custom_role_id}">${window.Formatters.escapeHtml(r.role_name)}</option>`)
         .join('');
 
       return `
         <tr>
-          <td style="padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9;">${escapeHtml(member.name)}</td>
-          <td style="padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9;">${escapeHtml(member.email)}</td>
-          <td style="padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9;"><span class="badge badge-neutral">${escapeHtml(member.actor_role)}</span></td>
-          <td style="padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9;">${chips}</td>
-          <td style="padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9;">
+          <td>${window.Formatters.escapeHtml(member.name)}</td>
+          <td>${window.Formatters.escapeHtml(member.email)}</td>
+          <td><span class="badge badge-neutral">${window.Formatters.escapeHtml(member.actor_role)}</span></td>
+          <td>${chips}</td>
+          <td>
             ${
               roleOptions
                 ? `<div style="display:flex; gap:6px;">
@@ -221,10 +221,4 @@ function renderStaffTable(staff) {
       }
     });
   });
-}
-
-function escapeHtml(value) {
-  const div = document.createElement('div');
-  div.textContent = value == null ? '' : String(value);
-  return div.innerHTML;
 }

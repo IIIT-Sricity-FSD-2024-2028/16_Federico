@@ -6796,6 +6796,36 @@ const dataStore = {
       permission_code: 'preRequest:write',
       description: 'Manage preRequest records',
     },
+    {
+      permission_id: 19,
+      permission_code: 'wardAdmin:read',
+      description: 'View wardAdmin records',
+    },
+    {
+      permission_id: 20,
+      permission_code: 'wardAdmin:write',
+      description: 'Manage wardAdmin records',
+    },
+    {
+      permission_id: 21,
+      permission_code: 'wardAdmin:delete',
+      description: 'Manage wardAdmin records',
+    },
+    {
+      permission_id: 22,
+      permission_code: 'inventoryCatalog:read',
+      description: 'View inventoryCatalog records',
+    },
+    {
+      permission_id: 23,
+      permission_code: 'inventoryCatalog:write',
+      description: 'Manage inventoryCatalog records',
+    },
+    {
+      permission_id: 24,
+      permission_code: 'inventoryCatalog:delete',
+      description: 'Manage inventoryCatalog records',
+    },
   ],
   rolePermissions: [
     {

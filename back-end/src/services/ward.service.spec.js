@@ -3,25 +3,29 @@
 const wardService = require('./ward.service');
 
 describe('services/ward.service', () => {
+  // createWard() creates the matching bed records itself when total_beds
+  // is set — no need to also loop-create them here.
   function makeWard(overrides) {
-    const ward = wardService.createWard({
+    return wardService.createWard({
       ward_name: 'Unit Test Ward',
       total_beds: 2,
       organization_id: 999,
       hospital_id: 999,
       ...overrides,
     });
-    for (let i = 1; i <= ward.total_beds; i++) {
-      wardService.createBed({
-        ward_id: ward.ward_id,
-        bed_number: `UTW-0${i}`,
-        status: 'AVAILABLE',
-        organization_id: 999,
-        hospital_id: 999,
-      });
-    }
-    return ward;
   }
+
+  it('createWard() creates matching AVAILABLE beds for the requested total_beds', () => {
+    const ward = wardService.createWard({
+      ward_name: 'Fresh Ward',
+      total_beds: 3,
+      organization_id: 999,
+      hospital_id: 999,
+    });
+    const beds = wardService.findBedsByWard(ward.ward_id);
+    expect(beds.length).toBe(3);
+    expect(beds.every((b) => b.status === 'AVAILABLE')).toBe(true);
+  });
 
   it('updateWard() grows a ward by creating new AVAILABLE beds', () => {
     const ward = makeWard();

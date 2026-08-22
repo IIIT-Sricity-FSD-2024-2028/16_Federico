@@ -116,6 +116,8 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = "../HOM/screen-01-dashboard.html";
       } else if (activeRole === "FA") {
         window.location.href = "../FA/index.html";
+      } else if (activeRole === "Admin") {
+        window.location.href = "../Admin/screen-01-dashboard.html";
       }
     } catch (err) {
       showError(err?.status === 0 ? err.message : "Something went wrong. Please try again.");

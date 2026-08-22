@@ -28,14 +28,20 @@ window.UI = {
 
   /**
    * Button Component
-   * @param {Object} props - { children, variant: 'primary'|'secondary'|'outline'|'danger', size: 'default'|'sm'|'lg', className, id, disabled, onClick }
+   * @param {Object} props - { children, variant: 'primary'|'secondary'|'outline'|'danger', size: 'default'|'sm'|'lg', className, id, disabled, onClick, dataAttrs }
    *
    * Emits both the app-local `.btn`/`.btn-<variant>`/`.btn-<size>` classes
    * (styled in global.css to Material You pill buttons) and the shared
    * `.md-btn`/`.md-btn-<variant>` classes from
    * ../shared/material-components.css.
+   *
+   * `dataAttrs` (e.g. `{ action: 'billing-detail', ledgerId: 42 }`) emits
+   * `data-*` attributes for a delegated `click` listener to read, instead
+   * of `onClick` (which bakes a `window.fnName = ...` global call directly
+   * into the generated HTML — still supported for callers that need it,
+   * but prefer `dataAttrs` + delegation for new code).
    */
-  Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
+  Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '', dataAttrs = null }) => {
     const MD_VARIANT = { primary: 'filled', secondary: 'tonal', outline: 'outlined', danger: 'danger' };
     const MD_SIZE = { sm: 'md-btn-sm', lg: 'md-btn-lg' };
     const classes = UI.cn('btn', `btn-${variant}`, `btn-${size}`, 'md-btn', `md-btn-${MD_VARIANT[variant] || 'filled'}`, MD_SIZE[size], className);
@@ -43,7 +49,12 @@ window.UI = {
     const disabledAttr = disabled ? 'disabled' : '';
     const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
     const onClickAttr = onClick ? `onclick="${onClick}"` : '';
-    return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
+    const dataAttrsStr = dataAttrs
+      ? Object.entries(dataAttrs)
+          .map(([key, value]) => `data-${key.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${String(value)}"`)
+          .join(' ')
+      : '';
+    return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr} ${dataAttrsStr}>${children}</button>`;
   },
 
   /**

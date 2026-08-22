@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organization Admin | Federico Hospital HOM</title>
+    <title>Roles &amp; Staff | Federico Hospital Admin</title>
     <link rel="stylesheet" href="../shared/design-tokens.css">
     <link rel="stylesheet" href="../shared/material-components.css">
     <link rel="stylesheet" href="../shared/ui-feedback.css">
-    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="../HOM/global.css">
     <style>
-        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
-        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+        /* .dashboard-container / .header-section (base) live once in
+           ../HOM/global.css — this screen adds its shorter header margin
+           and its own admin-grid/role-row/permission layout below. */
+        .header-section { margin-bottom: 24px; }
         .admin-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
         @media (max-width: 960px) { .admin-grid { grid-template-columns: 1fr; } }
 
@@ -73,15 +75,15 @@
         </div>
 
         <h2 class="h2" style="margin: 40px 0 16px;">Staff &amp; Roles</h2>
-        <div class="table-container" style="overflow-x: auto; width: 100%; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg);">
-            <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+        <div class="table-container" style="background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg);">
+            <table class="data-table">
                 <thead>
                     <tr>
-                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Name</th>
-                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Email</th>
-                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Fixed Role</th>
-                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Custom Roles</th>
-                        <th style="padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border);">Grant a Role</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Fixed Role</th>
+                        <th>Custom Roles</th>
+                        <th>Grant a Role</th>
                     </tr>
                 </thead>
                 <tbody id="staff-tbody"></tbody>
@@ -101,15 +103,13 @@
         </form>
     </dialog>
 
-    <script>window.APP_MODULE = "HOM";</script>
+    <script>window.APP_MODULE = "ADMIN";</script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/api-client.js"></script>
 <script src="../shared/rbac.js"></script>
 <script src="../shared/ui-feedback.js"></script>
 <script src="../shared/auth-guard.js"></script>
 <script src="../shared/formatters.js"></script>
-<script src="hom-helpers.js"></script>
-<script src="ui-template.js"></script>
 
 <script src="shared-nav.js"></script>
 <script src="admin.js"></script>

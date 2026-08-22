@@ -16,6 +16,16 @@
  */
 (function () {
   var actorProfiles = {
+    // Distinct from FA's legacy `accessRole: "ADMIN"` label below (an old
+    // Phase-1 name that predates this Admin actor and has nothing to do
+    // with hospital administration) — deliberately "ORG_ADMIN" so the two
+    // can never be confused in an `authorize(['ADMIN', ...])` legacy check.
+    Admin: {
+      actor: "Admin",
+      accessRole: "ORG_ADMIN",
+      label: "Admin",
+      modules: ["ADMIN"],
+    },
     Patient: {
       actor: "Patient",
       accessRole: "PATIENT",
@@ -53,6 +63,7 @@
   // — enforceModuleAccess-style graceful degradation over silence).
   var mockAccountsByOrg = {
     1: {
+      Admin: [{ email: "owner@hosp.com", password: "Owner@123", displayName: "Hospital Owner" }],
       Patient: [
         { email: "hamiz@hosp.com", password: "Hamiz@123", displayName: "Hamiz Shams" },
         { email: "salma@hosp.com", password: "Salma@123", displayName: "Salma Begum" },
@@ -66,6 +77,7 @@
       FA: [{ email: "farah.fa@hosp.com", password: "Fa@123", displayName: "Farah Ansari" }],
     },
     2: {
+      Admin: [{ email: "owner@apollo.hosp.com", password: "Apollo@123", displayName: "Apollo Owner" }],
       Patient: [{ email: "meera@apollo.hosp.com", password: "Apollo@123", displayName: "Meera Subramaniam" }],
       PRE: [{ email: "priya.pre@apollo.hosp.com", password: "Apollo@123", displayName: "Priya Krishnan" }],
       HOM: [{ email: "admin@apollo.hosp.com", password: "Apollo@123", displayName: "Apollo Admin" }],
@@ -278,6 +290,11 @@
       return crossModulePrefix + "../HOM/screen-01-dashboard.html";
     }
 
+    if (currentActor === "Admin") {
+      if (currentModule === "ADMIN") return "screen-01-dashboard.html";
+      return crossModulePrefix + "../Admin/screen-01-dashboard.html";
+    }
+
     if (currentActor === "FA") {
       if (currentModule === "FA") return "index.html";
       return crossModulePrefix + "../FA/index.html";
@@ -298,6 +315,7 @@
 
   function detectCurrentModule() {
     var path = window.location.pathname.replace(/\\/g, "/");
+    if (path.includes("/Admin/")) return "ADMIN";
     if (path.includes("/HOM/")) return "HOM";
     if (path.includes("/FA/")) return "FA";
     if (path.includes("/PRE/")) return "PRE";
