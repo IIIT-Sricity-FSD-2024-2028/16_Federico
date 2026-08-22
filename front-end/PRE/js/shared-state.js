@@ -27,49 +27,30 @@
     return STATUS_LABELS[status] || status || '-';
   }
 
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
+  // escapeHtml/formatAge/formatDate moved to shared/formatters.js (were
+  // byte-identical copies duplicated across HOM/FA/PRE's own helper files).
+  const { escapeHtml, formatAge, formatDate } = window.Formatters;
 
   function hasValue(value) {
     return value !== undefined && value !== null && String(value).trim() !== '';
   }
 
-  function formatAge(dob) {
-    if (!dob) return '-';
-    const birth = new Date(dob);
-    if (Number.isNaN(birth.getTime())) return '-';
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age -= 1;
-    return String(Math.max(age, 0));
-  }
-
-  function formatDate(value) {
-    if (!value) return '-';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return String(value);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-
-  const WARD_TYPE_BY_DEPARTMENT = [
-    [/icu/i, 'ICU Ward'],
-    [/emergency/i, 'Emergency Ward'],
-    [/pediatric/i, 'Pediatric Ward'],
-    [/maternity|obstetric|gyn/i, 'Maternity Ward'],
-    [/surger|surgical|ortho/i, 'Surgical Ward'],
-    [/card/i, 'Cardiac Care Ward'],
-  ];
-
+  /**
+   * Looks up the ward a department admits into against the single
+   * canonical list in shared/constants.js (HospitalConstants.
+   * DEFAULT_DEPARTMENTS — the same list provisioning.service.js seeds on
+   * the backend). Previously this was its own standalone regex table
+   * that didn't agree with constants.js's separate department/ward lists
+   * (e.g. it invented a "Cardiac Care Ward" that existed nowhere else in
+   * the app) — now there is exactly one department-to-ward mapping.
+   */
   function inferWardType(department) {
-    const match = WARD_TYPE_BY_DEPARTMENT.find(([pattern]) => pattern.test(String(department || '')));
-    return match ? match[1] : 'General Ward';
+    const key = String(department || '').toLowerCase();
+    const defaults = (window.HospitalConstants && window.HospitalConstants.DEFAULT_DEPARTMENTS) || [];
+    const match = defaults.find(
+      (d) => key.includes(d.department.toLowerCase()) || d.department.toLowerCase().includes(key),
+    );
+    return match ? match.wardName : 'General Ward';
   }
 
   /** doctors whose specialization loosely matches the department, available ones first */

@@ -9,21 +9,9 @@
     <link rel="stylesheet" href="../shared/ui-feedback.css">
     <link rel="stylesheet" href="global.css">
     <style>
-        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
-        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
-        
-        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
-        .metric-card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        
-        .main-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
-        @media (min-width: 1024px) { .main-grid { grid-template-columns: 2fr 1fr; } }
-
-        .table-container { overflow-x: auto; width: 100%; }
-        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .data-table th { padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        .data-table td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9; }
-        .data-table tr:hover td { background-color: #F8FAFC; }
-
+        /* .dashboard-container / .header-section / .metrics-grid /
+           .metric-card-icon / .main-grid / .table-container / .data-table
+           now live once in global.css. */
         .stepper-btn { width: 44px; height: 44px; border-radius: var(--radius-base); border: 1px solid var(--border); background: white; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 18px; }
         .stepper-btn:hover { background: var(--neutral-bg); }
         .stepper-input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-base); text-align: center; font-size: 14px; color: var(--text-primary); outline: none; }
@@ -231,6 +219,7 @@
     <script src="../shared/rbac.js"></script>
     <script src="../shared/ui-feedback.js"></script>
     <script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
     <script src="hom-helpers.js"></script>
     <script src="ui-template.js"></script>
 

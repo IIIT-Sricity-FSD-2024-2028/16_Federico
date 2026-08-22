@@ -74,6 +74,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const select = document.getElementById("department");
         if (!select) return;
 
+        // Live doctor specializations (shared/department-options.js) —
+        // same source PRE's appointment page uses, instead of each page
+        // hardcoding its own (previously mismatched) option list.
+        window.DepartmentOptions.populateDepartmentSelect(select, getDoctors(), {
+            placeholder: "Select department",
+        });
+
         select.addEventListener("change", () => {
             selectedDept = select.value || null;
             hideError("error-dept");

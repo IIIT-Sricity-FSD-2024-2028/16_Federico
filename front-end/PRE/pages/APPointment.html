@@ -65,11 +65,7 @@
     <input type="date" id="appointmentDate">
 
     <select id="department">
-      <option value="">Select Department</option>
-      <option value="Cardiology">Cardiology</option>
-      <option value="Neurology">Neurology</option>
-      <option value="Orthopedic">Orthopedic</option>
-      <option value="General">General</option>
+      <option value="" disabled selected>Select Department</option>
     </select>
 
     <select id="visitType">
@@ -133,6 +129,8 @@
 <script src="../../shared/rbac.js"></script>
 <script src="../../shared/ui-feedback.js"></script>
 <script src="../../shared/auth-guard.js"></script>
+<script src="../../shared/formatters.js"></script>
+<script src="../../shared/department-options.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/Appointment.js"></script>
 <script src="../js/logout.js"></script>

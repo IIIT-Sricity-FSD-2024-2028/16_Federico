@@ -9,11 +9,9 @@
     <link rel="stylesheet" href="../shared/ui-feedback.css">
     <link rel="stylesheet" href="global.css">
     <style>
-        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
-        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
-        
-        /* Filter Bar */
-        .filter-bar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        /* .dashboard-container / .header-section / .filter-bar (base) /
+           .bed-grid / .bed-card* now live once in global.css. */
+        .filter-bar { justify-content: space-between; }
         .tab-group { display: flex; align-items: center; gap: 8px; }
         .tab-btn { padding: 8px 16px; border-radius: var(--radius-base); font-size: 14px; font-weight: 500; color: var(--text-secondary); background: transparent; border: none; cursor: pointer; transition: all 0.2s; }
         .tab-btn:hover { background: var(--neutral-bg); }
@@ -33,11 +31,6 @@
         /* Bed Grid */
         .ward-section { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; }
         .ward-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-        .bed-grid { display: flex; flex-wrap: wrap; gap: 12px; }
-        .bed-card { width: 120px; height: 80px; border-radius: 8px; border: 2px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; cursor: pointer; transition: box-shadow 0.2s; background: transparent; }
-        .bed-card:hover { box-shadow: var(--shadow-md); }
-        .bed-card-title { font-size: 14px; font-weight: 600; }
-        .bed-card-subtitle { font-size: 12px; margin-top: 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
         /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
            now live once in global.css (Material You dialog styling) instead
@@ -136,6 +129,7 @@
 <script src="../shared/rbac.js"></script>
 <script src="../shared/ui-feedback.js"></script>
 <script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
 <script src="hom-helpers.js"></script>
 <script src="ui-template.js"></script>
 <script src="shared-nav.js"></script>

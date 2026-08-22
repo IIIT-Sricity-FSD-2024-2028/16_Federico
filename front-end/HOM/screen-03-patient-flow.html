@@ -9,18 +9,14 @@
     <link rel="stylesheet" href="../shared/ui-feedback.css">
     <link rel="stylesheet" href="global.css">
     <style>
-        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
-        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
-        
-        /* Table Styles */
-        .table-container { overflow-x: auto; width: 100%; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); }
-        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .data-table th { padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        .data-table td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9; }
-        .data-table tr:hover td { background-color: #F8FAFC; }
+        /* .dashboard-container / .header-section / .data-table (base+th/td/
+           hover) / .filter-bar (base) now live once in global.css — this
+           screen adds only its own card-style table wrapper and the extra
+           filter-bar gap below. */
+        .table-container { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); }
 
         /* Filter Bar */
-        .filter-bar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 24px; display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .filter-bar { gap: 12px; }
         .filter-input { flex: 1; min-width: 200px; }
         .filter-dropdown { height: 44px; padding: 0 16px; border-radius: var(--radius-base); border: 1px solid var(--border); background: #fff; color: var(--text-secondary); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .filter-dropdown:hover { background: #F8FAFC; }
@@ -236,6 +232,7 @@
 <script src="../shared/rbac.js"></script>
 <script src="../shared/ui-feedback.js"></script>
 <script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
 <script src="hom-helpers.js"></script>
 <script src="ui-template.js"></script>
 

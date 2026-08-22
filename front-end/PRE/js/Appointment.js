@@ -66,6 +66,14 @@ async function loadPatientCatalog() {
   return appointmentPatientCatalog;
 }
 
+// ── DEPARTMENT DROPDOWN (live doctor specializations — shared/department-options.js) ──
+async function loadDepartmentOptions() {
+  const doctors = await window.ApiClient.doctors.list().catch(() => []);
+  window.DepartmentOptions.populateDepartmentSelect(document.getElementById('department'), doctors, {
+    placeholder: 'Select Department',
+  });
+}
+
 function toPickerShape(patient) {
   return {
     patientId: patient.uhid,
@@ -329,5 +337,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   bindAppointmentPatientPicker();
   bindAppointmentFormFieldBehavior();
-  await loadPatientCatalog();
+  await Promise.all([loadPatientCatalog(), loadDepartmentOptions()]);
 });

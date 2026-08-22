@@ -15,19 +15,9 @@
  * walk-ins, which reuses that same endpoint.
  */
 (function () {
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function formatCurrency(amount) {
-    const n = Number(amount) || 0;
-    return 'Rs ' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
-  }
+  // escapeHtml/formatCurrency moved to shared/formatters.js (were
+  // byte-identical copies duplicated across HOM/FA/PRE's own helper files).
+  const { escapeHtml, formatCurrency } = window.Formatters;
 
   function formatDateTime(value) {
     if (!value) return '-';

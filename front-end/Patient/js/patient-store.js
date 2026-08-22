@@ -472,6 +472,10 @@ function getProfile() {
     return AppStore.patient;
 }
 
+function getDoctors() {
+    return AppStore._raw ? Object.values(AppStore._raw.doctorsById) : [];
+}
+
 function getBillingDocumentByRef(sourceType, sourceId) {
     return AppStore._docIndex[`${sourceType}:${sourceId}`] || null;
 }

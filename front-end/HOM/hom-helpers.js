@@ -39,43 +39,15 @@
     }
   }
 
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function formatCurrency(amount) {
-    const n = Number(amount) || 0;
-    return 'Rs ' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
-  }
-
-  function formatDate(value) {
-    if (!value) return '-';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return String(value);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
+  // escapeHtml/formatCurrency/formatDate/formatAge moved to shared/formatters.js
+  // (were byte-identical copies duplicated across HOM/FA/PRE's own helper files).
+  const { escapeHtml, formatCurrency, formatDate, formatAge } = window.Formatters;
 
   function formatDateTime(value) {
     if (!value) return '-';
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return String(value);
     return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-  }
-
-  function formatAge(dob) {
-    if (!dob) return '-';
-    const birth = new Date(dob);
-    if (Number.isNaN(birth.getTime())) return '-';
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age -= 1;
-    return String(Math.max(age, 0));
   }
 
   function daysSince(value) {
