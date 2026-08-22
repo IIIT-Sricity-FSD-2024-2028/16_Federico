@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Bills - Federico</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="patient-billing.css" />  
+  <link rel="stylesheet" href="../shared/design-tokens.css" />
+  <link rel="stylesheet" href="../shared/material-components.css" />
+  <link rel="stylesheet" href="../shared/ui-feedback.css" />
+  <link rel="stylesheet" href="patient-billing.css" />
 </head>
 <body>
   <header class="topbar">
@@ -85,16 +86,14 @@
     </section>
   </main>
 
+  <script>window.APP_MODULE = "PATIENT";</script>
   <script src="../shared/constants.js"></script>
-  <script src="../shared/canonical-seed.js"></script>
-  <script src="../shared/id-generator.js"></script>
-  <script src="../shared/patient-resolver.js"></script>
   <script src="../shared/sanitizer.js"></script>
-  <script src="../shared/ledger-validator.js"></script>
-  <script src="../shared/finance-states.js"></script>
   <script src="../shared/insurance.js"></script>
-  <script src="../shared/rbac.js"></script>
   <script src="../shared/api-client.js"></script>
+  <script src="../shared/rbac.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="../shared/auth-guard.js"></script>
   <script src="js/patient-store.js"></script>
   <script src="patient-billing.js"></script>
 </body>

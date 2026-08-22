@@ -7,8 +7,9 @@
     <title>Federico Login</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet" />
+    <link rel="stylesheet" href="../shared/design-tokens.css" />
+    <link rel="stylesheet" href="../shared/material-components.css" />
+    <link rel="stylesheet" href="../shared/ui-feedback.css" />
     <link rel="stylesheet" href="login-page.css" />
 </head>
 
@@ -22,6 +23,9 @@
     </header>
 
     <main class="login-wrapper">
+        <div class="md-blur-shape md-blur-primary" style="width:420px;height:420px;top:-120px;left:-160px;" aria-hidden="true"></div>
+        <div class="md-blur-shape md-blur-tertiary" style="width:340px;height:340px;bottom:-100px;right:-140px;" aria-hidden="true"></div>
+
         <section class="login-header">
             <div class="logo-mark">F</div>
             <h1>Federico</h1>
@@ -33,10 +37,20 @@
                 <button class="role-tab" type="button">PRE</button>
                 <button class="role-tab" type="button">HOM</button>
                 <button class="role-tab" type="button">FA</button>
+                <button class="role-tab" type="button">Admin</button>
             </div>
 
             <form id="login-form" class="login-form">
                 <div id="login-error" class="login-error" aria-live="polite"></div>
+
+                <div class="form-group">
+                    <label for="organization">Hospital</label>
+                    <select id="organization">
+                        <option value="">Loading hospitals…</option>
+                    </select>
+                    <span class="field-hint">Patients: choose the hospital you're registered with. <a href="../marketplace/marketplace-page.html">Browse all hospitals</a>.</span>
+                </div>
+
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input id="email" type="email" placeholder="Enter your mail" />
@@ -75,9 +89,9 @@
     </main>
 
   <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-    <script src="../shared/rbac.js"></script>
     <script src="../shared/api-client.js"></script>
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/ui-feedback.js"></script>
     <script src="login-page.js"></script>
 </body>
 

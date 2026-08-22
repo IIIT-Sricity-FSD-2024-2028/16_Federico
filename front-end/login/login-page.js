@@ -3,9 +3,37 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const helperBox = document.getElementById("login-credential-helper");
   const errorBox = document.getElementById("login-error");
+  const orgSelect = document.getElementById("organization");
+  const submitButton = loginForm?.querySelector("button[type='submit'], .login-submit");
+
+  // Organization Marketplace (tasks.md §11: Search Organizations -> Tenant
+  // Resolver). Public endpoint. Preselects from ?org=<id> when arriving via
+  // a marketplace "Login" link.
+  (async function loadOrganizations() {
+    if (!orgSelect) return;
+    const preselect = new URLSearchParams(window.location.search).get("org");
+    try {
+      const organizations = await window.ApiClient.marketplace.organizations();
+      orgSelect.innerHTML = organizations
+        .map((org) => `<option value="${org.organization_id}">${org.name}</option>`)
+        .join("");
+      if (preselect && organizations.some((o) => String(o.organization_id) === preselect)) {
+        orgSelect.value = preselect;
+      }
+      renderCredentialHelper(document.querySelector(".role-tab.active")?.textContent.trim() || "Patient");
+    } catch (err) {
+      orgSelect.innerHTML = '<option value="">Could not load hospitals — refresh to retry</option>';
+      window.UIFeedback?.toast("Could not load the list of hospitals. Please refresh.", "error");
+    }
+  })();
+
+  orgSelect?.addEventListener("change", () => {
+    renderCredentialHelper(document.querySelector(".role-tab.active")?.textContent.trim() || "Patient");
+  });
 
   function renderCredentialHelper(role) {
-    const accounts = window.RoleAccess?.mockAccounts?.[role] || [];
+    const organizationId = orgSelect?.value ? Number(orgSelect.value) : 1;
+    const accounts = window.RoleAccess?.mockAccountsFor?.(organizationId)?.[role] || [];
     if (!helperBox) return;
 
     helperBox.innerHTML = accounts
@@ -19,6 +47,12 @@ document.addEventListener("DOMContentLoaded", () => {
         `,
       )
       .join("");
+
+    // Cross-fade the swapped content in instead of an instant content jump
+    // — restart the CSS animation (a class left in place won't replay it).
+    helperBox.classList.remove("md-fade-switch");
+    void helperBox.offsetWidth;
+    helperBox.classList.add("md-fade-switch");
   }
 
   function clearError() {
@@ -39,41 +73,59 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  function handleLogin() {
+  async function handleLogin() {
     const emailInput = document.getElementById("email").value;
     const passwordInput = document.getElementById("password").value;
 
-    // Basic form validation for Review-3
     if (!emailInput || !passwordInput) {
       showError("Enter both email and password.");
       return;
     }
 
-    // Find which role is currently selected
     const activeRole = document
       .querySelector(".role-tab.active")
       .textContent.trim();
 
-    const authResult = window.RoleAccess?.authenticate(
-      activeRole,
-      emailInput,
-      passwordInput,
-    );
-    if (!authResult) {
-      showError(`Invalid ${activeRole} credentials.`);
-      return;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.dataset.originalText = submitButton.dataset.originalText || submitButton.textContent;
+      submitButton.textContent = "Signing in…";
     }
-    clearError();
 
-    // Route to the actual dashboard entry points for each actor
-    if (activeRole === "Patient") {
-      window.location.href = "../Patient/patient-dashboard.html";
-    } else if (activeRole === "PRE") {
-      window.location.href = "../PRE/index.html";
-    } else if (activeRole === "HOM") {
-      window.location.href = "../HOM/screen-01-dashboard.html";
-    } else if (activeRole === "FA") {
-      window.location.href = "../FA/index.html";
+    const organizationId = orgSelect?.value ? Number(orgSelect.value) : null;
+
+    try {
+      const authResult = await window.RoleAccess?.authenticate(
+        activeRole,
+        emailInput,
+        passwordInput,
+        organizationId,
+      );
+      if (!authResult) {
+        showError(window.RoleAccess?.lastAuthError || `Invalid ${activeRole} credentials.`);
+        return;
+      }
+      clearError();
+
+      // Route to the actual dashboard entry points for each actor
+      if (activeRole === "Patient") {
+        window.location.href = "../Patient/patient-dashboard.html";
+      } else if (activeRole === "PRE") {
+        window.location.href = "../PRE/index.html";
+      } else if (activeRole === "HOM") {
+        window.location.href = "../HOM/screen-01-dashboard.html";
+      } else if (activeRole === "FA") {
+        window.location.href = "../FA/index.html";
+      } else if (activeRole === "Admin") {
+        window.location.href = "../Admin/screen-01-dashboard.html";
+      }
+    } catch (err) {
+      showError(err?.status === 0 ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = submitButton.dataset.originalText;
+      }
     }
   }
 

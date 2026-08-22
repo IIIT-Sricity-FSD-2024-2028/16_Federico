@@ -1,36 +1,36 @@
-let requests = getPreRequests();
-
-function renderRejected() {
-  const table = document.getElementById("rejectedTable");
+async function renderRejected() {
+  const table = document.getElementById('rejectedTable');
   if (!table) return;
 
-  requests = getPreRequests();
-  table.innerHTML = "";
-
-  let rejectedList = requests.filter((r) => r.status === "Rejected");
+  const [preRequests, patients] = await Promise.all([
+    window.ApiClient.preRequests.list(),
+    window.ApiClient.patients.list(),
+  ]);
+  const joined = PREHelpers.joinPreRequestsWithPatients(preRequests, patients, {});
+  const rejectedList = joined.filter((r) => r.status === 'REJECTED');
 
   if (rejectedList.length === 0) {
     table.innerHTML = `<tr><td colspan="9">No Rejected Requests</td></tr>`;
     return;
   }
 
-  rejectedList.forEach((r) => {
-    table.innerHTML += `
+  table.innerHTML = rejectedList
+    .map(
+      (r) => `
       <tr>
-        <td>${r.patientId || "-"}</td>
-        <td>${r.age || "-"}</td>
-        <td>${r.gender || "-"}</td>
-        <td>${r.name || "-"}</td>
-        <td>${r.department || "-"}</td>
-        <td>${r.appointmentDate || "-"}</td>
-        <td>${r.bookedDate || "-"}</td>
-        <td>${r.rejectReason || "-"}</td>
-        <td>${r.status || "-"}</td>
+        <td>${PREHelpers.escapeHtml(r.patientUhid)}</td>
+        <td>${PREHelpers.escapeHtml(r.patientAge)}</td>
+        <td>${PREHelpers.escapeHtml(r.patientGender)}</td>
+        <td>${PREHelpers.escapeHtml(r.patientName)}</td>
+        <td>${PREHelpers.escapeHtml(r.department)}</td>
+        <td>${PREHelpers.escapeHtml(PREHelpers.formatDate(r.requested_date))}</td>
+        <td>${PREHelpers.escapeHtml(PREHelpers.formatDate(r.created_at))}</td>
+        <td>${PREHelpers.escapeHtml(r.reject_reason || '-')}</td>
+        <td>${PREHelpers.statusLabel(r.status)}</td>
       </tr>
-    `;
-  });
+    `,
+    )
+    .join('');
 }
 
-document.addEventListener("DOMContentLoaded", renderRejected);
-bindSharedStateRefresh(renderRejected);
-window.addEventListener("storage", renderRejected);
+document.addEventListener('DOMContentLoaded', renderRejected);

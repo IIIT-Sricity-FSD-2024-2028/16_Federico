@@ -5,10 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Federico | Finance Portal</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -28,31 +30,24 @@
         <div class="header-actions">
             <a id="module-switch-link" class="module-switch-link" href="../HOM/screen-01-dashboard.html" hidden>Open HOM</a>
             <span id="role-indicator" class="role-indicator"></span>
-            <button id="logout-btn" style="border:none; background:#ef4444; color:white; padding:10px 18px; border-radius:999px; font-weight:700; cursor:pointer; font-family:inherit;">LOG OUT</button>
+            <button id="logout-btn" class="logout-btn">Log Out</button>
         </div>
     </header>
 
     <main id="app" class="main-content"></main>
 
-  <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-    <script src="../shared/id-generator.js"></script>
-    <script src="../shared/patient-resolver.js"></script>
-    <script src="../shared/sanitizer.js"></script>
-    <script src="../shared/ledger-validator.js"></script>
-    <script src="../shared/finance-states.js"></script>
-    <script src="../shared/insurance.js"></script>
-    <script src="../shared/rbac.js"></script>
+  <script>window.APP_MODULE = "FA";</script>
+    <script src="../shared/constants.js"></script>
     <script src="../shared/api-client.js"></script>
-    <script src="js/auth-guard.js"></script>
-    <script src="js/data/mockData.js"></script>
-    <script src="js/state.js"></script>
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/ui-feedback.js"></script>
+    <script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
+    <script src="js/fa-helpers.js"></script>
     <script src="js/permissions.js"></script>
-    <script src="js/utils/helpers.js"></script>
     <script src="js/modules/billing.js"></script>
     <script src="js/router.js"></script>
     <script src="js/app.js"></script>
-    <script src="../shared/debug-state-panel.js"></script>
 </body>
 
 </html>

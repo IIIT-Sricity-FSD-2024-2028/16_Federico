@@ -1,21 +1,34 @@
-const LEGACY_STORAGE_KEY = "hospitalFinanceAppState";
-const ROOT_STORAGE_KEY = "HospitalAppState";
-const SHARED_STORAGE_KEY = ROOT_STORAGE_KEY;
-
-function nextGeneratedId(namespace) {
-  if (window.IDGenerator && typeof window.IDGenerator.nextId === "function") return window.IDGenerator.nextId(namespace);
-  return `${namespace}-fallback`;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const createButton = document.querySelector(".create-btn");
   const loginShortcut = document.querySelector(".login-shortcut");
+  const orgSelect = document.getElementById("organization");
 
   loginShortcut?.addEventListener("click", () => {
     window.location.href = "../login/login-page.html";
   });
 
-  createButton?.addEventListener("click", () => {
+  // Organization Marketplace (tasks.md §4/§11) — a patient picks which
+  // organization they're registering with before anything else. Public
+  // endpoint, no auth needed. Preselects from ?org=<id> if the patient
+  // arrived here from the marketplace's "Register" link.
+  (async function loadOrganizations() {
+    if (!orgSelect) return;
+    var preselect = new URLSearchParams(window.location.search).get("org");
+    try {
+      var organizations = await window.ApiClient.marketplace.organizations();
+      orgSelect.innerHTML = organizations
+        .map((org) => `<option value="${org.organization_id}">${org.name}</option>`)
+        .join("");
+      if (preselect && organizations.some((o) => String(o.organization_id) === preselect)) {
+        orgSelect.value = preselect;
+      }
+    } catch (err) {
+      orgSelect.innerHTML = '<option value="">Could not load hospitals — refresh to retry</option>';
+      window.UIFeedback?.toast("Could not load the list of hospitals. Please refresh.", "error");
+    }
+  })();
+
+  createButton?.addEventListener("click", async () => {
     const firstName = valueOf("first-name");
     const lastName = valueOf("last-name");
     const fullName = [firstName, lastName].filter(Boolean).join(" ");
@@ -37,6 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelector(".terms-row input[type='checkbox']")?.checked,
     );
 
+    const organizationId = orgSelect?.value ? Number(orgSelect.value) : null;
+
     if (
       !firstName ||
       !lastName ||
@@ -44,9 +59,10 @@ document.addEventListener("DOMContentLoaded", () => {
       !gender ||
       !email ||
       !phone ||
-      !password
+      !password ||
+      !organizationId
     ) {
-      showToast("Please fill in all required fields.", "warn");
+      showToast(!organizationId ? "Please choose a hospital to register with." : "Please fill in all required fields.", "warn");
       return;
     }
 
@@ -92,147 +108,63 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const sharedState = ensureSharedState();
-    const patientAccounts =
-      window.RoleAccess?.refreshMockAccounts?.() ||
-      window.RoleAccess?.mockAccounts?.Patient ||
-      [];
-    const emailAlreadyExists = patientAccounts.some(
-      (account) => String(account.email || "").toLowerCase() === email,
-    );
-    const phoneAlreadyExists = Object.values(
-      sharedState.patientProfiles || {},
-    ).some((profile) => profile?.phone === phone);
-
-    if (emailAlreadyExists) {
-      showToast("An account with this email already exists.", "warn");
-      return;
-    }
-
-    if (phoneAlreadyExists) {
-      showToast("A patient with this phone number already exists.", "warn");
-      return;
-    }
-
-    const patientId = buildNextPatientId(sharedState);
-    const age = calculateAge(dob);
-    const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
-    const profile = {
-      id: nextGeneratedId("user"),
-      name: fullName,
-      firstName,
-      initials: initials || "P",
-      uhid: patientId,
-      age,
-      gender,
-      bloodGroup: bloodGroup || "NA",
-      phone,
-      altPhone: "",
-      email,
-      address: "",
-      dob,
-      insurance: {
-        verified: Boolean(provider || policyNumber || memberId),
-        provider: provider || "Self Pay",
-        policyNumber: policyNumber || `POL-${patientId}`,
-        memberId: memberId || `MEM-${patientId}`,
-        coverage: 0,
-        validFrom: validFrom || "",
-        validTo: validTo || "",
-        coverageType: coverageType || "Self",
-      },
-    };
-
-    if (!Array.isArray(sharedState.patientDirectory))
-      sharedState.patientDirectory = [];
-    if (
-      !sharedState.patientProfiles ||
-      typeof sharedState.patientProfiles !== "object"
-    )
-      sharedState.patientProfiles = {};
-
-    sharedState.patientDirectory.unshift({
-      id: patientId,
-      uhid: patientId,
-      name: fullName,
-      age: String(age),
-      gender,
-      phone,
-      address: "",
-    });
-    sharedState.patientProfiles[patientId] = profile;
-
-    const payload = JSON.stringify(sharedState);
-    localStorage.setItem(ROOT_STORAGE_KEY, payload);
-    window.dispatchEvent(new Event("sharedStateUpdated"));
-
-    window.RoleAccess?.registerPatientAccount?.({
-      email,
-      password,
-      displayName: fullName,
-      patientUhid: patientId,
-    });
-
     createButton.disabled = true;
-    createButton.textContent = "Account Created";
-    createButton.style.opacity = "0.8";
+    const originalLabel = createButton.textContent;
+    createButton.textContent = "Creating account…";
 
-    showToast(
-      `Account created. Patient ID ${patientId} is now in shared records.`,
-      "success",
-    );
-
-    setTimeout(() => {
-      window.location.href = "../login/login-page.html";
-    }, 1400);
-  });
-
-  function ensureSharedState() {
     try {
-      const raw = localStorage.getItem(SHARED_STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (error) {
-      console.warn("[Signup] Could not read shared state:", error);
+      const result = await window.RoleAccess.signupPatient({
+        name: fullName,
+        email,
+        password,
+        phone,
+        dob,
+        gender,
+        blood_group: bloodGroup || undefined,
+        organization_id: organizationId,
+      });
+
+      // Optional insurance — the backend models it as a separate record
+      // tied to the new patient, and only accepts it once every required
+      // field is present. Partial insurance info is fine; it can be
+      // completed later from the patient profile page.
+      if (provider && policyNumber && memberId && validFrom && validTo) {
+        try {
+          await window.ApiClient.patients.createInsurance({
+            patient_id: result.patient.patient_id,
+            provider_name: provider,
+            policy_number: policyNumber,
+            member_id: memberId,
+            coverage_type: coverageType || "Individual",
+            valid_from: validFrom,
+            valid_to: validTo,
+          });
+        } catch (insuranceErr) {
+          console.warn("[Signup] Insurance could not be saved, continuing:", insuranceErr);
+        }
+      }
+
+      createButton.textContent = "Account Created";
+      createButton.style.opacity = "0.8";
+
+      showToast(
+        `Account created. Your UHID is ${result.patient.uhid}.`,
+        "success",
+      );
+
+      setTimeout(() => {
+        window.location.href = "../Patient/patient-dashboard.html";
+      }, 1400);
+    } catch (err) {
+      createButton.disabled = false;
+      createButton.textContent = originalLabel;
+      const message =
+        err?.status === 409
+          ? "An account with this email already exists."
+          : err?.message || "Could not create your account. Please try again.";
+      showToast(message, "warn");
     }
-
-    const seed = window.CanonicalHospitalSeed?.buildSharedStateSeed?.();
-    return seed && typeof seed === "object" ? seed : {};
-  }
-
-  function buildNextPatientId(state) {
-    const year = new Date().getFullYear();
-    const prefix = `FED-${year}-`;
-    const ids = []
-      .concat(
-        (state.patientDirectory || []).map((entry) => entry?.id || entry?.uhid),
-      )
-      .concat(Object.keys(state.patientProfiles || {}));
-
-    let maxId = 9000;
-    ids.forEach((id) => {
-      const match = String(id || "").match(new RegExp(`^FED-${year}-(\\d+)$`));
-      if (!match) return;
-      maxId = Math.max(maxId, Number(match[1]));
-    });
-
-    return `${prefix}${maxId + 1}`;
-  }
-
-  function calculateAge(dob) {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age -= 1;
-    }
-
-    return Math.max(age, 0);
-  }
+  });
 
   function valueOf(id) {
     return document.getElementById(id)?.value?.trim() || "";
@@ -243,51 +175,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return value.startsWith("Select ") ? "" : value.trim();
   }
 
+  // Thin adapter over the shared Material You snackbar (shared/ui-feedback.js)
+  // — this page previously hand-rolled its own inline-styled toast; that
+  // implementation (and its two near-duplicate copies in patient-billing.js
+  // and patient-book-appointment.js) has been replaced by UIFeedback
+  // everywhere. "warn" here maps to UIFeedback's "warning" type.
   function showToast(message, type = "info") {
-    document.querySelector(".toast-notify")?.remove();
-    const bgColors = { success: "#1a5c3a", warn: "#b45309", info: "#1c2f42" };
-
-    const t = document.createElement("div");
-    t.className = "toast-notify";
-    t.textContent = message;
-
-    Object.assign(t.style, {
-      position: "fixed",
-      bottom: "28px",
-      right: "28px",
-      zIndex: "9999",
-      background: bgColors[type] || bgColors.info,
-      color: "#fff",
-      padding: "13px 20px",
-      borderRadius: "12px",
-      fontSize: "13px",
-      fontWeight: "600",
-      fontFamily: "Inter, sans-serif",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
-      maxWidth: "380px",
-      lineHeight: "1.5",
-      transform: "translateY(80px)",
-      opacity: "0",
-      transition: "transform 280ms ease, opacity 280ms ease",
-    });
-
-    document.body.appendChild(t);
-
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        t.style.transform = "translateY(0)";
-        t.style.opacity = "1";
-      }),
-    );
-
-    setTimeout(() => {
-      t.style.transform = "translateY(80px)";
-      t.style.opacity = "0";
-      setTimeout(() => t.remove(), 300);
-    }, 3500);
+    const mapped = type === "warn" ? "warning" : type;
+    window.UIFeedback?.toast(message, mapped);
   }
 });
-
-
-
-

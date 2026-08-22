@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>HOM Panel</title>
+  <link rel="stylesheet" href="../../shared/design-tokens.css">
+  <link rel="stylesheet" href="../../shared/material-components.css">
+  <link rel="stylesheet" href="../../shared/ui-feedback.css">
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/layout.css">
   <link rel="stylesheet" href="../css/components.css">
 </head>
 <body>
-<div id="msgBox"></div>
-<div class="navbar">  
+<div class="navbar">
   <div class="logo">
     <div class="icon">F</div>
     <div class="text">
@@ -55,22 +57,19 @@
           <input type="text" id="patientId" class="hom-input" placeholder="Enter or select patient ID">
         </div>
         <div>
-          <label class="hom-field-label" for="wardType">Ward Type</label>
+          <label class="hom-field-label" for="wardType">Preferred Ward</label>
           <select id="wardType" class="hom-input hom-select">
-            <option value="">Select ward</option>
-            <option value="General Ward">General Ward</option>
-            <option value="ICU Ward">ICU Ward</option>
-            <option value="Emergency Ward">Emergency Ward</option>
-            <option value="Surgical Ward">Surgical Ward</option>
-            <option value="Pediatric Ward">Pediatric Ward</option>
-            <option value="Maternity Ward">Maternity Ward</option>
-            <option value="Cardiac Care Ward">Cardiac Care Ward</option>
+            <option value="">HOM decides</option>
           </select>
         </div>
       </div>
 
-      <label class="hom-field-label" for="patientDetails">Patient Details</label>
-      <textarea id="patientDetails" class="hom-input hom-textarea" placeholder="Age, gender, department, doctor, or admission notes"></textarea>
+      <label class="hom-field-label" for="priority">Priority</label>
+      <select id="priority" class="hom-input hom-select">
+        <option value="NORMAL">Normal</option>
+        <option value="HIGH">High</option>
+        <option value="CRITICAL">Critical</option>
+      </select>
 
       <button class="btn btn-blue hom-submit-btn" onclick="sendRequest()">Create Bed Request</button>
     </div>
@@ -163,12 +162,13 @@
   </table>
 </div>
 
-  <script src="../../../shared/constants.js"></script>
-<script src="../../../shared/rbac.js"></script>
-<script src="../../../shared/canonical-seed.js"></script>
-<script src="../../../shared/id-generator.js"></script>
-<script src="../../../shared/patient-resolver.js"></script>
-<script src="../js/auth-guard.js"></script>
+  <script>window.APP_MODULE = "PRE";</script>
+<script src="../../shared/constants.js"></script>
+<script src="../../shared/api-client.js"></script>
+<script src="../../shared/rbac.js"></script>
+<script src="../../shared/ui-feedback.js"></script>
+<script src="../../shared/auth-guard.js"></script>
+<script src="../../shared/formatters.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/hom.js"></script>
 <script src="../js/logout.js"></script>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Federico Platform — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../shared/design-tokens.css" />
+  <link rel="stylesheet" href="../shared/material-components.css" />
+  <link rel="stylesheet" href="../shared/ui-feedback.css" />
+  <link rel="stylesheet" href="platform.css" />
+</head>
+<body class="platform-auth-body">
+  <div class="md-blur-shape md-blur-primary" style="width:480px;height:480px;top:-160px;left:-140px;" aria-hidden="true"></div>
+  <div class="md-blur-shape md-blur-tertiary" style="width:360px;height:360px;bottom:-140px;right:-100px;" aria-hidden="true"></div>
+
+  <main class="platform-login-card md-glass">
+    <div class="platform-brand">
+      <span class="md-brand-mark">F</span>
+      <div>
+        <div class="platform-brand-title">Federico Cloud</div>
+        <div class="label">Platform Super User</div>
+      </div>
+    </div>
+
+    <p class="platform-login-lead">Manage organizations, subscriptions, provisioning, and platform-wide configuration. This account cannot view any organization's patient, billing, or clinical data (tasks.md §3).</p>
+
+    <form id="platform-login-form" class="platform-login-form">
+      <div class="md-field">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="platform@federico.com" autocomplete="username" required />
+      </div>
+      <div class="md-field">
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="md-btn md-btn-filled md-btn-lg" id="submit-btn" style="width:100%;">Sign In</button>
+    </form>
+
+    <p class="platform-demo-hint">Demo: <code>platform@federico.com</code> / <code>Federico@Platform123</code></p>
+    <a class="md-btn md-btn-text" href="../landing/landing-page.html" style="margin-top:8px;">← Back to Federico</a>
+  </main>
+
+  <script src="../shared/api-client.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="platform-login.js"></script>
+</body>
+</html>

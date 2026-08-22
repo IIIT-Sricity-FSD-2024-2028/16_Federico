@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Federico Platform — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../shared/design-tokens.css" />
+  <link rel="stylesheet" href="../shared/material-components.css" />
+  <link rel="stylesheet" href="../shared/ui-feedback.css" />
+  <link rel="stylesheet" href="platform.css" />
+</head>
+<body>
+  <header class="md-topbar">
+    <div class="md-brand">
+      <span class="md-brand-mark">F</span>
+      <span>Federico Platform</span>
+    </div>
+    <div class="topbar-actions">
+      <span class="label" id="current-user-label"></span>
+      <button class="md-btn md-btn-text" id="logout-btn">Log out</button>
+    </div>
+  </header>
+
+  <main class="md-container platform-page">
+    <div class="md-tabs" role="tablist">
+      <button class="md-tab is-active" data-tab="overview" type="button">Overview</button>
+      <button class="md-tab" data-tab="organizations" type="button">Organizations</button>
+      <button class="md-tab" data-tab="plans" type="button">Subscription Plans</button>
+    </div>
+
+    <!-- ===== Overview tab ===== -->
+    <section class="tab-panel" id="panel-overview">
+      <div class="stat-grid" id="platform-stats">
+        <div class="md-empty-state"><span>Loading platform usage…</span></div>
+      </div>
+
+      <h2 class="section-heading">Organizations at a glance</h2>
+      <div class="org-mini-grid" id="overview-org-list"></div>
+
+      <h2 class="section-heading">Recent platform activity</h2>
+      <div class="md-card md-glass-subtle" id="platform-activity-feed">
+        <div class="md-empty-state"><span>Loading activity…</span></div>
+      </div>
+    </section>
+
+    <!-- ===== Organizations tab ===== -->
+    <section class="tab-panel is-hidden" id="panel-organizations">
+      <div class="panel-toolbar">
+        <h2 class="section-heading" style="margin:0;">Organizations</h2>
+        <button class="md-btn md-btn-filled" id="new-org-btn">+ Provision New Organization</button>
+      </div>
+      <div class="md-card" style="padding:0; overflow-x:auto;">
+        <table class="md-table" id="org-table">
+          <thead>
+            <tr><th>Organization</th><th>Status</th><th>Plan</th><th>Hospitals</th><th>Users</th><th>Beds</th><th></th></tr>
+          </thead>
+          <tbody id="org-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== Plans tab ===== -->
+    <section class="tab-panel is-hidden" id="panel-plans">
+      <div class="panel-toolbar">
+        <h2 class="section-heading" style="margin:0;">Subscription Plans</h2>
+        <button class="md-btn md-btn-filled" id="new-plan-btn">+ Create Plan</button>
+      </div>
+      <div class="plan-grid" id="plan-grid"></div>
+    </section>
+  </main>
+
+  <!-- ===== Provision organization dialog ===== -->
+  <dialog id="provision-dialog" class="md-native-dialog">
+    <form id="provision-form" class="dialog-form">
+      <h2 class="md-dialog-title">Provision a New Organization</h2>
+      <div class="md-field"><label for="p-name">Organization name</label><input id="p-name" required placeholder="e.g. Sunrise Multispecialty Hospital" /></div>
+      <div class="md-field"><label for="p-city">Primary city</label><input id="p-city" placeholder="e.g. Pune" /></div>
+      <div class="md-field"><label for="p-plan">Subscription plan</label><select id="p-plan" required></select></div>
+      <div class="md-field"><label for="p-modules">Modules to enable</label><div id="p-modules" class="module-checklist"></div></div>
+      <div class="md-field"><label for="p-admin-name">Default admin — name</label><input id="p-admin-name" required placeholder="e.g. Org Admin" /></div>
+      <div class="md-field"><label for="p-admin-email">Default admin — email</label><input id="p-admin-email" type="email" required placeholder="admin@example.com" /></div>
+      <div class="md-field"><label for="p-admin-password">Default admin — password</label><input id="p-admin-password" type="password" required placeholder="Temporary password" /></div>
+      <div class="md-dialog-actions">
+        <button type="button" class="md-btn md-btn-text" id="provision-cancel">Cancel</button>
+        <button type="submit" class="md-btn md-btn-filled" id="provision-submit">Provision</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Organization detail dialog ===== -->
+  <dialog id="org-detail-dialog" class="md-native-dialog md-native-dialog-wide">
+    <div class="dialog-form">
+      <div class="detail-header">
+        <h2 class="md-dialog-title" id="detail-org-name" style="margin:0;"></h2>
+        <button type="button" class="md-btn md-btn-text" id="detail-close">Close ✕</button>
+      </div>
+      <div class="md-tabs" role="tablist">
+        <button class="md-tab is-active" data-detail-tab="summary" type="button">Summary</button>
+        <button class="md-tab" data-detail-tab="modules" type="button">Modules</button>
+        <button class="md-tab" data-detail-tab="keys" type="button">API Keys</button>
+        <button class="md-tab" data-detail-tab="log" type="button">Provisioning Log</button>
+      </div>
+      <div class="detail-panel" id="detail-summary"></div>
+      <div class="detail-panel is-hidden" id="detail-modules"></div>
+      <div class="detail-panel is-hidden" id="detail-keys"></div>
+      <div class="detail-panel is-hidden" id="detail-log"></div>
+    </div>
+  </dialog>
+
+  <!-- ===== Create plan dialog ===== -->
+  <dialog id="plan-dialog" class="md-native-dialog">
+    <form id="plan-form" class="dialog-form">
+      <h2 class="md-dialog-title">Create Subscription Plan</h2>
+      <div class="md-field"><label for="pl-name">Plan name</label><input id="pl-name" required /></div>
+      <div class="grid-two">
+        <div class="md-field"><label for="pl-beds">Max beds</label><input id="pl-beds" type="number" min="1" required /></div>
+        <div class="md-field"><label for="pl-users">Max users</label><input id="pl-users" type="number" min="1" required /></div>
+        <div class="md-field"><label for="pl-hospitals">Max hospitals</label><input id="pl-hospitals" type="number" min="1" required /></div>
+        <div class="md-field"><label for="pl-storage">Storage (GB)</label><input id="pl-storage" type="number" min="1" required /></div>
+        <div class="md-field"><label for="pl-rate">API rate limit (req/min)</label><input id="pl-rate" type="number" min="1" required /></div>
+        <div class="md-field"><label for="pl-price">Price / month (₹)</label><input id="pl-price" type="number" min="0" required /></div>
+      </div>
+      <div class="md-field"><label>Included modules</label><div id="pl-modules" class="module-checklist"></div></div>
+      <div class="md-dialog-actions">
+        <button type="button" class="md-btn md-btn-text" id="plan-cancel">Cancel</button>
+        <button type="submit" class="md-btn md-btn-filled">Create Plan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="../shared/api-client.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="platform-dashboard.js"></script>
+</body>
+</html>

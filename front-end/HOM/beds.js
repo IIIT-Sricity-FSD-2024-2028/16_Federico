@@ -1,40 +1,24 @@
 /**
- * beds.js
- * Logic for the Bed Management grid, filtering, and assignment modals.
+ * beds.js — Phase 3 rewrite.
+ *
+ * Bed management grid backed by window.ApiClient. Assigning a bed always
+ * starts from a real pending bed request (ward/bed-requests, created by
+ * PRE) — clicking an available bed opens a picker of compatible pending
+ * requests rather than a free-text patient field.
  */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', async () => {
   bindControls();
-  renderPage();
-  window.addEventListener('storeUpdated', renderPage);
+  await loadAndRender();
 });
 
 let activeTab = 'all';
 let activeFilter = 'all';
-let selectedAvailableBed = null;
-let currentDetailBed = null;
-let currentDetailPatient = null;
 let bedSearchQuery = '';
-let assignPatientQuery = '';
-let selectedAssignPatient = null;
-let assignPatientOptions = [];
-let currentRequestedWard = '';
-
-const tabs = [
-  { id: 'all', label: 'All Beds', wardMatch: 'all' },
-  { id: 'icu', label: 'ICU', wardMatch: 'ICU Ward' },
-  { id: 'general', label: 'General Ward', wardMatch: 'General Ward' },
-  { id: 'surgical', label: 'Surgical', wardMatch: 'Surgical Ward' },
-  { id: 'pediatric', label: 'Pediatric', wardMatch: 'Pediatric Ward' },
-  { id: 'emergency', label: 'Emergency', wardMatch: 'Emergency Ward' }
-];
-
-const filters = [
-  { id: 'all', label: 'All' },
-  { id: 'available', label: 'Available' },
-  { id: 'occupied', label: 'Occupied' },
-  { id: 'maintenance', label: 'Maintenance' }
-];
+let bedsData = {};
+let currentDetailBedId = null;
+let selectedRequestId = null;
+let pendingBedTarget = null;
 
 function bindControls() {
   const searchInput = document.getElementById('bed-search');
@@ -44,226 +28,67 @@ function bindControls() {
       renderPage();
     });
   }
-
-  const assignSearchInput = document.getElementById('assign-patient-search');
-  if (assignSearchInput) {
-    assignSearchInput.addEventListener('focus', () => {
-      renderAssignPatientOptions();
-      toggleAssignPatientDropdown(true);
-    });
-  }
-
-  document.addEventListener('click', (event) => {
-    const picker = document.getElementById('assign-patient-picker');
-    if (!picker || picker.contains(event.target)) return;
-    toggleAssignPatientDropdown(false);
-  });
 }
 
-function setAssignError(message) {
-  const element = document.getElementById('assign-bed-error');
-  if (!element) return;
-  element.textContent = message || '';
-  element.style.display = message ? 'block' : 'none';
-}
-
-function setAssignHint(message) {
-  const element = document.getElementById('assign-patient-hint');
-  if (!element) return;
-  element.textContent = message || '';
+async function loadAndRender() {
+  const [wards, beds, bedRequests, patients, preRequests] = await Promise.all([
+    window.ApiClient.wards.list(),
+    window.ApiClient.wards.beds(),
+    window.ApiClient.wards.bedRequests.list(),
+    window.ApiClient.patients.list(),
+    window.ApiClient.preRequests.list(),
+  ]);
+  bedsData = { wards, beds, bedRequests, patients, preRequests };
+  renderPage();
 }
 
 function renderPage() {
-  const data = window.Store.get() || {};
+  renderTabs();
   renderFilters();
-  renderStats(data);
-  renderWards(data);
-  if (document.getElementById('modal-assign-bed')?.classList.contains('active')) {
-    renderAvailableBeds(selectedAvailableBed);
-    renderAssignPatientOptions();
-  }
+  renderStats();
+  renderWards();
 }
 
-function toggleAssignPatientDropdown(show) {
-  const dropdown = document.getElementById('assign-patient-dropdown');
-  if (!dropdown) return;
-  dropdown.style.display = show ? 'block' : 'none';
+function setActiveTab(id) {
+  activeTab = id;
+  renderPage();
 }
-
-function normalizeWardName(value) {
-  return String(value || '').trim().toLowerCase();
+function setActiveFilter(id) {
+  activeFilter = id;
+  renderPage();
 }
-
-function getAdmissionRequestedWard(admission) {
-  return String(admission?.preferredWard || admission?.wardType || '').trim();
-}
-
-function bedMatchesRequestedWard(bed, requestedWard) {
-  if (!requestedWard) return true;
-  return normalizeWardName(bed?.ward) === normalizeWardName(requestedWard);
-}
-
-function getPatientCandidates() {
-  const data = window.Store.get() || {};
-  const byUhid = new Map();
-
-  (data.pendingAdmissions || []).forEach((admission) => {
-    byUhid.set(admission.uhid, {
-      key: `pending-${admission.id}`,
-      type: 'pending',
-      assignable: true,
-      admissionId: admission.id,
-      patient: admission.patient,
-      uhid: admission.uhid,
-      dept: admission.dept,
-      status: 'Pending Admission',
-      meta: `Requested by ${admission.requestedBy || 'PRE'} • ${admission.priority || 'Normal'}`
-    });
-  });
-
-  (data.patients || []).forEach((patient) => {
-    if (byUhid.has(patient.uhid)) return;
-    const isDischarged = patient.status === 'Discharged' || patient.bed === 'Bed freed';
-    byUhid.set(patient.uhid, {
-      key: `patient-${patient.uhid}`,
-      type: 'patient',
-      assignable: false,
-      admissionId: null,
-      patient: patient.name,
-      uhid: patient.uhid,
-      dept: patient.dept,
-      status: isDischarged ? 'Already Discharged' : `${patient.status} • ${patient.bed}`,
-      meta: isDischarged ? 'Not assignable here. Create/approve a new admission first.' : 'Already assigned to a bed.'
-    });
-  });
-
-  return Array.from(byUhid.values()).sort((left, right) => {
-    if (left.assignable !== right.assignable) return left.assignable ? -1 : 1;
-    return left.patient.localeCompare(right.patient);
-  });
-}
-
-function getFilteredPatientCandidates() {
-  const query = assignPatientQuery.trim().toLowerCase();
-  const candidates = getPatientCandidates();
-  if (!query) return candidates;
-
-  return candidates.filter((candidate) => {
-    const haystack = [candidate.patient, candidate.uhid, candidate.dept, candidate.status, candidate.meta].join(' ').toLowerCase();
-    return haystack.includes(query);
-  });
-}
-
-function renderAssignPatientOptions() {
-  const dropdown = document.getElementById('assign-patient-dropdown');
-  if (!dropdown) return;
-
-  assignPatientOptions = getFilteredPatientCandidates();
-  if (selectedAssignPatient && !assignPatientOptions.some((candidate) => candidate.key === selectedAssignPatient.key)) {
-    selectedAssignPatient = null;
-  }
-  if (!assignPatientOptions.length) {
-    dropdown.innerHTML = '<div style="padding: 12px 14px; font-size: 13px; color: var(--text-secondary);">No patients match this search.</div>';
-    return;
-  }
-
-  dropdown.innerHTML = assignPatientOptions.map((candidate) => `
-    <button
-      type="button"
-      onclick="selectAssignPatient('${candidate.key}')"
-      ${candidate.assignable ? '' : 'disabled'}
-      style="width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid var(--border); background: ${selectedAssignPatient?.key === candidate.key ? 'var(--primary-light)' : '#fff'}; text-align: left; cursor: ${candidate.assignable ? 'pointer' : 'not-allowed'}; opacity: ${candidate.assignable ? '1' : '0.7'};"
-    >
-      <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
-        <div>
-          <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">${candidate.patient}</div>
-          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${candidate.uhid} • ${candidate.dept}</div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${candidate.meta}</div>
-        </div>
-        <div style="font-size: 11px; font-weight: 600; color: ${candidate.assignable ? 'var(--primary)' : 'var(--text-secondary)'};">${candidate.status}</div>
-      </div>
-    </button>
-  `).join('');
-}
-
-function renderFilters() {
-  const tabContainer = document.getElementById('ward-tabs');
-  if (tabContainer) {
-    tabContainer.innerHTML = tabs.map((tab) => `
-      <button class="tab-btn ${activeTab === tab.id ? 'active' : ''}" onclick="setActiveTab('${tab.id}')">
-        ${tab.label}
-      </button>
-    `).join('');
-  }
-
-  const pillContainer = document.getElementById('status-filters');
-  if (pillContainer) {
-    pillContainer.innerHTML = filters.map((filter) => `
-      <button class="pill-btn ${activeFilter === filter.id ? 'active' : ''}" onclick="setActiveFilter('${filter.id}')">
-        ${filter.label}
-      </button>
-    `).join('');
-  }
-}
-
-function getPatientIndex(data) {
-  const patientIndex = (data.patients || []).reduce((accumulator, patient) => {
-    accumulator[patient.bed] = patient;
-    return accumulator;
-  }, {});
-
-  // Second pass: resolve occupied beds that store a uhid in bed.patient
-  // but don't yet have a matching entry in the index (e.g. seed-data beds).
-  if (window.PatientResolver) {
-    (data.wards || []).forEach((ward) => {
-      ward.beds.forEach((bed) => {
-        if (
-          bed.status === "occupied" &&
-          typeof bed.patient === "string" &&
-          !patientIndex[bed.number]
-        ) {
-          // Try treating bed.patient as a uhid first.
-          const profile = window.PatientResolver.getProfile(bed.patient, data);
-          if (profile) {
-            patientIndex[bed.number] = profile;
-          }
-        }
-      });
-    });
-  }
-
-  return patientIndex;
-}
-
-function bedMatchesSearch(bed, linkedPatient) {
-  if (!bedSearchQuery) return true;
-  const haystack = [
-    bed.number,
-    bed.patient || '',
-    linkedPatient?.uhid || '',
-    linkedPatient?.name || '',
-    linkedPatient?.dept || ''
-  ].join(' ').toLowerCase();
-  return haystack.includes(bedSearchQuery);
-}
-
-function setActiveTab(id) { activeTab = id; renderPage(); }
-function setActiveFilter(id) { activeFilter = id; renderPage(); }
 window.setActiveTab = setActiveTab;
 window.setActiveFilter = setActiveFilter;
 
-function renderStats(data) {
-  let total = 0;
-  let available = 0;
-  let occupied = 0;
-  let maintenance = 0;
+function renderTabs() {
+  const container = document.getElementById('ward-tabs');
+  if (!container) return;
+  const tabs = [{ id: 'all', label: 'All Beds' }, ...(bedsData.wards || []).map((w) => ({ id: String(w.ward_id), label: w.ward_name }))];
+  container.innerHTML = tabs
+    .map((tab) => `<button class="tab-btn ${activeTab === tab.id ? 'active' : ''}" onclick="setActiveTab('${tab.id}')">${window.HOMHelpers.escapeHtml(tab.label)}</button>`)
+    .join('');
+}
 
-  (data.wards || []).forEach((ward) => {
-    total += ward.total;
-    available += ward.available;
-    occupied += ward.occupied;
-    maintenance += ward.beds.filter((bed) => bed.status === 'maintenance').length;
-  });
+function renderFilters() {
+  const container = document.getElementById('status-filters');
+  if (!container) return;
+  const filters = [
+    { id: 'all', label: 'All' },
+    { id: 'AVAILABLE', label: 'Available' },
+    { id: 'OCCUPIED', label: 'Occupied' },
+    { id: 'MAINTENANCE', label: 'Maintenance' },
+  ];
+  container.innerHTML = filters
+    .map((f) => `<button class="pill-btn ${activeFilter === f.id ? 'active' : ''}" onclick="setActiveFilter('${f.id}')">${f.label}</button>`)
+    .join('');
+}
+
+function renderStats() {
+  const beds = bedsData.beds || [];
+  const total = beds.length;
+  const available = beds.filter((b) => b.status === 'AVAILABLE').length;
+  const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;
+  const maintenance = beds.filter((b) => b.status === 'MAINTENANCE').length;
 
   document.getElementById('stats-container').innerHTML = `
     <div class="stat-card"><div class="stat-label">Total Beds</div><div class="stat-value" style="color: var(--text-primary);">${total}</div></div>
@@ -273,57 +98,59 @@ function renderStats(data) {
   `;
 }
 
-function getBedStyle(status) {
-  switch (status) {
-    case 'available': return { bg: '#F0FDF4', border: '#86EFAC', text: '#166534', label: 'Available' };
-    case 'occupied': return { bg: '#FEF2F2', border: '#FECACA', text: '#991B1B', label: 'Occupied' };
-    case 'maintenance': return { bg: '#F8FAFC', border: '#CBD5E1', text: '#475569', label: 'Maintenance' };
-    default: return { bg: '#ffffff', border: '#E2E8F0', text: '#1E293B', label: 'Unknown' };
-  }
+function patientForBed(bedId) {
+  const request = (bedsData.preRequests || []).find((r) => r.bed_id === bedId && ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED'].includes(r.status));
+  if (!request) return null;
+  const patient = (bedsData.patients || []).find((p) => p.patient_id === request.patient_id);
+  return patient ? { patient, request } : null;
 }
 
-function renderWards(data) {
+function bedMatchesSearch(bed, linked) {
+  if (!bedSearchQuery) return true;
+  const haystack = [bed.bed_number, linked?.patient.uhid || '', linked?.patient.name || ''].join(' ').toLowerCase();
+  return haystack.includes(bedSearchQuery);
+}
+
+function renderWards() {
   const container = document.getElementById('wards-container');
   if (!container) return;
 
-  const activeTabConfig = tabs.find((tab) => tab.id === activeTab) || tabs[0];
-  const patientIndex = getPatientIndex(data);
+  const wards = (bedsData.wards || []).filter((w) => activeTab === 'all' || String(w.ward_id) === activeTab);
   let html = '';
 
-  (data.wards || []).forEach((ward) => {
-    if (activeTabConfig.wardMatch !== 'all' && ward.name !== activeTabConfig.wardMatch) return;
+  wards.forEach((ward) => {
+    const wardBeds = (bedsData.beds || [])
+      .filter((b) => b.ward_id === ward.ward_id)
+      .filter((b) => activeFilter === 'all' || b.status === activeFilter)
+      .filter((b) => bedMatchesSearch(b, patientForBed(b.bed_id)));
 
-    const bedsToRender = ward.beds.filter((bed) => {
-      if (activeFilter !== 'all' && bed.status !== activeFilter) return false;
-      return bedMatchesSearch(bed, patientIndex[bed.number]);
-    });
+    if (!wardBeds.length) return;
 
-    if (!bedsToRender.length) return;
+    const occupied = (bedsData.beds || []).filter((b) => b.ward_id === ward.ward_id && b.status === 'OCCUPIED').length;
+    const available = (bedsData.beds || []).filter((b) => b.ward_id === ward.ward_id && b.status === 'AVAILABLE').length;
+    const total = (bedsData.beds || []).filter((b) => b.ward_id === ward.ward_id).length;
 
     html += `
       <div class="ward-section">
         <div class="ward-header">
           <div>
-            <h2 class="h2" style="font-size: 18px;">${ward.name}</h2>
-            <p class="body-text" style="font-size: 14px; margin-top: 4px;">
-              ${ward.total} beds | ${ward.occupied} Occupied | ${ward.available} Available
-            </p>
+            <h2 class="h2" style="font-size: 18px;">${window.HOMHelpers.escapeHtml(ward.ward_name)}</h2>
+            <p class="body-text" style="font-size: 14px; margin-top: 4px;">${total} beds | ${occupied} Occupied | ${available} Available</p>
           </div>
-          <button class="btn btn-outline btn-sm" style="border:none; color: var(--primary);">View Ward Details</button>
         </div>
         <div class="bed-grid">
     `;
 
-    bedsToRender.forEach((bed) => {
-      const style = getBedStyle(bed.status);
-      const linkedPatient = patientIndex[bed.number];
-      const subtitle = linkedPatient ? `${linkedPatient.name} (${linkedPatient.uhid})` : (bed.patient || style.label);
-      const onClickAction = bed.status === 'available' ? `openAssignModal('${bed.number}')` : `openDetailModal('${bed.number}')`;
+    wardBeds.forEach((bed) => {
+      const style = window.HOMHelpers.bedStyle(bed.status);
+      const linked = patientForBed(bed.bed_id);
+      const subtitle = linked ? `${linked.patient.name} (${linked.patient.uhid})` : style.label;
+      const onClick = bed.status === 'AVAILABLE' ? `openAssignModal(${bed.bed_id})` : `openDetailModal(${bed.bed_id})`;
 
       html += `
-        <button class="bed-card" style="background-color: ${style.bg}; border-color: ${style.border}; color: ${style.text};" onclick="${onClickAction}">
-          <div class="bed-card-title">${bed.number}</div>
-          <div class="bed-card-subtitle">${subtitle}</div>
+        <button class="bed-card" style="background-color: ${style.bg}; border-color: ${style.border}; color: ${style.text};" onclick="${onClick}">
+          <div class="bed-card-title">${window.HOMHelpers.escapeHtml(bed.bed_number)}</div>
+          <div class="bed-card-subtitle">${window.HOMHelpers.escapeHtml(subtitle)}</div>
         </button>
       `;
     });
@@ -334,450 +161,105 @@ function renderWards(data) {
   container.innerHTML = html || `<div class="ward-section"><p style="margin: 0; color: var(--text-secondary);">No beds match the current filters.</p></div>`;
 }
 
-function getAvailableBeds() {
-  const data = window.Store.get() || {};
-  const availableBeds = [];
-  (data.wards || []).forEach((ward) => {
-    ward.beds.filter((bed) => bed.status === 'available').forEach((bed) => {
-      availableBeds.push({ number: bed.number, ward: ward.name });
-    });
-  });
-  return availableBeds;
-}
+// closeModals() now lives in hom-helpers.js (window.closeModals) — see that
+// file for why removing this file's duplicate copy is safe: every
+// open*Modal() below re-initializes currentDetailBedId/selectedRequestId/
+// pendingBedTarget itself before showing a modal, so the extra resets this
+// duplicate used to do on close were already redundant.
 
-function getMatchingPendingAdmission(query) {
-  if (!query) return null;
-  const normalized = query.trim().toLowerCase();
-  const data = window.Store.get() || {};
-  return (data.pendingAdmissions || []).find((admission) => {
-    const haystack = [admission.uhid, admission.patient, admission.dept].join(' ').toLowerCase();
-    return haystack.includes(normalized);
-  }) || null;
-}
+window.openAssignModal = function (bedId) {
+  pendingBedTarget = (bedsData.beds || []).find((b) => b.bed_id === bedId);
+  if (!pendingBedTarget) return;
+  selectedRequestId = null;
 
-function getMatchingActivePatient(query) {
-  if (!query) return null;
-  const normalized = query.trim().toLowerCase();
-  const data = window.Store.get() || {};
-  return (data.patients || []).find((patient) => {
-    const haystack = [patient.uhid, patient.name, patient.bed].join(' ').toLowerCase();
-    return haystack.includes(normalized) && patient.status !== 'Discharged';
-  }) || null;
-}
+  const patientsById = {};
+  (bedsData.patients || []).forEach((p) => (patientsById[p.patient_id] = p));
+  const preRequestsById = {};
+  (bedsData.preRequests || []).forEach((r) => (preRequestsById[r.pre_request_id] = r));
 
-function closeModals() {
-  document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
-  selectedAvailableBed = null;
-  currentDetailBed = null;
-  currentDetailPatient = null;
-  selectedAssignPatient = null;
-  assignPatientQuery = '';
-  const assignInput = document.getElementById('assign-patient-search');
-  if (assignInput) assignInput.value = '';
-  toggleAssignPatientDropdown(false);
-  setAssignError('');
-  setAssignHint('');
-}
-window.closeModals = closeModals;
+  const compatible = (bedsData.bedRequests || []).filter(
+    (r) => r.status === 'PENDING' && (!r.ward_id || r.ward_id === pendingBedTarget.ward_id),
+  );
 
-function renderAvailableBeds(preselectedBed) {
-  const beds = getAvailableBeds();
   const container = document.getElementById('modal-available-beds');
   if (!container) return;
 
-  if (preselectedBed && !beds.some((bed) => bed.number === preselectedBed)) {
-    selectedAvailableBed = null;
-  }
+  container.innerHTML = compatible.length
+    ? compatible
+        .map((r) => {
+          const patient = patientsById[r.patient_id] || {};
+          const dept = r.pre_request_id ? preRequestsById[r.pre_request_id]?.department : null;
+          return `
+        <button type="button" class="modal-bed-btn" onclick="selectPendingRequest(${r.bed_request_id})" id="modal-req-${r.bed_request_id}" style="padding: 16px; border-radius: 8px; border: 2px solid var(--border); background: white; text-align: left; cursor: pointer; grid-column: 1 / -1;">
+          <div style="font-weight: 600; font-size: 14px;">${window.HOMHelpers.escapeHtml(patient.name || '-')}</div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${window.HOMHelpers.escapeHtml(patient.uhid || '-')} • ${window.HOMHelpers.escapeHtml(dept || 'General')} • ${window.HOMHelpers.escapeHtml(r.priority || 'NORMAL')}</div>
+        </button>
+      `;
+        })
+        .join('')
+    : `<p style="grid-column: 1 / -1; color: var(--text-secondary); margin: 0;">No pending bed requests for this ward.</p>`;
 
-  container.innerHTML = beds.map((bed) => `
-    <button class="modal-bed-btn" onclick="selectAvailableBed('${bed.number}')" id="modal-bed-${bed.number}" style="padding: 16px; border-radius: 8px; border: 2px solid var(--border); background: white; text-align: left; cursor: pointer; transition: all 0.2s;">
-      <div style="font-weight: 600; font-size: 14px;">${bed.number}</div>
-      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${bed.ward}</div>
-    </button>
-  `).join('') || '<p style="grid-column: 1 / -1; color: var(--text-secondary); margin: 0;">No available beds found.</p>';
-
-  if (preselectedBed) selectAvailableBed(preselectedBed);
-}
-
-function openAssignModal(preselectedBed = null) {
-  assignPatientQuery = '';
-  selectedAssignPatient = null;
-  const input = document.getElementById('assign-patient-search');
-  if (input) input.value = '';
-  renderAvailableBeds(preselectedBed);
-  renderAssignPatientOptions();
-  toggleAssignPatientDropdown(true);
-  setAssignHint('Select a patient from the live list below. Pending admissions are assignable.');
-  setAssignError('');
+  document.getElementById('assign-bed-error').style.display = 'none';
+  document.getElementById('assign-patient-hint').textContent = `Assigning bed ${pendingBedTarget.bed_number}. Select a pending request below.`;
   document.getElementById('modal-assign-bed').classList.add('active');
-}
-window.openAssignModal = openAssignModal;
-
-window.handleAssignPatientSearch = function (value) {
-  assignPatientQuery = value.trim();
-  selectedAssignPatient = null;
-  setAssignError('');
-  renderAssignPatientOptions();
-  toggleAssignPatientDropdown(true);
-
-  const pendingAdmission = getMatchingPendingAdmission(assignPatientQuery);
-  const activePatient = getMatchingActivePatient(assignPatientQuery);
-
-  if (!assignPatientQuery) {
-    setAssignHint('Showing all patients. Pending admissions are assignable.');
-    return;
-  }
-  if (pendingAdmission) {
-    setAssignHint(`Pending admission matched: ${pendingAdmission.patient} (${pendingAdmission.uhid})`);
-    return;
-  }
-  if (activePatient) {
-    setAssignHint(`${activePatient.name} is already occupying ${activePatient.bed}.`);
-    return;
-  }
-
-  if (assignPatientQuery.length < 3) {
-    setAssignHint('Enter at least 3 characters to search for a patient.');
-  } else {
-    setAssignHint('No pending admission matched. A manual allocation will use the typed patient name only.');
-  }
 };
 
-window.selectAssignPatient = function (candidateKey) {
-  const candidate = assignPatientOptions.find((item) => item.key === candidateKey);
-  if (!candidate) return;
-
-  selectedAssignPatient = candidate;
-  assignPatientQuery = candidate.uhid;
-
-  const input = document.getElementById('assign-patient-search');
-  if (input) input.value = `${candidate.patient} (${candidate.uhid})`;
-
-  if (candidate.assignable) {
-    setAssignHint(`Selected ${candidate.patient} (${candidate.uhid}) for admission.`);
-    setAssignError('');
-  } else {
-    setAssignHint(candidate.meta);
-    setAssignError(`${candidate.patient} cannot be assigned from this form right now.`);
-  }
-
-  renderAssignPatientOptions();
-  toggleAssignPatientDropdown(candidate.assignable ? false : true);
-};
-
-window.selectAvailableBed = function (bedNumber) {
-  selectedAvailableBed = bedNumber;
-  document.querySelectorAll('.modal-bed-btn').forEach((button) => {
-    button.style.borderColor = 'var(--border)';
-    button.style.backgroundColor = 'white';
+window.selectPendingRequest = function (bedRequestId) {
+  selectedRequestId = bedRequestId;
+  document.querySelectorAll('.modal-bed-btn').forEach((btn) => {
+    btn.style.borderColor = 'var(--border)';
+    btn.style.backgroundColor = 'white';
   });
-
-  const selected = document.getElementById(`modal-bed-${bedNumber}`);
+  const selected = document.getElementById(`modal-req-${bedRequestId}`);
   if (selected) {
     selected.style.borderColor = 'var(--primary)';
     selected.style.backgroundColor = 'var(--primary-light)';
   }
-
-  setAssignError('');
 };
 
-function confirmBedAllocation() {
-  const patientInput = document.getElementById('assign-patient-search');
-  const patientQuery = patientInput ? patientInput.value.trim() : '';
-
-  if (!patientQuery) {
-    setAssignError('Enter a patient UHID or name before confirming admission.');
-    return;
-  }
-  if (patientQuery.length < 3) {
-    setAssignError('Patient search must be at least 3 characters long.');
-    return;
-  }
-  if (!selectedAvailableBed) {
-    setAssignError('Select an available bed before confirming admission.');
+window.confirmBedAllocation = async function () {
+  if (!pendingBedTarget) return;
+  if (!selectedRequestId) {
+    const el = document.getElementById('assign-bed-error');
+    el.textContent = 'Select a pending bed request before confirming.';
+    el.style.display = 'block';
     return;
   }
 
-  if (selectedAssignPatient && !selectedAssignPatient.assignable) {
-    setAssignError(`${selectedAssignPatient.patient} is not assignable from this form.`);
+  try {
+    await window.ApiClient.wards.bedRequests.allocate(selectedRequestId, pendingBedTarget.bed_id);
+  } catch (err) {
+    const el = document.getElementById('assign-bed-error');
+    el.textContent = err.message || 'Unable to allocate this bed.';
+    el.style.display = 'block';
     return;
-  }
-
-  const pendingAdmission = selectedAssignPatient?.admissionId
-    ? (window.Store.get().pendingAdmissions || []).find((item) => item.id === selectedAssignPatient.admissionId)
-    : getMatchingPendingAdmission(patientQuery);
-
-  const activePatient = getMatchingActivePatient(patientQuery);
-  if (!pendingAdmission && activePatient) {
-    setAssignError(`${activePatient.name} is already assigned to ${activePatient.bed}.`);
-    return;
-  }
-
-  setAssignError('');
-
-  if (pendingAdmission) {
-    window.Store.assignBed(pendingAdmission.id, selectedAvailableBed);
-    closeModals();
-    return;
-  }
-
-  setAssignError('Choose a valid pending admission from the patient list before confirming admission.');
-}
-window.confirmBedAllocation = confirmBedAllocation;
-
-function getPatientCandidates() {
-  const data = window.Store.get() || {};
-  const byUhid = new Map();
-
-  (data.pendingAdmissions || []).forEach((admission) => {
-    const requestedWard = getAdmissionRequestedWard(admission);
-    byUhid.set(admission.uhid, {
-      key: `pending-${admission.id}`,
-      type: 'pending',
-      assignable: true,
-      admissionId: admission.id,
-      patient: admission.patient,
-      uhid: admission.uhid,
-      dept: admission.dept,
-      requestedWard,
-      status: 'Pending Admission',
-      meta: `Requested by ${admission.requestedBy || 'PRE'} â€¢ ${admission.priority || 'Normal'}${requestedWard ? ` â€¢ ${requestedWard}` : ''}`
-    });
-  });
-
-  (data.patients || []).forEach((patient) => {
-    if (byUhid.has(patient.uhid)) return;
-    const isDischarged = patient.status === 'Discharged' || patient.bed === 'Bed freed';
-    byUhid.set(patient.uhid, {
-      key: `patient-${patient.uhid}`,
-      type: 'patient',
-      assignable: false,
-      admissionId: null,
-      patient: patient.name,
-      uhid: patient.uhid,
-      dept: patient.dept,
-      requestedWard: '',
-      status: isDischarged ? 'Already Discharged' : `${patient.status} â€¢ ${patient.bed}`,
-      meta: isDischarged ? 'Not assignable here. Create/approve a new admission first.' : 'Already assigned to a bed.'
-    });
-  });
-
-  return Array.from(byUhid.values()).sort((left, right) => {
-    if (left.assignable !== right.assignable) return left.assignable ? -1 : 1;
-    return left.patient.localeCompare(right.patient);
-  });
-}
-
-function closeModals() {
-  document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
-  selectedAvailableBed = null;
-  currentDetailBed = null;
-  currentDetailPatient = null;
-  selectedAssignPatient = null;
-  currentRequestedWard = '';
-  assignPatientQuery = '';
-  const assignInput = document.getElementById('assign-patient-search');
-  if (assignInput) assignInput.value = '';
-  toggleAssignPatientDropdown(false);
-  setAssignError('');
-  setAssignHint('');
-}
-window.closeModals = closeModals;
-
-function renderAvailableBeds(preselectedBed) {
-  const beds = getAvailableBeds().filter((bed) => bedMatchesRequestedWard(bed, currentRequestedWard));
-  const container = document.getElementById('modal-available-beds');
-  if (!container) return;
-
-  if (preselectedBed && !beds.some((bed) => bed.number === preselectedBed)) {
-    selectedAvailableBed = null;
-  }
-
-  container.innerHTML = beds.map((bed) => `
-    <button class="modal-bed-btn" onclick="selectAvailableBed('${bed.number}')" id="modal-bed-${bed.number}" style="padding: 16px; border-radius: 8px; border: 2px solid var(--border); background: white; text-align: left; cursor: pointer; transition: all 0.2s;">
-      <div style="font-weight: 600; font-size: 14px;">${bed.number}</div>
-      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${bed.ward}</div>
-    </button>
-  `).join('') || '<p style="grid-column: 1 / -1; color: var(--text-secondary); margin: 0;">No available beds found for this ward request.</p>';
-
-  if (preselectedBed) selectAvailableBed(preselectedBed);
-}
-
-function openAssignModal(preselectedBed = null) {
-  assignPatientQuery = '';
-  selectedAssignPatient = null;
-  currentRequestedWard = '';
-  const input = document.getElementById('assign-patient-search');
-  if (input) input.value = '';
-  renderAvailableBeds(preselectedBed);
-  renderAssignPatientOptions();
-  toggleAssignPatientDropdown(true);
-  setAssignHint('Select a patient from the live list below. Pending admissions are assignable.');
-  setAssignError('');
-  document.getElementById('modal-assign-bed').classList.add('active');
-}
-window.openAssignModal = openAssignModal;
-
-window.handleAssignPatientSearch = function (value) {
-  assignPatientQuery = value.trim();
-  selectedAssignPatient = null;
-  currentRequestedWard = '';
-  setAssignError('');
-  renderAssignPatientOptions();
-  toggleAssignPatientDropdown(true);
-
-  const pendingAdmission = getMatchingPendingAdmission(assignPatientQuery);
-  const activePatient = getMatchingActivePatient(assignPatientQuery);
-
-  if (!assignPatientQuery) {
-    setAssignHint('Showing all patients. Pending admissions are assignable.');
-    renderAvailableBeds(selectedAvailableBed);
-    return;
-  }
-  if (pendingAdmission) {
-    currentRequestedWard = getAdmissionRequestedWard(pendingAdmission);
-    setAssignHint(currentRequestedWard
-      ? `Pending admission matched: ${pendingAdmission.patient} (${pendingAdmission.uhid}) â€¢ showing ${currentRequestedWard} beds`
-      : `Pending admission matched: ${pendingAdmission.patient} (${pendingAdmission.uhid})`);
-    renderAvailableBeds(selectedAvailableBed);
-    return;
-  }
-  if (activePatient) {
-    setAssignHint(`${activePatient.name} is already occupying ${activePatient.bed}.`);
-    renderAvailableBeds(selectedAvailableBed);
-    return;
-  }
-
-  if (assignPatientQuery.length < 3) {
-    setAssignHint('Enter at least 3 characters to search for a patient.');
-  } else {
-    setAssignHint('No pending admission matched. Choose a patient from the list to filter beds by requested ward.');
-  }
-  renderAvailableBeds(selectedAvailableBed);
-};
-
-window.selectAssignPatient = function (candidateKey) {
-  const candidate = assignPatientOptions.find((item) => item.key === candidateKey);
-  if (!candidate) return;
-
-  selectedAssignPatient = candidate;
-  assignPatientQuery = candidate.uhid;
-  currentRequestedWard = candidate.requestedWard || '';
-
-  const input = document.getElementById('assign-patient-search');
-  if (input) input.value = `${candidate.patient} (${candidate.uhid})`;
-
-  if (candidate.assignable) {
-    setAssignHint(currentRequestedWard
-      ? `Selected ${candidate.patient} (${candidate.uhid}) for admission. Showing only ${currentRequestedWard} beds.`
-      : `Selected ${candidate.patient} (${candidate.uhid}) for admission.`);
-    setAssignError('');
-  } else {
-    setAssignHint(candidate.meta);
-    setAssignError(`${candidate.patient} cannot be assigned from this form right now.`);
-  }
-
-  renderAvailableBeds(selectedAvailableBed);
-  renderAssignPatientOptions();
-  toggleAssignPatientDropdown(candidate.assignable ? false : true);
-};
-
-function confirmBedAllocation() {
-  const patientInput = document.getElementById('assign-patient-search');
-  const patientQuery = patientInput ? patientInput.value.trim() : '';
-
-  if (!patientQuery) {
-    setAssignError('Enter a patient UHID or name before confirming admission.');
-    return;
-  }
-  if (patientQuery.length < 3) {
-    setAssignError('Patient search must be at least 3 characters long.');
-    return;
-  }
-  if (!selectedAvailableBed) {
-    setAssignError('Select an available bed before confirming admission.');
-    return;
-  }
-
-  if (selectedAssignPatient && !selectedAssignPatient.assignable) {
-    setAssignError(`${selectedAssignPatient.patient} is not assignable from this form.`);
-    return;
-  }
-
-  const pendingAdmission = selectedAssignPatient?.admissionId
-    ? (window.Store.get().pendingAdmissions || []).find((item) => item.id === selectedAssignPatient.admissionId)
-    : getMatchingPendingAdmission(patientQuery);
-
-  const activePatient = getMatchingActivePatient(patientQuery);
-  if (!pendingAdmission && activePatient) {
-    setAssignError(`${activePatient.name} is already assigned to ${activePatient.bed}.`);
-    return;
-  }
-
-  const requestedWard = getAdmissionRequestedWard(pendingAdmission);
-  const selectedBed = getAvailableBeds().find((bed) => bed.number === selectedAvailableBed);
-  if (pendingAdmission && selectedBed && !bedMatchesRequestedWard(selectedBed, requestedWard)) {
-    currentRequestedWard = requestedWard;
-    renderAvailableBeds(selectedAvailableBed);
-    setAssignError(`This request needs ${requestedWard}. Please choose a bed from that ward.`);
-    return;
-  }
-
-  setAssignError('');
-
-  if (pendingAdmission) {
-    window.Store.assignBed(pendingAdmission.id, selectedAvailableBed);
-    closeModals();
-    return;
-  }
-
-  setAssignError('Choose a valid pending admission from the patient list before confirming admission.');
-}
-window.confirmBedAllocation = confirmBedAllocation;
-
-function openDetailModal(bedNumber) {
-  const data = window.Store.get() || {};
-  let targetBed = null;
-  let targetWardName = '';
-
-  (data.wards || []).forEach((ward) => {
-    const bed = ward.beds.find((item) => item.number === bedNumber);
-    if (bed) {
-      targetBed = bed;
-      targetWardName = ward.name;
-    }
-  });
-
-  if (!targetBed) return;
-  currentDetailBed = targetBed;
-  currentDetailPatient = (data.patients || []).find((patient) => patient.bed === bedNumber) || {
-    uhid: 'FED-UNKNOWN',
-    name: targetBed.patient || 'Unknown Patient',
-    dept: 'General',
-    physician: 'Assigned Doctor'
-  };
-
-  document.getElementById('detail-title').innerText = `Bed Details - ${targetBed.number}`;
-  document.getElementById('detail-badge').innerHTML = window.UI.Badge({ variant: 'error', children: 'Occupied' });
-  document.getElementById('detail-patient').innerText = currentDetailPatient.name;
-  document.getElementById('detail-uhid').innerText = currentDetailPatient.uhid;
-  document.getElementById('detail-dept').innerText = currentDetailPatient.dept;
-  document.getElementById('detail-ward').innerText = targetWardName;
-  document.getElementById('detail-physician').innerText = currentDetailPatient.physician;
-  document.getElementById('modal-bed-detail').classList.add('active');
-}
-window.openDetailModal = openDetailModal;
-
-function initiateDischargeFromModal() {
-  if (!currentDetailBed) return;
-
-  if (currentDetailPatient && currentDetailPatient.uhid !== 'FED-UNKNOWN') {
-    window.Store.dischargePatient(currentDetailPatient.uhid);
-  } else {
-    window.Store.updateBedStatus(currentDetailBed.number, 'available', null);
-    window.Store.logActivity('success', `Bed ${currentDetailBed.number} manually freed`);
   }
 
   closeModals();
-}
-window.initiateDischargeFromModal = initiateDischargeFromModal;
+  await loadAndRender();
+};
+
+window.openDetailModal = function (bedId) {
+  const bed = (bedsData.beds || []).find((b) => b.bed_id === bedId);
+  if (!bed) return;
+  const ward = (bedsData.wards || []).find((w) => w.ward_id === bed.ward_id);
+  const linked = patientForBed(bedId);
+
+  currentDetailBedId = bedId;
+
+  document.getElementById('detail-title').innerText = `Bed Details - ${bed.bed_number}`;
+  document.getElementById('detail-badge').innerHTML = window.UI.Badge({ variant: bed.status === 'OCCUPIED' ? 'error' : 'neutral', children: window.HOMHelpers.bedStyle(bed.status).label });
+  document.getElementById('detail-patient').innerText = linked ? linked.patient.name : 'Not linked to an active patient';
+  document.getElementById('detail-uhid').innerText = linked ? linked.patient.uhid : '-';
+  document.getElementById('detail-dept').innerText = linked ? linked.request.department || '-' : '-';
+  document.getElementById('detail-ward').innerText = ward ? ward.ward_name : '-';
+  document.getElementById('detail-physician').innerText = linked && linked.request.doctor_id ? `Doctor #${linked.request.doctor_id}` : '-';
+  const since = document.getElementById('detail-since');
+  if (since) since.innerText = linked ? `Since: ${window.HOMHelpers.formatDate(linked.request.decided_at || linked.request.updated_at)}` : '';
+  document.getElementById('modal-bed-detail').classList.add('active');
+};
+
+window.viewInPatientFlow = function () {
+  if (!currentDetailBedId) return;
+  window.location.href = 'screen-03-patient-flow.html';
+};

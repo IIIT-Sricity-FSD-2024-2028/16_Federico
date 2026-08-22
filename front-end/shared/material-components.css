@@ -1,0 +1,373 @@
+/**
+ * shared/material-components.css — Material You component library.
+ *
+ * Reusable `.md-*` classes built on the tokens in design-tokens.css.
+ * Load AFTER design-tokens.css and BEFORE each app's own CSS (which may
+ * still define app-specific layout classes, but should build buttons/
+ * cards/inputs/badges/nav from these).
+ */
+
+/* =========================================================
+   Buttons — pill-shaped, state-layer interaction model
+   ========================================================= */
+.md-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-full);
+  height: 40px;
+  padding: 0 24px;
+  font: var(--type-label-medium);
+  letter-spacing: var(--tracking-button);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+              box-shadow var(--duration-base) var(--ease-standard),
+              transform var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard),
+              opacity var(--duration-fast) var(--ease-standard);
+}
+.md-btn:active { transform: scale(0.95); }
+.md-btn:disabled, .md-btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.md-btn-sm { height: 32px; padding: 0 16px; }
+.md-btn-lg { height: 48px; padding: 0 32px; font-size: 1rem; }
+.md-btn-icon-only { width: 40px; height: 40px; padding: 0; border-radius: var(--radius-full); }
+
+.md-btn-filled { background: var(--md-primary); color: var(--md-on-primary); }
+.md-btn-filled:hover { background: color-mix(in srgb, var(--md-primary) 90%, black); box-shadow: var(--shadow-2); }
+.md-btn-filled:active { background: color-mix(in srgb, var(--md-primary) 80%, black); }
+
+.md-btn-tonal { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.md-btn-tonal:hover { background: color-mix(in srgb, var(--md-secondary-container) 90%, black); }
+
+.md-btn-danger { background: var(--md-error); color: var(--md-on-error); }
+.md-btn-danger:hover { background: color-mix(in srgb, var(--md-error) 88%, black); box-shadow: var(--shadow-2); }
+
+.md-btn-outlined { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); }
+.md-btn-outlined:hover { background: color-mix(in srgb, var(--md-primary) 8%, transparent); }
+
+.md-btn-text { background: transparent; color: var(--md-primary); padding: 0 12px; }
+.md-btn-text:hover { background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
+
+.md-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+  box-shadow: var(--shadow-2);
+  cursor: pointer;
+  transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+.md-fab:hover { box-shadow: var(--shadow-4); }
+.md-fab:active { transform: scale(0.95); }
+
+/* =========================================================
+   Cards
+   ========================================================= */
+.md-card {
+  background: var(--md-surface-container);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  padding: 24px;
+  transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
+}
+.md-card-interactive { cursor: pointer; }
+.md-card-interactive:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.md-card-flat { background: var(--md-surface-container-low); box-shadow: none; }
+.md-card-outlined { background: var(--md-surface); border: 1px solid var(--md-outline-variant); box-shadow: none; }
+
+/* =========================================================
+   Inputs — MD3 filled text field
+   ========================================================= */
+.md-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.md-field label {
+  font: var(--type-label-medium);
+  color: var(--md-on-surface-variant);
+}
+.md-field input,
+.md-field select,
+.md-field textarea {
+  height: 56px;
+  padding: 0 16px;
+  border: none;
+  border-bottom: 2px solid var(--md-outline);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--md-surface-container-low);
+  color: var(--md-on-background);
+  font: var(--type-body-medium);
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+.md-field textarea { height: auto; min-height: 96px; padding: 14px 16px; resize: vertical; }
+.md-field input:focus, .md-field select:focus, .md-field textarea:focus {
+  outline: none;
+  border-bottom-color: var(--md-primary);
+  background: var(--md-surface-container);
+}
+.md-field input::placeholder, .md-field textarea::placeholder { color: var(--md-on-surface-variant); opacity: 0.7; }
+.md-field-error input, .md-field-error select, .md-field-error textarea { border-bottom-color: var(--md-error); }
+.md-field-hint { font-size: 0.75rem; color: var(--md-on-surface-variant); }
+.md-field-error-text { font-size: 0.75rem; color: var(--md-error); }
+
+/* =========================================================
+   Chips / status badges — desaturated tonal, not decorative
+   ========================================================= */
+.md-chip, .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  white-space: nowrap;
+}
+.md-chip-success, .badge-success { background: var(--status-success-bg); color: var(--status-success-fg); }
+.md-chip-warning, .badge-warning { background: var(--status-warning-bg); color: var(--status-warning-fg); }
+.md-chip-error, .badge-error { background: var(--status-error-bg); color: var(--status-error-fg); }
+.md-chip-info, .badge-info { background: var(--status-info-bg); color: var(--status-info-fg); }
+.md-chip-neutral, .badge-neutral { background: var(--status-neutral-bg); color: var(--status-neutral-fg); }
+
+/* =========================================================
+   Navigation — top app bar + side nav rail
+   ========================================================= */
+.md-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  /* Liquid glass — floating chrome over scrolling content. */
+  background: color-mix(in srgb, var(--md-surface) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-bottom: 1px solid color-mix(in srgb, var(--md-on-background) 8%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, white 40%, transparent) inset;
+}
+.md-topbar .md-brand { display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 1.125rem; }
+.md-topbar .md-brand-mark {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+}
+
+.md-nav-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 240px;
+  padding: 16px 12px;
+  background: var(--md-surface-container-low);
+  border-right: 1px solid var(--md-outline-variant);
+  min-height: 100vh;
+}
+.md-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-full);
+  color: var(--md-on-surface-variant);
+  text-decoration: none;
+  font: var(--type-label-medium);
+  transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+.md-nav-item:hover { background: color-mix(in srgb, var(--md-primary) 8%, transparent); color: var(--md-on-background); }
+.md-nav-item.is-active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 600; }
+
+/* =========================================================
+   Tables
+   ========================================================= */
+.md-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.md-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font: var(--type-label-small);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-on-surface-variant);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+.md-table td { padding: 14px 16px; border-bottom: 1px solid var(--md-outline-variant); }
+.md-table tbody tr { transition: background var(--duration-fast) var(--ease-standard); }
+.md-table tbody tr:hover { background: var(--md-surface-container-low); }
+
+/* =========================================================
+   Tabs
+   ========================================================= */
+.md-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--md-outline-variant); }
+.md-tab {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  font: var(--type-label-medium);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.md-tab:hover { color: var(--md-on-background); }
+.md-tab.is-active { color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight: 600; }
+
+/* =========================================================
+   Empty / loading states
+   ========================================================= */
+.md-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 24px;
+  color: var(--md-on-surface-variant);
+  text-align: center;
+}
+
+/* =========================================================
+   Section / container utilities
+   ========================================================= */
+.md-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.md-section { padding: 48px 0; }
+.md-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xxl);
+  background: var(--md-surface-container);
+  padding: 64px 48px;
+}
+@media (max-width: 768px) {
+  .md-hero { border-radius: var(--radius-lg); padding: 32px 20px; }
+  .md-nav-rail { display: none; }
+}
+
+/* =========================================================
+   Liquid glass — for chrome that floats OVER other content
+   (topbars, dialogs, cards sitting on hero blur shapes), never
+   for primary content surfaces (those stay MD3 tonal per
+   design.txt). Reserved use, not a replacement for .md-card.
+   ========================================================= */
+.md-glass {
+  position: relative;
+  background: color-mix(in srgb, var(--md-surface) 62%, transparent);
+  backdrop-filter: blur(20px) saturate(1.7);
+  -webkit-backdrop-filter: blur(20px) saturate(1.7);
+  border: 1px solid color-mix(in srgb, var(--md-on-background) 8%, transparent);
+  box-shadow:
+    0 12px 40px rgba(28, 27, 31, 0.14),
+    inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+  isolation: isolate;
+  overflow: hidden;
+}
+/* Signature liquid-glass sheen — a soft diagonal highlight suggesting
+   refracted light across the surface, not a flat tint. */
+.md-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, color-mix(in srgb, white 30%, transparent) 0%, transparent 45%);
+  pointer-events: none;
+}
+.md-glass-strong {
+  background: color-mix(in srgb, var(--md-surface) 78%, transparent);
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+}
+.md-glass-subtle {
+  background: color-mix(in srgb, var(--md-surface) 40%, transparent);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  box-shadow: 0 8px 28px rgba(28, 27, 31, 0.10);
+}
+/* For glass sitting on a dark/colored background (e.g. the Platform login
+   hero) rather than the light app background. */
+.md-glass-on-dark {
+  background: color-mix(in srgb, white 14%, transparent);
+  border-color: color-mix(in srgb, white 18%, transparent);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 color-mix(in srgb, white 30%, transparent);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  /* Graceful fallback for browsers without backdrop-filter — a solid
+     tonal surface instead of a see-through one, never a broken/invisible one. */
+  .md-glass, .md-glass-strong, .md-glass-subtle { background: var(--md-surface-container); }
+  .md-glass-on-dark { background: color-mix(in srgb, black 30%, var(--md-surface-container)); }
+}
+
+/* =========================================================
+   Native <dialog> — liquid-glass surface + emphasized-decelerate
+   motion, matching shared/ui-feedback.css's .md-dialog. Use for any
+   form/detail dialog built on the real <dialog> element (showModal()/
+   close()) rather than the scrim-div pattern ui-feedback.js uses for
+   simple alert/confirm/toast — e.g. multi-field forms, tabbed detail
+   panels. Originally built for the Platform portal, promoted here so
+   every app can reuse it.
+   ========================================================= */
+.md-native-dialog {
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 0;
+  background: color-mix(in srgb, var(--md-surface-container-high, var(--md-surface-container)) 88%, transparent);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid color-mix(in srgb, white 30%, transparent);
+  box-shadow: var(--shadow-4), inset 0 1px 0 color-mix(in srgb, white 35%, transparent);
+  width: min(480px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+
+  /* Smooth open/close for native <dialog> — progressive enhancement via
+     @starting-style + allow-discrete; browsers without support just show/
+     hide the dialog instantly (identical to the prior behavior), never broken. */
+  opacity: 0;
+  transform: scale(0.94) translateY(12px);
+  transition: opacity var(--duration-emphasis) var(--ease-emphasized),
+              transform var(--duration-emphasis) var(--ease-emphasized),
+              overlay var(--duration-emphasis) var(--ease-emphasized) allow-discrete,
+              display var(--duration-emphasis) var(--ease-emphasized) allow-discrete;
+}
+.md-native-dialog[open] {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+@starting-style {
+  .md-native-dialog[open] {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+}
+.md-native-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity var(--duration-emphasis) var(--ease-emphasized) allow-discrete;
+}
+.md-native-dialog[open]::backdrop { opacity: 1; }
+@starting-style {
+  .md-native-dialog[open]::backdrop { opacity: 0; }
+}
+.md-native-dialog-wide { width: min(720px, calc(100vw - 48px)); }
+.dialog-form { padding: 28px; overflow-y: auto; max-height: calc(100vh - 112px); }
+.dialog-form .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }

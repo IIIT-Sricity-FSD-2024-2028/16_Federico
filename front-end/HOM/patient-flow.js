@@ -1,416 +1,375 @@
 /**
- * patient-flow.js
- * Handles data fetching, UI rendering, filtering, export, and discharge validation.
+ * patient-flow.js — Phase 3 rewrite.
+ *
+ * "Admitted patients" is derived entirely from preRequests whose status
+ * places them in the admission lifecycle (ADMITTED / DISCHARGE_REQUESTED
+ * / DISCHARGE_APPROVED / DISCHARGED) — the same source of truth PRE's own
+ * pages read, joined with patients/doctors/beds. There is no separate
+ * "patients" list with its own status field to fall out of sync with the
+ * pre-request state machine.
+ *
+ * Discharge itself is PRE-initiated (ADMITTED -> DISCHARGE_REQUESTED) and
+ * HOM-approved (DISCHARGE_REQUESTED -> DISCHARGE_APPROVED) — this page's
+ * "Approve Discharge" action is the HOM half of that handshake, not a
+ * unilateral HOM-only discharge button.
  */
 
-document.addEventListener("DOMContentLoaded", () => {
-    try {
-        const currentData = window.Store.get();
-        if (!currentData || !currentData.patients) window.Store.reset();
-    } catch (e) {
-        console.error("Storage Check Failed:", e);
-    }
-
-    bindControls();
-    renderPage();
-    window.addEventListener('storeUpdated', renderPage);
+document.addEventListener('DOMContentLoaded', async () => {
+  bindControls();
+  await loadAndRender();
 });
 
-let currentSelectedPatient = null;
-
-function nextGeneratedId(namespace) {
-    if (window.IDGenerator && typeof window.IDGenerator.nextId === "function") return window.IDGenerator.nextId(namespace);
-    return `${namespace}-fallback`;
-}
-let currentSelectedLedger = null;
-let patientFlowFilters = {
-    search: '',
-    department: '',
-    status: '',
-    dateRange: ''
-};
+let flowData = {};
+let currentSelectedRequest = null;
+let flowFilters = { search: '', department: '', status: '', dateRange: '' };
 
 function bindControls() {
-    const searchIds = ['patient-flow-search', 'patient-flow-filter-search'];
-    searchIds.forEach((id) => {
-        const input = document.getElementById(id);
-        if (!input) return;
-        input.addEventListener('input', (event) => {
-            patientFlowFilters.search = event.target.value.trim().toLowerCase();
-            syncSearchInputs(event.target.value);
-            renderPage();
-        });
+  ['patient-flow-search', 'patient-flow-filter-search'].forEach((id) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener('input', (event) => {
+      flowFilters.search = event.target.value.trim().toLowerCase();
+      syncSearchInputs(event.target.value);
+      renderPatientsTable();
     });
+  });
 
-    ['patient-flow-department', 'patient-flow-status', 'patient-flow-date-range'].forEach((id) => {
-        const element = document.getElementById(id);
-        if (!element) return;
-        element.addEventListener('change', () => {
-            patientFlowFilters.department = document.getElementById('patient-flow-department').value;
-            patientFlowFilters.status = document.getElementById('patient-flow-status').value;
-            patientFlowFilters.dateRange = document.getElementById('patient-flow-date-range').value;
-            renderPage();
-        });
+  ['patient-flow-department', 'patient-flow-status', 'patient-flow-date-range'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      flowFilters.department = document.getElementById('patient-flow-department').value;
+      flowFilters.status = document.getElementById('patient-flow-status').value;
+      flowFilters.dateRange = document.getElementById('patient-flow-date-range').value;
+      renderPatientsTable();
     });
+  });
 
-    const clearButton = document.getElementById('patient-flow-clear');
-    if (clearButton) {
-        clearButton.addEventListener('click', () => {
-            patientFlowFilters = { search: '', department: '', status: '', dateRange: '' };
-            syncSearchInputs('');
-            document.getElementById('patient-flow-department').value = '';
-            document.getElementById('patient-flow-status').value = '';
-            document.getElementById('patient-flow-date-range').value = '';
-            renderPage();
-        });
-    }
+  document.getElementById('patient-flow-clear')?.addEventListener('click', () => {
+    flowFilters = { search: '', department: '', status: '', dateRange: '' };
+    syncSearchInputs('');
+    document.getElementById('patient-flow-department').value = '';
+    document.getElementById('patient-flow-status').value = '';
+    document.getElementById('patient-flow-date-range').value = '';
+    renderPatientsTable();
+  });
 
-    const exportButton = document.getElementById('patient-flow-export');
-    if (exportButton) exportButton.addEventListener('click', exportPatientFlow);
+  document.getElementById('patient-flow-export')?.addEventListener('click', exportPatientFlow);
 }
 
 function syncSearchInputs(value) {
-    ['patient-flow-search', 'patient-flow-filter-search'].forEach((id) => {
-        const input = document.getElementById(id);
-        if (input && input.value !== value) input.value = value;
-    });
+  ['patient-flow-search', 'patient-flow-filter-search'].forEach((id) => {
+    const input = document.getElementById(id);
+    if (input && input.value !== value) input.value = value;
+  });
 }
 
 function setDischargeError(message) {
-    const element = document.getElementById('discharge-form-error');
-    if (!element) return;
-    element.textContent = message || '';
-    element.style.display = message ? 'block' : 'none';
+  const el = document.getElementById('discharge-form-error');
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
 }
 
-function renderPage() {
-    const data = window.Store.get() || {};
-    populateDepartmentFilter(data);
-    renderPatientsTable(data);
-    renderDispatchQueue(data);
+const FLOW_STATUSES = ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED', 'DISCHARGED'];
+
+async function loadAndRender() {
+  const [preRequests, patients, doctors, beds] = await Promise.all([
+    window.ApiClient.preRequests.list(),
+    window.ApiClient.patients.list(),
+    window.ApiClient.doctors.list(),
+    window.ApiClient.wards.beds(),
+  ]);
+  const doctorsById = {};
+  doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
+  const bedsById = {};
+  beds.forEach((b) => (bedsById[b.bed_id] = b));
+
+  const joined = window.HOMHelpers.joinPreRequestsWithPatients(
+    preRequests.filter((r) => FLOW_STATUSES.includes(r.status)),
+    patients,
+    doctorsById,
+  ).map((r) => ({ ...r, bedNumber: bedsById[r.bed_id]?.bed_number || '-' }));
+
+  flowData = { rows: joined, bedsById };
+  populateDepartmentFilter();
+  renderPatientsTable();
+  renderDispatchQueue();
 }
 
-function populateDepartmentFilter(data) {
-    const select = document.getElementById('patient-flow-department');
-    if (!select) return;
-
-    const currentValue = patientFlowFilters.department;
-    const departments = [...new Set((data.patients || []).map((patient) => patient.dept).filter(Boolean))].sort();
-    select.innerHTML = '<option value="">All Departments</option>' + departments.map((dept) => `<option value="${dept}">${dept}</option>`).join('');
-    select.value = currentValue;
+function populateDepartmentFilter() {
+  const select = document.getElementById('patient-flow-department');
+  if (!select) return;
+  const current = flowFilters.department;
+  const departments = [...new Set((flowData.rows || []).map((r) => r.department).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">All Departments</option>' + departments.map((d) => `<option value="${d}">${d}</option>`).join('');
+  select.value = current;
 }
 
-function matchesDateRange(patient) {
-    if (!patientFlowFilters.dateRange) return true;
-    const admittedDate = new Date(patient.admitted);
-    if (Number.isNaN(admittedDate.getTime())) return false;
-
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - admittedDate.getTime()) / (24 * 60 * 60 * 1000));
-
-    switch (patientFlowFilters.dateRange) {
-        case 'today': return diffDays === 0;
-        case 'last3': return diffDays <= 3;
-        case 'last7': return diffDays <= 7;
-        case 'older': return diffDays > 7;
-        default: return true;
-    }
+function matchesDateRange(row) {
+  if (!flowFilters.dateRange) return true;
+  const days = window.HOMHelpers.daysSince(row.decided_at || row.created_at);
+  switch (flowFilters.dateRange) {
+    case 'today':
+      return days === 0;
+    case 'last3':
+      return days <= 3;
+    case 'last7':
+      return days <= 7;
+    case 'older':
+      return days > 7;
+    default:
+      return true;
+  }
 }
 
-function getFilteredPatients(data) {
-    return (data.patients || []).filter((patient) => {
-        if (patientFlowFilters.department && patient.dept !== patientFlowFilters.department) return false;
-        if (patientFlowFilters.status && patient.status !== patientFlowFilters.status) return false;
-        if (!matchesDateRange(patient)) return false;
-        if (!patientFlowFilters.search) return true;
+const STATUS_FILTER_MAP = { Admitted: 'ADMITTED', 'Pending Discharge': 'DISCHARGE_REQUESTED', Critical: '__NONE__', Discharged: 'DISCHARGED' };
 
-        const haystack = [
-            patient.uhid,
-            patient.name,
-            patient.dept,
-            patient.bed,
-            patient.physician,
-            patient.status
-        ].join(' ').toLowerCase();
-        return haystack.includes(patientFlowFilters.search);
-    });
+function getFilteredRows() {
+  return (flowData.rows || []).filter((row) => {
+    if (flowFilters.department && row.department !== flowFilters.department) return false;
+    if (flowFilters.status && row.status !== (STATUS_FILTER_MAP[flowFilters.status] || flowFilters.status)) return false;
+    if (!matchesDateRange(row)) return false;
+    if (!flowFilters.search) return true;
+    const haystack = [row.patientUhid, row.patientName, row.department, row.bedNumber, row.doctorName].join(' ').toLowerCase();
+    return haystack.includes(flowFilters.search);
+  });
 }
 
-function renderPatientsTable(data) {
-    const tbody = document.getElementById('patients-table-body');
-    if (!tbody) return;
+function renderPatientsTable() {
+  const tbody = document.getElementById('patients-table-body');
+  if (!tbody) return;
 
-    const patients = getFilteredPatients(data);
-    if (!patients.length) {
-        tbody.innerHTML = `<tr><td colspan="9" style="padding: 24px; text-align: center; color: var(--text-secondary);">No patients match the selected filters.</td></tr>`;
-        return;
-    }
+  const rows = getFilteredRows();
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="padding: 24px; text-align: center; color: var(--text-secondary);">No patients match the selected filters.</td></tr>`;
+    return;
+  }
 
-    tbody.innerHTML = patients.map((patient, index) => {
-        let actionButtons = `<button class="btn btn-secondary btn-sm" onclick="openPatientDetail('${patient.uhid}')">View</button>`;
+  tbody.innerHTML = rows
+    .map((row) => {
+      let actions = window.UI.Button({ variant: 'secondary', size: 'sm', children: 'View', onClick: `openPatientDetail(${row.pre_request_id})` });
+      if (row.status === 'DISCHARGE_REQUESTED') {
+        actions += window.UI.Button({ variant: 'primary', size: 'sm', children: 'Approve Discharge', onClick: `openDischargeModal(${row.pre_request_id})` });
+      } else if (row.status === 'DISCHARGED') {
+        actions += window.UI.Button({ variant: 'outline', size: 'sm', children: 'View Receipt', onClick: `openBillingFromUhid('${row.patientUhid}')` });
+      }
 
-        if (patient.status === 'Admitted') {
-            actionButtons += `<button class="btn btn-outline btn-sm" onclick="openDischargeModal('${patient.uhid}')">Discharge</button>`;
-        } else if (patient.status === 'Pending Discharge') {
-            actionButtons += `<button class="btn btn-primary btn-sm" style="background: var(--primary); color: white;" onclick="openDischargeModal('${patient.uhid}')">Approve Discharge</button>`;
-        } else if (patient.status === 'Critical') {
-            actionButtons += `<button hidden class="btn btn-outline btn-sm" onclick="window.location.href='screen-02-bed-management.html'">Transfer</button>`;
-        } else if (patient.status === 'Discharged') {
-            actionButtons += `<button class="btn btn-outline btn-sm" onclick="openBillingFromUhid('${patient.uhid}')">View Receipt</button>`;
-        }
-
-        return `
-            <tr style="cursor: default;">
-                <td style="color: var(--text-secondary); font-weight: 500;">${patient.uhid}</td>
-                <td>
-                    <div style="font-weight: 500; color: var(--text-primary);">${window.PatientResolver ? window.PatientResolver.getName(patient.uhid, data) : patient.name}</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${patient.age}</div>
-                </td>
-                <td style="color: var(--text-secondary);">${patient.dept}</td>
-                <td style="color: var(--text-secondary);">${patient.bed}</td>
-                <td style="color: var(--text-secondary);">${patient.physician}</td>
-                <td style="color: var(--text-secondary);">${patient.admitted}</td>
-                <td style="color: var(--text-secondary);">${patient.days} days</td>
-                <td>${window.UI.Badge({ variant: patient.statusVariant, children: patient.status })}</td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        ${actionButtons}
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
+      return `
+        <tr>
+          <td style="color: var(--text-secondary); font-weight: 500;">${window.HOMHelpers.escapeHtml(row.patientUhid)}</td>
+          <td>
+            <div style="font-weight: 500; color: var(--text-primary);">${window.HOMHelpers.escapeHtml(row.patientName)}</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${row.patientAge}</div>
+          </td>
+          <td style="color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(row.department || '-')}</td>
+          <td style="color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(row.bedNumber)}</td>
+          <td style="color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(row.doctorName)}</td>
+          <td style="color: var(--text-secondary);">${window.HOMHelpers.formatDate(row.decided_at || row.created_at)}</td>
+          <td style="color: var(--text-secondary);">${window.HOMHelpers.daysSince(row.decided_at || row.created_at)} days</td>
+          <td>${window.UI.Badge({ variant: window.HOMHelpers.statusVariant(row.status), children: window.HOMHelpers.statusLabel(row.status) })}</td>
+          <td><div style="display: flex; gap: 8px;">${actions}</div></td>
+        </tr>
+      `;
+    })
+    .join('');
 }
 
-function closeModals() {
-    document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
-    currentSelectedPatient = null;
-    currentSelectedLedger = null;
-    setDischargeError('');
-}
-window.closeModals = closeModals;
+// closeModals() now lives in hom-helpers.js (window.closeModals) — see that
+// file for why removing this file's duplicate copy is safe: both
+// openPatientDetail() and openDischargeModal() below already reset
+// currentSelectedRequest and call setDischargeError('') themselves before
+// showing a modal, so the extra resets this duplicate used to do on close
+// were already redundant.
 
 window.switchTab = function (tabId) {
-    document.querySelectorAll('.modal-tab').forEach((tab) => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-content-panel').forEach((panel) => panel.classList.remove('active'));
-    document.getElementById(`tab-${tabId}`).classList.add('active');
-    document.getElementById(`content-${tabId}`).classList.add('active');
+  document.querySelectorAll('.modal-tab').forEach((tab) => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-content-panel').forEach((panel) => panel.classList.remove('active'));
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+  document.getElementById(`content-${tabId}`).classList.add('active');
 };
 
-window.openPatientDetail = function (uhid) {
-    const data = window.Store.get() || {};
-    currentSelectedPatient = (data.patients || []).find((patient) => patient.uhid === uhid) || null;
-    currentSelectedLedger = (data.billingRecords || []).find((record) => record.uhid === uhid) || null;
-    if (!currentSelectedPatient) return;
+async function findAdmissionAndLedger(patientId) {
+  try {
+    const bills = await window.ApiClient.billing.patient.bills(patientId);
+    return bills.find((b) => b.ledger) || bills[0] || null;
+  } catch (err) {
+    return null;
+  }
+}
 
-    const patient = currentSelectedPatient;
-    const billing = currentSelectedLedger || { dailyRate: 3000, supplyCharges: 0 };
-    const initials = patient.name.split(' ').map((name) => name[0]).join('');
+window.openPatientDetail = async function (preRequestId) {
+  const row = (flowData.rows || []).find((r) => r.pre_request_id === preRequestId);
+  if (!row) return;
+  currentSelectedRequest = row;
 
-    document.getElementById('pd-avatar').innerText = initials;
-    document.getElementById('pd-name').innerText = patient.name;
-    document.getElementById('pd-uhid').innerText = patient.uhid;
-    document.getElementById('pd-dept').innerText = patient.dept;
-    document.getElementById('pd-status-badge').innerHTML = window.UI.Badge({ variant: patient.statusVariant, children: patient.status });
-    document.getElementById('pd-age').innerText = patient.age;
-    document.getElementById('pd-admitted').innerText = patient.admitted;
-    document.getElementById('pd-days').innerText = `${patient.days} days`;
-    document.getElementById('pd-dept-detail').innerText = patient.dept;
-    document.getElementById('pd-bed').innerText = patient.bed;
-    document.getElementById('pd-physician').innerText = patient.physician;
-    document.getElementById('pd-bed-info').innerText = patient.bed;
-    document.getElementById('pd-rate').innerText = `Rs ${billing.dailyRate.toLocaleString()} / day`;
-    document.getElementById('pd-room-total').innerText = `Rs ${(billing.dailyRate * patient.days).toLocaleString()}`;
-    document.getElementById('pd-supply-total').innerText = `Rs ${billing.supplyCharges.toLocaleString()}`;
-    document.getElementById('btn-pd-discharge').style.display = patient.status === 'Discharged' ? 'none' : 'block';
+  const initials = row.patientName.split(' ').map((n) => n[0]).join('').slice(0, 2);
+  document.getElementById('pd-avatar').innerText = initials;
+  document.getElementById('pd-name').innerText = row.patientName;
+  document.getElementById('pd-uhid').innerText = row.patientUhid;
+  document.getElementById('pd-dept').innerText = row.department || '-';
+  document.getElementById('pd-status-badge').innerHTML = window.UI.Badge({ variant: window.HOMHelpers.statusVariant(row.status), children: window.HOMHelpers.statusLabel(row.status) });
+  document.getElementById('pd-age').innerText = `${row.patientAge} / ${row.patientGender}`;
+  document.getElementById('pd-contact').innerText = row.patientPhone;
+  document.getElementById('pd-admitted').innerText = window.HOMHelpers.formatDate(row.decided_at || row.created_at);
+  document.getElementById('pd-days').innerText = `${window.HOMHelpers.daysSince(row.decided_at || row.created_at)} days`;
+  document.getElementById('pd-dept-detail').innerText = row.department || '-';
+  document.getElementById('pd-bed').innerText = row.bedNumber;
+  document.getElementById('pd-physician').innerText = row.doctorName;
+  document.getElementById('pd-bed-info').innerText = row.bedNumber;
+  document.getElementById('pd-blood-group').innerText = row.patientBloodGroup;
+  document.getElementById('btn-pd-discharge').style.display = row.status === 'DISCHARGE_REQUESTED' ? 'block' : 'none';
 
-    switchTab('overview');
-    document.getElementById('modal-patient-detail').classList.add('active');
+  const billing = await findAdmissionAndLedger(row.patient_id);
+  const [entries, services] = await Promise.all([
+    billing && billing.ledger ? window.ApiClient.billing.ledger.entries(billing.ledger.ledger_id).catch(() => []) : Promise.resolve([]),
+    window.ApiClient.billing.services.list().catch(() => []),
+  ]);
+  const servicesById = {};
+  services.forEach((s) => (servicesById[s.service_id] = s));
+  const total = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  const tbody = document.getElementById('pd-charges-tbody');
+  if (tbody) {
+    tbody.innerHTML = entries.length
+      ? entries
+          .map(
+            (e) =>
+              `<tr><td>${window.HOMHelpers.escapeHtml(servicesById[e.service_id]?.service_name || 'Service #' + e.service_id)}</td><td>${e.quantity}</td><td>${window.HOMHelpers.formatCurrency(e.amount)}</td></tr>`,
+          )
+          .join('')
+      : `<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">No billing ledger entries yet.</td></tr>`;
+  }
+  document.getElementById('pd-charges-total').innerText = window.HOMHelpers.formatCurrency(total);
+  document.getElementById('pd-ledger-status').innerText = billing && billing.ledger ? billing.ledger.status : 'No ledger yet';
+
+  switchTab('overview');
+  document.getElementById('modal-patient-detail').classList.add('active');
 };
 
 window.openDischargeFromDetail = function () {
-    if (!currentSelectedPatient) return;
-    const uhid = currentSelectedPatient.uhid;
-    closeModals();
-    openDischargeModal(uhid);
+  if (!currentSelectedRequest) return;
+  const preRequestId = currentSelectedRequest.pre_request_id;
+  closeModals();
+  openDischargeModal(preRequestId);
 };
 
-window.openDischargeModal = function (uhid) {
-    const data = window.Store.get() || {};
-    currentSelectedPatient = (data.patients || []).find((patient) => patient.uhid === uhid) || null;
-    currentSelectedLedger = (data.billingRecords || []).find((record) => record.uhid === uhid) || null;
-    if (!currentSelectedPatient) return;
+window.openDischargeModal = function (preRequestId) {
+  const row = (flowData.rows || []).find((r) => r.pre_request_id === preRequestId);
+  if (!row) return;
+  currentSelectedRequest = row;
 
-    const patient = currentSelectedPatient;
-    const billing = currentSelectedLedger || { dailyRate: 3000, supplyCharges: 0 };
-    const roomCost = billing.dailyRate * patient.days;
-    const totalCost = roomCost + billing.supplyCharges;
-
-    document.getElementById('discharge-title').innerText = `Initiate Discharge - ${patient.name}`;
-    document.getElementById('d-patient').innerText = patient.name;
-    document.getElementById('d-uhid').innerText = patient.uhid;
-    document.getElementById('d-bed').innerText = patient.bed;
-    document.getElementById('d-days').innerText = `${patient.days} days`;
-    document.getElementById('d-room-label').innerText = `Room Charges (${patient.days} days)`;
-    document.getElementById('d-room-cost').innerText = `Rs ${roomCost.toLocaleString()}`;
-    document.getElementById('d-supply-cost').innerText = `Rs ${billing.supplyCharges.toLocaleString()}`;
-    document.getElementById('d-total-cost').innerText = `Rs ${totalCost.toLocaleString()}`;
-    document.getElementById('discharge-type').value = '';
-    document.getElementById('discharge-notes').value = '';
-    setDischargeError('');
-    document.getElementById('modal-initiate-discharge').classList.add('active');
+  document.getElementById('discharge-title').innerText = `Approve Discharge - ${row.patientName}`;
+  document.getElementById('d-patient').innerText = row.patientName;
+  document.getElementById('d-uhid').innerText = row.patientUhid;
+  document.getElementById('d-bed').innerText = row.bedNumber;
+  document.getElementById('d-days').innerText = `${window.HOMHelpers.daysSince(row.decided_at || row.created_at)} days`;
+  setDischargeError('');
+  document.getElementById('modal-initiate-discharge').classList.add('active');
 };
 
-window.confirmDischarge = function () {
-    if (!currentSelectedPatient) return;
+window.confirmDischarge = async function () {
+  if (!currentSelectedRequest) return;
+  if (currentSelectedRequest.status !== 'DISCHARGE_REQUESTED') {
+    setDischargeError('This patient is not awaiting a HOM discharge approval.');
+    return;
+  }
 
-    const dischargeType = document.getElementById('discharge-type').value;
-    const dischargeNotes = document.getElementById('discharge-notes').value.trim();
-
-    if (!dischargeType) {
-        setDischargeError('Select a discharge type before confirming discharge.');
-        return;
-    }
-    if (dischargeNotes.length > 400) {
-        setDischargeError('Discharge notes can be at most 400 characters.');
-        return;
-    }
-    if ((dischargeType.includes('Transfer') || dischargeType.includes('LAMA')) && dischargeNotes.length < 10) {
-        setDischargeError('Add at least 10 characters of notes for transfer or LAMA discharges.');
-        return;
-    }
-
-    const uhid = currentSelectedPatient.uhid;
-    const data = window.Store.get();
-    const hasPreRequest = (data.preRequests || []).some(
-      (r) => r.patientId === uhid || r.uhid === uhid
-    );
-    if (!hasPreRequest) {
-      alert("Discharge can only be initiated for patients admitted through PRE. No PRE request found for this patient.");
-      return;
-    }
-
-    setDischargeError('');
-    window.Store.dischargePatient(uhid);
-    closeModals();
+  setDischargeError('');
+  try {
+    await window.ApiClient.preRequests.update(currentSelectedRequest.pre_request_id, { status: 'DISCHARGE_APPROVED' });
+  } catch (err) {
+    setDischargeError(err.message || 'Unable to approve discharge.');
+    return;
+  }
+  closeModals();
+  await loadAndRender();
 };
 
 function exportPatientFlow() {
-    const data = window.Store.get() || {};
-    const rows = getFilteredPatients(data);
-    if (!rows.length) {
-        alert('There are no patient flow rows to export for the current filters.');
-        return;
-    }
+  const rows = getFilteredRows();
+  if (!rows.length) {
+    window.UIFeedback.toast('There are no patient flow rows to export for the current filters.', 'warning');
+    return;
+  }
 
-    const csv = [
-        ['UHID', 'Patient', 'Department', 'Bed', 'Physician', 'Admitted', 'Days Stay', 'Status'].join(','),
-        ...rows.map((patient) => [patient.uhid, patient.name, patient.dept, patient.bed, patient.physician, patient.admitted, patient.days, patient.status].map(csvEscape).join(','))
-    ].join('\n');
+  const csv = [
+    ['UHID', 'Patient', 'Department', 'Bed', 'Physician', 'Status', 'Days Stay'].join(','),
+    ...rows.map((r) =>
+      [r.patientUhid, r.patientName, r.department, r.bedNumber, r.doctorName, window.HOMHelpers.statusLabel(r.status), window.HOMHelpers.daysSince(r.decided_at || r.created_at)]
+        .map(csvEscape)
+        .join(','),
+    ),
+  ].join('\n');
 
-    downloadCsv('hom-patient-flow.csv', csv);
+  downloadCsv('hom-patient-flow.csv', csv);
 }
 
 function csvEscape(value) {
-    const stringValue = String(value ?? '');
-    return `"${stringValue.replace(/"/g, '""')}"`;
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }
 
 function downloadCsv(filename, content) {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 window.openBillingFromDetail = function () {
-    if (!currentSelectedPatient) return;
-    openBillingFromUhid(currentSelectedPatient.uhid);
+  if (!currentSelectedRequest) return;
+  openBillingFromUhid(currentSelectedRequest.patientUhid);
 };
 
 window.openBillingFromUhid = function (uhid) {
-    const target = `screen-05-billing.html?uhid=${encodeURIComponent(uhid)}`;
-    window.location.href = target;
+  window.location.href = `screen-05-billing.html?uhid=${encodeURIComponent(uhid)}`;
 };
 
-function renderDispatchQueue(data) {
-    const section = document.getElementById('fa-dispatch-queue-section');
-    if (!section) return;
+async function renderDispatchQueue() {
+  const section = document.getElementById('fa-dispatch-queue-section');
+  if (!section) return;
 
-    const items = (data.dispatchQueue || []).filter((item) => item.status === "SENT");
+  let ledgers = [];
+  try {
+    ledgers = (await window.ApiClient.billing.ledger.listAll()).filter((l) => l.status === 'DISPATCHED');
+  } catch (err) {
+    ledgers = [];
+  }
 
-    if (items.length === 0) {
-        section.innerHTML = `
-            <div class="card" style="padding: 24px;">
-                <h3 style="margin: 0 0 8px 0;">FA Dispatch Queue</h3>
-                <p style="margin: 0; color: var(--text-secondary);">No pending dispatch items from FA.</p>
-            </div>
-        `;
-        return;
-    }
-
-    window.confirmDispatchPaymentFromHOM = function (dispatchId) {
-        const latestData = window.Store.get() || {};
-        const item = (latestData.dispatchQueue || []).find((entry) => String(entry.id) === String(dispatchId));
-        if (!item) return;
-
-        item.status = "PAYMENT_CONFIRMED";
-        item.payment_confirmed = true;
-        item.payment_confirmed_at = Date.now();
-
-        if (!Array.isArray(latestData.paymentConfirmations)) {
-            latestData.paymentConfirmations = [];
-        }
-        latestData.paymentConfirmations.unshift({
-            id: nextGeneratedId("payment-confirmation"),
-            patient_id: item.patient_id,
-            admission_id: item.admission_id || item.patient_id,
-            patient_name: item.patient_name,
-            uhid: item.uhid,
-            amount: item.amount,
-            payment_mode: item.payment_mode || "CASH",
-            confirmed_by: "HOM",
-            confirmed_at: Date.now(),
-            status: "PENDING_RECEIPT",
-        });
-
-        window.Store.save(latestData);
-        renderDispatchQueue(window.Store.get());
-        alert("Payment confirmation sent to FA. Receipt can now be generated.");
-    };
-
+  if (!ledgers.length) {
     section.innerHTML = `
-        <div class="card" style="padding: 24px;">
-            <h3 style="margin: 0 0 16px 0;">FA Dispatch Queue</h3>
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Patient</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map((item) => `
-                            <tr>
-                                <td>${window.PatientResolver ? window.PatientResolver.getName(item.uhid, latestData) : (item.patient_name || "-")}</td>
-                                <td>${item.type || "-"}</td>
-                                <td>Rs ${Number(item.amount || 0).toLocaleString()}</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" onclick="confirmDispatchPaymentFromHOM('${item.id}')">Confirm Payment</button>
-                                </td>
-                            </tr>
-                        `).join("")}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      <div class="card" style="padding: 24px;">
+        <h3 style="margin: 0 0 8px 0;">FA Dispatch Queue</h3>
+        <p style="margin: 0; color: var(--text-secondary);">No bills dispatched by FA yet.</p>
+      </div>
     `;
+    return;
+  }
+
+  section.innerHTML = `
+    <div class="card" style="padding: 24px;">
+      <h3 style="margin: 0 0 16px 0;">FA Dispatch Queue</h3>
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr><th>Admission</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${ledgers
+              .map(
+                (l) => `
+              <tr>
+                <td>#${l.admission_id}</td>
+                <td>${window.UI.Badge({ variant: 'warning', children: l.status })}</td>
+                <td>${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'View in Billing', onClick: `window.location.href='screen-05-billing.html'` })}</td>
+              </tr>
+            `,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
 }
-
-

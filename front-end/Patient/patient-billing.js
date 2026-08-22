@@ -38,34 +38,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function markAsPaid(dispatchId, paymentMethod) {
+  async function payDispatchedBill(ledgerId, paymentMethod) {
     const VALID_METHODS = ["UPI", "CARD", "CASH", "NETBANKING"];
     if (!VALID_METHODS.includes(paymentMethod)) return false;
 
-    const raw   = localStorage.getItem("HospitalAppState");
-    const state = raw ? JSON.parse(raw) : null;
-    if (!state) return false;
+    const bill = getBills().find((b) => String(b.ledgerId) === String(ledgerId));
+    if (!bill || bill.status === "paid") return false;
 
-    const queueItem = (state.dispatchQueue || []).find(
-      (item) => String(item.id) === String(dispatchId)
-    );
-    if (!queueItem) return false;
-
-    // Only allow marking if the item has been SENT (link delivered by HOM)
-    if (queueItem.status !== window.FinanceStates.SENT) return false;
-
-    queueItem.status                 = window.FinanceStates.PENDING_VERIFICATION;
-    queueItem.patient_payment_method = paymentMethod;
-    queueItem.patient_marked_at      = Date.now();
-
-    localStorage.setItem("HospitalAppState", JSON.stringify(state));
-    
-    // Immediate push to backend for real-time sync
-    if (window.APIClient) {
-      window.APIClient.pushFullState(state);
-    }
-
-    window.dispatchEvent(new Event("patientStoreUpdated"));
+    await payBill(bill, paymentMethod);
     return true;
   }
 
@@ -77,8 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderPatientHeader() {
     const profile = getProfile();
-    const authName = sessionStorage.getItem("authDisplayName") || profile?.name || "Patient";
-    const safeName = String(authName).trim();
+    const safeName = String(profile?.name || "Patient").trim();
     const initials = safeName
       .split(/\s+/)
       .filter(Boolean)
@@ -141,35 +120,22 @@ document.addEventListener("DOMContentLoaded", () => {
     el.innerHTML = rows.map((row) => {
       const safeRow = window.Sanitizer ? window.Sanitizer.forRole(row, 'PATIENT') : row;
       const isPaymentLink = row.type === "PAYMENT_LINK";
-      const isPaidLink = row.type === "PAYMENT_CONFIRMED";
-      const isPendingVerification = row.status === window.FinanceStates.PENDING_VERIFICATION;
 
-      const action = isPendingVerification
-        ? `<button class="btn-view" type="button" disabled
-             title="Awaiting FA verification"
-             style="opacity:0.5;cursor:not-allowed;">
-             Awaiting Verification
-           </button>`
-        : isPaymentLink
-          ? `<button class="btn-view" type="button"
-               data-pay-link="${escapeAttr(row.paymentLink || "")}"
+      const action = isPaymentLink
+        ? `<button class="btn-view" type="button"
                data-dispatch-id="${escapeAttr(String(row.dispatchId || ""))}">
                Pay Now
              </button>`
-          : `<button class="btn-download" type="button"
+        : `<button class="btn-download" type="button"
                data-source-type="${escapeAttr(row.sourceType || "")}"
                data-source-id="${escapeAttr(String(row.sourceId || ""))}"
                data-row-type="${escapeAttr(row.type || "")}"
                data-row-title="${escapeAttr(row.title || "")}">
                View Digital Copy
              </button>`;
-      const statusLabel = isPendingVerification
-        ? `<span class="status pending">Pending Verification</span>`
-        : isPaymentLink
-          ? `<span class="status pending">Pending</span>`
-          : isPaidLink
-            ? `<span class="status confirmed">Paid</span>`
-            : `<span class="status confirmed">Receipt</span>`;
+      const statusLabel = isPaymentLink
+        ? `<span class="status pending">Pending</span>`
+        : `<span class="status confirmed">Receipt</span>`;
 
       return `
         <div class="billing-row">
@@ -189,36 +155,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }).join("");
     el.classList.add("billing-list");
 
-    el.querySelectorAll("[data-pay-link]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const link       = btn.getAttribute("data-pay-link") || "";
+    el.querySelectorAll("[data-dispatch-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
         const dispatchId = btn.getAttribute("data-dispatch-id") || "";
-        if (!link)       return showToast("Payment link is not available.", "info");
-        if (!dispatchId) return showToast("Unable to confirm payment for this link.", "warn");
+        if (!dispatchId) return UIFeedback.toast("Unable to process payment for this bill.", "warning");
 
         // Patient selects payment method
-        const method = window.prompt(
-          "Select payment method:\nType exactly one of: UPI, CARD, CASH, NETBANKING",
-          "UPI"
-        );
-        if (!method) return; // user cancelled
+        const normalised = await UIFeedback.selectOne({
+          title: "Select payment method",
+          options: ["UPI", "CARD", "CASH", "NETBANKING"],
+        });
+        if (!normalised) return; // user cancelled
 
-        const normalised = method.trim().toUpperCase();
-        const validMethods = ["UPI", "CARD", "CASH", "NETBANKING"];
-        if (!validMethods.includes(normalised)) {
-          showToast("Invalid payment method. Type exactly: UPI, CARD, CASH, or NETBANKING.", "warn");
-          return;
+        btn.disabled = true;
+        try {
+          const paid = await payDispatchedBill(dispatchId, normalised);
+          if (!paid) {
+            UIFeedback.toast("Unable to process payment. Please refresh and try again.", "warning");
+            return;
+          }
+          UIFeedback.toast("Payment received — receipt generated.", "success");
+          renderAll();
+        } catch (err) {
+          UIFeedback.toast(err?.message || "Payment failed. Please try again.", "warning");
+        } finally {
+          btn.disabled = false;
         }
-
-        const marked = markAsPaid(dispatchId, normalised);
-        if (!marked) {
-          showToast("Unable to mark payment. Link may not be ready yet.", "warn");
-          return;
-        }
-
-        window.open(link, "_blank");
-        showToast("Payment marked as pending verification. Finance will confirm shortly.", "success");
-        renderAll();
       });
     });
 
@@ -300,12 +262,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const sourceId = btn.getAttribute("data-source-id") || "";
         const rowType = btn.getAttribute("data-row-type") || "";
         const rowTitle = btn.getAttribute("data-row-title") || "Digital Copy";
-        if (!sourceType || !sourceId) return showToast("Document source not available.", "warn");
+        if (!sourceType || !sourceId) return UIFeedback.toast("Document source not available.", "warning");
 
         const record = typeof getBillingDocumentByRef === "function"
           ? getBillingDocumentByRef(sourceType, sourceId)
           : null;
-        if (!record) return showToast("Unable to open digital copy.", "warn");
+        if (!record) return UIFeedback.toast("Unable to open digital copy.", "warning");
 
         openDigitalCopy(record, { rowType, rowTitle, sourceType, sourceId });
       });
@@ -315,7 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function openDigitalCopy(record, context = {}) {
     const win = window.open("", "_blank");
     if (!win) {
-      showToast("Please allow popups to view digital copy.", "warn");
+      UIFeedback.toast("Please allow popups to view digital copy.", "warning");
       return;
     }
 
@@ -338,17 +300,18 @@ document.addEventListener("DOMContentLoaded", () => {
       <html>
       <head>
         <title>${escapeHtml(title)}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Inter', sans-serif; padding: 50px; color: #1e293b; max-width: 700px; margin: 0 auto; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
-          h2 { color: #0f172a; margin: 0; font-size: 24px; }
-          .badge { background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
-          .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #cbd5e1; font-size: 15px; }
-          .row span:first-child { color: #64748b; font-weight: 500; }
-          .row span:last-child { font-weight: 600; color: #0f172a; }
-          .net { font-size: 20px; font-weight: 800; color: #00a19a; border-bottom: 2px solid #00a19a; border-top: 2px solid #00a19a; padding: 20px 0; margin-top: 10px; }
-          .net span { color: #00a19a !important; }
-          .print-btn { background: #00a19a; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 40px; display: block; width: 100%; }
+          body { font-family: 'Inter', sans-serif; padding: 50px; color: #1A1A1A; max-width: 700px; margin: 0 auto; background: #F9F8F6; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; margin-bottom: 30px; }
+          h2 { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; margin: 0; font-size: 26px; }
+          .badge { background: #E7F0EA; color: #2C5B41; padding: 6px 14px; border-radius: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+          .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #D8D2C8; font-size: 15px; }
+          .row span:first-child { color: #6C6863; font-weight: 500; }
+          .row span:last-child { font-weight: 600; color: #1A1A1A; }
+          .net { font-size: 20px; font-weight: 600; color: #9C7A1E; border-bottom: 1px solid #1A1A1A; border-top: 1px solid #1A1A1A; padding: 20px 0; margin-top: 10px; }
+          .net span { color: #9C7A1E !important; }
+          .print-btn { background: #1A1A1A; color: #F9F8F6; border: none; padding: 14px 28px; border-radius: 0; cursor: pointer; font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 40px; display: block; width: 100%; }
           @media print { .print-btn { display:none; } body { padding:0; } }
         </style>
       </head>
@@ -390,32 +353,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function escapeAttr(value) {
     return escapeHtml(value);
-  }
-
-  function showToast(message, type = "info") {
-    document.querySelector(".toast-notify")?.remove();
-    const colors = { warn: "#7a4b00", info: "#1c2f42", success: "#1a5c3a" };
-    const t = document.createElement("div");
-    t.className = "toast-notify";
-    t.textContent = message;
-    Object.assign(t.style, {
-      position: "fixed", bottom: "28px", right: "28px", zIndex: "9999",
-      background: colors[type] || colors.info, color: "#fff",
-      padding: "13px 20px", borderRadius: "12px", fontSize: "13px",
-      fontWeight: "600", fontFamily: "Inter, sans-serif",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.18)", maxWidth: "380px",
-      lineHeight: "1.5", transform: "translateY(80px)", opacity: "0",
-      transition: "transform 280ms ease, opacity 280ms ease"
-    });
-    document.body.appendChild(t);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      t.style.transform = "translateY(0)";
-      t.style.opacity = "1";
-    }));
-    setTimeout(() => {
-      t.style.transform = "translateY(80px)";
-      t.style.opacity = "0";
-      setTimeout(() => t.remove(), 300);
-    }, 3500);
   }
 });

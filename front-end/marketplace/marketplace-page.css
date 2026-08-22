@@ -1,0 +1,98 @@
+/* marketplace-page.css — Material You */
+
+body { background: var(--md-background); }
+
+.topbar-actions { display: flex; gap: 8px; }
+
+.marketplace-page { padding-top: 40px; padding-bottom: 64px; }
+
+.marketplace-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--md-surface-container);
+  border-radius: var(--radius-xxl);
+  padding: 56px 48px;
+  margin-bottom: 40px;
+}
+.marketplace-hero h1 { font: var(--type-headline-large); margin: 12px 0 16px; position: relative; }
+.marketplace-hero .label { position: relative; }
+.marketplace-lead {
+  max-width: 640px;
+  color: var(--md-on-surface-variant);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.marketplace-search {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.marketplace-search input[type="search"] {
+  flex: 1;
+  min-width: 240px;
+  height: 56px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-background);
+  font-size: 1rem;
+  box-shadow: var(--shadow-1);
+}
+.marketplace-search input[type="search"]:focus {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+.emergency-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.emergency-filter input { width: 18px; height: 18px; accent-color: var(--md-primary); }
+
+.org-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.org-card { display: flex; flex-direction: column; gap: 16px; }
+.org-card-head { display: flex; align-items: flex-start; gap: 14px; }
+.org-mark {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.org-name { margin: 0; font-size: 1.15rem; }
+.org-branches { margin: 4px 0 0; font-size: 0.85rem; color: var(--md-on-surface-variant); }
+.org-card-head .emergency-chip { margin-left: auto; flex-shrink: 0; }
+
+.org-specialties { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.org-contact { margin: 0; font-size: 0.85rem; color: var(--md-on-surface-variant); }
+
+.org-actions { display: flex; gap: 8px; margin-top: auto; }
+.org-actions .md-btn { flex: 1; text-align: center; text-decoration: none; }
+
+.md-empty-state { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .marketplace-hero { border-radius: var(--radius-lg); padding: 32px 20px; }
+  .org-grid { grid-template-columns: 1fr; }
+}

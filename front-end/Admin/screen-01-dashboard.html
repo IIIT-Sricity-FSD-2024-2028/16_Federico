@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Federico Hospital Admin</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
+    <link rel="stylesheet" href="../HOM/global.css">
+    <style>
+        /* .dashboard-container / .header-section / .metrics-grid /
+           .metric-card-icon / .main-grid / .data-table live once in
+           ../HOM/global.css. */
+        .left-column, .right-column { display: flex; flex-direction: column; gap: 24px; }
+        .analytics-locked { padding: 24px; text-align: center; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Hospital-Wide Analytics</h1>
+                <p class="body-text" id="subtitle">Live overview across every department</p>
+            </div>
+        </div>
+
+        <div data-requires-module="ANALYTICS">
+            <div class="metrics-grid" id="metrics-container"></div>
+
+            <div class="main-grid">
+                <div class="left-column">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Ward Occupancy</h2>
+                            <p class="card-description">Beds in use vs. total, per ward.</p>
+                        </div>
+                        <div class="card-content">
+                            <div id="ward-occupancy-list"><div class="md-empty-state"><span>Loading…</span></div></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Billing Summary</h2>
+                        </div>
+                        <div class="card-content" style="padding: 0;">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead><tr><th>Status</th><th>Ledgers</th><th>Total</th></tr></thead>
+                                    <tbody id="billing-summary-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-column">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Low Stock Alerts</h2>
+                        </div>
+                        <div class="card-content">
+                            <div id="low-stock-list"><div class="md-empty-state"><span>Loading…</span></div></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Staff Headcount</h2>
+                        </div>
+                        <div class="card-content">
+                            <div id="staff-breakdown"><div class="md-empty-state"><span>Loading…</span></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analytics-locked" id="analytics-locked-message" style="display:none;">
+            Administrative Analytics isn't enabled for this organization. Contact the platform to turn it on.
+        </div>
+    </main>
+
+    <script>window.APP_MODULE = "ADMIN";</script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/ui-feedback.js"></script>
+<script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
+
+<script src="shared-nav.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

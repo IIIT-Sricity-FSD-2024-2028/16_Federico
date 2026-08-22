@@ -7,8 +7,9 @@
     <title>Federico Signup</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet" />
+    <link rel="stylesheet" href="../shared/design-tokens.css" />
+    <link rel="stylesheet" href="../shared/material-components.css" />
+    <link rel="stylesheet" href="../shared/ui-feedback.css" />
     <link rel="stylesheet" href="signup-page.css" />
 </head>
 
@@ -23,6 +24,9 @@
     </header>
 
     <main class="signup-wrapper">
+        <div class="md-blur-shape md-blur-secondary" style="width:420px;height:420px;top:-140px;right:-160px;" aria-hidden="true"></div>
+        <div class="md-blur-shape md-blur-primary" style="width:320px;height:320px;bottom:-80px;left:-140px;" aria-hidden="true"></div>
+
         <section class="signup-card">
             <div class="card-logo">F</div>
 
@@ -31,6 +35,19 @@
             <div class="pill">Patient Registration</div>
 
             <form class="signup-form">
+                <div class="form-section">
+                    <div class="section-title">Hospital</div>
+                    <div class="grid-one">
+                        <div class="form-group">
+                            <label for="organization">Register with</label>
+                            <select id="organization">
+                                <option value="">Loading hospitals…</option>
+                            </select>
+                            <span class="field-hint">Not sure which one? <a href="../marketplace/marketplace-page.html">Browse hospitals</a>.</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-section">
                     <div class="section-title">Personal Information</div>
 
@@ -200,8 +217,9 @@
     </main>
 
   <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
+    <script src="../shared/api-client.js"></script>
     <script src="../shared/rbac.js"></script>
+    <script src="../shared/ui-feedback.js"></script>
     <script src="signup-page.js"></script>
 </body>
 

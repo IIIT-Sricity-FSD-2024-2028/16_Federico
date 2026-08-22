@@ -1,708 +1,314 @@
-function nextGeneratedId(namespace) {
-    if (window.IDGenerator && typeof window.IDGenerator.nextId === 'function') return window.IDGenerator.nextId(namespace);
-    return `${namespace}-fallback`;
-}
+/**
+ * FA/js/modules/billing.js — Phase 3 rewrite.
+ *
+ * Real billing actions against window.ApiClient. Payment creation
+ * (billing.service.js#createPayment) already auto-generates the receipt
+ * and marks the ledger PAID on the backend — there is no separate
+ * "confirm then generate receipt" step here the way the old two-step
+ * HOM<->FA handshake required.
+ */
+(function () {
+    const H = () => window.FAHelpers;
 
-
-function printReceipt(receiptId) {
-    const receipt = AppState.receipts.find(r => r.id === receiptId);
-    if (!receipt) return;
-
-    const win = window.open('', '_blank');
-    win.document.write(`
-      <html><head><title>Receipt - ${receipt.patient}</title>
-      <style>
-        body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
-        h2 { color: #00a19a; }
-        .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-        .total { font-weight: 800; font-size: 18px; color: #00a19a; }
-        .badge { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-      </style></head>
-      <body>
-        <h2>🏥 Hospital Billing Receipt</h2>
-        <p>Receipt ID: <strong>PAY${receipt.id}</strong> &nbsp; <span class="badge">PAID</span></p>
-        <hr>
-        <div class="row"><span>Patient</span><strong>${receipt.patient}</strong></div>
-        <div class="row"><span>Patient ID</span><span>${receipt.patient_id || receipt.uhid}</span></div>
-        <div class="row"><span>Insurance</span><span>${receipt.insurance}</span></div>
-        <div class="row"><span>Gross Total</span><span>₹${receipt.gross.toLocaleString()}</span></div>
-        <div class="row"><span>Insurance Coverage</span><span style="color:red">-₹${receipt.coverage.toLocaleString()}</span></div>
-        <div class="row total"><span>Net Paid</span><span>₹${receipt.amount.toLocaleString()}</span></div>
-        <div class="row"><span>Payment Mode</span><span>${receipt.mode}</span></div>
-        <div class="row"><span>Date</span><span>${new Date(receipt.ts).toLocaleString()}</span></div>
-        <br><br>
-        <button onclick="window.print()" style="background:#00a19a;color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;">🖨️ Print / Save PDF</button>
-      </body></html>
-    `);
-    win.document.close();
-}
-
-/* ── 3. PIXEL-PERFECT PDF: DISCHARGE & BILL SUMMARY ── */
-window.printDischargeSummary = function () {
-    const currentPid = AppState.currentPatientId;
-    const p = AppState.admissions[currentPid];
-    if (!p) return;
-
-    // Financial Data
-    const data = getPatientData(p.ledger_id, 'ALL');
-    const grossTotal = data.total;
-    const insurance = p.coverage || 0;
-    const netPayable = Math.max(0, grossTotal - insurance);
-    const method = document.getElementById('discharge-payment-method').value;
-
-    // Clinical Data (Extracting services from the ledger to show what treatments they got)
-    const treatmentsReceived = data.entries.map(e => e.service_name).join(', ') || 'Standard Care';
-    const admissionDate = new Date(Date.now() - (3 * 24 * 60 * 60 * 1000)).toLocaleDateString(); // Mocking admission to 3 days ago
-    const dischargeDate = new Date().toLocaleString('en-US');
-    const receiptId = nextGeneratedId("receipt");
-
-    // Open a new tab for printing
-    const printWindow = window.open('', '_blank');
-
-    // Write the HTML document
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Discharge & Billing Summary - ${p.patient_name}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-            <style>
-                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; max-width: 900px; margin: 0 auto; line-height: 1.5; }
-                
-                /* Header */
-                .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #00a19a; padding-bottom: 20px; margin-bottom: 30px; }
-                .hospital-name { color: #00a19a; font-size: 28px; font-weight: 800; margin: 0; }
-                .doc-title { font-size: 14px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-                
-                /* Sections */
-                .section-title { background: #f8fafc; padding: 10px 16px; border-left: 4px solid #00a19a; font-size: 16px; font-weight: 700; color: #0f172a; margin: 30px 0 15px 0; text-transform: uppercase; }
-                
-                /* Patient Demographics Grid */
-                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; font-size: 14px; }
-                .info-item { display: flex; flex-direction: column; }
-                .info-label { color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
-                .info-value { color: #0f172a; font-weight: 600; }
-
-                /* Text Blocks */
-                .text-block { font-size: 14px; color: #334155; margin-bottom: 16px; background: #fff; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; }
-                
-                /* Billing Table */
-                .bill-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-                .bill-row span:first-child { color: #475569; }
-                .bill-row span:last-child { font-weight: 600; color: #0f172a; }
-                .net-paid { color: #00a19a; font-size: 18px; font-weight: 800; border-bottom: 2px solid #00a19a; border-top: 2px solid #00a19a; margin-top: 10px; }
-                .net-paid span { color: #00a19a !important; }
-
-                /* Signatures */
-                .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px; text-align: center; }
-                .sig-line { border-top: 1px solid #94a3b8; padding-top: 8px; font-size: 14px; font-weight: 600; color: #0f172a; width: 250px; margin: 0 auto; }
-                .sig-role { font-size: 12px; color: #64748b; font-weight: 400; }
-
-                /* Print Button */
-                .print-btn { background: #00a19a; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 50px; display: block; width: 100%; box-shadow: 0 4px 6px rgba(0,161,154,0.2); }
-                @media print { .print-btn { display: none; } body { padding: 0; } }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <div>
-                    <h1 class="hospital-name">Federico Hospital</h1>
-                    <div style="font-size: 13px; color: #64748b; margin-top: 4px;">123 Health Avenue, Medical District</div>
-                </div>
-                <div style="text-align: right;">
-                    <div class="doc-title">Discharge & Billing Summary</div>
-                    <div style="font-size: 13px; color: #0f172a; margin-top: 4px; font-weight: 600;">Date: ${dischargeDate.split(',')[0]}</div>
-                </div>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-item"><span class="info-label">Patient Name</span><span class="info-value">${p.patient_name}</span></div>
-                <div class="info-item"><span class="info-label">Patient ID</span><span class="info-value">${getDisplayPatientId(p)}</span></div>
-                <div class="info-item"><span class="info-label">Admitting Doctor</span><span class="info-value">${p.doctor_assigned || 'Duty Doctor'}</span></div>
-                <div class="info-item"><span class="info-label">Ward / Room</span><span class="info-value">${p.ward_no || 'General'}</span></div>
-                <div class="info-item"><span class="info-label">Date of Admission</span><span class="info-value">${admissionDate}</span></div>
-                <div class="info-item"><span class="info-label">Date of Discharge</span><span class="info-value">${dischargeDate}</span></div>
-            </div>
-
-            <div class="section-title">Part 1: Clinical Discharge Summary</div>
-            
-            <div class="text-block">
-                <strong style="display:block; margin-bottom:4px; color:#0f172a;">Primary Diagnosis:</strong>
-                Successfully treated and stabilized for condition requiring admission. Patient is hemodynamically stable, afebrile, and fit for discharge.
-            </div>
-
-            <div class="text-block">
-                <strong style="display:block; margin-bottom:4px; color:#0f172a;">Treatments & Services Rendered:</strong>
-                ${treatmentsReceived}
-            </div>
-
-            <div class="text-block">
-                <strong style="display:block; margin-bottom:4px; color:#0f172a;">Discharge Advice & Follow-up:</strong>
-                1. Continue prescribed medications as directed.<br>
-                2. Maintain a balanced diet and adequate hydration.<br>
-                3. Follow up in the OPD with ${p.doctor_assigned || 'the consulting doctor'} after 7 days, or immediately if symptoms worsen.
-            </div>
-
-            <div class="section-title">Part 2: Final Billing Receipt</div>
-            
-            <div style="margin-bottom: 12px; font-size: 13px; color: #64748b;">Receipt ID: <strong>${receiptId}</strong> | Payment Mode: <strong>${method}</strong></div>
-            
-            <div class="bill-row"><span>Gross Total Charges</span><span>₹${grossTotal.toLocaleString()}</span></div>
-            <div class="bill-row"><span>Insurance Coverage (${p.insurance_provider || 'Self-Pay'})</span><span style="color: #ef4444;">-₹${insurance.toLocaleString()}</span></div>
-            <div class="bill-row net-paid"><span>Net Amount Paid</span><span>₹${netPayable.toLocaleString()}</span></div>
-
-            <div class="signatures">
-                <div>
-                    <div class="sig-line">${p.doctor_assigned || 'Attending Physician'}</div>
-                    <div class="sig-role">Authorized Clinical Signature</div>
-                </div>
-                <div>
-                    <div class="sig-line">Finance Department</div>
-                    <div class="sig-role">Authorized Billing Signature</div>
-                </div>
-            </div>
-            
-            <button class="print-btn" onclick="window.print()">🖨️ Save Official Document as PDF</button>
-            
-            <script>
-                // Automatically open the print dialog when the window loads
-                setTimeout(() => { window.print(); }, 500);
-            </script>
-        </body>
-        </html>
-    `);
-
-    printWindow.document.close();
-};
-
-/* ── 4. SIMPLIFIED DISCHARGE SUMMARY (Only requested details) ── */
-window.generateDischargeSummary = function () {
-    const currentPid = AppState.currentPatientId;
-    const p = AppState.admissions[currentPid];
-    if (!p) return;
-
-    // Get Financials
-    const data = getPatientData(p.ledger_id, 'ALL');
-    const grossTotal = data.total;
-    const insurance = p.coverage || 0;
-    const netPayable = Math.max(0, grossTotal - insurance);
-
-    // Get Services Used
-    const servicesList = data.entries.map(e => `
-        <li style="padding: 6px 0; border-bottom: 1px dashed #cbd5e1; color: #334155; font-size: 14px;">
-            ${e.service_name} <span style="float: right; font-weight: 600;">(Qty: ${e.qty})</span>
-        </li>
-    `).join('');
-
-    // Open a new tab
-    const printWindow = window.open('', '_blank');
-
-    // Write the highly-focused HTML document
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Discharge Summary - ${p.patient_name}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-            <style>
-                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; }
-                h1 { color: #0f172a; text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; font-size: 28px; }
-                h3 { color: #6366f1; margin-top: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-size: 18px; }
-                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-                .label { color: #64748b; font-size: 12px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
-                .value { font-size: 15px; font-weight: 600; color: #0f172a; }
-                ul { list-style: none; padding: 0; margin: 0; }
-                .financials { background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px; }
-                .row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 15px; }
-                .row .label { margin: 0; font-size: 14px; }
-                .net { font-size: 20px; font-weight: 800; color: #6366f1; border-top: 2px solid #cbd5e1; padding-top: 16px; margin-top: 12px; }
-                .print-btn { display: block; width: 100%; background: #0f172a; color: white; border: none; padding: 16px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 40px; }
-                @media print { .print-btn { display: none; } body { padding: 0; } }
-            </style>
-        </head>
-        <body>
-            <h1>Official Discharge Summary</h1>
-            
-            <h3>👤 Patient & Doctor Details</h3>
-            <div class="grid">
-                <div><div class="label">Patient Name</div><div class="value">${p.patient_name}</div></div>
-                <div><div class="label">Patient ID</div><div class="value">${getDisplayPatientId(p)}</div></div>
-                <div><div class="label">Ward / Room</div><div class="value">${p.ward_no || 'General Ward'}</div></div>
-                <div><div class="label">Attending Doctor</div><div class="value">${p.doctor_assigned || 'Duty Doctor'}</div></div>
-            </div>
-
-            <h3>🩺 Services Used</h3>
-            <ul>
-                ${servicesList || '<li>No services recorded.</li>'}
-            </ul>
-
-            <h3>💳 Financial & Insurance Details</h3>
-            <div class="financials">
-                <div class="row">
-                    <span class="label">Insurance Provider</span>
-                    <span class="value" style="color: #0ea5e9;">${p.insurance_provider || 'None / Self-Pay'}</span>
-                </div>
-                <div class="row">
-                    <span class="label">Total Amount (Gross)</span>
-                    <span class="value">₹${grossTotal.toLocaleString()}</span>
-                </div>
-                <div class="row" style="color: #ef4444;">
-                    <span class="label">Insurance Coverage Deducted</span>
-                    <span class="value">- ₹${insurance.toLocaleString()}</span>
-                </div>
-                <div class="row net">
-                    <span>Final Payment Due</span>
-                    <span>₹${netPayable.toLocaleString()}</span>
-                </div>
-            </div>
-
-            <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
-
-            <script>
-                setTimeout(() => { window.print(); }, 500);
-            </script>
-        </body>
-        </html>
-    `);
-
-    printWindow.document.close();
-};
-
-
-/* ── 5. SINGLE RECEIPT PRINT FUNCTION ── */
-window.printReceipt = function (receiptId) {
-    const r = AppState.receipts.find(rec => rec.id === receiptId);
-    if (!r) return;
-
-    const dateStr = new Date(r.ts).toLocaleString('en-US');
-
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Receipt - PAY${r.id}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-            <style>
-                body { font-family: 'Inter', sans-serif; padding: 50px; color: #1e293b; max-width: 700px; margin: 0 auto; }
-                .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
-                h2 { color: #0f172a; margin: 0; font-size: 24px; display: flex; align-items: center; gap: 8px;}
-                .badge { background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
-                .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #cbd5e1; font-size: 15px; }
-                .row span:first-child { color: #64748b; font-weight: 500; }
-                .row span:last-child { font-weight: 600; color: #0f172a; }
-                .net { font-size: 20px; font-weight: 800; color: #00a19a; border-bottom: 2px solid #00a19a; border-top: 2px solid #00a19a; padding: 20px 0; margin-top: 10px; }
-                .net span { color: #00a19a !important; }
-                .footer { margin-top: 60px; text-align: center; color: #64748b; font-size: 12px; line-height: 1.6; }
-                .print-btn { background: #00a19a; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 40px; display: block; width: 100%; box-shadow: 0 4px 6px rgba(0,161,154,0.2); }
-                @media print { .print-btn { display: none; } body { padding: 0; } }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h2>🧾 Payment Receipt</h2>
-                <span class="badge">PAID</span>
-            </div>
-
-            <div class="row"><span>Receipt ID</span><span>PAY${r.id}</span></div>
-            <div class="row"><span>Patient Name</span><span>${r.patient}</span></div>
-            <div class="row"><span>Patient ID</span><span>${r.patient_id || r.uhid || 'N/A'}</span></div>
-            <div class="row"><span>Date & Time</span><span>${dateStr}</span></div>
-            <div class="row"><span>Payment Mode</span><span>${r.mode.toUpperCase()}</span></div>
-            
-            <div class="row net"><span>Total Amount Paid</span><span>₹${r.amount.toLocaleString()}</span></div>
-
-            <div class="footer">
-                <strong>Federico Hospital Finance Department</strong><br>
-                This is a computer-generated receipt and does not require a physical signature.<br>
-                Thank you for choosing Federico.
-            </div>
-
-            <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
-
-            <script>
-                // Auto-open print dialog
-                setTimeout(() => { window.print(); }, 500);
-            </script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-};
-
-function getServiceCatalogPricing(serviceName) {
-    const pricing = {
-        'X-Ray Chest': 1200,
-        'MRI Brain': 6500,
-        'ECG': 900,
-        'Blood Test Panel': 1400,
-        'CT Scan': 4800,
-        'Physiotherapy Session': 1000
-    };
-
-    return pricing[serviceName] || 1200;
-}
-
-window.createLedgerAndOpen = function (admissionId) {
-    const patient = AppState.admissions?.[admissionId];
-    if (!patient) {
-        alert('Admission record not found.');
-        return;
+    function showFormError(id, message) {
+        const el = document.getElementById(id);
+        if (!el) {
+            window.UIFeedback.toast(message, 'error');
+            return;
+        }
+        el.textContent = message;
+        el.style.display = 'block';
     }
 
-    if (!patient.ledger_id || !AppState.ledgers?.[patient.ledger_id]) {
-        const nextLedgerId = Math.max(800, ...Object.keys(AppState.ledgers || {}).map((key) => Number(key) || 0)) + 1;
-        patient.ledger_id = nextLedgerId;
-        AppState.ledgers[nextLedgerId] = [];
+    async function createLedgerAndOpen(admissionId) {
+        try {
+            await window.ApiClient.billing.ledger.create({ admission_id: admissionId, status: 'OPEN' });
+        } catch (err) {
+            window.UIFeedback.toast(err.message || 'Unable to create ledger.', 'error');
+            return;
+        }
+        window.currentAdmissionId = admissionId;
+        location.hash = '#/ledger';
+        window.render();
     }
 
-    if (!Array.isArray(AppState.billingRecords)) AppState.billingRecords = [];
-    const existingBilling = AppState.billingRecords.find((item) => item.uhid === patient.uhid);
-    if (!existingBilling) {
-        AppState.billingRecords.push({
-            id: patient.admission_id,
-            patient: patient.patient_name,
-            uhid: patient.uhid,
-            dept: patient.doctor_assigned || 'General',
-            bed: patient.ward_no,
-            dailyRate: 3000,
-            days: 0,
-            supplyCharges: 0,
-            total: 0,
-            status: patient.discharge_requested ? 'Pending Discharge' : 'Active',
-            statusVariant: patient.discharge_requested ? 'warning' : 'info'
+    async function addCharge(ledgerId, serviceId, qty) {
+        const { servicesById } = await H().loadBillingOverview();
+        const service = servicesById[serviceId];
+        if (!service) throw new Error('Select a valid service.');
+        if (!Number.isInteger(qty) || qty < 1) throw new Error('Quantity must be a whole number greater than 0.');
+
+        await window.ApiClient.billing.ledger.addEntry({
+            ledger_id: ledgerId,
+            service_id: serviceId,
+            quantity: qty,
+            unit_price: service.base_cost,
+            amount: service.base_cost * qty,
         });
     }
 
-    if (!Array.isArray(AppState.faLedgerRequests)) AppState.faLedgerRequests = [];
-    AppState.faLedgerRequests = AppState.faLedgerRequests.map((request) =>
-        request.admission_id === admissionId && request.status !== 'COMPLETED'
-            ? { ...request, status: 'COMPLETED', completed_at: Date.now(), completed_by: 'FA' }
-            : request
-    );
+    async function addChargeFromForm() {
+        const admissionId = Number(document.getElementById('charge-admission').value);
+        const serviceId = Number(document.getElementById('charge-service').value);
+        const qty = Number(document.getElementById('charge-qty').value);
 
-    AppState.currentPatientId = admissionId;
-    saveState();
-    location.hash = '#/ledger';
-    render();
-};
+        if (!admissionId) return showFormError('charges-form-error', 'Select a patient before adding a charge.');
+        if (!serviceId) return showFormError('charges-form-error', 'Select a service before adding a charge.');
 
-let dispatchSequence = 0;
+        const { rows } = await H().loadBillingOverview();
+        const row = rows.find((r) => r.admission.admission_id === admissionId);
+        if (!row || !row.ledger) return showFormError('charges-form-error', 'This admission has no ledger yet — create one first from the Dashboard.');
 
-function queueDispatchArtifact(type, patient, amount, meta = {}) {
-    if (!Array.isArray(AppState.dispatchQueue)) AppState.dispatchQueue = [];
+        try {
+            await addCharge(row.ledger.ledger_id, serviceId, qty);
+        } catch (err) {
+            return showFormError('charges-form-error', err.message || 'Unable to add charge.');
+        }
+        window.render();
+    }
 
-    dispatchSequence += 1;
-    const dispatchId = `${nextGeneratedId("dispatch")}-${dispatchSequence}`;
-    const patientIdentifier = getDisplayPatientId(patient);
-    const payload = {
-        id: dispatchId,
-        type,
-        admission_id: patient.admission_id,
-        patient_id: patient.admission_id,
-        patient_identifier: patientIdentifier,
-        patient_name: patient.patient_name,
-        uhid: patient.uhid,
-        amount,
-        status: 'QUEUED',
-        created_at: Date.now(),
-        created_by: 'FA',
-        sent_at: 0,
-        payment_confirmed: false,
-        payment_confirmed_at: 0,
-        payment_confirmation_id: "",
-        ...meta
+    async function addChargeToCurrentLedger(admissionId, ledgerId) {
+        const serviceId = Number(document.getElementById('ledger-add-service').value);
+        const qty = Number(document.getElementById('ledger-add-qty').value);
+        if (!serviceId) return window.UIFeedback.toast('Select a service before adding a charge.', 'warning');
+
+        try {
+            await addCharge(ledgerId, serviceId, qty);
+        } catch (err) {
+            window.UIFeedback.toast(err.message || 'Unable to add charge.', 'error');
+            return;
+        }
+        window.currentAdmissionId = admissionId;
+        window.render();
+    }
+
+    async function dispatchCurrent(ledgerId) {
+        if (!ledgerId) return;
+
+        const confirmed = await window.UIFeedback.confirm({
+            title: 'Dispatch bill to patient?',
+            body: 'This finalizes the current ledger and makes the bill visible to the patient for payment. You can still record a manual payment afterwards, but charges on this bill can no longer be edited.',
+            confirmLabel: 'Dispatch Bill',
+            cancelLabel: 'Cancel',
+        });
+        if (!confirmed) return;
+
+        try {
+            await window.ApiClient.billing.ledger.dispatch(ledgerId);
+        } catch (err) {
+            window.UIFeedback.toast(err.message || 'Unable to dispatch this bill.', 'error');
+            return;
+        }
+        window.render();
+    }
+
+    async function recordCashPayment(ledgerId) {
+        const entries = await H().loadLedgerEntries(ledgerId);
+        const grossTotal = H().ledgerTotal(entries);
+        const override = document.getElementById('coverage-override');
+        const deduction = override ? Math.min(Number(override.value) || 0, grossTotal) : 0;
+        const netPayable = Math.max(0, grossTotal - deduction);
+
+        if (netPayable <= 0) return showFormError('discharge-payment-error', 'Nothing due to collect for this patient.');
+
+        try {
+            await window.ApiClient.billing.payments.create({ ledger_id: ledgerId, amount_paid: netPayable, payment_mode: 'CASH' });
+        } catch (err) {
+            return showFormError('discharge-payment-error', err.message || 'Unable to record payment.');
+        }
+        window.render();
+    }
+
+    async function ensureDischargeSummary(admissionId) {
+        const { rows } = await H().loadBillingOverview();
+        const row = rows.find((r) => r.admission.admission_id === admissionId);
+        if (!row) return null;
+
+        const existing = await window.ApiClient.billing.dischargeSummary.getByAdmission(admissionId).catch(() => null);
+        if (existing) return { row, summary: existing };
+
+        const entries = row.ledger ? await H().loadLedgerEntries(row.ledger.ledger_id) : [];
+        const grossTotal = H().ledgerTotal(entries);
+        const override = document.getElementById('coverage-override');
+        const deduction = override ? Math.min(Number(override.value) || 0, grossTotal) : 0;
+        const finalAmount = Math.max(0, grossTotal - deduction);
+
+        const summary = await window.ApiClient.billing.dischargeSummary.create({
+            admission_id: admissionId,
+            patient_id: row.patient.patient_id,
+            discharge_notes: 'Patient treated and stabilized for the condition requiring admission; fit for discharge.',
+            final_amount: finalAmount,
+        });
+        return { row, summary };
+    }
+
+    async function generateDischargeSummary(admissionId) {
+        const { row, summary } = await ensureDischargeSummary(admissionId);
+        if (!row) return;
+
+        const entries = row.ledger ? await H().loadLedgerEntries(row.ledger.ledger_id) : [];
+        const { servicesById } = await H().loadBillingOverview();
+        const grossTotal = H().ledgerTotal(entries);
+
+        const servicesList = entries.map((e) => `
+            <li style="padding: 8px 0; border-bottom: 1px dashed #D8D2C8; color: #6C6863; font-size: 14px;">
+                ${H().escapeHtml(servicesById[e.service_id]?.service_name || '-')} <span style="float: right; font-weight: 600;">(Qty: ${e.quantity})</span>
+            </li>
+        `).join('');
+
+        const win = window.open('', '_blank');
+        win.document.write(`
+            <html><head><title>Discharge Summary - ${H().escapeHtml(row.patient.name || '')}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+            <style>
+                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1A1A1A; max-width: 800px; margin: 0 auto; background: #F9F8F6; }
+                h1 { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; text-align: center; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; font-size: 28px; }
+                h3 { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; margin-top: 30px; border-bottom: 1px solid #D8D2C8; padding-bottom: 8px; font-size: 18px; }
+                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+                .label { color: #6C6863; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+                .value { font-size: 15px; font-weight: 600; color: #1A1A1A; }
+                ul { list-style: none; padding: 0; margin: 0; }
+                .financials { background: #EBE5DE; padding: 20px; border-radius: 0; border: none; border-top: 1px solid #1A1A1A; margin-top: 10px; }
+                .row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 15px; }
+                .net { font-size: 20px; font-weight: 800; color: #9C7A1E; border-top: 1px solid #1A1A1A; padding-top: 16px; margin-top: 12px; }
+                .print-btn { display: block; width: 100%; background: #1A1A1A; color: #F9F8F6; border: none; padding: 16px; border-radius: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; margin-top: 40px; }
+                @media print { .print-btn { display: none; } body { padding: 0; } }
+            </style></head>
+            <body>
+                <h1>Official Discharge Summary</h1>
+                <h3>Patient & Admission Details</h3>
+                <div class="grid">
+                    <div><div class="label">Patient Name</div><div class="value">${H().escapeHtml(row.patient.name || '-')}</div></div>
+                    <div><div class="label">UHID</div><div class="value">${H().escapeHtml(row.patient.uhid || '-')}</div></div>
+                    <div><div class="label">Bed</div><div class="value">${H().escapeHtml(row.bed.bed_number || '-')}</div></div>
+                    <div><div class="label">Attending Doctor</div><div class="value">${H().escapeHtml(row.doctorName || 'Duty Doctor')}</div></div>
+                </div>
+                <h3>Services Used</h3>
+                <ul>${servicesList || '<li>No services recorded.</li>'}</ul>
+                <h3>Financial Summary</h3>
+                <div class="financials">
+                    <div class="row"><span class="label">Total Amount (Gross)</span><span class="value">${H().formatCurrency(grossTotal)}</span></div>
+                    <div class="row net"><span>Final Payment Due</span><span>${H().formatCurrency(summary.final_amount)}</span></div>
+                </div>
+                <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+                <script>setTimeout(() => { window.print(); }, 500);</script>
+            </body></html>
+        `);
+        win.document.close();
+        window.render();
+    }
+
+    async function printDischargeSummary(admissionId) {
+        const { row, summary } = await ensureDischargeSummary(admissionId);
+        if (!row) return;
+
+        const entries = row.ledger ? await H().loadLedgerEntries(row.ledger.ledger_id) : [];
+        const { servicesById } = await H().loadBillingOverview();
+        const grossTotal = H().ledgerTotal(entries);
+        const treatmentsReceived = entries.map((e) => servicesById[e.service_id]?.service_name).filter(Boolean).join(', ') || 'Standard Care';
+
+        const win = window.open('', '_blank');
+        win.document.write(`
+            <html><head><title>Discharge & Billing Summary - ${H().escapeHtml(row.patient.name || '')}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+            <style>
+                body { font-family: 'Inter', sans-serif; padding: 40px; color: #1A1A1A; max-width: 900px; margin: 0 auto; line-height: 1.5; background: #F9F8F6; }
+                .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; margin-bottom: 30px; }
+                .hospital-name { font-family: 'Playfair Display', serif; font-weight: 500; color: #1A1A1A; font-size: 28px; margin: 0; }
+                .section-title { background: #EBE5DE; padding: 10px 16px; border-left: 3px solid #D4AF37; font-size: 12px; letter-spacing: 0.1em; font-weight: 600; color: #1A1A1A; margin: 30px 0 15px 0; text-transform: uppercase; }
+                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; font-size: 14px; }
+                .info-label { color: #6C6863; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+                .info-value { color: #1A1A1A; font-weight: 600; }
+                .text-block { font-size: 14px; color: #4A4742; margin-bottom: 16px; background: #F9F8F6; border: 1px solid #D8D2C8; padding: 16px; border-radius: 0; }
+                .bill-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #D8D2C8; font-size: 14px; }
+                .net-paid { color: #9C7A1E; font-size: 18px; font-weight: 800; border-bottom: 1px solid #1A1A1A; border-top: 1px solid #1A1A1A; margin-top: 10px; }
+                .print-btn { background: #1A1A1A; color: #F9F8F6; border: none; padding: 14px 28px; border-radius: 0; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 50px; display: block; width: 100%; }
+                @media print { .print-btn { display: none; } body { padding: 0; } }
+            </style></head>
+            <body>
+                <div class="header">
+                    <div><h1 class="hospital-name">Federico Hospital</h1><div style="font-size: 13px; color: #6C6863; margin-top: 4px;">123 Health Avenue, Medical District</div></div>
+                    <div style="text-align: right;"><div style="font-size: 12px; color: #6C6863; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">Discharge & Billing Summary</div></div>
+                </div>
+                <div class="info-grid">
+                    <div><div class="info-label">Patient Name</div><div class="info-value">${H().escapeHtml(row.patient.name || '-')}</div></div>
+                    <div><div class="info-label">UHID</div><div class="info-value">${H().escapeHtml(row.patient.uhid || '-')}</div></div>
+                    <div><div class="info-label">Admitting Doctor</div><div class="info-value">${H().escapeHtml(row.doctorName || 'Duty Doctor')}</div></div>
+                    <div><div class="info-label">Ward / Bed</div><div class="info-value">${H().escapeHtml(row.bed.bed_number || '-')}</div></div>
+                </div>
+                <div class="section-title">Part 1: Clinical Discharge Summary</div>
+                <div class="text-block"><strong style="display:block; margin-bottom:4px;">Primary Diagnosis:</strong>Successfully treated and stabilized for the condition requiring admission. Patient is fit for discharge.</div>
+                <div class="text-block"><strong style="display:block; margin-bottom:4px;">Treatments & Services Rendered:</strong>${H().escapeHtml(treatmentsReceived)}</div>
+                <div class="section-title">Part 2: Final Billing Receipt</div>
+                <div class="bill-row"><span>Gross Total Charges</span><span>${H().formatCurrency(grossTotal)}</span></div>
+                <div class="bill-row net-paid"><span>Net Amount Due</span><span>${H().formatCurrency(summary.final_amount)}</span></div>
+                <button class="print-btn" onclick="window.print()">Save Official Document as PDF</button>
+                <script>setTimeout(() => { window.print(); }, 500);</script>
+            </body></html>
+        `);
+        win.document.close();
+        window.render();
+    }
+
+    async function printReceipt(receiptId) {
+        const [receipts, { patientsById }] = await Promise.all([
+            window.ApiClient.billing.receipts.list().catch(() => []),
+            H().loadBillingOverview(),
+        ]);
+        const r = receipts.find((rec) => rec.receipt_id === receiptId);
+        if (!r) return window.UIFeedback.toast('Receipt not found.', 'error');
+        const patient = patientsById[r.patient_id] || {};
+
+        const win = window.open('', '_blank');
+        win.document.write(`
+            <html><head><title>Receipt - PAY${r.receipt_id}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+            <style>
+                body { font-family: 'Inter', sans-serif; padding: 50px; color: #1A1A1A; max-width: 700px; margin: 0 auto; background: #F9F8F6; }
+                h2 { font-family: 'Playfair Display', serif; font-weight: 500; }
+                .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1A1A1A; padding-bottom: 20px; margin-bottom: 30px; }
+                .badge { background: #E7F0EA; color: #2C5B41; padding: 6px 14px; border-radius: 0; font-size: 11px; letter-spacing: 0.08em; font-weight: 700; }
+                .row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #D8D2C8; font-size: 15px; }
+                .net { font-size: 20px; font-weight: 800; color: #9C7A1E; border-bottom: 1px solid #1A1A1A; border-top: 1px solid #1A1A1A; padding: 20px 0; margin-top: 10px; }
+                .print-btn { background: #1A1A1A; color: #F9F8F6; border: none; padding: 14px 28px; border-radius: 0; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 40px; display: block; width: 100%; }
+                @media print { .print-btn { display: none; } body { padding: 0; } }
+            </style></head>
+            <body>
+                <div class="header"><h2>🧾 Payment Receipt</h2><span class="badge">PAID</span></div>
+                <div class="row"><span>Receipt ID</span><span>PAY${r.receipt_id}</span></div>
+                <div class="row"><span>Patient Name</span><span>${H().escapeHtml(patient.name || '-')}</span></div>
+                <div class="row"><span>UHID</span><span>${H().escapeHtml(patient.uhid || '-')}</span></div>
+                <div class="row"><span>Date & Time</span><span>${H().formatDateTime(r.generated_at)}</span></div>
+                <div class="row"><span>Payment Mode</span><span>${H().escapeHtml((r.payment_mode || '').toUpperCase())}</span></div>
+                <div class="row net"><span>Total Amount Paid</span><span>${H().formatCurrency(r.amount)}</span></div>
+                <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+                <script>setTimeout(() => { window.print(); }, 500);</script>
+            </body></html>
+        `);
+        win.document.close();
+    }
+
+    function filterReceipts() {
+        const query = (document.getElementById('receipt-search')?.value || '').toLowerCase();
+        const modeFilter = document.getElementById('receipt-filter')?.value || 'ALL';
+        document.querySelectorAll('.receipt-row').forEach((row) => {
+            const patient = row.getAttribute('data-patient');
+            const id = (row.getAttribute('data-id') || '').toLowerCase();
+            const mode = row.getAttribute('data-mode');
+            const matches = (patient.includes(query) || id.includes(query)) && (modeFilter === 'ALL' || mode === modeFilter);
+            row.style.display = matches ? '' : 'none';
+        });
+    }
+
+    window.FAActions = {
+        createLedgerAndOpen,
+        addChargeFromForm,
+        addChargeToCurrentLedger,
+        dispatchCurrent,
+        recordCashPayment,
+        generateDischargeSummary,
+        printDischargeSummary,
+        printReceipt,
+        filterReceipts,
     };
-
-    AppState.dispatchQueue.unshift(payload);
-    return payload;
-}
-
-function buildPaymentArtifacts(patient, method, netPayable) {
-    const patientIdentifier = getPatientRouteId(patient);
-    const baseId = `${nextGeneratedId("billing")}-${patientIdentifier}`;
-    const patientParam = encodeURIComponent(patient.patient_name);
-    const upiIntent = `upi://pay?pa=federico.hospital@upi&pn=Federico Hospital&am=${netPayable}&cu=INR&tn=${baseId}`;
-    const cardLink = `https://pay.federico.hospital/checkout?patientId=${encodeURIComponent(patientIdentifier)}&amount=${netPayable}&method=${encodeURIComponent(method)}&patient=${patientParam}`;
-    const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiIntent)}`;
-
-    return {
-        upiIntent,
-        cardLink,
-        qrLink,
-        payment_link: method === 'UPI' ? upiIntent : cardLink,
-        discharge_summary_link: `federico://documents/discharge/${patientIdentifier}`,
-        billingLink: `federico://patient-ledger/${patientIdentifier}`
-    };
-}
-
-window.approveRequest = function (id) {
-    const req = AppState.serviceRequests.find(r => r.id === id);
-    if (!req) return;
-
-    const admission = AppState.admissions[req.patient_id];
-    if (!admission) {
-        alert('Patient admission record not found.');
-        return;
-    }
-
-    // Phase 3: block approve if no ledger exists for this admission
-    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(req.patient_id, AppState)) {
-        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
-        if (errEl) {
-            errEl.textContent = 'Action blocked: no ledger found for this admission.';
-            errEl.style.display = 'block';
-        } else {
-            alert('Action blocked: no ledger found for this admission.');
-        }
-        return;
-    }
-
-    req.status = 'APPROVED';
-    req.approved_at = Date.now();
-    req.approved_by = 'FA';
-
-    const ledgerId = admission.ledger_id;
-    if (!Array.isArray(AppState.ledgers[ledgerId])) AppState.ledgers[ledgerId] = [];
-
-    const qty = req.service_count || 1;
-    const price = getServiceCatalogPricing(req.service);
-
-    AppState.ledgers[ledgerId].push({
-        entry_id: nextGeneratedId("ledger-entry"),
-        service_name: req.service,
-        qty,
-        price,
-        tax: Math.round(price * qty * 0.05),
-        ts: Date.now(),
-        source: 'FA_APPROVAL',
-        request_id: req.id
-    });
-
-    AppState.currentPatientId = req.patient_id;
-    saveState();
-    location.hash = '#/ledger';
-    render();
-};
-
-window.publishEOD = function () {
-    const currentPid = AppState.currentPatientId || 701;
-    const patient = AppState.admissions[currentPid];
-    if (!patient) return;
-
-    // Phase 3: block publish if no ledger exists for this admission
-    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(patient.admission_id, AppState)) {
-        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
-        if (errEl) {
-            errEl.textContent = 'Action blocked: no ledger found for this admission.';
-            errEl.style.display = 'block';
-        } else {
-            alert('Action blocked: no ledger found for this admission.');
-        }
-        return;
-    }
-
-    const data = getPatientData(patient.ledger_id, 'NEW');
-    if (data.entries.length === 0) {
-        alert('No new charges to publish.');
-        return;
-    }
-
-    const billId = nextGeneratedId("eod");
-    AppState.publishedBills.unshift({
-        bill_id: billId,
-        patient: patient.patient_name,
-        patient_id: patient.admission_id,
-        amount: data.total,
-        link: `federico://patient-ledger/${getPatientRouteId(patient)}`,
-        ts: Date.now()
-    });
-
-    const eodDispatch = queueDispatchArtifact('EOD_BILL', patient, data.total, {
-        bill_id: billId,
-        entry_count: data.entries.length,
-        link: `federico://patient-ledger/${getPatientRouteId(patient)}`
-    });
-    // EOD billing is queued for HOM to dispatch to Patient.
-
-    patient.last_published_ts = Date.now();
-    saveState();
-    alert(`EOD billing packet sent to patient for ${patient.patient_name}.`);
-    render();
-};
-
-window.handlePaymentMethodChange = function () {
-    const method = document.getElementById('discharge-payment-method')?.value;
-    const container = document.getElementById('dynamic-payment-area');
-    const patient = AppState.admissions[AppState.currentPatientId];
-    if (!method || !container || !patient) return;
-
-    const data = getPatientData(patient.ledger_id, 'ALL');
-    const netPayable = Math.max(0, data.total - (patient.coverage || 0));
-    const artifacts = buildPaymentArtifacts(patient, method, netPayable);
-
-    if (method === 'UPI') {
-        container.innerHTML = `
-            <div style="margin-bottom: 24px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
-                <div style="text-align: center;">
-                    <img src="${artifacts.qrLink}" alt="UPI QR" style="width: 180px; height: 180px; border-radius: 12px; background: white; padding: 10px; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);">
-                    <div style="font-size: 13px; color: var(--primary); font-weight: 700; margin-top: 12px;">Scan to Pay Rs ${netPayable.toLocaleString()}</div>
-                </div>
-                <div style="margin-top: 12px; padding: 10px; background: white; border-radius: 8px; font-size: 11px; word-break: break-all; color: #0f766e;">${artifacts.upiIntent}</div>
-                <div style="display: flex; gap: 10px; margin-top: 12px;">
-                    <button class="btn-primary" style="flex:1; padding: 10px; border-radius: 8px;" onclick="navigator.clipboard.writeText('${artifacts.upiIntent}').then(()=>alert('UPI link copied.'))">Copy UPI Link</button>
-                    <button class="btn-primary" style="flex:1; padding: 10px; border-radius: 8px; background:#0ea5e9;" onclick="window.open('${artifacts.billingLink}', '_blank')">Open Billing Link</button>
-                </div>
-            </div>
-        `;
-    } else if (method === 'CREDIT CARD' || method === 'DEBIT CARD') {
-        container.innerHTML = `
-            <div style="margin-bottom: 24px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
-                <div style="font-size: 13px; color: var(--primary); font-weight: 700;">${method} payment link generated</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Send this secure checkout link to the patient after HOM dispatch.</div>
-                <div style="margin-top: 12px; padding: 10px; background: white; border-radius: 8px; font-size: 11px; word-break: break-all; color: #1d4ed8;">${artifacts.cardLink}</div>
-                <div style="display: flex; gap: 10px; margin-top: 12px;">
-                    <button class="btn-primary" style="flex:1; padding: 10px; border-radius: 8px;" onclick="navigator.clipboard.writeText('${artifacts.cardLink}').then(()=>alert('Card payment link copied.'))">Copy Card Link</button>
-                    <button class="btn-primary" style="flex:1; padding: 10px; border-radius: 8px; background:#0ea5e9;" onclick="window.open('${artifacts.cardLink}', '_blank')">Open Checkout</button>
-                </div>
-            </div>
-        `;
-    } else {
-        container.innerHTML = `
-            <div style="margin-bottom: 24px; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 13px;">
-                Collect cash of Rs ${netPayable.toLocaleString()} and then close the file. The bill summary and discharge packet will still be queued for HOM to send.
-            </div>
-        `;
-    }
-};
-
-window.confirmDischarge = function () {
-    const currentPid = AppState.currentPatientId;
-    const patient = AppState.admissions[currentPid];
-    if (!patient) return;
-
-    // Phase 3: block discharge if no ledger exists for this admission
-    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(patient.admission_id, AppState)) {
-        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
-        if (errEl) {
-            errEl.textContent = 'Action blocked: no ledger found for this admission.';
-            errEl.style.display = 'block';
-        } else {
-            alert('Action blocked: no ledger found for this admission.');
-        }
-        return;
-    }
-
-    if (patient.discharge_packet_sent && !patient.discharged) {
-        alert(`Discharge summary and payment link are already waiting with HOM for ${patient.patient_name}.`);
-        return;
-    }
-
-    const method = document.getElementById('discharge-payment-method')?.value || 'CASH';
-    const data = getPatientData(patient.ledger_id, 'ALL');
-    const grossTotal = data.total;
-    const insuranceDeduction = Math.min(
-        Number(document.getElementById('coverage-override')?.value ?? patient.coverage ?? 0),
-        grossTotal
-    );
-    const netPayable = Math.max(0, grossTotal - insuranceDeduction);
-    const artifacts = buildPaymentArtifacts(patient, method, netPayable);
-    patient.discharge_requested = false;
-    patient.discharge_packet_sent = true;
-    patient.discharge_packet_sent_at = Date.now();
-    patient.pending_payment_mode = method;
-    patient.pending_net_payable = netPayable;
-    patient.pending_gross_total = grossTotal;
-    patient.pending_insurance_deduction = insuranceDeduction;
-
-    const dischargeSummaryDispatch = queueDispatchArtifact('DISCHARGE_SUMMARY', patient, netPayable, {
-        payment_mode: method,
-        gross: grossTotal,
-        insurance_deduction: insuranceDeduction,
-        discharge_summary_link: artifacts.summaryLink
-    });
-
-    const paymentLinkDispatch = queueDispatchArtifact('PAYMENT_LINK', patient, netPayable, {
-        payment_mode: method,
-        billing_link: artifacts.billingLink,
-        payment_link: method === 'UPI' ? artifacts.upiIntent : method === 'CASH' ? '' : artifacts.cardLink
-    });
-
-    saveState();
-    alert(`Discharge summary and payment link queued to HOM for ${patient.patient_name}. Receipt will be generated after HOM confirms payment.`);
-    location.hash = '#/dashboard';
-    render();
-};
-
-window.generateReceiptAndSendToHOM = function (confirmationId) {
-    const confirmation = (AppState.paymentConfirmations || []).find((item) => item.id === confirmationId);
-    if (!confirmation || confirmation.status !== 'PENDING_RECEIPT') {
-        alert('Payment confirmation from HOM is not available.');
-        return;
-    }
-
-    const patient = AppState.admissions[confirmation.admission_id];
-    if (!patient) {
-        alert('Patient admission record not found for receipt generation.');
-        return;
-    }
-
-    // Phase 3: block receipt generation if no ledger exists for this admission
-    if (window.LedgerValidator && !window.LedgerValidator.existsForAdmission(confirmation.admission_id, AppState)) {
-        const errEl = document.getElementById('fa-action-error') || document.getElementById('ledger-error');
-        if (errEl) {
-            errEl.textContent = 'Action blocked: no ledger found for this admission.';
-            errEl.style.display = 'block';
-        } else {
-            alert('Action blocked: no ledger found for this admission.');
-        }
-        return;
-    }
-
-    const receiptId = nextGeneratedId("receipt");
-    const grossTotal = Number(patient.pending_gross_total || 0);
-    const insuranceDeduction = Number(patient.pending_insurance_deduction || patient.coverage || 0);
-    const netPayable = Number(patient.pending_net_payable || confirmation.amount || 0);
-    const method = confirmation.payment_mode || patient.pending_payment_mode || 'CASH';
-
-    AppState.receipts.unshift({
-        id: receiptId,
-        patient: patient.patient_name,
-        patient_id: getDisplayPatientId(patient),
-        uhid: patient.uhid,
-        amount: netPayable,
-        gross: grossTotal,
-        coverage: insuranceDeduction,
-        insurance: patient.insurance_provider,
-        mode: method,
-        status: 'Paid',
-        ts: receiptId
-    });
-    confirmation.status = "RECEIPT_SENT";
-    saveState();
-
-    queueDispatchArtifact('FINAL_RECEIPT', patient, netPayable, {
-        receipt_id: receiptId,
-        payment_mode: method,
-        receipt_link: `federico://receipts/${receiptId}`
-    });
-
-    confirmation.status = 'RECEIPT_SENT';
-    confirmation.receipt_id = receiptId;
-    confirmation.receipt_sent_at = Date.now();
-
-    patient.discharged = true;
-    patient.receipt_sent_to_hom = true;
-    patient.receipt_sent_to_hom_at = Date.now();
-    patient.discharge_packet_sent = false;
-    patient.payment_confirmed = true;
-    patient.payment_confirmed_at = confirmation.confirmed_at || Date.now();
-    patient.pending_payment_mode = null;
-    patient.pending_net_payable = null;
-    patient.pending_gross_total = null;
-    patient.pending_insurance_deduction = null;
-
-    saveState();
-    alert(`Receipt generated and queued back to HOM for ${patient.patient_name}.`);
-    location.hash = '#/receipts';
-    render();
-};
-
-
+})();

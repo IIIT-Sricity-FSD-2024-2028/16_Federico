@@ -1,98 +1,94 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Federico — Backend (Express)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Express backend for the Federico hospital administrative operations
+platform, and the real source of truth for all workflow state (no more
+frontend `localStorage` simulation). Built in two documented phases:
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1. A literal, behavior-preserving NestJS→Express port —
+   [`docs/express-migration-notes.md`](docs/express-migration-notes.md).
+2. New functionality making this the real backend the frontend talks to:
+   real login, pre-registration, bed requests, billing dispatch/receipts,
+   an activity log, and lightweight durability —
+   [`docs/phase2-source-of-truth.md`](docs/phase2-source-of-truth.md).
 
 ## Project setup
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+## Run
 
 ```bash
-# development
-$ npm run start
+# start
+npm run start
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# watch mode (auto-restart on file changes)
+npm run start:dev
 ```
 
-## Run tests
+The server listens on `http://localhost:3000`. Data lives in memory and
+is debounce-written to `data/db.json` (gitignored) on every change, then
+restored from there on the next boot — so a restart no longer wipes
+whatever you entered. Delete `data/db.json` to reset to the seed data.
+
+## API docs
+
+Swagger UI: `http://localhost:3000/api`. The same document is written to
+`docs/swagger.json` on every boot.
+
+## Auth
+
+Two ways to authenticate, checked additively (either is sufficient):
+
+1. **Real login** (Phase 2) — `POST /auth/login` with `{ email, password }`
+   returns a session token; send it as `Authorization: Bearer <token>` on
+   subsequent requests. Demo accounts:
+
+   | Actor | Email | Password |
+   |---|---|---|
+   | Admin | owner@hosp.com | Owner@123 |
+   | HOM | admin@hosp.com | Hom@123 |
+   | PRE | rekha.pre@hosp.com | Pre@123 |
+   | FA | farah.fa@hosp.com | Fa@123 |
+   | Patient | hamiz@hosp.com | Hamiz@123 |
+   | Patient | salma@hosp.com | Salma@123 |
+   | Patient | john@hosp.com | John@123 |
+
+   New patients can also self-register via `POST /auth/signup`.
+
+2. **Legacy header** (Phase 1, preserved exactly) — `x-role: ADMIN` or
+   `x-role: SUPER_USER` (`SUPER_USER` required for writes). Still works
+   on every route it always did, unchanged — this is what
+   `test-all-endpoints.ps1` and Swagger's "try it out" use.
+
+See `docs/phase2-source-of-truth.md` for the full per-resource
+read/write permission matrix for the four real actors (HOM/PRE/FA/Patient).
+
+## Tests
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run test       # unit
+npm run test:e2e   # supertest against the Express app (incl. auth/permission checks)
 ```
 
-## Deployment
+`test-all-endpoints.ps1` is a PowerShell smoke script exercising the full
+legacy-contract doctor → ward/bed → patient → appointment → admission →
+billing → inventory chain end-to-end; run it against a running
+`npm run start` server.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Structure
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
 ```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+src/
+  controllers/   thin HTTP handlers
+  routes/        express.Router() per resource
+  services/      business logic over the shared in-memory store
+  middleware/    role/session guards, request logger, persistence hook,
+                 validation error/404/500 shaping
+  validators/    declarative per-field validation rules
+  store/         the in-memory "database", sessions, and disk persistence
+  config/        Swagger setup
+  app.js         createApp()
+server.js        persist.load() + app.listen()
+```

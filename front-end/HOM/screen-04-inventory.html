@@ -4,23 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory | Federico Hospital HOM</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
     <link rel="stylesheet" href="global.css">
     <style>
-        .dashboard-container { padding: 32px; padding-bottom: 64px; max-width: 1440px; margin: 0 auto; }
-        .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
-        
-        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
-        .metric-card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        
-        .main-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
-        @media (min-width: 1024px) { .main-grid { grid-template-columns: 2fr 1fr; } }
-
-        .table-container { overflow-x: auto; width: 100%; }
-        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .data-table th { padding: 16px 24px; background: #F8FAFC; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        .data-table td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #F1F5F9; }
-        .data-table tr:hover td { background-color: #F8FAFC; }
-
+        /* .dashboard-container / .header-section / .metrics-grid /
+           .metric-card-icon / .main-grid / .table-container / .data-table
+           now live once in global.css. */
         .stepper-btn { width: 44px; height: 44px; border-radius: var(--radius-base); border: 1px solid var(--border); background: white; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 18px; }
         .stepper-btn:hover { background: var(--neutral-bg); }
         .stepper-input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-base); text-align: center; font-size: 14px; color: var(--text-primary); outline: none; }
@@ -28,12 +19,9 @@
 
         .alert-card { background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-base); padding: 12px; margin-bottom: 12px; }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; align-items: center; justify-content: center; padding: 16px; }
-        .modal-overlay.active { display: flex; }
-        .modal-content { background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
-        .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; z-index: 10; }
-        .modal-body { padding: 24px; }
-        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+        /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
+           now live once in global.css (Material You dialog styling) instead
+           of being duplicated in every screen's own <style> block. */
     </style>
 </head>
 <body>
@@ -126,7 +114,7 @@
     </main>
 
     <div class="modal-overlay" id="modal-log-usage">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
                 <h2 class="h2" style="font-size: 20px;">Log Inventory Usage</h2>
                 <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
@@ -225,38 +213,17 @@
         </div>
     </div>
 
-  <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-    <script src="../shared/id-generator.js"></script>
-    <script src="../shared/patient-resolver.js"></script>
-    <script src="../shared/sanitizer.js"></script>
-    <script src="../shared/ledger-validator.js"></script>
-    <script src="../shared/finance-states.js"></script>
-    <script src="../shared/insurance.js"></script>
-    <script src="../shared/rbac.js"></script>
+  <script>window.APP_MODULE = "HOM";</script>
+    <script src="../shared/constants.js"></script>
     <script src="../shared/api-client.js"></script>
-    <script src="auth-guard.js"></script>
-    <script src="storage.js"></script>
-    
-    <script>
-        window.UI = {
-            cn: (...classes) => classes.filter(Boolean).join(' '),
-            Badge: ({ children, variant = 'neutral', className = '' }) => {
-                const baseClass = 'badge';
-                const variantClass = `badge-${variant}`;
-                return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
-            },
-            Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '' }) => {
-                const classes = window.UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
-                const idAttr = id ? `id="${id}"` : '';
-                const disabledAttr = disabled ? 'disabled' : '';
-                const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
-                const onClickAttr = onClick ? `onclick="${onClick}"` : '';
-                return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
-            }
-        };
-    </script>
-    
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/ui-feedback.js"></script>
+    <script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
+    <script src="../shared/dom-table.js"></script>
+    <script src="hom-helpers.js"></script>
+    <script src="ui-template.js"></script>
+
     <script src="shared-nav.js"></script>
     <script src="inventory.js"></script>
 </body>

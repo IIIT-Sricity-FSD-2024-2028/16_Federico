@@ -13,30 +13,55 @@ window.UI = {
   /**
    * Badge Component
    * @param {Object} props - { children, variant: 'success'|'warning'|'error'|'info'|'neutral', className }
+   *
+   * Emits both the app-local `.badge`/`.badge-<variant>` classes (styled
+   * in global.css to the Material You tonal-chip look) and the shared
+   * `.md-chip`/`.md-chip-<variant>` classes from
+   * ../shared/material-components.css, so this component tracks either
+   * stylesheet without any markup consumer needing to change.
    */
   Badge: ({ children, variant = 'neutral', className = '' }) => {
     const baseClass = 'badge';
     const variantClass = `badge-${variant}`;
-    return `<span class="${UI.cn(baseClass, variantClass, className)}">${children}</span>`;
+    return `<span class="${UI.cn(baseClass, variantClass, 'md-chip', `md-chip-${variant}`, className)}">${children}</span>`;
   },
 
   /**
    * Button Component
-   * @param {Object} props - { children, variant: 'primary'|'secondary'|'outline'|'danger', size: 'default'|'sm'|'lg', className, id, disabled, onClick }
+   * @param {Object} props - { children, variant: 'primary'|'secondary'|'outline'|'danger', size: 'default'|'sm'|'lg', className, id, disabled, onClick, dataAttrs }
+   *
+   * Emits both the app-local `.btn`/`.btn-<variant>`/`.btn-<size>` classes
+   * (styled in global.css to Material You pill buttons) and the shared
+   * `.md-btn`/`.md-btn-<variant>` classes from
+   * ../shared/material-components.css.
+   *
+   * `dataAttrs` (e.g. `{ action: 'billing-detail', ledgerId: 42 }`) emits
+   * `data-*` attributes for a delegated `click` listener to read, instead
+   * of `onClick` (which bakes a `window.fnName = ...` global call directly
+   * into the generated HTML — still supported for callers that need it,
+   * but prefer `dataAttrs` + delegation for new code).
    */
-  Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '' }) => {
-    const classes = UI.cn('btn', `btn-${variant}`, `btn-${size}`, className);
+  Button: ({ children, variant = 'primary', size = 'default', className = '', id = '', disabled = false, dataFlow = '', onClick = '', dataAttrs = null }) => {
+    const MD_VARIANT = { primary: 'filled', secondary: 'tonal', outline: 'outlined', danger: 'danger' };
+    const MD_SIZE = { sm: 'md-btn-sm', lg: 'md-btn-lg' };
+    const classes = UI.cn('btn', `btn-${variant}`, `btn-${size}`, 'md-btn', `md-btn-${MD_VARIANT[variant] || 'filled'}`, MD_SIZE[size], className);
     const idAttr = id ? `id="${id}"` : '';
     const disabledAttr = disabled ? 'disabled' : '';
     const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : '';
-    return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr}>${children}</button>`;
+    const onClickAttr = onClick ? `onclick="${onClick}"` : '';
+    const dataAttrsStr = dataAttrs
+      ? Object.entries(dataAttrs)
+          .map(([key, value]) => `data-${key.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${String(value)}"`)
+          .join(' ')
+      : '';
+    return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr} ${dataAttrsStr}>${children}</button>`;
   },
 
   /**
    * Card Components
    */
   Card: ({ children, className = '' }) => {
-    return `<div class="${UI.cn('card', className)}">${children}</div>`;
+    return `<div class="${UI.cn('card', 'md-card', className)}">${children}</div>`;
   },
   
   CardHeader: ({ title, description, action = '', className = '' }) => {

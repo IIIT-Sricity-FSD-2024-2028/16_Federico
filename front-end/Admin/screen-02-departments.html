@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Departments &amp; Wards | Federico Hospital Admin</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
+    <link rel="stylesheet" href="../HOM/global.css">
+    <style>
+        /* .dashboard-container / .header-section / .metrics-grid /
+           .metric-card-icon / .data-table live once in ../HOM/global.css. */
+        .ward-card { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); gap: 16px; }
+        .ward-card:last-child { border-bottom: none; }
+        .ward-card-name { font-weight: 600; }
+        .ward-card-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .ward-card-stats { display: flex; gap: 20px; align-items: center; }
+        .ward-stat { text-align: center; }
+        .ward-stat-value { font-size: 16px; font-weight: 600; }
+        .ward-stat-label { font-size: 11px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Departments &amp; Wards</h1>
+                <p class="body-text">Add, resize, or remove the wards patients get admitted into. Every hospital starts with 6 standard departments — adjust the list to fit yours.</p>
+            </div>
+            <button class="btn btn-primary btn-default" id="new-ward-btn">+ Add Ward</button>
+        </div>
+
+        <div class="metrics-grid" id="metrics-container"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Wards</h2>
+                <p class="card-description">Bed counts include both available and occupied beds.</p>
+            </div>
+            <div class="card-content" style="padding: 0;">
+                <div id="wards-list"><div class="md-empty-state"><span>Loading wards…</span></div></div>
+            </div>
+        </div>
+    </main>
+
+    <dialog id="ward-dialog" class="md-native-dialog">
+        <form id="ward-form" class="dialog-form">
+            <h2 class="md-dialog-title" id="ward-dialog-title">Add a Ward</h2>
+            <div class="md-field"><label for="ward-name">Department / ward name</label><input id="ward-name" required placeholder="e.g. Neurology Ward" /></div>
+            <div class="md-field"><label for="ward-description">Description</label><input id="ward-description" placeholder="Optional" /></div>
+            <div class="md-field"><label for="ward-beds">Total beds</label><input id="ward-beds" type="number" min="1" required placeholder="e.g. 10" /></div>
+            <div class="md-dialog-actions">
+                <button type="button" class="btn btn-outline btn-default" id="ward-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-default">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>window.APP_MODULE = "ADMIN";</script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/ui-feedback.js"></script>
+<script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
+<script src="../shared/dom-table.js"></script>
+<script src="../HOM/ui-template.js"></script>
+
+<script src="shared-nav.js"></script>
+<script src="departments.js"></script>
+</body>
+</html>

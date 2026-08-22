@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Federico — Find a Hospital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../shared/design-tokens.css" />
+  <link rel="stylesheet" href="../shared/material-components.css" />
+  <link rel="stylesheet" href="../shared/ui-feedback.css" />
+  <link rel="stylesheet" href="marketplace-page.css" />
+</head>
+<body>
+  <header class="md-topbar">
+    <a class="md-brand" href="../landing/landing-page.html" style="text-decoration:none; color:inherit;">
+      <span class="md-brand-mark">F</span>
+      <span>Federico</span>
+    </a>
+    <div class="topbar-actions">
+      <a class="md-btn md-btn-text" href="../landing/landing-page.html">Home</a>
+      <a class="md-btn md-btn-outlined" href="../login/login-page.html">Login</a>
+    </div>
+  </header>
+
+  <main class="md-container marketplace-page">
+    <section class="marketplace-hero">
+      <div class="md-blur-shape md-blur-primary" style="width:420px;height:420px;top:-140px;right:-120px;" aria-hidden="true"></div>
+      <span class="label">Organization Marketplace</span>
+      <h1>Find your hospital on Federico</h1>
+      <p class="marketplace-lead">Every hospital organization on the Federico platform, in one place. Search by name, branch, department, or emergency availability — then log in or register directly with that hospital.</p>
+
+      <div class="marketplace-search">
+        <input type="search" id="search-input" placeholder="Search by hospital name, city, or specialty…" aria-label="Search organizations" />
+        <label class="emergency-filter">
+          <input type="checkbox" id="emergency-filter" />
+          <span>24×7 Emergency only</span>
+        </label>
+      </div>
+    </section>
+
+    <section id="org-grid" class="org-grid" aria-live="polite">
+      <div class="md-empty-state">
+        <span>Loading hospitals…</span>
+      </div>
+    </section>
+  </main>
+
+  <template id="org-card-template">
+    <article class="md-card org-card">
+      <div class="org-card-head">
+        <span class="org-mark"></span>
+        <div>
+          <h3 class="org-name"></h3>
+          <p class="org-branches"></p>
+        </div>
+        <span class="md-chip emergency-chip">24×7 Emergency</span>
+      </div>
+      <div class="org-specialties"></div>
+      <p class="org-contact"></p>
+      <div class="org-actions">
+        <a class="md-btn md-btn-outlined org-login-link">Login</a>
+        <a class="md-btn md-btn-filled org-register-link">Register as Patient</a>
+      </div>
+    </article>
+  </template>
+
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/api-client.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="marketplace-page.js"></script>
+</body>
+</html>

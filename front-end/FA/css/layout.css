@@ -1,11 +1,18 @@
+/* Top app bar — same visual language as the shared .md-topbar component
+   (sticky, blurred translucent surface, thin outline divider) but keeps the
+   app's own .header/.nav-link/.logout-btn class names since permissions.js
+   reads the .nav-link elements' onclick attributes to drive route-based
+   show/hide, and app.js/router.js target #role-indicator, #module-switch-link
+   and #logout-btn directly. */
 .header {
-    background: var(--white);
-    padding: 12px 40px;
+    background: color-mix(in srgb, var(--md-surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+    padding: 0 40px;
+    height: 72px;
     display: flex;
-    /* This allows the flex children to use the full width for centering */
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--md-outline-variant);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -15,17 +22,25 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    /* Takes up 1 part of the outer space to push nav to center */
     flex: 1;
 }
 
+.logo-group strong {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-fg);
+}
+
+/* Nav items — horizontal row of pill "nav rail" items, matching the shared
+   .md-nav-item look (pill hover/active state) while staying <span> elements
+   so permissions.js's onclick-route parsing keeps working unmodified. */
 .nav-links {
     display: flex;
-    gap: 24px;
+    gap: 4px;
     align-items: center;
-    /* Centers the links within the middle section */
     justify-content: center;
-    /* Takes up more space to ensure it stays centered */
     flex: 2;
 }
 
@@ -38,47 +53,87 @@
 }
 
 .nav-link {
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    font-family: var(--font-body);
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-muted);
+    letter-spacing: var(--tracking-label);
+    color: var(--md-on-surface-variant);
     cursor: pointer;
-    transition: color 0.2s;
-    padding: 8px 0;
-    /* Prevents links from wrapping if the window gets small */
+    transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+    padding: 0 16px;
     white-space: nowrap;
+    border-radius: var(--radius-full);
 }
 
+.nav-link:hover { color: var(--md-on-background); background: color-mix(in srgb, var(--md-primary) 8%, transparent); }
+
+/* Role chip — tonal pill, matches the shared .badge/.md-chip look. */
 .role-indicator {
     display: inline-flex;
     align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f1f5f9;
-    color: var(--text-primary);
-    font-size: 12px;
-    font-weight: 700;
+    height: 28px;
+    padding: 0 14px;
+    border-radius: var(--radius-full);
+    border: none;
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     white-space: nowrap;
 }
 
+/* Cross-module switch link — outlined pill button. */
 .module-switch-link {
     display: inline-flex;
     align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #e0f2fe;
-    color: #0369a1;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--md-outline);
+    background: transparent;
+    color: var(--md-primary);
     text-decoration: none;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    transition: background var(--duration-fast) var(--ease-standard);
 }
+.module-switch-link:hover { background: color-mix(in srgb, var(--md-primary) 8%, transparent); }
+
+/* Log out — outlined danger pill button. */
+.logout-btn {
+    border: 1px solid var(--md-error);
+    background: transparent;
+    color: var(--md-error);
+    height: 40px;
+    padding: 0 20px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-button);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+.logout-btn:hover { background: var(--md-error); color: var(--md-on-error); }
 
 .logo-box {
-    background: var(--primary);
-    color: white;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-weight: 800;
-    font-size: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--md-primary);
+    color: var(--md-on-primary);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .main-content {
@@ -96,7 +151,8 @@
 }
 
 .value {
+    font-family: var(--font-heading);
     font-size: 28px;
-    font-weight: 800;
-    color: var(--primary);
+    font-weight: 600;
+    color: var(--color-fg);
 }

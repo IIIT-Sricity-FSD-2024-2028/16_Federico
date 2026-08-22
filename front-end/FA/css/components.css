@@ -1,26 +1,18 @@
-:root {
-    --primary: #00a19a;
-    --border: #eee;
-    --white: #ffffff;
-    --text-muted: #64748b;
-    --transition: all 0.2s ease-in-out;
-}
-
-/* YOUR CARD - Added subtle hover lift */
+/* Card — tonal MD3 surface, same treatment as base.css (kept redundant-safe
+   in case components.css loads after base.css and a page relies on this
+   file's cascade order). */
 .card {
-    background: var(--white);
-    border-radius: 12px;
+    background: var(--md-surface-container);
+    border-radius: var(--radius-lg);
     padding: 24px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    border: 1px solid var(--border);
+    box-shadow: var(--shadow-1);
+    border: none;
     margin-bottom: 24px;
-    transition: var(--transition);
+    transition: box-shadow var(--duration-base) var(--ease-standard);
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-    border-color: #cbd5e1;
+    box-shadow: var(--shadow-2);
 }
 
 .stat-grid {
@@ -31,13 +23,14 @@
 }
 
 .value {
+    font-family: var(--font-heading);
     font-size: 28px;
-    font-weight: 800;
-    color: var(--primary);
-    letter-spacing: -1px;
+    font-weight: 600;
+    color: var(--color-fg);
+    letter-spacing: -0.01em;
 }
 
-/* YOUR TABLE - Added row highlight */
+/* Table */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -45,60 +38,59 @@
 
 .data-table th {
     text-align: left;
-    padding: 12px;
-    font-size: 11px;
-    color: var(--text-muted);
-    background: #f9fafb;
-    border-bottom: 2px solid #eee;
+    padding: 14px 12px;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
+    color: var(--md-on-surface-variant);
+    background: var(--md-surface-container-low);
+    border-bottom: 1px solid var(--md-outline-variant);
 }
 
-.data-table tr {
-    transition: background 0.1s ease;
-}
+.data-table tr { transition: background var(--duration-fast) ease; }
 
-.data-table tr:hover {
-    background: #fcfcfc;
-}
+.data-table tr:hover { background: var(--md-surface-container-low); }
 
 .data-table td {
     padding: 14px 12px;
-    border-bottom: 1px solid #f9fafb;
+    border-bottom: 1px solid var(--md-outline-variant);
     font-size: 13px;
+    color: var(--color-fg);
 }
 
-/* YOUR BUTTON - Added interaction feedback */
+/* Button — MD3 filled pill, same treatment as base.css. */
 .btn-primary {
-    background: var(--primary);
-    color: white;
+    position: relative;
+    background: var(--md-primary);
+    color: var(--md-on-primary);
     border: none;
     padding: 10px 18px;
-    border-radius: 8px;
+    border-radius: var(--radius-full);
     cursor: pointer;
-    font-weight: 600;
-    transition: var(--transition);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: var(--tracking-button);
+    text-transform: uppercase;
+    transition: background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard);
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
+.btn-primary:hover { background: color-mix(in srgb, var(--md-primary) 90%, black); box-shadow: var(--shadow-2); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.btn-primary:hover {
-    filter: brightness(1.1);
-    box-shadow: 0 4px 12px rgba(0, 161, 154, 0.25);
-}
-
-.btn-primary:active {
-    transform: scale(0.96);
-}
-
-/* Modern styling for the code badge */
+/* Monospace UHID/reference badge — pill chip, tonal fill. */
 .uhid-badge {
+    display: inline-flex;
+    align-items: center;
     font-family: 'JetBrains Mono', monospace;
-    background: #f1f5f9;
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: var(--md-surface-container-high);
+    color: var(--md-on-surface-variant);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
     font-size: 12px;
-    color: #475569;
 }
-
-    

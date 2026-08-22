@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
+  <link rel="stylesheet" href="../../shared/design-tokens.css">
+  <link rel="stylesheet" href="../../shared/material-components.css">
+  <link rel="stylesheet" href="../../shared/ui-feedback.css">
   <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/layout.css">
 <link rel="stylesheet" href="../css/components.css">
@@ -78,22 +81,14 @@
   </table>
 </div>
 
-<!-- ✅ SUCCESS POPUP (IMPORTANT) -->
-<div id="successPopup" class="success-popup">
-  <div class="success-box">
-    <p id="successMsg"></p>
-    <button onclick="closeSuccess()">OK</button>
-  </div>
-</div>
-
 <!-- Scripts -->
-  <script src="../../../shared/constants.js"></script>
-<script src="../../../shared/canonical-seed.js"></script>
-<script src="../../../shared/id-generator.js"></script>
-<script src="../../../shared/patient-resolver.js"></script>
-<script src="../../../shared/rbac.js"></script>
-<script src="../../../shared/api-client.js"></script>
-<script src="../js/auth-guard.js"></script>
+  <script>window.APP_MODULE = "PRE";</script>
+<script src="../../shared/constants.js"></script>
+<script src="../../shared/api-client.js"></script>
+<script src="../../shared/rbac.js"></script>
+<script src="../../shared/ui-feedback.js"></script>
+<script src="../../shared/auth-guard.js"></script>
+<script src="../../shared/formatters.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/PRE.js"></script>
 <script src="../js/logout.js"></script>

@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (sideRows[2]) sideRows[2].textContent = profile.phone || "";
         if (sideRows[3]) sideRows[3].innerHTML = `<span class="verified-badge">${insurance.verified ? "Verified" : "Unverified"}</span>`;
         if (sideRows[4]) sideRows[4].textContent = insurance.provider || "";
-        if (sideRows[5]) sideRows[5].textContent = `â‚¹${Number(insurance.coverage || 0).toLocaleString("en-IN")}`;
+        if (sideRows[5]) sideRows[5].textContent = `₹${Number(insurance.coverage || 0).toLocaleString("en-IN")}`;
     }
 
     function initializeSectionEditing() {
@@ -98,7 +98,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 resetPasswordFeedback();
                 disableSection();
             });
-            saveBtn.addEventListener("click", () => saveSection(section, inputs, originalValues, disableSection));
+            saveBtn.addEventListener("click", async () => {
+                saveBtn.disabled = true;
+                try {
+                    await saveSection(section, inputs, originalValues, disableSection);
+                } catch (err) {
+                    UIFeedback.toast(err?.message || "Could not save changes.", "warning");
+                } finally {
+                    saveBtn.disabled = false;
+                }
+            });
 
             function captureValues() {
                 inputs.forEach((input) => {
@@ -138,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function saveSection(section, inputs, originalValues, disableSection) {
+    async function saveSection(section, inputs, originalValues, disableSection) {
         if (section === "password") {
             const nextPassword = document.getElementById("new-password")?.value || "";
             const confirmPassword = document.getElementById("confirm-password")?.value || "";
@@ -150,6 +159,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 return;
             }
+            // Password change has no backend endpoint yet (Phase 2 exposes
+            // login/signup only) — UI-only confirmation for now.
             if (hint) {
                 hint.textContent = "Password updated successfully.";
                 hint.className = "hint-text match";
@@ -158,35 +169,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (input.id) originalValues[input.id] = input.value;
             });
             disableSection();
-            showToast("Password updated.", "success");
+            UIFeedback.toast("Password updated.", "success");
             return;
         }
 
         if (section === "personal") {
             const fullName = [valueOf("first-name"), valueOf("last-name")].filter(Boolean).join(" ");
-            updateProfile({
+            await updateProfile({
                 name: fullName,
-                firstName: valueOf("first-name"),
-                initials: fullName.split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase(),
                 dob: valueOf("dob"),
                 gender: valueOf("gender"),
                 bloodGroup: valueOf("blood-group")
             });
-            syncProfileToAuthAccounts();
         }
 
         if (section === "contact") {
-            updateProfile({
-                email: valueOf("email"),
+            await updateProfile({
                 phone: valueOf("phone"),
                 altPhone: valueOf("alt-phone"),
                 address: valueOf("address")
             });
-            syncProfileToAuthAccounts();
         }
 
         if (section === "insurance") {
-            updateInsurance({
+            await updateInsurance({
                 provider: valueOf("ins-provider"),
                 coverageType: valueOf("ins-coverage"),
                 policyNumber: valueOf("policy-number"),
@@ -196,7 +202,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 coverage: parseCoverage(valueOf("coverage-amount"))
             });
             setValue("coverage-amount", Number(getProfile()?.insurance?.coverage || 0).toLocaleString("en-IN"));
-            syncProfileToAuthAccounts();
         }
 
         inputs.forEach((input) => {
@@ -204,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         populateProfileForm();
         disableSection();
-        showToast(`${capitalize(section)} details saved.`, "success");
+        UIFeedback.toast(`${capitalize(section)} details saved.`, "success");
     }
 
     function setupPasswordHint() {
@@ -261,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function setupLogout() {
         const logout = () => {
-            showToast("Logging out...", "success");
+            UIFeedback.toast("Logging out...", "success");
             setTimeout(() => {
                 if (window.RoleAccess) window.RoleAccess.logout();
                 else sessionStorage.removeItem("userRole");
@@ -300,72 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function parseCoverage(value) {
         return Number(String(value).replace(/,/g, "")) || 0;
-    }
-
-    function syncProfileToAuthAccounts() {
-        const profile = getProfile();
-        if (!profile) return;
-
-        try {
-            const _root = JSON.parse(localStorage.getItem("HospitalAppState") || "{}");
-            const accounts = Array.isArray(_root.patientAuthAccounts) ? _root.patientAuthAccounts : [];
-            if (!Array.isArray(accounts)) return;
-
-            const authEmail = String(sessionStorage.getItem("authEmail") || "").trim().toLowerCase();
-            const patientUhid = String(profile.uhid || "").trim();
-            const updatedName = String(profile.name || "").trim();
-            const updatedEmail = String(profile.email || "").trim();
-
-            const accountIndex = accounts.findIndex((account) =>
-                String(account?.email || "").trim().toLowerCase() === authEmail ||
-                (patientUhid && String(account?.patientUhid || "").trim() === patientUhid)
-            );
-            if (accountIndex < 0) return;
-
-            accounts[accountIndex] = {
-                ...accounts[accountIndex],
-                displayName: updatedName || accounts[accountIndex].displayName || "Patient",
-                email: updatedEmail || accounts[accountIndex].email,
-                phone: profile.phone || "",
-                altPhone: profile.altPhone || "",
-                address: profile.address || "",
-                gender: profile.gender || "",
-                dob: profile.dob || "",
-                bloodGroup: profile.bloodGroup || "",
-                patientUhid: patientUhid || accounts[accountIndex].patientUhid || null
-            };
-
-            _root.patientAuthAccounts = accounts;
-            localStorage.setItem("HospitalAppState", JSON.stringify(_root));
-
-            if (updatedName) {
-                sessionStorage.setItem("authDisplayName", updatedName);
-            }
-            if (updatedEmail) {
-                sessionStorage.setItem("authEmail", updatedEmail);
-            }
-        } catch (error) {
-            console.warn("Unable to persist profile updates in patientAuthAccounts:", error);
-        }
-    }
-
-    function showToast(message, type = "success") {
-        const existing = document.querySelector(".toast");
-        if (existing) existing.remove();
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => toast.classList.add("visible"));
-        });
-
-        setTimeout(() => {
-            toast.classList.remove("visible");
-            setTimeout(() => toast.remove(), 300);
-        }, 2800);
     }
 
     function capitalize(value) {

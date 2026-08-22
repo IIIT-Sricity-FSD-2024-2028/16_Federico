@@ -1,429 +1,472 @@
 /**
- * inventory.js
- * Complete Logic for the Non-Clinical Inventory Management page.
+ * inventory.js — Phase 3 rewrite.
+ *
+ * Non-clinical inventory backed by window.ApiClient. An item only has a
+ * billable cost if it's linked to a real service (item.service_id ->
+ * billing/services) — the old model's per-item unitCost was invented
+ * client-side and never existed on the backend. Items without a linked
+ * service (e.g. syringes) can still have usage logged for stock tracking,
+ * but nothing gets posted to a patient's ledger for them.
  */
 
 let activeModalItem = null;
 let restockPriority = 'normal';
 let inventorySearch = '';
+let inventoryData = {};
 
-document.addEventListener("DOMContentLoaded", () => {
-    try {
-        const currentData = window.Store.get();
-        if (!currentData || !currentData.inventoryItems) window.Store.reset();
-    } catch (e) {
-        console.error("Storage Check Failed:", e);
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+  bindControls();
+  await loadAndRender();
+});
 
-    bindControls();
-    renderPage();
-    window.addEventListener('storeUpdated', renderPage);
+// Delegated click handling for the inventory table/sidebar's per-item
+// actions — one listener instead of each generated row baking its own
+// onclick="openLogUsageModal(...)"/"openRestockModal(...)" string.
+document.addEventListener('click', (event) => {
+  const trigger = event.target.closest('[data-action]');
+  if (!trigger) return;
+  if (trigger.dataset.action === 'log-usage') window.openLogUsageModal(Number(trigger.dataset.itemId));
+  if (trigger.dataset.action === 'restock') window.openRestockModal(Number(trigger.dataset.itemId));
 });
 
 function bindControls() {
-    const searchInput = document.getElementById('inventory-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', (event) => {
-            inventorySearch = event.target.value.trim().toLowerCase();
-            renderPage();
-        });
-    }
+  const searchInput = document.getElementById('inventory-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (event) => {
+      inventorySearch = event.target.value.trim().toLowerCase();
+      renderTable();
+    });
+  }
 }
 
 function setFormError(id, message) {
-    const element = document.getElementById(id);
-    if (!element) return;
-    element.textContent = message || '';
-    element.style.display = message ? 'block' : 'none';
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
 }
-
 function clearFormError(id) {
-    setFormError(id, '');
+  setFormError(id, '');
 }
 
-function getInventoryItems(data) {
-    const items = data.inventoryItems || [];
-    if (!inventorySearch) return items;
+async function loadAndRender() {
+  const [items, requests, patients, services] = await Promise.all([
+    window.ApiClient.inventory.items.list(),
+    window.ApiClient.inventory.requests.list(),
+    window.ApiClient.patients.list(),
+    window.ApiClient.billing.services.list(),
+  ]);
+  inventoryData = { items, requests, patients, services };
+  renderPage();
+}
 
-    return items.filter((item) => {
-        const haystack = [item.name, item.category, String(item.stock), String(item.minThreshold)].join(' ').toLowerCase();
-        return haystack.includes(inventorySearch);
-    });
+function serviceForItem(item) {
+  if (!item || !item.service_id) return null;
+  return (inventoryData.services || []).find((s) => s.service_id === item.service_id) || null;
+}
+
+function itemCost(item) {
+  const service = serviceForItem(item);
+  return service ? service.base_cost : null;
+}
+
+function getFilteredItems() {
+  const items = inventoryData.items || [];
+  if (!inventorySearch) return items;
+  return items.filter((item) => [item.item_name, item.category].join(' ').toLowerCase().includes(inventorySearch));
 }
 
 function findPatientByUhid(uhid) {
-    if (!uhid) return null;
-    const normalized = String(uhid).trim().toLowerCase();
-    const data = window.Store.get() || {};
-    return (data.patients || []).find((patient) => String(patient.uhid).toLowerCase() === normalized) || null;
-}
-
-function hasPatientLedger(uhid) {
-    const data = window.Store.get() || {};
-    return Boolean((data.billingRecords || []).find((record) => record.uhid === uhid));
+  if (!uhid) return null;
+  const normalized = String(uhid).trim().toLowerCase();
+  return (inventoryData.patients || []).find((p) => String(p.uhid).toLowerCase() === normalized) || null;
 }
 
 function getItemById(itemId) {
-    const data = window.Store.get() || {};
-    return (data.inventoryItems || []).find((item) => item.id === Number(itemId)) || null;
+  return (inventoryData.items || []).find((i) => i.item_id === Number(itemId)) || null;
 }
 
 function renderPage() {
-    const data = window.Store.get() || {};
-    try { renderMetrics(data); } catch (e) { console.error(e); }
-    try { renderTable(data); } catch (e) { console.error(e); }
-    try { renderSidebar(data); } catch (e) { console.error(e); }
-    try { populateInventorySelects(data); } catch (e) { console.error(e); }
+  renderMetrics();
+  renderTable();
+  renderSidebar();
+  populateSelects();
 }
 
-function renderMetrics(data) {
-    const items = data.inventoryItems || [];
-    const orders = data.pendingOrders || [];
-    const totalSkus = items.length;
-    const lowStockCount = items.filter((item) => item.stock < item.minThreshold).length;
-    const moneyUsed = items.reduce((sum, item) => sum + (item.usedThisMonth * item.unitCost), 0);
-    const moneyFormatted = (moneyUsed / 100000).toFixed(1) + "L";
+function renderMetrics() {
+  const items = inventoryData.items || [];
+  const orders = (inventoryData.requests || []).filter((r) => r.status === 'PENDING');
+  const lowStockCount = items.filter((i) => i.stock_quantity < i.reorder_level).length;
 
-    const icons = {
-        box: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#20B2AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`,
-        alert: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
-        money: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
-        clock: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
-    };
+  const icons = {
+    box: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`,
+    alert: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+    clock: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  };
 
-    const container = document.getElementById('metrics-container');
-    if (!container) return;
-
-    container.innerHTML = `
-        <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-            <div class="metric-card-icon" style="background: #E0F7F6;">${icons.box}</div>
-            <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${totalSkus}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Tracked Items</div></div>
-        </div>
-        <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-            <div class="metric-card-icon" style="background: #FEE2E2;">${icons.alert}</div>
-            <div><div style="font-size: 24px; font-weight: 600; line-height: 1; color: var(--error);">${lowStockCount}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Low Stock Alerts</div></div>
-        </div>
-        <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-            <div class="metric-card-icon" style="background: #E0F2FE;">${icons.money}</div>
-            <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">Rs ${moneyFormatted}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Used This Month</div></div>
-        </div>
-        <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-            <div class="metric-card-icon" style="background: #FEF3C7;">${icons.clock}</div>
-            <div><div style="font-size: 24px; font-weight: 600; line-height: 1; color: #F59E0B;">${orders.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Pending Orders</div></div>
-        </div>
-    `;
+  document.getElementById('metrics-container').innerHTML = `
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #E0F7F6;">${icons.box}</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${items.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Tracked Items</div></div>
+    </div>
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #FEE2E2;">${icons.alert}</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1; color: var(--error);">${lowStockCount}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Low Stock Alerts</div></div>
+    </div>
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #FEF3C7;">${icons.clock}</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1; color: #F59E0B;">${orders.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Pending Orders</div></div>
+    </div>
+  `;
 }
 
-function renderTable(data) {
-    const tbody = document.getElementById('inventory-tbody');
-    if (!tbody) return;
+function renderTable() {
+  const tbody = document.getElementById('inventory-tbody');
+  if (!tbody) return;
 
-    const items = getInventoryItems(data);
-    if (!items.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="padding: 24px; text-align: center; color: var(--text-secondary);">No inventory items match the current search.</td></tr>`;
-        return;
-    }
+  const items = getFilteredItems();
 
-    tbody.innerHTML = items.map((item) => {
-        let status = 'Adequate';
-        let variant = 'success';
-        if (item.stock < item.minThreshold) {
-            status = item.stock <= (item.minThreshold / 2) ? 'Critical' : 'Low Stock';
-            variant = status === 'Critical' ? 'error' : 'warning';
-        }
+  window.DomTable.renderRows(tbody, items, {
+    colspan: 7,
+    emptyMessage: 'No inventory items match the current search.',
+    toRow: (item) => {
+      let status = 'Adequate';
+      let variant = 'success';
+      if (item.stock_quantity < item.reorder_level) {
+        status = item.stock_quantity <= item.reorder_level / 2 ? 'Critical' : 'Low Stock';
+        variant = status === 'Critical' ? 'error' : 'warning';
+      }
+      const cost = itemCost(item);
 
-        return `
-            <tr>
-                <td style="font-weight: 500; color: var(--text-primary);">${item.name}</td>
-                <td style="color: var(--text-secondary);">${item.category}</td>
-                <td style="color: var(--text-secondary);">${item.stock} / ${item.minThreshold}</td>
-                <td style="color: var(--text-secondary);">Rs ${item.unitCost.toLocaleString()}</td>
-                <td style="color: var(--text-secondary);">${item.usedThisMonth}</td>
-                <td>${window.UI.Badge({ variant, children: status })}</td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        ${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Use', onClick: `openLogUsageModal(${item.id})` })}
-                        ${window.UI.Button({ variant: 'outline', size: 'sm', children: 'Reorder', onClick: `openRestockModal(${item.id})` })}
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function renderSidebar(data) {
-    const items = data.inventoryItems || [];
-    const orders = data.pendingOrders || [];
-    const lowStockItems = items.filter((item) => item.stock < item.minThreshold);
-
-    const lowStockBadge = document.getElementById('low-stock-badge');
-    if (lowStockBadge) lowStockBadge.innerHTML = window.UI.Badge({ variant: 'error', children: String(lowStockItems.length) });
-
-    const lowStockList = document.getElementById('low-stock-list');
-    if (lowStockList) {
-        lowStockList.innerHTML = lowStockItems.map((item) => `
-            <div class="alert-card">
-                <p style="font-size: 14px; font-weight: 500; color: var(--error-text); margin: 0 0 4px 0;">${item.name}</p>
-                <p style="font-size: 12px; color: var(--error-text); margin: 0 0 8px 0;">${item.stock} units remaining</p>
-                ${window.UI.Button({ variant: 'danger', size: 'sm', className: 'w-full', children: 'Reorder Now', onClick: `openRestockModal(${item.id})` })}
+      return `
+        <tr>
+          <td style="font-weight: 500; color: var(--text-primary);">${window.HOMHelpers.escapeHtml(item.item_name)}</td>
+          <td style="color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(item.category)}</td>
+          <td style="color: var(--text-secondary);">${item.stock_quantity} / ${item.reorder_level}</td>
+          <td style="color: var(--text-secondary);">${cost !== null ? window.HOMHelpers.formatCurrency(cost) : '—'}</td>
+          <td style="color: var(--text-secondary);">-</td>
+          <td>${window.UI.Badge({ variant, children: status })}</td>
+          <td>
+            <div style="display: flex; gap: 8px;">
+              ${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'Use', dataAttrs: { action: 'log-usage', itemId: item.item_id } })}
+              ${window.UI.Button({ variant: 'outline', size: 'sm', children: 'Reorder', dataAttrs: { action: 'restock', itemId: item.item_id } })}
             </div>
-        `).join('') || `<p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No low stock alerts.</p>`;
-    }
-
-    const ordersBadge = document.getElementById('pending-orders-badge');
-    if (ordersBadge) ordersBadge.innerHTML = window.UI.Badge({ variant: 'warning', children: String(orders.length) });
-
-    const ordersList = document.getElementById('pending-orders-list');
-    if (ordersList) {
-        ordersList.innerHTML = orders.map((order) => `
-            <div style="border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <p style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin: 0;">${order.id}</p>
-                    <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">${order.item}</p>
-                    <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Submitted ${order.date}</p>
-                </div>
-                ${window.UI.Badge({ variant: order.status === 'Approved' ? 'success' : 'warning', children: order.status })}
-            </div>
-        `).join('') || `<p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No pending orders.</p>`;
-    }
+          </td>
+        </tr>
+      `;
+    },
+  });
 }
 
-function populateInventorySelects(data) {
-    const items = data.inventoryItems || [];
-    const options = ['<option value="">Select item...</option>']
-        .concat(items.map((item) => `<option value="${item.id}">${item.name} (Rs ${item.unitCost})</option>`))
-        .join('');
+function renderSidebar() {
+  const items = inventoryData.items || [];
+  const orders = inventoryData.requests || [];
+  const lowStockItems = items.filter((i) => i.stock_quantity < i.reorder_level);
 
-    ['sidebar-item-select', 'modal-item-select', 'restock-item-select'].forEach((id) => {
-        const select = document.getElementById(id);
-        if (!select) return;
-        const currentValue = select.value;
-        select.innerHTML = options;
-        if (currentValue && items.some((item) => String(item.id) === String(currentValue))) {
-            select.value = currentValue;
-        }
-    });
+  const lowStockBadge = document.getElementById('low-stock-badge');
+  if (lowStockBadge) lowStockBadge.innerHTML = window.UI.Badge({ variant: 'error', children: String(lowStockItems.length) });
 
-    updateSidebarCost();
-    updateModalCalc();
-    updateRestockCalc();
+  const lowStockList = document.getElementById('low-stock-list');
+  if (lowStockList) {
+    lowStockList.innerHTML =
+      lowStockItems
+        .map(
+          (item) => `
+      <div class="alert-card">
+        <p style="font-size: 14px; font-weight: 500; color: var(--error-text); margin: 0 0 4px 0;">${window.HOMHelpers.escapeHtml(item.item_name)}</p>
+        <p style="font-size: 12px; color: var(--error-text); margin: 0 0 8px 0;">${item.stock_quantity} units remaining</p>
+        ${window.UI.Button({ variant: 'danger', size: 'sm', className: 'w-full', children: 'Reorder Now', dataAttrs: { action: 'restock', itemId: item.item_id } })}
+      </div>
+    `,
+        )
+        .join('') || `<p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No low stock alerts.</p>`;
+  }
+
+  const ordersBadge = document.getElementById('pending-orders-badge');
+  if (ordersBadge) ordersBadge.innerHTML = window.UI.Badge({ variant: 'warning', children: String(orders.filter((o) => o.status === 'PENDING').length) });
+
+  const ordersList = document.getElementById('pending-orders-list');
+  if (ordersList) {
+    const itemsById = {};
+    items.forEach((i) => (itemsById[i.item_id] = i));
+    ordersList.innerHTML =
+      orders
+        .map(
+          (order) => `
+      <div style="border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <p style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin: 0;">PO #${order.request_id}</p>
+          <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">${window.HOMHelpers.escapeHtml(itemsById[order.item_id]?.item_name || '-')} × ${order.quantity_requested}</p>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Submitted ${window.HOMHelpers.formatDate(order.requested_at)}</p>
+        </div>
+        ${window.UI.Badge({ variant: order.status === 'APPROVED' ? 'success' : 'warning', children: order.status })}
+      </div>
+    `,
+        )
+        .join('') || `<p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No pending orders.</p>`;
+  }
 }
 
-window.findPatientName = function (uhid) {
-    const patient = findPatientByUhid(uhid);
-    return patient ? patient.name : null;
-};
+function populateSelects() {
+  const items = inventoryData.items || [];
+  const options = ['<option value="">Select item...</option>']
+    .concat(items.map((item) => `<option value="${item.item_id}">${window.HOMHelpers.escapeHtml(item.item_name)}</option>`))
+    .join('');
+
+  ['sidebar-item-select', 'modal-item-select', 'restock-item-select'].forEach((id) => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const currentValue = select.value;
+    select.innerHTML = options;
+    if (currentValue && items.some((i) => String(i.item_id) === String(currentValue))) select.value = currentValue;
+  });
+
+  updateSidebarCost();
+  updateModalCalc();
+  updateRestockCalc();
+}
 
 window.lookupSidebarPatient = function (value) {
-    const nameBox = document.getElementById('sidebar-patient-name');
-    const patient = findPatientByUhid(value);
-    nameBox.innerText = patient ? `Patient: ${patient.name}` : '';
-    clearFormError('sidebar-form-error');
+  const nameBox = document.getElementById('sidebar-patient-name');
+  const patient = findPatientByUhid(value);
+  nameBox.innerText = patient ? `Patient: ${patient.name}` : '';
+  clearFormError('sidebar-form-error');
 };
 
 window.updateSidebarQty = function (change) {
-    const input = document.getElementById('sidebar-qty');
-    const nextValue = Math.max(1, (Number(input.value) || 1) + change);
-    input.value = nextValue;
-    updateSidebarCost();
+  const input = document.getElementById('sidebar-qty');
+  input.value = Math.max(1, (Number(input.value) || 1) + change);
+  updateSidebarCost();
 };
 
 window.updateSidebarCost = function () {
-    const select = document.getElementById('sidebar-item-select');
-    const qty = Math.max(1, Number(document.getElementById('sidebar-qty').value) || 1);
-    const costBox = document.getElementById('sidebar-cost-preview');
-    const item = getItemById(select.value);
-    costBox.innerText = item ? `Rs ${item.unitCost} x ${qty} = Rs ${(item.unitCost * qty).toLocaleString()}` : 'Rs 0';
+  const select = document.getElementById('sidebar-item-select');
+  const qty = Math.max(1, Number(document.getElementById('sidebar-qty').value) || 1);
+  const costBox = document.getElementById('sidebar-cost-preview');
+  const item = getItemById(select.value);
+  const cost = itemCost(item);
+  costBox.innerText = cost !== null ? `${window.HOMHelpers.formatCurrency(cost)} x ${qty} = ${window.HOMHelpers.formatCurrency(cost * qty)}` : 'Not billable';
 };
 
-function validateUsageSubmission(details) {
-    const patient = findPatientByUhid(details.uhid);
-    if (!patient) return 'Enter a valid patient UHID before posting usage.';
-    if (!hasPatientLedger(patient.uhid)) return `Billing ledger is not ready yet for ${patient.name}. Ask FA to create the ledger first.`;
-    if (!details.itemId) return 'Select an inventory item to post.';
-    if (!Number.isInteger(details.qty) || details.qty < 1) return 'Quantity must be a whole number greater than 0.';
+async function validateUsageSubmission(details) {
+  const patient = findPatientByUhid(details.uhid);
+  if (!patient) return 'Enter a valid patient UHID before posting usage.';
+  if (!details.itemId) return 'Select an inventory item to post.';
+  if (!Number.isInteger(details.qty) || details.qty < 1) return 'Quantity must be a whole number greater than 0.';
 
-    const item = getItemById(details.itemId);
-    if (!item) return 'The selected inventory item could not be found.';
-    if (details.qty > item.stock) return `Only ${item.stock} units of ${item.name} are currently available.`;
-    return '';
+  const item = getItemById(details.itemId);
+  if (!item) return 'The selected inventory item could not be found.';
+  if (details.qty > item.stock_quantity) return `Only ${item.stock_quantity} units of ${item.item_name} are currently available.`;
+  return '';
 }
 
-window.submitSidebarUsage = function () {
-    const uhid = document.getElementById('sidebar-uhid').value.trim();
-    const itemId = Number(document.getElementById('sidebar-item-select').value);
-    const qty = Number(document.getElementById('sidebar-qty').value);
-    const error = validateUsageSubmission({ uhid, itemId, qty });
+async function postUsage(uhid, itemId, qty) {
+  const patient = findPatientByUhid(uhid);
+  const item = getItemById(itemId);
 
-    if (error) {
-        setFormError('sidebar-form-error', error);
-        return;
+  await window.ApiClient.inventory.items.update(item.item_id, { stock_quantity: item.stock_quantity - qty });
+
+  const service = serviceForItem(item);
+  if (service) {
+    const bills = await window.ApiClient.billing.patient.bills(patient.patient_id);
+    const openBill = bills.find((b) => b.ledger && b.ledger.status !== 'PAID');
+    if (openBill) {
+      await window.ApiClient.billing.ledger.addEntry({
+        ledger_id: openBill.ledger.ledger_id,
+        service_id: service.service_id,
+        quantity: qty,
+        unit_price: service.base_cost,
+        amount: service.base_cost * qty,
+      });
     }
+  }
 
-    clearFormError('sidebar-form-error');
-    window.Store.logInventoryUsage(uhid, itemId, qty);
-    document.getElementById('sidebar-uhid').value = '';
-    document.getElementById('sidebar-patient-name').innerText = '';
-    document.getElementById('sidebar-item-select').value = '';
-    document.getElementById('sidebar-qty').value = '1';
-    updateSidebarCost();
+  await loadAndRender();
+}
+
+window.submitSidebarUsage = async function () {
+  const uhid = document.getElementById('sidebar-uhid').value.trim();
+  const itemId = Number(document.getElementById('sidebar-item-select').value);
+  const qty = Number(document.getElementById('sidebar-qty').value);
+  const error = await validateUsageSubmission({ uhid, itemId, qty });
+  if (error) {
+    setFormError('sidebar-form-error', error);
+    return;
+  }
+
+  clearFormError('sidebar-form-error');
+  try {
+    await postUsage(uhid, itemId, qty);
+  } catch (err) {
+    setFormError('sidebar-form-error', err.message || 'Unable to post usage.');
+    return;
+  }
+  document.getElementById('sidebar-uhid').value = '';
+  document.getElementById('sidebar-patient-name').innerText = '';
+  document.getElementById('sidebar-item-select').value = '';
+  document.getElementById('sidebar-qty').value = '1';
 };
 
 window.openLogUsageModal = function (itemId = null) {
-    document.getElementById('modal-uhid').value = '';
-    document.getElementById('modal-qty').value = '1';
-    document.getElementById('modal-patient-box').style.display = 'none';
-    document.getElementById('modal-item-select').value = itemId ? String(itemId) : '';
-    clearFormError('modal-usage-error');
-    handleModalItemChange(itemId ? String(itemId) : '');
-    document.getElementById('modal-log-usage').classList.add('active');
+  document.getElementById('modal-uhid').value = '';
+  document.getElementById('modal-qty').value = '1';
+  document.getElementById('modal-patient-box').style.display = 'none';
+  document.getElementById('modal-item-select').value = itemId ? String(itemId) : '';
+  clearFormError('modal-usage-error');
+  handleModalItemChange(itemId ? String(itemId) : '');
+  document.getElementById('modal-log-usage').classList.add('active');
 };
 
 window.handleModalItemChange = function (itemId) {
-    activeModalItem = getItemById(itemId);
-    clearFormError('modal-usage-error');
-    updateModalCalc();
+  activeModalItem = getItemById(itemId);
+  clearFormError('modal-usage-error');
+  updateModalCalc();
 };
 
 window.lookupModalPatient = function (value) {
-    const box = document.getElementById('modal-patient-box');
-    const nameLabel = document.getElementById('modal-patient-name');
-    const patient = findPatientByUhid(value);
-
-    if (patient) {
-        box.style.display = 'block';
-        nameLabel.innerText = `Patient: ${patient.name}`;
-    } else {
-        box.style.display = 'none';
-    }
-
-    clearFormError('modal-usage-error');
+  const box = document.getElementById('modal-patient-box');
+  const nameLabel = document.getElementById('modal-patient-name');
+  const patient = findPatientByUhid(value);
+  if (patient) {
+    box.style.display = 'block';
+    nameLabel.innerText = `Patient: ${patient.name}`;
+  } else {
+    box.style.display = 'none';
+  }
+  clearFormError('modal-usage-error');
 };
 
 window.updateModalQty = function (change) {
-    const input = document.getElementById('modal-qty');
-    const nextValue = Math.max(1, (Number(input.value) || 1) + change);
-    input.value = nextValue;
-    updateModalCalc();
+  const input = document.getElementById('modal-qty');
+  input.value = Math.max(1, (Number(input.value) || 1) + change);
+  updateModalCalc();
 };
 
 window.updateModalCalc = function () {
-    const qty = Math.max(1, Number(document.getElementById('modal-qty').value) || 1);
-    const calcText = document.getElementById('modal-calc-text');
-    const totalText = document.getElementById('modal-total-cost');
+  const qty = Math.max(1, Number(document.getElementById('modal-qty').value) || 1);
+  const calcText = document.getElementById('modal-calc-text');
+  const totalText = document.getElementById('modal-total-cost');
+  const cost = itemCost(activeModalItem);
 
-    if (!activeModalItem) {
-        calcText.innerText = 'Rs 0 x 0 = ';
-        totalText.innerText = 'Rs 0';
-        return;
-    }
-
-    calcText.innerText = `Rs ${activeModalItem.unitCost.toLocaleString()} x ${qty} = `;
-    totalText.innerText = `Rs ${(activeModalItem.unitCost * qty).toLocaleString()}`;
+  if (cost === null) {
+    calcText.innerText = 'Not billable —';
+    totalText.innerText = 'stock only';
+    return;
+  }
+  calcText.innerText = `${window.HOMHelpers.formatCurrency(cost)} x ${qty} = `;
+  totalText.innerText = window.HOMHelpers.formatCurrency(cost * qty);
 };
 
-window.submitModalUsage = function () {
-    const uhid = document.getElementById('modal-uhid').value.trim();
-    const qty = Number(document.getElementById('modal-qty').value);
-    const itemId = activeModalItem ? activeModalItem.id : Number(document.getElementById('modal-item-select').value);
-    const error = validateUsageSubmission({ uhid, itemId, qty });
+window.submitModalUsage = async function () {
+  const uhid = document.getElementById('modal-uhid').value.trim();
+  const qty = Number(document.getElementById('modal-qty').value);
+  const itemId = activeModalItem ? activeModalItem.item_id : Number(document.getElementById('modal-item-select').value);
+  const error = await validateUsageSubmission({ uhid, itemId, qty });
+  if (error) {
+    setFormError('modal-usage-error', error);
+    return;
+  }
 
-    if (error) {
-        setFormError('modal-usage-error', error);
-        return;
-    }
-
-    clearFormError('modal-usage-error');
-    window.Store.logInventoryUsage(uhid, itemId, qty);
-    closeModals();
+  clearFormError('modal-usage-error');
+  try {
+    await postUsage(uhid, itemId, qty);
+  } catch (err) {
+    setFormError('modal-usage-error', err.message || 'Unable to post usage.');
+    return;
+  }
+  closeModals();
 };
 
 window.openRestockModal = function (itemId = '') {
-    document.getElementById('restock-item-select').value = itemId ? String(itemId) : '';
-    document.getElementById('restock-qty').value = '20';
-    document.getElementById('restock-supplier').value = '';
-    document.getElementById('restock-notes').value = '';
-    setRestockPriority('normal');
-    handleRestockItemChange(itemId ? String(itemId) : '');
-    clearFormError('restock-form-error');
-    document.getElementById('modal-request-restock').classList.add('active');
+  document.getElementById('restock-item-select').value = itemId ? String(itemId) : '';
+  document.getElementById('restock-qty').value = '20';
+  document.getElementById('restock-supplier').value = '';
+  document.getElementById('restock-notes').value = '';
+  setRestockPriority('normal');
+  handleRestockItemChange(itemId ? String(itemId) : '');
+  clearFormError('restock-form-error');
+  document.getElementById('modal-request-restock').classList.add('active');
 };
 
 window.handleRestockItemChange = function (itemId) {
-    activeModalItem = getItemById(itemId);
-    clearFormError('restock-form-error');
-    updateRestockCalc();
+  activeModalItem = getItemById(itemId);
+  clearFormError('restock-form-error');
+  updateRestockCalc();
 };
 
 window.updateRestockCalc = function () {
-    const qty = Math.max(0, Number(document.getElementById('restock-qty').value) || 0);
-    const calcText = document.getElementById('restock-calc-text');
-    const totalText = document.getElementById('restock-total-cost');
+  const qty = Math.max(0, Number(document.getElementById('restock-qty').value) || 0);
+  const calcText = document.getElementById('restock-calc-text');
+  const totalText = document.getElementById('restock-total-cost');
+  const cost = itemCost(activeModalItem);
 
-    if (!activeModalItem) {
-        calcText.innerText = 'Rs 0 x 0 = ';
-        totalText.innerText = 'Rs 0';
-        return;
-    }
-
-    calcText.innerText = `Rs ${activeModalItem.unitCost.toLocaleString()} x ${qty} = `;
-    totalText.innerText = `Rs ${(activeModalItem.unitCost * qty).toLocaleString()}`;
+  if (cost === null) {
+    calcText.innerText = 'No linked service cost —';
+    totalText.innerText = 'estimate unavailable';
+    return;
+  }
+  calcText.innerText = `${window.HOMHelpers.formatCurrency(cost)} x ${qty} = `;
+  totalText.innerText = window.HOMHelpers.formatCurrency(cost * qty);
 };
 
 window.setRestockPriority = function (priority) {
-    restockPriority = priority === 'urgent' ? 'urgent' : 'normal';
-    const btnNormal = document.getElementById('btn-priority-normal');
-    const btnUrgent = document.getElementById('btn-priority-urgent');
-
-    if (restockPriority === 'normal') {
-        btnNormal.style.background = 'var(--primary-light)';
-        btnNormal.style.color = 'var(--primary)';
-        btnNormal.style.borderColor = 'var(--primary)';
-        btnUrgent.style.background = 'transparent';
-        btnUrgent.style.color = 'var(--text-primary)';
-        btnUrgent.style.borderColor = 'var(--border)';
-    } else {
-        btnUrgent.style.background = 'var(--primary-light)';
-        btnUrgent.style.color = 'var(--primary)';
-        btnUrgent.style.borderColor = 'var(--primary)';
-        btnNormal.style.background = 'transparent';
-        btnNormal.style.color = 'var(--text-primary)';
-        btnNormal.style.borderColor = 'var(--border)';
-    }
+  restockPriority = priority === 'urgent' ? 'urgent' : 'normal';
+  const btnNormal = document.getElementById('btn-priority-normal');
+  const btnUrgent = document.getElementById('btn-priority-urgent');
+  if (restockPriority === 'normal') {
+    btnNormal.className = 'btn btn-primary btn-default';
+    btnUrgent.className = 'btn btn-outline btn-default';
+  } else {
+    btnUrgent.className = 'btn btn-primary btn-default';
+    btnNormal.className = 'btn btn-outline btn-default';
+  }
 };
 
-window.submitRestock = function () {
-    const itemId = Number(document.getElementById('restock-item-select').value);
-    const quantity = Number(document.getElementById('restock-qty').value);
-    const supplier = document.getElementById('restock-supplier').value.trim();
-    const notes = document.getElementById('restock-notes').value.trim();
-    const item = getItemById(itemId);
+window.submitRestock = async function () {
+  const itemId = Number(document.getElementById('restock-item-select').value);
+  const quantity = Number(document.getElementById('restock-qty').value);
+  const supplier = document.getElementById('restock-supplier').value.trim();
+  const notes = document.getElementById('restock-notes').value.trim();
+  const item = getItemById(itemId);
+  const session = window.ApiClient.getSession();
 
-    if (!item) {
-        setFormError('restock-form-error', 'Select an inventory item before creating a purchase order.');
-        return;
-    }
-    if (!Number.isInteger(quantity) || quantity < 1) {
-        setFormError('restock-form-error', 'Restock quantity must be a whole number greater than 0.');
-        return;
-    }
-    if (!supplier) {
-        setFormError('restock-form-error', 'Choose a supplier for the purchase order.');
-        return;
-    }
-    if (notes.length > 240) {
-        setFormError('restock-form-error', 'Notes can be at most 240 characters.');
-        return;
-    }
+  if (!item) {
+    setFormError('restock-form-error', 'Select an inventory item before creating a purchase order.');
+    return;
+  }
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    setFormError('restock-form-error', 'Restock quantity must be a whole number greater than 0.');
+    return;
+  }
+  if (!supplier) {
+    setFormError('restock-form-error', 'Choose a supplier for the purchase order.');
+    return;
+  }
+  if (notes.length > 240) {
+    setFormError('restock-form-error', 'Notes can be at most 240 characters.');
+    return;
+  }
 
-    clearFormError('restock-form-error');
-    alert(`Purchase order created for ${quantity} units of ${item.name} via ${supplier} (${restockPriority}).`);
-    closeModals();
+  clearFormError('restock-form-error');
+  try {
+    await window.ApiClient.inventory.requests.create({
+      item_id: item.item_id,
+      quantity_requested: quantity,
+      status: 'PENDING',
+      requested_by: session ? session.userId : null,
+    });
+  } catch (err) {
+    setFormError('restock-form-error', err.message || 'Unable to submit purchase order.');
+    return;
+  }
+
+  closeModals();
+  await loadAndRender();
 };
 
 window.closeModals = function () {
-    document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
-    activeModalItem = null;
-    clearFormError('modal-usage-error');
-    clearFormError('restock-form-error');
+  document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
+  activeModalItem = null;
+  clearFormError('modal-usage-error');
+  clearFormError('restock-form-error');
 };

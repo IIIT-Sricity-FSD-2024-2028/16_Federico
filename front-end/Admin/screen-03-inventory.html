@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Catalog | Federico Hospital Admin</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
+    <link rel="stylesheet" href="../HOM/global.css">
+    <style>
+        /* .dashboard-container / .header-section / .metrics-grid /
+           .metric-card-icon / .table-container / .data-table live once in
+           ../HOM/global.css. */
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">Inventory Catalog</h1>
+                <p class="body-text">Add or remove the item types HOM can track stock and log usage against. Every hospital starts with a standard supply catalog.</p>
+            </div>
+            <button class="btn btn-primary btn-default" id="new-item-btn">+ Add Item</button>
+        </div>
+
+        <div class="metrics-grid" id="metrics-container"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Catalog Items</h2>
+                <p class="card-description">Deleting an item here removes it from HOM's inventory screen entirely.</p>
+            </div>
+            <div class="card-content" style="padding: 0;">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Starting Stock</th>
+                                <th>Reorder Level</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <dialog id="item-dialog" class="md-native-dialog">
+        <form id="item-form" class="dialog-form">
+            <h2 class="md-dialog-title">Add a Catalog Item</h2>
+            <div class="md-field"><label for="item-name">Item name</label><input id="item-name" required placeholder="e.g. Digital Thermometer" /></div>
+            <div class="md-field">
+                <label for="item-category">Category</label>
+                <select id="item-category">
+                    <option value="Medicine">Medicine</option>
+                    <option value="Consumable">Consumable</option>
+                    <option value="Equipment">Equipment</option>
+                    <option value="Linen">Linen</option>
+                </select>
+            </div>
+            <div class="md-field"><label for="item-stock">Starting stock</label><input id="item-stock" type="number" min="0" required placeholder="e.g. 50" /></div>
+            <div class="md-field"><label for="item-reorder">Reorder level</label><input id="item-reorder" type="number" min="0" required placeholder="e.g. 10" /></div>
+            <div class="md-dialog-actions">
+                <button type="button" class="btn btn-outline btn-default" id="item-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-default">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>window.APP_MODULE = "ADMIN";</script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/ui-feedback.js"></script>
+<script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
+<script src="../shared/dom-table.js"></script>
+<script src="../HOM/ui-template.js"></script>
+
+<script src="shared-nav.js"></script>
+<script src="inventory-catalog.js"></script>
+</body>
+</html>

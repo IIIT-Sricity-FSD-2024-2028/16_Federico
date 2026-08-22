@@ -4,26 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard | Federico Hospital HOM</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css" />
+    <link rel="stylesheet" href="../shared/material-components.css" />
+    <link rel="stylesheet" href="../shared/ui-feedback.css" />
     <link rel="stylesheet" href="global.css" />
     <style>
-      .dashboard-container {
-        padding: 32px;
-        padding-bottom: 64px;
-        max-width: 1440px;
-        margin: 0 auto;
-      }
-      .header-section {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 32px;
-      }
+      /* .dashboard-container / .header-section (default) now live once in
+         ../HOM/global.css instead of being duplicated in every screen's
+         own <style> block. This screen's .metrics-grid/.main-grid below
+         are its own distinct responsive versions and stay local. */
       .header-actions {
         display: flex;
         align-items: center;
         gap: 12px;
       }
 
+      /* This screen's own responsive .metrics-grid (1/2/4 columns) —
+         overrides global.css's fixed 4-column default. .main-grid is the
+         same on this screen as global.css's default, so it's not
+         restated here. */
       .metrics-grid {
         display: grid;
         grid-template-columns: repeat(1, 1fr);
@@ -38,17 +37,6 @@
       @media (min-width: 1024px) {
         .metrics-grid {
           grid-template-columns: repeat(4, 1fr);
-        }
-      }
-
-      .main-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 24px;
-      }
-      @media (min-width: 1024px) {
-        .main-grid {
-          grid-template-columns: 2fr 1fr;
         }
       }
 
@@ -79,52 +67,13 @@
         margin-bottom: 8px;
       }
 
+      /* .bed-grid/.bed-card* and .table-container/.data-table base now
+         live once in global.css; this screen only adds its own
+         bed-grid bottom margin and denser table padding below. */
       .bed-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
         margin-bottom: 24px;
       }
-      .bed-card {
-        width: 120px;
-        height: 80px;
-        border-radius: 8px;
-        border: 2px solid;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 8px;
-        cursor: pointer;
-        transition: box-shadow 0.2s;
-        background: transparent;
-      }
-      .bed-card:hover {
-        box-shadow: var(--shadow-md);
-      }
-      .bed-card-title {
-        font-size: 14px;
-        font-weight: 600;
-      }
-      .bed-card-subtitle {
-        font-size: 12px;
-        margin-top: 4px;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        width: 100%;
-      }
 
-      .table-container {
-        overflow-x: auto;
-        width: 100%;
-      }
-      .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-      }
       .data-table th {
         padding: 12px 16px;
         background: #f8fafc;
@@ -157,52 +106,9 @@
         transition: width 0.3s ease;
       }
 
-      .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-      }
-      .modal-overlay.active {
-        display: flex;
-      }
-      .modal-content {
-        background: #fff;
-        border-radius: var(--radius-lg);
-        width: 100%;
-        max-width: 600px;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: var(--shadow-lg);
-      }
-      .modal-header {
-        padding: 16px 24px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 10;
-      }
-      .modal-body {
-        padding: 24px;
-      }
-      .modal-footer {
-        padding: 16px 24px;
-        border-top: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        position: sticky;
-        bottom: 0;
-        background: #fff;
-        z-index: 10;
-      }
+      /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
+         now live once in global.css (Material You dialog styling) instead
+         of being duplicated in every screen's own <style> block. */
     </style>
   </head>
   <body>
@@ -294,71 +200,6 @@
             </div>
           </div>
 
-          <div class="card" style="padding: 24px">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <h2 class="h2" style="font-size: 18px">
-                Inventory Service Request
-              </h2>
-              <span id="service-request-badge"></span>
-            </div>
-            <div
-              style="
-                display: grid;
-                grid-template-columns: 1fr 1fr 120px 120px;
-                gap: 12px;
-                margin-bottom: 16px;
-              "
-            >
-              <select class="input" id="hom-patient-select"></select>
-              <select class="input" id="hom-service-select"></select>
-              <input
-                class="input"
-                id="hom-service-qty"
-                type="number"
-                min="1"
-                value="1"
-              />
-              <button
-                class="btn btn-primary btn-default"
-                type="button"
-                onclick="submitServiceRequest()"
-              >
-                Request
-              </button>
-            </div>
-            <div
-              id="hom-service-form-error"
-              style="
-                display: none;
-                margin-bottom: 16px;
-                font-size: 12px;
-                color: var(--error);
-                font-weight: 500;
-              "
-            ></div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Patient</th>
-                    <th>UHID</th>
-                    <th>Service</th>
-                    <th>Qty</th>
-                    <th>Status</th>
-                    <th>Requested</th>
-                  </tr>
-                </thead>
-                <tbody id="service-requests-body"></tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         <div class="right-column">
@@ -473,14 +314,6 @@
               <div class="label">UHID</div>
               <div style="font-weight: 500" id="modal-admit-uhid"></div>
             </div>
-            <div>
-              <div class="label">Age/Gender</div>
-              <div style="font-weight: 500">58 / Male</div>
-            </div>
-            <div>
-              <div class="label">Contact</div>
-              <div style="font-weight: 500">+91 98765 43210</div>
-            </div>
           </div>
           <div
             style="
@@ -526,7 +359,7 @@
             ></div>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="justify-content: space-between;">
           <button
             class="btn btn-secondary btn-default"
             onclick="closeAdmissionModal()"
@@ -556,53 +389,17 @@
 
 
 
+  <script>window.APP_MODULE = "HOM";</script>
   <script src="../shared/constants.js"></script>
-    <script src="../shared/canonical-seed.js"></script>
-<script src="../shared/id-generator.js"></script>
-<script src="../shared/patient-resolver.js"></script>
-<script src="../shared/sanitizer.js"></script>
-<script src="../shared/ledger-validator.js"></script>
-<script src="../shared/finance-states.js"></script>
-<script src="../shared/insurance.js"></script>
-<script src="../shared/rbac.js"></script>
-<script src="../shared/api-client.js"></script>
-    <script src="auth-guard.js"></script>
-    <script src="storage.js"></script>
-    <script>
-      window.UI = {
-        cn: (...classes) => classes.filter(Boolean).join(" "),
-        Badge: ({ children, variant = "neutral", className = "" }) => {
-          const baseClass = "badge";
-          const variantClass = `badge-${variant}`;
-          return `<span class="${window.UI.cn(baseClass, variantClass, className)}">${children}</span>`;
-        },
-        Button: ({
-          children,
-          variant = "primary",
-          size = "default",
-          className = "",
-          id = "",
-          disabled = false,
-          dataFlow = "",
-          onClick = "",
-        }) => {
-          const classes = window.UI.cn(
-            "btn",
-            `btn-${variant}`,
-            `btn-${size}`,
-            className,
-          );
-          const idAttr = id ? `id="${id}"` : "";
-          const disabledAttr = disabled ? "disabled" : "";
-          const flowAttr = dataFlow ? `data-flow="${dataFlow}"` : "";
-          const onClickAttr = onClick ? `onclick="${onClick}"` : "";
-          return `<button ${idAttr} class="${classes}" ${disabledAttr} ${flowAttr} ${onClickAttr}>${children}</button>`;
-        },
-      };
-    </script>
+  <script src="../shared/api-client.js"></script>
+  <script src="../shared/rbac.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
+    <script src="hom-helpers.js"></script>
+    <script src="ui-template.js"></script>
 
     <script src="shared-nav.js"></script>
     <script src="dashboard.js"></script>
-    <script src="../shared/debug-state-panel.js"></script>
   </body>
 </html>

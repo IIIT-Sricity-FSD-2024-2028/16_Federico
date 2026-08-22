@@ -1,0 +1,111 @@
+/**
+ * shared/ui-feedback.css — visuals for the consolidated Material You
+ * snackbar/dialog/confirm system (see ui-feedback.js). Replaces every
+ * app's bespoke toast/modal/popup CSS (7+ divergent implementations
+ * found across landing/signup/Patient/PRE/HOM before this).
+ */
+
+.md-snackbar-region {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  pointer-events: none;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.md-snackbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #313033 92%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  color: #F4EFF4;
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font: var(--type-body-medium);
+  font-size: 0.9rem;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+  transition: opacity var(--duration-base) var(--ease-emphasized), transform var(--duration-base) var(--ease-emphasized);
+}
+.md-snackbar.is-visible { opacity: 1; transform: translateY(0) scale(1); }
+.md-snackbar-icon { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+.md-snackbar-message { flex: 1; }
+.md-snackbar-success .md-snackbar-icon { color: #8BD996; }
+.md-snackbar-error .md-snackbar-icon { color: #F2B8B5; }
+.md-snackbar-warning .md-snackbar-icon { color: #F3CA6E; }
+.md-snackbar-info .md-snackbar-icon { color: #A8C7FA; }
+.md-snackbar-dismiss {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.75;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+  border-radius: var(--radius-full);
+}
+.md-snackbar-dismiss:hover { opacity: 1; background: rgba(255, 255, 255, 0.1); }
+
+.md-dialog-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  transition: opacity var(--duration-emphasis) var(--ease-emphasized);
+}
+.md-dialog-scrim.is-visible { opacity: 1; }
+
+/* Liquid glass dialog surface — frosted over the blurred scrim, per
+   design.txt's own glass-morphism allowance for elevated/floating chrome. */
+.md-dialog {
+  width: min(440px, 100%);
+  background: color-mix(in srgb, var(--md-surface-container-high, var(--md-surface-container)) 88%, transparent);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid color-mix(in srgb, white 30%, transparent);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-4), inset 0 1px 0 color-mix(in srgb, white 35%, transparent);
+  padding: 24px;
+  transform: scale(0.94) translateY(12px);
+  opacity: 0;
+  transition: transform var(--duration-emphasis) var(--ease-emphasized), opacity var(--duration-emphasis) var(--ease-emphasized);
+}
+.md-dialog-scrim.is-visible .md-dialog { transform: scale(1) translateY(0); opacity: 1; }
+
+.md-dialog-title { font: var(--type-title-large); margin-bottom: 12px; color: var(--md-on-background); }
+.md-dialog-body { font: var(--type-body-medium); color: var(--md-on-surface-variant); line-height: 1.5; margin-bottom: 24px; white-space: pre-line; }
+.md-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.md-dialog-choices { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+.md-dialog-choice {
+  border: 1px solid var(--md-outline);
+  background: transparent;
+  color: var(--md-on-background);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.md-dialog-choice:hover { background: color-mix(in srgb, var(--md-primary) 8%, transparent); border-color: var(--md-primary); }
+.md-dialog-choice:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .md-snackbar { transform: none !important; }
+  .md-dialog { transform: none !important; }
+}
