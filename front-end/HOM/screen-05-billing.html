@@ -39,13 +39,14 @@
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
                 <input type="text" class="input" placeholder="Search billing" style="width: 240px;" id="billing-search">
+                <button class="btn btn-primary btn-default" id="btn-open-post-service">+ Post Service Used</button>
                 <button class="btn btn-secondary btn-default" id="billing-export">Export Ledger</button>
             </div>
         </div>
 
         <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: var(--radius-base); padding: 16px; margin-bottom: 24px;">
             <p style="color: #92400E; font-size: 14px; margin: 0;">
-                ℹ You have view-only access. Contact Finance Associate to finalize or modify billing records.
+                ℹ You have view-only access. When HOM posts a User ID and Service Used, it is sent to Finance Associate (FA) Recent Charges for review and approval.
             </p>
         </div>
 
@@ -53,6 +54,9 @@
             </div>
 
         <div class="table-container">
+            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border);">
+                <h2 class="h2" style="font-size: 18px; margin: 0;">Active Patient Ledgers</h2>
+            </div>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -78,6 +82,48 @@
             </div>
         </div>
     </main>
+
+    <!-- Modal: Post Service Used (HOM -> FA) -->
+    <div class="modal-overlay" id="modal-post-service">
+        <div class="modal-content" style="max-width: 540px;">
+            <div class="modal-header">
+                <h2 class="h2" style="font-size: 20px;">Post Service Used</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+                    Submit the User ID and Service used. This will be sent directly to FA Recent Charges for approval.
+                </p>
+                <div>
+                    <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">User ID / Patient *</label>
+                    <select class="input" id="post-admission-select" style="width: 100%;">
+                        <option value="">Select patient / user...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">Service Used *</label>
+                    <select class="input" id="post-service-select" style="width: 100%;">
+                        <option value="">Select service used...</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">Quantity *</label>
+                        <input type="number" class="input" id="post-quantity" min="1" value="1" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">Charge Amount</label>
+                        <input type="text" class="input" id="post-total-preview" value="₹0" readonly style="width: 100%; background: var(--neutral-bg); font-weight: 600;">
+                    </div>
+                </div>
+                <div id="post-modal-error" style="display:none; font-size: 13px; color: var(--danger, #EF4444); font-weight: 500;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-default" onclick="closeModals()">Cancel</button>
+                <button class="btn btn-primary btn-default" id="btn-submit-service">Submit to FA</button>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="modal-billing-detail">
         <div class="modal-content" style="max-width: 800px;">

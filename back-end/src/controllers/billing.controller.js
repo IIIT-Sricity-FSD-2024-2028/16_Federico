@@ -163,6 +163,36 @@ function findDischargeSummary(req, res) {
   sendResult(res, result, 200);
 }
 
+function findAllLeaders(req, res) {
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, scopeToOrg(billingService.findAllLeaders(), req), 200);
+}
+
+function createLeader(req, res) {
+  const result = billingService.createLeader(withTenant(req, req.body));
+  logger.log(
+    `⭐ LEADER CREATED  id=${result.leader_id}  admission_id=${result.admission_id}  service_id=${result.service_id}`,
+  );
+  sendResult(res, result, 201);
+}
+
+function approveLeader(req, res) {
+  const leaderId = +req.params.id;
+  const existing = billingService.findLeaderById(leaderId);
+  if (existing && !belongsToOrg(existing, req)) {
+    return res.status(403).json(FORBIDDEN);
+  }
+  const result = billingService.approveLeader(leaderId);
+  if (result.error === 'NOT_FOUND') {
+    return res.status(404).json({ message: result.message, error: 'Not Found', statusCode: 404 });
+  }
+  if (result.error === 'ALREADY_APPROVED') {
+    return res.status(400).json({ message: result.message, error: 'Bad Request', statusCode: 400, leader: result.leader });
+  }
+  logger.log(`⭐ LEADER APPROVED  id=${result.leader.leader_id}  ledger_id=${result.ledger.ledger_id}`);
+  sendResult(res, result, 200);
+}
+
 module.exports = {
   findAllServices,
   createService,
@@ -179,4 +209,7 @@ module.exports = {
   findAllReceipts,
   findReceiptsByPatient,
   findDischargeSummary,
+  findAllLeaders,
+  createLeader,
+  approveLeader,
 };

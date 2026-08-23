@@ -51,8 +51,9 @@ const Permissions = {
         links.forEach(link => {
             const match = link.getAttribute('onclick')?.match(/'([^']+)'/);
             const route = match ? match[1] : '#/dashboard';
-            link.style.display = this.canAccess(route) ? 'inline-block' : 'none';
+            link.style.display = this.canAccess(route) ? '' : 'none';
         });
+        if (typeof window.updateActiveNav === 'function') window.updateActiveNav();
     }
 };
 

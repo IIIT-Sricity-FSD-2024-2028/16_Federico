@@ -10,6 +10,7 @@
 window.currentAdmissionId = window.currentAdmissionId || null;
 
 async function render() {
+    if (typeof updateActiveNav === 'function') updateActiveNav();
     const appDiv = document.getElementById('app');
     const hash = location.hash || (window.Permissions ? Permissions.getDefaultRoute() : '#/dashboard');
 
@@ -29,6 +30,7 @@ async function render() {
         console.error('FA render failed:', err);
         appDiv.innerHTML = `<div class="card" style="padding: 50px; text-align: center;"><h2>Something went wrong</h2><p style="color: var(--text-muted);">${window.FAHelpers.escapeHtml(err.message || String(err))}</p></div>`;
     }
+    if (typeof updateActiveNav === 'function') updateActiveNav();
 }
 window.render = render;
 
@@ -187,64 +189,117 @@ async function renderDashboard() {
     `;
 }
 
+function updateActiveNav() {
+    const hash = location.hash || (window.Permissions ? Permissions.getDefaultRoute() : '#/dashboard');
+    const activeRoute = hash.split('?')[0].replace('#/', '') || 'dashboard';
+    document.querySelectorAll('.nav-link').forEach((link) => {
+        const onclickAttr = link.getAttribute('onclick') || '';
+        const match = onclickAttr.match(/#\/([a-zA-Z0-9_-]+)/);
+        const route = match ? match[1] : '';
+        if (route === activeRoute) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
+window.updateActiveNav = updateActiveNav;
+
 async function renderCharges() {
-    const { rows, servicesById } = await H().loadBillingOverview();
-    const admissionOptions = rows.map((r) => `<option value="${r.admission.admission_id}">${H().escapeHtml(r.patient.name || 'Patient')} — ${H().escapeHtml(r.patient.uhid || '')}</option>`).join('');
-    const serviceOptions = Object.values(servicesById).map((s) => `<option value="${s.service_id}">${H().escapeHtml(s.service_name)} (${H().formatCurrency(s.base_cost)})</option>`).join('');
+    const [{ rows, servicesById, patientsById, admissionsById }, leaders] = await Promise.all([
+        H().loadBillingOverview(),
+        window.ApiClient.billing.leaders.list().catch(() => []),
+    ]);
 
+    // Pending items submitted by HOM (not yet approved into ledger)
+    const pendingItems = (leaders || [])
+        .filter((l) => l.status === 'PENDING')
+        .map((l) => {
+            const admission = admissionsById[l.admission_id];
+            const patient = l.patient_id ? patientsById[l.patient_id] : (admission ? patientsById[admission.patient_id] : null);
+            const service = servicesById[l.service_id];
+            return {
+                id: `pending-${l.leader_id}`,
+                leaderId: l.leader_id,
+                isPending: true,
+                patientId: patient?.patient_id || admission?.patient_id || l.patient_id || '-',
+                patientName: patient?.name || 'Patient',
+                uhid: patient?.uhid || '-',
+                serviceName: service?.service_name || `Service #${l.service_id}`,
+                quantity: l.quantity,
+                amount: l.amount,
+                status: 'Pending',
+                time: new Date(l.created_at || Date.now()),
+            };
+        });
+
+    // Recent ledger entries approved in FA ledger
     const withLedgers = rows.filter((r) => r.ledger);
-    const entryLists = await Promise.all(withLedgers.map((r) => H().loadLedgerEntries(r.ledger.ledger_id).then((entries) => ({ r, entries }))));
-    const recentEntries = entryLists
-        .flatMap(({ r, entries }) => entries.map((e) => ({ ...e, patientName: r.patient.name, uhid: r.patient.uhid })))
-        .sort((a, b) => new Date(b.entry_time) - new Date(a.entry_time))
-        .slice(0, 15);
+    const entryLists = await Promise.all(
+        withLedgers.map((r) => H().loadLedgerEntries(r.ledger.ledger_id).then((entries) => ({ r, entries })))
+    );
+    const recentLedgerItems = entryLists
+        .flatMap(({ r, entries }) => entries.map((e) => ({
+            id: `entry-${r.ledger.ledger_id}-${e.entry_id}`,
+            isPending: false,
+            patientId: r.patient.patient_id || r.admission.patient_id || '-',
+            patientName: r.patient.name,
+            uhid: r.patient.uhid,
+            serviceName: servicesById[e.service_id]?.service_name || 'Service #' + e.service_id,
+            quantity: e.quantity,
+            amount: e.amount,
+            status: 'Approved',
+            time: new Date(e.entry_time || Date.now()),
+        })));
 
-    const recentRows = recentEntries.map((e) => `
+    // Combine pending items at top, followed by recent approved ledger items
+    const allCharges = [...pendingItems, ...recentLedgerItems]
+        .sort((a, b) => (b.isPending ? 1 : 0) - (a.isPending ? 1 : 0) || b.time - a.time);
+
+    const chargeRows = allCharges.map((c) => `
         <tr style="border-bottom: 1px solid var(--color-border);">
-            <td style="padding: 16px 20px;"><strong>${H().escapeHtml(e.patientName || '-')}</strong></td>
-            <td style="padding: 16px 20px;"><span class="uhid-badge">${H().escapeHtml(e.uhid || '-')}</span></td>
-            <td style="padding: 16px 20px; color: var(--color-fg);">${H().escapeHtml(servicesById[e.service_id]?.service_name || 'Service #' + e.service_id)}</td>
-            <td style="padding: 16px 20px; text-align: center;"><strong>${e.quantity}</strong></td>
-            <td style="padding: 16px 20px;">${H().formatCurrency(e.amount)}</td>
+            <td style="padding: 16px 20px;">
+                <strong style="color: var(--color-fg);">${H().escapeHtml(c.patientName || '-')}</strong>
+                <span style="font-size: 11px; color: var(--text-muted); display: block;">User ID: #${H().escapeHtml(String(c.patientId))}</span>
+            </td>
+            <td style="padding: 16px 20px;"><span class="uhid-badge">${H().escapeHtml(c.uhid || '-')}</span></td>
+            <td style="padding: 16px 20px; color: var(--color-fg);">${H().escapeHtml(c.serviceName)}</td>
+            <td style="padding: 16px 20px; text-align: center;"><strong>${c.quantity}</strong></td>
+            <td style="padding: 16px 20px; font-weight: 600; color: var(--color-fg);">${H().formatCurrency(c.amount)}</td>
+            <td style="padding: 16px 20px;">
+                ${c.isPending 
+                    ? `<span class="badge badge-warning">Pending</span>` 
+                    : `<span class="badge badge-success">Approved</span>`}
+            </td>
+            <td style="padding: 16px 20px;">
+                ${c.isPending
+                    ? `<button class="btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="window.FAActions.approveLeader(${c.leaderId})">Approve</button>`
+                    : `<span style="font-size: 12px; color: var(--text-muted);">In Ledger</span>`}
+            </td>
         </tr>
     `).join('');
 
     return `
         <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Charges</h2>
 
-        <div class="card" style="padding: 24px; margin-bottom: 24px;">
-            <h3 style="margin: 0 0 16px 0; font-size: 16px; color: var(--color-fg);">Add a Charge to an Admission</h3>
-            <div style="display: grid; grid-template-columns: 2fr 2fr 100px 140px; gap: 12px; align-items: end;">
-                <div class="md-field" style="margin-bottom: 0;">
-                    <label>Admission</label>
-                    <select id="charge-admission"><option value="">Select patient...</option>${admissionOptions}</select>
-                </div>
-                <div class="md-field" style="margin-bottom: 0;">
-                    <label>Service</label>
-                    <select id="charge-service"><option value="">Select service...</option>${serviceOptions}</select>
-                </div>
-                <div class="md-field" style="margin-bottom: 0;">
-                    <label>Qty</label>
-                    <input id="charge-qty" type="number" min="1" value="1">
-                </div>
-                <button class="btn-primary" style="padding: 10px;" onclick="window.FAActions.addChargeFromForm()">Add Charge</button>
-            </div>
-            <div id="charges-form-error" style="display:none; margin-top: 12px; font-size: 12px; color: var(--status-error); font-weight: 600;"></div>
-        </div>
-
         <div class="card" style="padding: 0; overflow: hidden;">
-            <div style="padding: 20px; border-bottom: 1px solid var(--color-border);"><h3 style="margin: 0; font-size: 16px; color: var(--color-fg); font-weight: 700;">Recent Charges</h3></div>
+            <div style="padding: 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 16px; color: var(--color-fg); font-weight: 700;">Recent Charges</h3>
+                ${pendingItems.length ? `<span class="badge badge-warning">${pendingItems.length} Pending Approval</span>` : ''}
+            </div>
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
                     <tr>
-                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Patient</th>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">User / Patient</th>
                         <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">UHID</th>
                         <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Service</th>
                         <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: center;">Qty</th>
                         <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Amount</th>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
+                        <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Action</th>
                     </tr>
                 </thead>
-                <tbody>${recentRows || '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">No charges posted yet.</td></tr>'}</tbody>
+                <tbody>${chargeRows || '<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">No charges posted yet.</td></tr>'}</tbody>
             </table>
         </div>
     `;
@@ -256,8 +311,6 @@ async function renderLedger() {
     const row = rows.find((r) => r.admission.admission_id === window.currentAdmissionId);
 
     if (!row) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected.</h2></div>`;
-
-    const serviceOptions = Object.values(servicesById).map((s) => `<option value="${s.service_id}">${H().escapeHtml(s.service_name)} (${H().formatCurrency(s.base_cost)})</option>`).join('');
 
     if (!row.ledger) {
         return `
@@ -286,23 +339,14 @@ async function renderLedger() {
 
     return `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')} <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span></h2>
+            <div>
+                <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')} <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span></h2>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--color-muted-fg);">User ID: #${H().escapeHtml(String(row.patient.patient_id || row.admission.patient_id || '-'))} &bull; UHID: <span class="uhid-badge">${H().escapeHtml(row.patient.uhid || '-')}</span></p>
+            </div>
             <div style="display: flex; gap: 12px;">
                 <button class="md-btn md-btn-tonal" style="padding: 0 20px;" onclick="navigate('#/eod', ${row.admission.admission_id})">EOD Billing</button>
                 <button class="btn-primary" style="padding: 10px 20px; font-size: 13px; background: ${row.dischargeApproved ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${row.dischargeApproved ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'};" onclick="${row.dischargeApproved ? `navigate('#/discharge', ${row.admission.admission_id})` : "window.UIFeedback.toast('Waiting for HOM discharge approval for this patient.', 'warning')"}">${row.dischargeApproved ? 'Discharge' : 'Await HOM Approval'}</button>
             </div>
-        </div>
-
-        <div class="card" style="padding: 20px; margin-bottom: 24px; display: grid; grid-template-columns: 2fr 100px 140px; gap: 12px; align-items: end;">
-            <div class="md-field" style="margin-bottom: 0;">
-                <label>Add a service</label>
-                <select id="ledger-add-service"><option value="">Select service...</option>${serviceOptions}</select>
-            </div>
-            <div class="md-field" style="margin-bottom: 0;">
-                <label>Qty</label>
-                <input id="ledger-add-qty" type="number" min="1" value="1">
-            </div>
-            <button class="btn-primary" style="padding: 10px;" onclick="window.FAActions.addChargeToCurrentLedger(${row.admission.admission_id}, ${row.ledger.ledger_id})">Add to Ledger</button>
         </div>
 
         <div class="card" style="padding: 0; overflow: hidden;">
@@ -317,7 +361,11 @@ async function renderLedger() {
                 </thead>
                 <tbody>${entryRows || '<tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-muted);">No ledger entries found.</td></tr>'}</tbody>
             </table>
-            <div style="padding: 24px; text-align: right; border-top: 1px solid var(--color-border); background: var(--color-bg);">
+            <div style="padding: 24px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); background: var(--color-bg);">
+                <div>
+                    <span style="font-size: 14px; font-weight: 600; color: var(--color-fg);">FA Approved Charges: <strong style="color: var(--md-primary, #6750A4);">${H().formatCurrency(total)}</strong></span>
+                    <span style="font-size: 13px; color: var(--text-muted); margin-left: 8px;">(${entries.length} approved line ${entries.length === 1 ? 'item' : 'items'})</span>
+                </div>
                 <h3 style="margin: 0; font-size: 20px; color: var(--color-fg); font-weight: 700;">Total Due: <span style="color: var(--color-fg);">${H().formatCurrency(total)}</span></h3>
             </div>
         </div>

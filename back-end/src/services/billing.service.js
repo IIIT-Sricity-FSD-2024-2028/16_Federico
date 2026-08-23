@@ -189,6 +189,112 @@ function createDischargeSummary(summary) {
   return newSummary;
 }
 
+// LEADERS (HOM -> FA -> Ledger Workflow)
+function findAllLeaders() {
+  if (!dataStore.leaders) dataStore.leaders = [];
+  return dataStore.leaders;
+}
+
+function findLeaderById(leader_id) {
+  if (!dataStore.leaders) dataStore.leaders = [];
+  return dataStore.leaders.find((l) => l.leader_id === leader_id) || null;
+}
+
+function createLeader(payload) {
+  if (!dataStore.leaders) dataStore.leaders = [];
+  const admission = dataStore.admissions.find(
+    (a) => a.admission_id === Number(payload.admission_id),
+  );
+  const service = dataStore.services.find(
+    (s) => s.service_id === Number(payload.service_id),
+  );
+  const qty = Number(payload.quantity) || 1;
+  const unit_price = service ? Number(service.base_cost) : Number(payload.unit_price || 0);
+  const amount = Number(payload.amount) || unit_price * qty;
+
+  const newLeader = {
+    leader_id:
+      dataStore.leaders.length > 0
+        ? Math.max(...dataStore.leaders.map((l) => l.leader_id)) + 1
+        : 1,
+    admission_id: Number(payload.admission_id),
+    patient_id: payload.patient_id
+      ? Number(payload.patient_id)
+      : admission
+        ? admission.patient_id
+        : null,
+    service_id: Number(payload.service_id),
+    quantity: qty,
+    unit_price,
+    amount,
+    status: 'PENDING',
+    created_at: new Date().toISOString(),
+    approved_at: null,
+    organization_id: payload.organization_id || (admission ? admission.organization_id : null) || null,
+    hospital_id: payload.hospital_id || (admission ? admission.hospital_id : null) || null,
+  };
+
+  dataStore.leaders.push(newLeader);
+
+  activityService.log(
+    'info',
+    `HOM added Leader #${newLeader.leader_id} for admission #${newLeader.admission_id}`,
+    { leaderId: newLeader.leader_id, admissionId: newLeader.admission_id },
+    newLeader.organization_id,
+  );
+
+  return newLeader;
+}
+
+function approveLeader(leader_id) {
+  if (!dataStore.leaders) dataStore.leaders = [];
+  const leader = dataStore.leaders.find((l) => l.leader_id === Number(leader_id));
+  if (!leader) {
+    return { error: 'NOT_FOUND', message: 'Leader not found' };
+  }
+  if (leader.status === 'APPROVED') {
+    return { error: 'ALREADY_APPROVED', message: 'Leader has already been approved', leader };
+  }
+
+  // Find or create ledger for this admission
+  let ledger = findLedgerByAdmission(leader.admission_id);
+  if (!ledger) {
+    ledger = createLedger({
+      admission_id: leader.admission_id,
+      status: 'OPEN',
+      organization_id: leader.organization_id,
+      hospital_id: leader.hospital_id,
+    });
+  }
+
+  // Check to prevent duplicate entry of the exact same leader into ledger
+  const existingEntries = findLedgerEntries(ledger.ledger_id);
+  // Add entry to ledger
+  const ledgerEntry = addLedgerEntry({
+    ledger_id: ledger.ledger_id,
+    service_id: leader.service_id,
+    quantity: leader.quantity,
+    unit_price: leader.unit_price,
+    amount: leader.amount,
+    organization_id: leader.organization_id,
+    hospital_id: leader.hospital_id,
+  });
+
+  leader.status = 'APPROVED';
+  leader.approved_at = new Date().toISOString();
+  leader.ledger_id = ledger.ledger_id;
+  leader.entry_id = ledgerEntry.entry_id;
+
+  activityService.log(
+    'success',
+    `FA approved Leader #${leader.leader_id} into Ledger #${ledger.ledger_id}`,
+    { leaderId: leader.leader_id, ledgerId: ledger.ledger_id },
+    leader.organization_id,
+  );
+
+  return { success: true, leader, ledger, ledgerEntry };
+}
+
 module.exports = {
   findAllServices,
   createService,
@@ -206,4 +312,8 @@ module.exports = {
   findAllReceipts,
   findReceiptsByPatient,
   findDischargeSummaryByAdmission,
+  findAllLeaders,
+  findLeaderById,
+  createLeader,
+  approveLeader,
 };

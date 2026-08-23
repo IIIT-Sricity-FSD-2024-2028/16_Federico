@@ -754,3 +754,171 @@ describe('Admin role — org-wide analytics, wardAdmin/inventoryCatalog, RBAC ow
       .expect(403);
   });
 });
+
+describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
+  const app = createApp();
+
+  it('maintains independent sessions for User A and User B; logging out User A does not affect User B', async () => {
+    // 1. User A (HOM) logs in
+    const userALogin = await request(app)
+      .post('/auth/login')
+      .send({ email: 'admin@hosp.com', password: 'Hom@123' })
+      .expect(200);
+    const tokenA = userALogin.body.token;
+    expect(tokenA).toBeTruthy();
+
+    // 2. User B (FA) logs in
+    const userBLogin = await request(app)
+      .post('/auth/login')
+      .send({ email: 'farah.fa@hosp.com', password: 'Fa@123' })
+      .expect(200);
+    const tokenB = userBLogin.body.token;
+    expect(tokenB).toBeTruthy();
+    expect(tokenA).not.toEqual(tokenB);
+
+    // Both sessions are active
+    const meA = await request(app)
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(meA.body.role).toBe('HOM');
+
+    const meB = await request(app)
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+    expect(meB.body.role).toBe('FA');
+
+    // 3. User A logs out
+    await request(app)
+      .post('/auth/logout')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    // 4. Verify only User A session is destroyed
+    await request(app)
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(401);
+
+    // 5. Verify User B session is STILL ACTIVE
+    const meBAfter = await request(app)
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+    expect(meBAfter.body.role).toBe('FA');
+
+    // User B can still perform authenticated actions
+    await request(app)
+      .get('/billing/services')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+  });
+
+  it('supports cookie-based session identification and cookie clearance on logout', async () => {
+    const loginRes = await request(app)
+      .post('/auth/login')
+      .send({ email: 'admin@hosp.com', password: 'Hom@123' })
+      .expect(200);
+
+    const cookieHeader = loginRes.headers['set-cookie'];
+    expect(cookieHeader).toBeDefined();
+    const cookie = Array.isArray(cookieHeader) ? cookieHeader[0] : cookieHeader;
+    expect(cookie).toContain('sessionId=');
+
+    // Use Cookie header instead of Authorization header
+    const token = loginRes.body.token;
+    const meRes = await request(app)
+      .get('/auth/me')
+      .set('Cookie', `sessionId=${token}`)
+      .expect(200);
+    expect(meRes.body.role).toBe('HOM');
+
+    // Logout using Cookie
+    const logoutRes = await request(app)
+      .post('/auth/logout')
+      .set('Cookie', `sessionId=${token}`)
+      .expect(200);
+    expect(logoutRes.headers['set-cookie']).toBeDefined();
+
+    // Session is now destroyed
+    await request(app)
+      .get('/auth/me')
+      .set('Cookie', `sessionId=${token}`)
+      .expect(401);
+  });
+
+  it('HOM adds a Leader -> FA sees it in Charges -> FA approves it into patient Ledger -> duplicate approval prevented', async () => {
+    // Login HOM and FA
+    const homLogin = await request(app)
+      .post('/auth/login')
+      .send({ email: 'admin@hosp.com', password: 'Hom@123' })
+      .expect(200);
+    const homAuth = `Bearer ${homLogin.body.token}`;
+
+    const faLogin = await request(app)
+      .post('/auth/login')
+      .send({ email: 'farah.fa@hosp.com', password: 'Fa@123' })
+      .expect(200);
+    const faAuth = `Bearer ${faLogin.body.token}`;
+
+    // Get an existing admission
+    const admissions = await request(app)
+      .get('/admission')
+      .set('Authorization', homAuth)
+      .expect(200);
+    const admissionId = admissions.body[0].admission_id;
+
+    // 1. HOM adds a Leader
+    const createLeaderRes = await request(app)
+      .post('/billing/leaders')
+      .set('Authorization', homAuth)
+      .send({
+        admission_id: admissionId,
+        service_id: 1,
+        quantity: 2,
+      })
+      .expect(201);
+
+    const leader = createLeaderRes.body;
+    expect(leader.leader_id).toBeTruthy();
+    expect(leader.status).toBe('PENDING');
+    expect(leader.quantity).toBe(2);
+
+    // 2. FA lists leaders
+    const listRes = await request(app)
+      .get('/billing/leaders')
+      .set('Authorization', faAuth)
+      .expect(200);
+    const found = listRes.body.find((l) => l.leader_id === leader.leader_id);
+    expect(found).toBeDefined();
+    expect(found.status).toBe('PENDING');
+
+    // 3. FA approves the Leader
+    const approveRes = await request(app)
+      .put(`/billing/leaders/${leader.leader_id}/approve`)
+      .set('Authorization', faAuth)
+      .expect(200);
+
+    expect(approveRes.body.success).toBe(true);
+    expect(approveRes.body.leader.status).toBe('APPROVED');
+    expect(approveRes.body.ledgerEntry).toBeDefined();
+    expect(approveRes.body.ledger).toBeDefined();
+
+    // 4. Duplicate approval attempt is rejected
+    await request(app)
+      .put(`/billing/leaders/${leader.leader_id}/approve`)
+      .set('Authorization', faAuth)
+      .expect(400);
+
+    // 5. Verify the entry exists in the Ledger
+    const ledgerEntries = await request(app)
+      .get(`/billing/ledger/${approveRes.body.ledger.ledger_id}/entries`)
+      .set('Authorization', faAuth)
+      .expect(200);
+    const hasEntry = ledgerEntries.body.some(
+      (e) => e.service_id === 1 && e.quantity === 2,
+    );
+    expect(hasEntry).toBe(true);
+  });
+});

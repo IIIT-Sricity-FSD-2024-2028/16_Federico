@@ -55,20 +55,38 @@
 .nav-link {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     height: 40px;
     font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     letter-spacing: var(--tracking-label);
     color: var(--md-on-surface-variant);
     cursor: pointer;
-    transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+    transition: background-color var(--duration-fast, 150ms) var(--ease-standard, ease),
+                color var(--duration-fast, 150ms) var(--ease-standard, ease),
+                box-shadow var(--duration-fast, 150ms) var(--ease-standard, ease);
     padding: 0 16px;
     white-space: nowrap;
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-full, 9999px);
+    user-select: none;
 }
 
-.nav-link:hover { color: var(--md-on-background); background: color-mix(in srgb, var(--md-primary) 8%, transparent); }
+.nav-link:hover {
+    color: var(--color-fg, var(--md-on-background));
+    background: color-mix(in srgb, var(--md-primary, #6750A4) 10%, transparent);
+}
+
+.nav-link.active {
+    background: var(--md-secondary-container, #E8DEF8);
+    color: var(--md-on-secondary-container, #1D192B);
+    font-weight: 700;
+}
+
+.nav-link.active:hover {
+    background: color-mix(in srgb, var(--md-secondary-container, #E8DEF8) 85%, var(--md-primary, #6750A4));
+    color: var(--md-on-secondary-container, #1D192B);
+}
 
 /* Role chip — tonal pill, matches the shared .badge/.md-chip look. */
 .role-indicator {

@@ -21,7 +21,7 @@
 
   function getSession() {
     try {
-      var raw = localStorage.getItem(SESSION_KEY);
+      var raw = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (err) {
       return null;
@@ -29,12 +29,18 @@
   }
 
   function setSession(session) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } catch (err) {}
     window.dispatchEvent(new Event("federicoSessionChanged"));
   }
 
   function clearSession() {
-    localStorage.removeItem(SESSION_KEY);
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    } catch (err) {}
     window.dispatchEvent(new Event("federicoSessionChanged"));
   }
 
@@ -80,6 +86,7 @@
       res = await fetch(API_BASE_URL + path, {
         method: method,
         headers: headers,
+        credentials: "include",
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
     } catch (networkErr) {
@@ -469,6 +476,17 @@
       receipts: {
         list: function () {
           return request("GET", "/billing/receipts");
+        },
+      },
+      leaders: {
+        list: function () {
+          return request("GET", "/billing/leaders");
+        },
+        create: function (payload) {
+          return request("POST", "/billing/leaders", payload);
+        },
+        approve: function (id) {
+          return request("PUT", "/billing/leaders/" + id + "/approve");
         },
       },
     },

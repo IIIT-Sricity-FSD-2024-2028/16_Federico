@@ -6901,6 +6901,7 @@ const dataStore = {
     },
   ],
   platformActivityLog: [],
+  leaders: [],
 };
 
 module.exports = dataStore;
