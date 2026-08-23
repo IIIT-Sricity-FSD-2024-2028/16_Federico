@@ -300,10 +300,23 @@
         });
     }
 
+    async function approveLeader(leaderId) {
+        if (!leaderId) return;
+        try {
+            await window.ApiClient.billing.leaders.approve(leaderId);
+            window.UIFeedback.toast('Leader approved and added to patient ledger successfully.', 'success');
+            await window.render();
+        } catch (err) {
+            window.UIFeedback.toast(err.message || 'Unable to approve leader.', 'error');
+            await window.render();
+        }
+    }
+
     window.FAActions = {
         createLedgerAndOpen,
         addChargeFromForm,
         addChargeToCurrentLedger,
+        approveLeader,
         dispatchCurrent,
         recordCashPayment,
         generateDischargeSummary,

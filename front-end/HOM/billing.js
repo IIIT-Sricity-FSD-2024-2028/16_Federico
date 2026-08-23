@@ -26,6 +26,9 @@ document.addEventListener('click', (event) => {
 
 let billingSearch = '';
 let billingRows = [];
+let leaderRows = [];
+let availableServices = [];
+let availableAdmissions = [];
 
 function bindControls() {
   const searchInput = document.getElementById('billing-search');
@@ -36,6 +39,95 @@ function bindControls() {
     });
   }
   document.getElementById('billing-export')?.addEventListener('click', exportBillingRows);
+
+  // Post Service Used Controls (HOM -> FA)
+  document.getElementById('btn-open-post-service')?.addEventListener('click', openPostServiceModal);
+  document.getElementById('btn-submit-service')?.addEventListener('click', submitPostService);
+  document.getElementById('post-service-select')?.addEventListener('change', updatePostTotalPreview);
+  document.getElementById('post-quantity')?.addEventListener('input', updatePostTotalPreview);
+}
+
+function openPostServiceModal() {
+  const admissionSelect = document.getElementById('post-admission-select');
+  const serviceSelect = document.getElementById('post-service-select');
+  const qtyInput = document.getElementById('post-quantity');
+  const errorEl = document.getElementById('post-modal-error');
+
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+  if (qtyInput) qtyInput.value = '1';
+
+  // Populate Admissions / Patients with User ID / UHID
+  if (admissionSelect) {
+    admissionSelect.innerHTML = '<option value="">Select patient / user...</option>' +
+      availableAdmissions.map((a) => `<option value="${a.admission_id}">User ID #${a.patient_id} — ${window.HOMHelpers.escapeHtml(a.patientName)} (${a.uhid || 'No UHID'})</option>`).join('');
+  }
+
+  // Populate Services
+  if (serviceSelect) {
+    serviceSelect.innerHTML = '<option value="">Select service used...</option>' +
+      availableServices.map((s) => `<option value="${s.service_id}" data-cost="${s.base_cost}">${window.HOMHelpers.escapeHtml(s.service_name)} (${window.HOMHelpers.formatCurrency(s.base_cost)})</option>`).join('');
+  }
+
+  updatePostTotalPreview();
+  document.getElementById('modal-post-service')?.classList.add('active');
+}
+
+function updatePostTotalPreview() {
+  const serviceSelect = document.getElementById('post-service-select');
+  const qtyInput = document.getElementById('post-quantity');
+  const previewEl = document.getElementById('post-total-preview');
+
+  if (!serviceSelect || !qtyInput || !previewEl) return;
+  const selectedOpt = serviceSelect.options[serviceSelect.selectedIndex];
+  const unitPrice = selectedOpt ? Number(selectedOpt.getAttribute('data-cost') || 0) : 0;
+  const qty = Number(qtyInput.value) || 1;
+  previewEl.value = window.HOMHelpers.formatCurrency(unitPrice * qty);
+}
+
+async function submitPostService() {
+  const admissionId = document.getElementById('post-admission-select')?.value;
+  const serviceId = document.getElementById('post-service-select')?.value;
+  const quantity = Number(document.getElementById('post-quantity')?.value) || 1;
+  const errorEl = document.getElementById('post-modal-error');
+
+  if (!admissionId) {
+    if (errorEl) { errorEl.textContent = 'Please select a patient / user.'; errorEl.style.display = 'block'; }
+    return;
+  }
+  if (!serviceId) {
+    if (errorEl) { errorEl.textContent = 'Please select a service.'; errorEl.style.display = 'block'; }
+    return;
+  }
+  if (quantity < 1) {
+    if (errorEl) { errorEl.textContent = 'Quantity must be at least 1.'; errorEl.style.display = 'block'; }
+    return;
+  }
+
+  try {
+    const submitBtn = document.getElementById('btn-submit-service');
+    if (submitBtn) submitBtn.disabled = true;
+
+    await window.ApiClient.billing.leaders.create({
+      admission_id: Number(admissionId),
+      service_id: Number(serviceId),
+      quantity: quantity,
+    });
+
+    window.UIFeedback?.toast('Service posted! Sent to FA Recent Charges for review and approval.', 'success');
+    window.closeModals();
+    await loadAndRender();
+  } catch (err) {
+    if (errorEl) {
+      errorEl.textContent = err.message || 'Failed to submit service.';
+      errorEl.style.display = 'block';
+    }
+  } finally {
+    const submitBtn = document.getElementById('btn-submit-service');
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 function applyUrlFilters() {
@@ -48,13 +140,14 @@ function applyUrlFilters() {
 }
 
 async function loadAndRender() {
-  const [ledgers, admissions, patients, beds, preRequests, services] = await Promise.all([
+  const [ledgers, admissions, patients, beds, preRequests, services, leaders] = await Promise.all([
     window.ApiClient.billing.ledger.listAll().catch(() => []),
     window.ApiClient.admissions.list().catch(() => []),
     window.ApiClient.patients.list(),
     window.ApiClient.wards.beds(),
     window.ApiClient.preRequests.list(),
     window.ApiClient.billing.services.list(),
+    window.ApiClient.billing.leaders.list().catch(() => []),
   ]);
 
   const admissionsById = {};
@@ -63,6 +156,33 @@ async function loadAndRender() {
   patients.forEach((p) => (patientsById[p.patient_id] = p));
   const bedsById = {};
   beds.forEach((b) => (bedsById[b.bed_id] = b));
+  const servicesById = {};
+  services.forEach((s) => (servicesById[s.service_id] = s));
+
+  availableServices = services;
+  availableAdmissions = admissions
+    .filter((a) => a.status !== 'DISCHARGED')
+    .map((a) => {
+      const patient = patientsById[a.patient_id];
+      return {
+        admission_id: a.admission_id,
+        patient_id: a.patient_id,
+        patientName: patient?.name || 'Patient',
+        uhid: patient?.uhid || '',
+      };
+    });
+
+  leaderRows = (leaders || []).map((l) => {
+    const admission = admissionsById[l.admission_id];
+    const patient = l.patient_id ? patientsById[l.patient_id] : (admission ? patientsById[admission.patient_id] : null);
+    const service = servicesById[l.service_id];
+    return {
+      ...l,
+      patientName: patient?.name || 'Unknown Patient',
+      uhid: patient?.uhid || '-',
+      serviceName: service?.service_name || `Service #${l.service_id}`,
+    };
+  });
 
   const entriesByLedger = {};
   await Promise.all(
