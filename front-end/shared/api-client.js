@@ -150,11 +150,34 @@
     },
 
     // ---- Public organization marketplace (tasks.md §4) — no auth ----
-    marketplace: {
-      organizations: function () {
-        return request("GET", "/marketplace/organizations", undefined, { auth: false });
-      },
+   marketplace: {
+    organizations: async function () {
+
+        const cached = sessionStorage.getItem("federico_organizations");
+
+        if (cached) {
+            try {
+                return JSON.parse(cached);
+            } catch (e) {
+                sessionStorage.removeItem("federico_organizations");
+            }
+        }
+
+        const organizations = await request(
+            "GET",
+            "/marketplace/organizations",
+            undefined,
+            { auth: false }
+        );
+
+        sessionStorage.setItem(
+            "federico_organizations",
+            JSON.stringify(organizations)
+        );
+
+        return organizations;
     },
+},
 
     // ---- Platform Super User (separate session namespace) ----
     platform: {

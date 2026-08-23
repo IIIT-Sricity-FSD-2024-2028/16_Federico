@@ -1,0 +1,8 @@
+{
+  "watch": ["*.js", "routes", "controllers", "services", "middleware", "utils"],
+  "ignore": [
+    "docs/swagger.json",
+    "docs/**"
+  ],
+  "ext": "js,mjs,cjs"
+}
