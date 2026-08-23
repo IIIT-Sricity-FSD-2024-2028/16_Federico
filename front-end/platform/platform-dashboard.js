@@ -70,21 +70,49 @@
     try {
       var usage = await window.ApiClient.platform.usage();
       orgsCache = usage.organizations;
+      
+      var mrrFormatted = "₹" + (usage.total_mrr || 0).toLocaleString("en-IN");
+      var arrFormatted = "₹" + (usage.total_arr || 0).toLocaleString("en-IN");
+
       document.getElementById("platform-stats").innerHTML =
-        stat(usage.total_organizations, "Organizations") +
-        stat(usage.active_organizations, "Active") +
-        stat(usage.suspended_organizations, "Suspended") +
+        stat(mrrFormatted, "Total MRR (Monthly Income)", "revenue-card") +
+        stat(arrFormatted, "Annual Run Rate (ARR)", "revenue-card") +
+        stat(usage.total_organizations, "Total Organizations") +
+        stat(usage.active_organizations, "Active Tenants") +
         stat(usage.total_hospitals, "Hospital Branches") +
-        stat(usage.total_users, "Staff + Patient Users") +
-        stat(usage.total_patients, "Patients");
+        stat(usage.total_users, "Staff & Users");
+
+      // Render Revenue Breakdown by Plan
+      var planRevEl = document.getElementById("plan-revenue-grid");
+      if (planRevEl && usage.revenue_by_plan) {
+        var planCardsHtml = Object.keys(usage.revenue_by_plan).map(function (pName) {
+          var pData = usage.revenue_by_plan[pName];
+          return (
+            '<div class="plan-rev-card">' +
+            '<div class="plan-rev-title"><span>' + pName + ' Tier</span><span class="md-chip md-chip-tonal">₹' + (pData.price_monthly || 0).toLocaleString("en-IN") + '/mo</span></div>' +
+            '<div class="plan-rev-amount">₹' + (pData.total_income || 0).toLocaleString("en-IN") + '<span style="font-size:0.8rem;font-weight:400;color:var(--md-on-surface-variant);"> /mo</span></div>' +
+            '<div class="plan-rev-sub">' + pData.active_subscriptions + ' active hospital subscription(s)</div>' +
+            '</div>'
+          );
+        }).join("");
+        planRevEl.innerHTML = planCardsHtml || '<div class="md-empty-state"><span>No active plans yet.</span></div>';
+      }
 
       document.getElementById("overview-org-list").innerHTML = usage.organizations
         .map(function (org) {
+          var planName = org.subscription ? org.subscription.plan_name : "No Plan";
+          var monthlyFee = org.subscription ? "₹" + (org.subscription.price_monthly || 0).toLocaleString("en-IN") + "/mo" : "—";
+          var modulesHtml = (org.enabled_modules || []).map(function (m) {
+            return '<span class="module-pill active">' + m + '</span>';
+          }).join("");
+
           return (
             '<div class="org-mini-card" data-org-id="' + org.organization_id + '">' +
             '<div class="org-mini-head"><span class="org-mini-mark">' + org.name.charAt(0).toUpperCase() + '</span>' +
             '<div><div class="org-mini-name">' + org.name + '</div><span class="md-chip ' + statusChipClass(org.status) + '">' + org.status + '</span></div></div>' +
-            '<div class="org-mini-meta">' + org.hospitals + ' branch(es) · ' + org.users + ' users · ' + org.beds_occupied + '/' + org.beds + ' beds occupied</div>' +
+            '<div class="org-mini-meta">Plan: <strong>' + planName + '</strong> (' + monthlyFee + ')</div>' +
+            '<div class="org-mini-meta" style="margin-top:4px;">' + org.hospitals + ' branch(es) · ' + org.users + ' users · ' + org.beds_occupied + '/' + org.beds + ' beds</div>' +
+            '<div class="module-pill-list" style="margin-top:8px;">' + (modulesHtml || '<span class="module-pill">No modules</span>') + '</div>' +
             '</div>'
           );
         })
@@ -101,8 +129,9 @@
     }
   }
 
-  function stat(value, label) {
-    return '<div class="stat-card"><div class="stat-value">' + value + '</div><div class="stat-label">' + label + '</div></div>';
+  function stat(value, label, extraClass) {
+    var cls = "stat-card" + (extraClass ? " " + extraClass : "");
+    return '<div class="' + cls + '"><div class="stat-value">' + value + '</div><div class="stat-label">' + label + '</div></div>';
   }
   function statusChipClass(status) {
     if (status === "ACTIVE") return "md-chip-success";
@@ -162,11 +191,20 @@
           var usage = await window.ApiClient.platform.organizations.usage(org.organization_id).catch(function () { return {}; });
           var subscription = await window.ApiClient.platform.organizations.getSubscription(org.organization_id).catch(function () { return null; });
           var plan = subscription && subscription.plan;
+          var planPrice = plan ? "₹" + Number(plan.price_monthly || 0).toLocaleString("en-IN") + "/mo" : "—";
+          var modules = usage.enabled_modules || [];
+          var modulesHtml = modules.map(function (m) {
+            return '<span class="module-pill active">' + m + '</span>';
+          }).join(" ");
+
           return (
             '<tr data-org-id="' + org.organization_id + '">' +
             '<td class="org-name-cell"><span class="org-mini-mark" style="width:28px;height:28px;font-size:0.8rem;">' + org.name.charAt(0).toUpperCase() + '</span>' + org.name + '</td>' +
+            '<td><code>tenant_' + org.organization_id + '</code></td>' +
             '<td><span class="md-chip ' + statusChipClass(org.status) + '">' + org.status + '</span></td>' +
-            '<td>' + (plan ? plan.name : "—") + '</td>' +
+            '<td><strong>' + (plan ? plan.name : "—") + '</strong></td>' +
+            '<td><span style="color:var(--md-primary);font-weight:600;">' + planPrice + '</span></td>' +
+            '<td><div class="module-pill-list">' + (modulesHtml || '<span class="module-pill">None</span>') + '</div></td>' +
             '<td>' + (usage.hospitals ?? "—") + '</td>' +
             '<td>' + (usage.users ?? "—") + '</td>' +
             '<td>' + (usage.beds_occupied ?? 0) + '/' + (usage.beds ?? 0) + '</td>' +

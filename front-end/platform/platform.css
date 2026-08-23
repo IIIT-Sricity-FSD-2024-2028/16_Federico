@@ -40,9 +40,21 @@ body { background: var(--md-background); }
 
 /* ===== Stats ===== */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 24px; }
-.stat-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-1); }
+.stat-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-1); border: 1px solid var(--md-outline-variant); }
 .stat-card .stat-value { font-size: 2rem; font-weight: 600; color: var(--md-primary); }
+.stat-card.revenue-card { background: linear-gradient(135deg, rgba(103, 80, 164, 0.08) 0%, rgba(125, 82, 96, 0.08) 100%); border-color: var(--md-primary); }
+.stat-card.revenue-card .stat-value { color: var(--md-primary); font-size: 2.2rem; }
 .stat-card .stat-label { font-size: 0.8rem; color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+.plan-rev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 16px 0 24px; }
+.plan-rev-card { background: var(--md-surface-container); border-radius: var(--radius-md); padding: 16px 20px; border: 1px solid var(--md-outline-variant); display: flex; flex-direction: column; justify-content: space-between; }
+.plan-rev-title { font-weight: 600; font-size: 0.95rem; color: var(--md-on-surface); display: flex; justify-content: space-between; align-items: center; }
+.plan-rev-amount { font-size: 1.4rem; font-weight: 700; color: var(--md-primary); margin: 6px 0; }
+.plan-rev-sub { font-size: 0.8rem; color: var(--md-on-surface-variant); }
+
+.module-pill-list { display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px; }
+.module-pill { font-size: 0.7rem; font-weight: 500; padding: 2px 8px; border-radius: var(--radius-full); background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+.module-pill.active { background: rgba(103, 80, 164, 0.12); color: var(--md-primary); border-color: rgba(103, 80, 164, 0.3); }
 
 .activity-entry { display: flex; align-items: baseline; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--md-outline-variant); font-size: 0.85rem; flex-wrap: wrap; }
 .activity-entry:last-child { border-bottom: none; }
@@ -50,13 +62,14 @@ body { background: var(--md-background); }
 .activity-entry-detail { color: var(--md-on-surface-variant); flex: 1; }
 .activity-entry-time { color: var(--md-on-surface-variant); font-size: 0.75rem; white-space: nowrap; }
 
-.org-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-.org-mini-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-1); cursor: pointer; transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard); }
-.org-mini-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
+.org-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.org-mini-card { background: var(--md-surface-container); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-1); cursor: pointer; transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard); border: 1px solid var(--md-outline-variant); }
+.org-mini-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-color: var(--md-primary); }
 .org-mini-card .org-mini-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .org-mini-mark { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--md-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
 .org-mini-card .org-mini-name { font-weight: 600; }
 .org-mini-card .org-mini-meta { font-size: 0.8rem; color: var(--md-on-surface-variant); }
+.org-mini-card .org-mini-revenue { font-size: 0.85rem; font-weight: 600; color: var(--md-primary); margin-top: 6px; }
 
 /* ===== Table ===== */
 #org-table td, #org-table th { white-space: nowrap; }

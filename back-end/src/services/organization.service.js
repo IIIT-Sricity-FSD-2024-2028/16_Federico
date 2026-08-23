@@ -166,6 +166,13 @@ function quotasFor(organizationId) {
 function usageFor(organizationId) {
   const count = (arr) =>
     arr.filter((r) => r.organization_id === organizationId).length;
+  const sub =
+    dataStore.subscriptions.find((s) => s.organization_id === organizationId) ||
+    null;
+  const plan = sub
+    ? dataStore.subscriptionPlans.find((p) => p.plan_id === sub.plan_id) || null
+    : null;
+
   return {
     hospitals: hospitalsFor(organizationId).length,
     users: count(dataStore.users),
@@ -175,6 +182,18 @@ function usageFor(organizationId) {
       (b) => b.organization_id === organizationId && b.status === 'OCCUPIED',
     ).length,
     quotas: quotasFor(organizationId),
+    subscription: sub
+      ? {
+          subscription_id: sub.subscription_id,
+          plan_id: sub.plan_id,
+          plan_name: plan ? plan.name : 'Unknown',
+          price_monthly: plan ? Number(plan.price_monthly) || 0 : 0,
+          status: sub.status,
+          started_at: sub.started_at,
+          renews_at: sub.renews_at,
+        }
+      : null,
+    enabled_modules: enabledModulesFor(organizationId),
   };
 }
 
