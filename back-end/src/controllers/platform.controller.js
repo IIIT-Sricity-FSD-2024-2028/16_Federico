@@ -143,6 +143,43 @@ function usage(req, res) {
 
 function platformUsage(req, res) {
   const organizations = organizationService.findAll();
+  const orgDetails = organizations.map((o) => {
+    const usageData = organizationService.usageFor(o.organization_id);
+    return {
+      organization_id: o.organization_id,
+      name: o.name,
+      status: o.status,
+      ...usageData,
+    };
+  });
+
+  // Calculate platform financial analytics (MRR / ARR)
+  let totalMrr = 0;
+  const revenueByPlan = {};
+
+  dataStore.subscriptionPlans.forEach((plan) => {
+    revenueByPlan[plan.name] = {
+      plan_id: plan.plan_id,
+      price_monthly: plan.price_monthly,
+      active_subscriptions: 0,
+      total_income: 0,
+    };
+  });
+
+  orgDetails.forEach((org) => {
+    if (org.status === 'ACTIVE' && org.subscription) {
+      const price = Number(org.subscription.price_monthly) || 0;
+      totalMrr += price;
+      const planName = org.subscription.plan_name;
+      if (revenueByPlan[planName]) {
+        revenueByPlan[planName].active_subscriptions += 1;
+        revenueByPlan[planName].total_income += price;
+      }
+    }
+  });
+
+  const totalArr = totalMrr * 12;
+
   sendResult(
     res,
     {
@@ -155,12 +192,10 @@ function platformUsage(req, res) {
       total_users: dataStore.users.length,
       total_patients: dataStore.patients.length,
       total_hospitals: dataStore.hospitals.length,
-      organizations: organizations.map((o) => ({
-        organization_id: o.organization_id,
-        name: o.name,
-        status: o.status,
-        ...organizationService.usageFor(o.organization_id),
-      })),
+      total_mrr: totalMrr,
+      total_arr: totalArr,
+      revenue_by_plan: revenueByPlan,
+      organizations: orgDetails,
     },
     200,
   );

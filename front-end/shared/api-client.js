@@ -154,6 +154,12 @@ function clearSession() {
       organizations: function () {
         return request("GET", "/marketplace/organizations", undefined, { auth: false });
       },
+      plans: function () {
+        return request("GET", "/marketplace/plans", undefined, { auth: false });
+      },
+      registerOrganization: function (payload) {
+        return request("POST", "/marketplace/register-organization", payload, { auth: false });
+      },
     },
 
     // ---- Platform Super User (separate session namespace) ----

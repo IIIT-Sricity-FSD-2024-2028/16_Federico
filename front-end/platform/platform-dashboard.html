@@ -36,7 +36,12 @@
         <div class="md-empty-state"><span>Loading platform usage…</span></div>
       </div>
 
-      <h2 class="section-heading">Organizations at a glance</h2>
+      <h2 class="section-heading">Platform Revenue by Subscription Plan</h2>
+      <div class="plan-rev-grid" id="plan-revenue-grid">
+        <div class="md-empty-state"><span>Loading revenue metrics…</span></div>
+      </div>
+
+      <h2 class="section-heading">Joined Organizations at a Glance</h2>
       <div class="org-mini-grid" id="overview-org-list"></div>
 
       <h2 class="section-heading">Recent platform activity</h2>
@@ -48,13 +53,24 @@
     <!-- ===== Organizations tab ===== -->
     <section class="tab-panel is-hidden" id="panel-organizations">
       <div class="panel-toolbar">
-        <h2 class="section-heading" style="margin:0;">Organizations</h2>
+        <h2 class="section-heading" style="margin:0;">Hospital Organizations & Subscriptions</h2>
         <button class="md-btn md-btn-filled" id="new-org-btn">+ Provision New Organization</button>
       </div>
       <div class="md-card" style="padding:0; overflow-x:auto;">
         <table class="md-table" id="org-table">
           <thead>
-            <tr><th>Organization</th><th>Status</th><th>Plan</th><th>Hospitals</th><th>Users</th><th>Beds</th><th></th></tr>
+            <tr>
+              <th>Organization</th>
+              <th>Tenant ID</th>
+              <th>Status</th>
+              <th>Plan Tier</th>
+              <th>Monthly Revenue</th>
+              <th>Subscribed Services (Modules)</th>
+              <th>Branches</th>
+              <th>Users</th>
+              <th>Beds</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody id="org-table-body"></tbody>
         </table>

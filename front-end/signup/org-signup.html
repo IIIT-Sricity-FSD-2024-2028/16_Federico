@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Federico — Hospital Chain Onboarding & Provisioning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../shared/design-tokens.css" />
+  <link rel="stylesheet" href="../shared/material-components.css" />
+  <link rel="stylesheet" href="../shared/ui-feedback.css" />
+  <link rel="stylesheet" href="org-signup.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a href="../landing/landing-page.html" class="brand">
+      <div class="brand-icon">F</div>
+      <div class="brand-name">Federico Cloud</div>
+    </a>
+    <div class="topbar-right">
+      <a href="signup-page.html" class="md-btn md-btn-text">Register as Patient</a>
+      <a href="../login/login-page.html" class="md-btn md-btn-outlined">Sign In</a>
+    </div>
+  </header>
+
+  <main class="onboarding-container">
+    <!-- Stepper Header -->
+    <div class="stepper-header">
+      <div class="stepper-progress-bar">
+        <div class="stepper-progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="step-node active" data-step="1">
+        <div class="step-bubble">1</div>
+        <span class="step-label">Hospital Profile</span>
+      </div>
+      <div class="step-node" data-step="2">
+        <div class="step-bubble">2</div>
+        <span class="step-label">Choose Plan</span>
+      </div>
+      <div class="step-node" data-step="3">
+        <div class="step-bubble">3</div>
+        <span class="step-label">Services</span>
+      </div>
+      <div class="step-node" data-step="4">
+        <div class="step-bubble">4</div>
+        <span class="step-label">Admin Account</span>
+      </div>
+      <div class="step-node" data-step="5">
+        <div class="step-bubble">5</div>
+        <span class="step-label">Payment & Launch</span>
+      </div>
+    </div>
+
+    <!-- Onboarding Card Container -->
+    <div class="onboarding-card">
+      <form id="onboarding-form">
+        <!-- STEP 1: Hospital Profile -->
+        <div class="step-panel active" id="panel-step-1">
+          <h2 class="step-heading">Hospital & Chain Details</h2>
+          <p class="step-description">Tell us about your organization to setup your multi-tenant workspace.</p>
+
+          <div class="form-group">
+            <label for="org-name">Hospital / Chain Name *</label>
+            <input type="text" id="org-name" required placeholder="e.g. Fortis Healthcare Network" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="org-city">Primary City / Campus *</label>
+              <input type="text" id="org-city" required placeholder="e.g. Mumbai" />
+            </div>
+            <div class="form-group">
+              <label for="org-phone">Contact Phone *</label>
+              <input type="tel" id="org-phone" required placeholder="+91 98765 43210" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="org-address">Primary Campus Address</label>
+            <input type="text" id="org-address" placeholder="e.g. Sector 62, Phase 8, Hospital Road" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="org-specialties">Specialties (comma separated)</label>
+              <input type="text" id="org-specialties" placeholder="Cardiology, Neurology, Oncology, Orthopedics" />
+            </div>
+            <div class="form-group" style="justify-content: center;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:20px;">
+                <input type="checkbox" id="org-emergency" checked style="width:18px;height:18px;accent-color:var(--md-primary);" />
+                <span>24x7 Emergency Services Available</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="stepper-actions">
+            <div></div>
+            <button type="button" class="md-btn md-btn-filled" id="btn-next-1">Continue to Plan Selection →</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Subscription Plan -->
+        <div class="step-panel" id="panel-step-2">
+          <h2 class="step-heading">Select Your Subscription Plan</h2>
+          <p class="step-description">Choose a tier based on your hospital size and administrative requirements.</p>
+
+          <div class="plan-cards-grid" id="plan-selection-container">
+            <!-- Dynamically populated or fallback -->
+            <div class="plan-select-card" data-plan-id="1" data-price="4999" data-name="Starter">
+              <div class="plan-card-name">Starter</div>
+              <div class="plan-card-price">₹4,999 <small>/ month</small></div>
+              <ul class="plan-card-features">
+                <li>Up to 25 Beds Quota</li>
+                <li>15 Staff Users</li>
+                <li>1 Hospital Campus</li>
+                <li>Appointments & Bed Mgmt</li>
+                <li>Standard Billing</li>
+              </ul>
+            </div>
+
+            <div class="plan-select-card selected" data-plan-id="2" data-price="14999" data-name="Professional">
+              <div class="plan-badge-popular">Most Popular</div>
+              <div class="plan-card-name">Professional</div>
+              <div class="plan-card-price">₹14,999 <small>/ month</small></div>
+              <ul class="plan-card-features">
+                <li>Up to 100 Beds Quota</li>
+                <li>60 Staff Users</li>
+                <li>Up to 3 Hospital Branches</li>
+                <li>Non-Clinical Inventory & Procurement</li>
+                <li>Dynamic Billing & Insurance</li>
+              </ul>
+            </div>
+
+            <div class="plan-select-card" data-plan-id="3" data-price="49999" data-name="Enterprise">
+              <div class="plan-card-name">Enterprise</div>
+              <div class="plan-card-price">₹49,999 <small>/ month</small></div>
+              <ul class="plan-card-features">
+                <li>Unlimited Beds & Quotas</li>
+                <li>Unlimited Hospital Branches</li>
+                <li>All Modules & Custom RBAC</li>
+                <li>Administrative Analytics Engine</li>
+                <li>Dedicated 24x7 Enterprise Support</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="stepper-actions">
+            <button type="button" class="md-btn md-btn-text" id="btn-back-2">← Back</button>
+            <button type="button" class="md-btn md-btn-filled" id="btn-next-2">Continue to Services →</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Customize Modules -->
+        <div class="step-panel" id="panel-step-3">
+          <h2 class="step-heading">Configure Operational Modules</h2>
+          <p class="step-description">Select the administrative services you want enabled in your tenant gateway.</p>
+
+          <div class="modules-interactive-grid">
+            <label class="module-checkbox-card">
+              <input type="checkbox" name="module-code" value="APPOINTMENTS" checked />
+              <div>
+                <div class="module-info-title">Appointments Management</div>
+                <div class="module-info-desc">Online patient booking, slot allocation, and doctor schedules.</div>
+              </div>
+            </label>
+
+            <label class="module-checkbox-card">
+              <input type="checkbox" name="module-code" value="ADMISSIONS" checked />
+              <div>
+                <div class="module-info-title">Admissions & Bed Management</div>
+                <div class="module-info-desc">Real-time ward & bed status, patient check-in, and transfer workflows.</div>
+              </div>
+            </label>
+
+            <label class="module-checkbox-card">
+              <input type="checkbox" name="module-code" value="INVENTORY" checked />
+              <div>
+                <div class="module-info-title">Non-Clinical Inventory & Supplies</div>
+                <div class="module-info-desc">Stock monitoring, departmental requisitions, and procurement logs.</div>
+              </div>
+            </label>
+
+            <label class="module-checkbox-card">
+              <input type="checkbox" name="module-code" value="BILLING" checked />
+              <div>
+                <div class="module-info-title">Dynamic Billing & Invoicing</div>
+                <div class="module-info-desc">Automated room charges, itemized invoice generation, and receipts.</div>
+              </div>
+            </label>
+
+            <label class="module-checkbox-card">
+              <input type="checkbox" name="module-code" value="INSURANCE" checked />
+              <div>
+                <div class="module-info-title">Insurance Verification</div>
+                <div class="module-info-desc">TPA policy validation, coverage estimation, and claim tracking.</div>
+              </div>
+            </label>
+
+            <label class="module-checkbox-card">
+              <input type="checkbox" name="module-code" value="ANALYTICS" checked />
+              <div>
+                <div class="module-info-title">Administrative Analytics</div>
+                <div class="module-info-desc">Operational reports, bed occupancy trends, and staff performance metrics.</div>
+              </div>
+            </label>
+          </div>
+
+          <div class="stepper-actions">
+            <button type="button" class="md-btn md-btn-text" id="btn-back-3">← Back</button>
+            <button type="button" class="md-btn md-btn-filled" id="btn-next-3">Continue to Admin Setup →</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Admin Account -->
+        <div class="step-panel" id="panel-step-4">
+          <h2 class="step-heading">Hospital Administrator Account</h2>
+          <p class="step-description">Create the primary super user account for your hospital workspace.</p>
+
+          <div class="form-group">
+            <label for="admin-name">Administrator Full Name *</label>
+            <input type="text" id="admin-name" required placeholder="e.g. Dr. Rajesh Sharma" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="admin-email">Official Admin Email *</label>
+              <input type="email" id="admin-email" required placeholder="admin@fortis.com" />
+            </div>
+            <div class="form-group">
+              <label for="admin-password">Secure Password *</label>
+              <input type="password" id="admin-password" required placeholder="Min 6 characters" />
+            </div>
+          </div>
+
+          <div class="stepper-actions">
+            <button type="button" class="md-btn md-btn-text" id="btn-back-4">← Back</button>
+            <button type="button" class="md-btn md-btn-filled" id="btn-next-4">Proceed to Payment & Checkout →</button>
+          </div>
+        </div>
+
+        <!-- STEP 5: Payment & Checkout -->
+        <div class="step-panel" id="panel-step-5">
+          <h2 class="step-heading">Subscription Checkout & Payment</h2>
+          <p class="step-description">Review your plan summary and complete payment to provision your workspace.</p>
+
+          <div class="checkout-summary-box">
+            <div class="summary-row">
+              <span>Organization:</span>
+              <strong id="summary-org-name">—</strong>
+            </div>
+            <div class="summary-row">
+              <span>Selected Plan:</span>
+              <strong id="summary-plan-name">Professional Tier</strong>
+            </div>
+            <div class="summary-row">
+              <span>Monthly Subscription Fee:</span>
+              <span id="summary-plan-price">₹14,999</span>
+            </div>
+            <div class="summary-row">
+              <span>Platform Setup & Provisioning:</span>
+              <span style="color:#2e7d32;font-weight:600;">FREE (₹0)</span>
+            </div>
+            <div class="summary-row">
+              <span>Applicable GST (18%):</span>
+              <span id="summary-tax">₹2,699.82</span>
+            </div>
+            <div class="summary-row total">
+              <span>Total Payable Now:</span>
+              <span id="summary-total" style="color:var(--md-primary);">₹17,698.82</span>
+            </div>
+          </div>
+
+          <h3 style="font-size:1.05rem; margin-bottom:12px;">Select Payment Method</h3>
+          <div class="payment-method-selector">
+            <div class="payment-tab-btn active" data-method="card">💳 Credit / Debit Card</div>
+            <div class="payment-tab-btn" data-method="upi">⚡ UPI / QR</div>
+            <div class="payment-tab-btn" data-method="netbanking">🏦 Net Banking / Corporate</div>
+          </div>
+
+          <div id="payment-fields-card">
+            <div class="form-group">
+              <label>Card Number</label>
+              <input type="text" placeholder="4242 •••• •••• 4242" value="4242 •••• •••• 4242" />
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Expiry Date</label>
+                <input type="text" placeholder="MM / YY" value="12 / 28" />
+              </div>
+              <div class="form-group">
+                <label>CVV / CVC</label>
+                <input type="password" placeholder="•••" value="888" />
+              </div>
+            </div>
+          </div>
+
+          <div id="payment-fields-upi" style="display:none;">
+            <div class="form-group">
+              <label>UPI ID / VPA</label>
+              <input type="text" placeholder="hospital@okhdfcbank" />
+            </div>
+          </div>
+
+          <div id="payment-fields-netbanking" style="display:none;">
+            <div class="form-group">
+              <label>Select Corporate Bank</label>
+              <select>
+                <option>HDFC Bank Corporate</option>
+                <option>ICICI Bank Corporate</option>
+                <option>State Bank of India</option>
+                <option>Axis Bank</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="stepper-actions">
+            <button type="button" class="md-btn md-btn-text" id="btn-back-5">← Back</button>
+            <button type="submit" class="md-btn md-btn-filled" id="btn-pay-submit" style="background:#2e7d32; color:#fff;">
+              Pay & Stand Up Workspace 🚀
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 6: Provisioned Success View -->
+        <div class="step-panel" id="panel-step-success">
+          <div class="success-banner">
+            <div class="success-icon">✓</div>
+            <h2 class="step-heading" style="color:#2e7d32;">Workspace Successfully Provisioned!</h2>
+            <p class="step-description">Your hospital organization is now live on the Federico Multi-Tenant Cloud.</p>
+
+            <div class="provisioned-details-box" id="provisioned-meta-box">
+              <!-- Filled via JS -->
+            </div>
+
+            <div style="display:flex; justify-content:center; gap:16px; margin-top:28px;">
+              <button type="button" class="md-btn md-btn-filled" id="btn-launch-admin" style="font-size:1.05rem; padding:12px 28px;">
+                Enter Organization Admin Portal →
+              </button>
+              <a href="../marketplace/marketplace-page.html" class="md-btn md-btn-outlined">
+                View in Marketplace
+              </a>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="../shared/api-client.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="org-signup.js"></script>
+</body>
+</html>

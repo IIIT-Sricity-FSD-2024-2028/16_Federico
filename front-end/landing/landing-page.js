@@ -6,6 +6,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const loginBtn = document.getElementById("login-btn");
   const signupBtn = document.getElementById("signup-btn");
+  const orgSignupBtn = document.getElementById("org-signup-btn");
   const marketplaceBtn = document.getElementById("marketplace-btn");
 
   if (loginBtn) {
@@ -17,6 +18,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (signupBtn) {
     signupBtn.addEventListener("click", () => {
       window.location.href = "../signup/signup-page.html";
+    });
+  }
+
+  if (orgSignupBtn) {
+    orgSignupBtn.addEventListener("click", () => {
+      window.location.href = "../signup/org-signup.html";
     });
   }
 
