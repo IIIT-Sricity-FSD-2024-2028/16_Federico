@@ -18,31 +18,24 @@
   var SESSION_KEY = "FedericoSession";
 
   // ---- session storage -----------------------------------------------
-
-  function getSession() {
+function getSession() {
     try {
-      var raw = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
-      return raw ? JSON.parse(raw) : null;
+        var raw = sessionStorage.getItem(SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
     } catch (err) {
-      return null;
+        return null;
     }
-  }
+}
 
-  function setSession(session) {
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    } catch (err) {}
+function setSession(session) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
     window.dispatchEvent(new Event("federicoSessionChanged"));
-  }
+}
 
-  function clearSession() {
-    try {
-      sessionStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem(SESSION_KEY);
-    } catch (err) {}
+function clearSession() {
+    sessionStorage.removeItem(SESSION_KEY);
     window.dispatchEvent(new Event("federicoSessionChanged"));
-  }
+}
 
   // ---- helpers ----------------------------------------------------------
 
