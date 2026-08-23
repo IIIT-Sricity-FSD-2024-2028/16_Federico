@@ -42,8 +42,10 @@ function me(req, res) {
 
 function logout(req, res) {
   const header = req.headers['authorization'] || '';
-  const [, token] = header.split(' ');
+  const [, headerToken] = header.split(' ');
+  const token = headerToken || (req.session && req.session.token);
   if (token) platformAuthService.logout(token);
+  res.setHeader('Set-Cookie', 'sessionId=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax');
   res.status(200).json({ success: true });
 }
 

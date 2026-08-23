@@ -2,16 +2,25 @@
 
 const { getSession } = require('../store/sessionStore');
 
-/**
- * Non-blocking: parses `Authorization: Bearer <token>` if present and
- * attaches `req.session` (or leaves it undefined). Never rejects a
- * request by itself — combined with `authorize()` (actorAccess.js) or
- * `requireSession()` below to actually gate a route.
- */
-function attachSession(req, res, next) {
+function extractToken(req) {
   const header = req.headers['authorization'] || '';
   const [scheme, token] = header.split(' ');
   if (scheme === 'Bearer' && token) {
+    return token.trim();
+  }
+  if (req.cookies && (req.cookies.sessionId || req.cookies.sid || req.cookies['connect.sid'] || req.cookies.token)) {
+    return req.cookies.sessionId || req.cookies.sid || req.cookies['connect.sid'] || req.cookies.token;
+  }
+  if (req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:sessionId|sid|connect\.sid|token)=([^;]+)/);
+    if (match) return decodeURIComponent(match[1].trim());
+  }
+  return null;
+}
+
+function attachSession(req, res, next) {
+  const token = extractToken(req);
+  if (token) {
     const session = getSession(token);
     if (session) req.session = session;
   }
@@ -42,4 +51,4 @@ function requireActor(...actors) {
   };
 }
 
-module.exports = { attachSession, requireSession, requireActor };
+module.exports = { attachSession, requireSession, requireActor, extractToken };

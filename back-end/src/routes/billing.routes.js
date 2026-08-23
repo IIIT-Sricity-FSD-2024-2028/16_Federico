@@ -110,4 +110,21 @@ router.get(
   controller.findReceiptsByPatient,
 );
 
+// Leaders (HOM -> FA -> Ledger)
+router.get(
+  '/leaders',
+  authorize(['ADMIN', 'SUPER_USER'], 'leader', 'read'),
+  controller.findAllLeaders,
+);
+router.post(
+  '/leaders',
+  authorize(['ADMIN', 'SUPER_USER'], 'leader', 'write'),
+  controller.createLeader,
+);
+router.put(
+  '/leaders/:id/approve',
+  authorize(['ADMIN', 'SUPER_USER'], 'leader', 'write'),
+  controller.approveLeader,
+);
+
 module.exports = router;

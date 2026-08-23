@@ -19,6 +19,16 @@ const LOGIN_ERROR_RESPONSES = {
   ],
 };
 
+const { extractToken } = require('../middleware/session');
+
+function setSessionCookie(res, token) {
+  res.setHeader('Set-Cookie', `sessionId=${token}; Path=/; HttpOnly; SameSite=Lax`);
+}
+
+function clearSessionCookie(res) {
+  res.setHeader('Set-Cookie', 'sessionId=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax');
+}
+
 function login(req, res) {
   const { email, password, organization_id } = req.body;
   const result = authService.login(email, password, organization_id);
@@ -32,6 +42,9 @@ function login(req, res) {
   logger.log(
     `✅ LOGIN  role=${result.role}  email=${email}  org=${result.tenant ? result.tenant.organization_id : '?'}`,
   );
+  if (result.token) {
+    setSessionCookie(res, result.token);
+  }
   res.status(200).json(result);
 }
 
@@ -55,6 +68,9 @@ function signup(req, res) {
   logger.log(
     `✅ SIGNUP  patient_id=${result.patient.patient_id}  uhid=${result.patient.uhid}`,
   );
+  if (result.token) {
+    setSessionCookie(res, result.token);
+  }
   res.status(201).json(result);
 }
 
@@ -70,9 +86,11 @@ function me(req, res) {
 }
 
 function logout(req, res) {
-  const header = req.headers['authorization'] || '';
-  const [, token] = header.split(' ');
-  if (token) authService.logout(token);
+  const token = extractToken(req) || (req.session && req.session.token);
+  if (token) {
+    authService.logout(token);
+  }
+  clearSessionCookie(res);
   res.status(200).json({ success: true });
 }
 
