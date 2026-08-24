@@ -15,16 +15,22 @@ button, input, select, a { font-family: inherit; }
 .topbar {
     position: relative;
     z-index: 2;
-    height: 88px;
+    height: 72px;
     background: var(--md-background);
     border-bottom: 1px solid var(--md-outline-variant);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 64px;
+    padding: 0 48px;
 }
 
-.brand { display: flex; align-items: center; gap: 12px; }
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+}
 
 .brand-icon {
     width: 36px;
@@ -39,9 +45,15 @@ button, input, select, a { font-family: inherit; }
     font-size: 16px;
 }
 
-.brand-name { font-family: var(--font-heading); font-size: 18px; font-weight: 500; letter-spacing: 0.01em; color: var(--md-on-background); }
+.brand-name {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--md-on-background);
+}
 
-.login-shortcut { font-size: 11px; height: 44px; padding: 0 24px; letter-spacing: 0.06em; }
+.login-shortcut { font-size: 12px; height: 42px; padding: 0 20px; font-weight: 500; }
 
 .signup-wrapper {
     position: relative;

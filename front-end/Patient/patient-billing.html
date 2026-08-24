@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Bills - Federico</title>
+  <title>My Bills &amp; Receipts – Federico Hospital Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../shared/design-tokens.css" />
@@ -17,7 +17,7 @@
       <div class="brand-icon">F</div>
       <div class="brand-text">
         <strong>Federico</strong>
-        <span>Hospital Admin</span>
+        <span>Hospital Portal</span>
       </div>
     </div>
 
@@ -30,9 +30,9 @@
 
     <div class="topbar-right">
       <button class="user-chip" type="button" id="profile-chip" aria-label="Go to My Profile">
-        <div class="user-avatar" id="bill-avatar">P</div>
+        <div class="user-avatar" id="bill-avatar">--</div>
         <div class="user-meta">
-          <strong id="bill-topbar-name">Patient</strong>
+          <strong id="bill-topbar-name">Loading...</strong>
           <span>Patient</span>
         </div>
       </button>
@@ -42,52 +42,145 @@
   <main class="billing-page">
     <div class="page-header">
       <div>
-        <h1>My Bills</h1>
-        <p>Track your billing, receipts, discharge summary, and EOD bill documents.</p>
+        <h1>My Bills &amp; Invoices</h1>
+        <p>Review your itemized hospital bills, make secure online payments, track official receipts, and access discharge financial records.</p>
       </div>
     </div>
 
+    <!-- KPI Summary Grid -->
     <section class="kpi-grid">
       <article class="kpi-card">
         <p class="kpi-label">Total Billed</p>
-        <h2 class="kpi-value" id="kpi-total-billed">Rs 0</h2>
-        <span class="kpi-sub" id="kpi-total-billed-sub">0 documents</span>
+        <h2 class="kpi-value" id="kpi-total-billed">₹0</h2>
+        <span class="kpi-sub" id="kpi-total-billed-sub">0 invoices &amp; records</span>
       </article>
       <article class="kpi-card">
-        <p class="kpi-label">Paid</p>
-        <h2 class="kpi-value success" id="kpi-paid">Rs 0</h2>
-        <span class="kpi-sub" id="kpi-paid-sub">0 receipts</span>
+        <p class="kpi-label">Paid Amount</p>
+        <h2 class="kpi-value success" id="kpi-paid">₹0</h2>
+        <span class="kpi-sub" id="kpi-paid-sub">0 receipts generated</span>
       </article>
       <article class="kpi-card">
-        <p class="kpi-label">Pending</p>
-        <h2 class="kpi-value danger" id="kpi-pending">Rs 0</h2>
-        <span class="kpi-sub" id="kpi-pending-sub">0 payment links</span>
+        <p class="kpi-label">Outstanding Balance</p>
+        <h2 class="kpi-value danger" id="kpi-pending">₹0</h2>
+        <span class="kpi-sub" id="kpi-pending-sub">0 pending payments</span>
       </article>
       <article class="kpi-card">
-        <p class="kpi-label">Visits Count</p>
+        <p class="kpi-label">Care Interactions</p>
         <h2 class="kpi-value primary" id="kpi-visits">0</h2>
-        <span class="kpi-sub" id="kpi-visits-sub">Recent care interactions</span>
+        <span class="kpi-sub" id="kpi-visits-sub">Visits &amp; admissions</span>
       </article>
     </section>
 
+    <!-- Active Insurance Banner -->
+    <div class="insurance-banner" id="insurance-banner">
+      <div class="ins-left">
+        <span class="ins-badge" id="ins-status-badge">Verified</span>
+        <div>
+          <strong id="ins-provider-name">Insurance Provider</strong>
+          <p id="ins-policy-meta">Policy No: -- · Member ID: --</p>
+        </div>
+      </div>
+      <div class="ins-breakdown">
+        <div class="ins-item">
+          <span>Coverage Type</span>
+          <strong id="ins-coverage-type">Individual</strong>
+        </div>
+        <div class="ins-item">
+          <span>Coverage Limit</span>
+          <strong id="ins-coverage-limit">₹5,00,000</strong>
+        </div>
+        <div class="ins-item">
+          <span>Valid Till</span>
+          <strong id="ins-valid-till">--</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bills & Documents Section with Filter Tabs -->
     <section class="bills-section">
       <div class="bills-header">
-        <h2>Patient Billing Sections</h2>
+        <h2>Financial Documents</h2>
         <div class="filter-tabs">
-          <button class="filter-tab active" type="button" data-section="receipts">Receipts</button>
-          <button class="filter-tab" type="button" data-section="discharge">Discharge Summary</button>
+          <button class="filter-tab active" type="button" data-section="invoices">Itemized Invoices</button>
+          <button class="filter-tab" type="button" data-section="receipts">Payment Receipts</button>
+          <button class="filter-tab" type="button" data-section="discharge">Discharge Summaries</button>
           <button class="filter-tab" type="button" data-section="eod">EOD Bills</button>
         </div>
       </div>
 
-      <div id="section-receipts" class="billing-section"></div>
+      <div id="section-invoices" class="billing-section"></div>
+      <div id="section-receipts" class="billing-section hidden"></div>
       <div id="section-discharge" class="billing-section hidden"></div>
       <div id="section-eod" class="billing-section hidden"></div>
     </section>
   </main>
 
+  <!-- Itemized Bill Details Modal Dialog -->
+  <div class="modal-overlay hidden" id="modal-bill-details" role="dialog" aria-modal="true" aria-labelledby="modal-bill-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="modal-bill-title">Itemized Invoice Details</h2>
+        <button class="modal-close" type="button" id="modal-bill-close" aria-label="Close dialog">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-meta-row">
+          <div class="modal-meta">
+            <span>Invoice No</span>
+            <strong id="modal-invoice-no">#--</strong>
+          </div>
+          <div class="modal-meta">
+            <span>Admission</span>
+            <strong id="modal-admission-id">#--</strong>
+          </div>
+          <div class="modal-meta">
+            <span>Billing Date</span>
+            <strong id="modal-bill-date">--</strong>
+          </div>
+          <div class="modal-meta">
+            <span>Status</span>
+            <strong id="modal-bill-status">--</strong>
+          </div>
+        </div>
+
+        <div class="table-wrap itemized-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Service / Item</th>
+                <th style="text-align:center;">Qty</th>
+                <th style="text-align:right;">Unit Price</th>
+                <th style="text-align:right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="modal-items-tbody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3">Gross Total</td>
+                <td style="text-align:right;" id="modal-gross-total">₹0</td>
+              </tr>
+              <tr class="ins-row">
+                <td colspan="3">Insurance Covered Amount</td>
+                <td style="text-align:right;" id="modal-ins-deduction">-₹0</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="3">Net Patient Share (You Pay)</td>
+                <td style="text-align:right;" id="modal-net-payable">₹0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="modal-actions" id="modal-bill-actions">
+          <button class="modal-btn-secondary" type="button" id="modal-btn-print">Print / Download</button>
+          <button class="btn-view" type="button" id="modal-btn-pay">Pay Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>window.APP_MODULE = "PATIENT";</script>
   <script src="../shared/constants.js"></script>
+  <script src="../shared/formatters.js"></script>
   <script src="../shared/sanitizer.js"></script>
   <script src="../shared/insurance.js"></script>
   <script src="../shared/api-client.js"></script>

@@ -229,4 +229,12 @@ async function confirmSuggest(id) {
   }
 }
 
+window.openApprove = openApprove;
+window.closePopup = closePopup;
+window.confirmApprove = confirmApprove;
+window.reject = reject;
+window.confirmReject = confirmReject;
+window.openSuggest = openSuggest;
+window.confirmSuggest = confirmSuggest;
+
 document.addEventListener('DOMContentLoaded', renderTable);

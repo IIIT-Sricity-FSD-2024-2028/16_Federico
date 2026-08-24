@@ -2,33 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Doctor Availability</title>
- <link rel="stylesheet" href="../../shared/design-tokens.css">
- <link rel="stylesheet" href="../../shared/material-components.css">
- <link rel="stylesheet" href="../../shared/ui-feedback.css">
- <link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/layout.css">
-<link rel="stylesheet" href="../css/components.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Availability – Federico PRE</title>
+  <link rel="stylesheet" href="../../shared/design-tokens.css">
+  <link rel="stylesheet" href="../../shared/material-components.css">
+  <link rel="stylesheet" href="../../shared/ui-feedback.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
 </head>
 
 <body>
-
 <!-- Navbar -->
 <div class="navbar">
-  
   <div class="logo">
     <div class="icon">F</div>
     <div class="text">
       <h2>Federico</h2>
-      <p>patient relational executive</p>
+      <p>Patient Relational Executive</p>
     </div>
   </div>
 
   <ul class="nav-links">
     <li><a href="PRE.html">Dashboard</a></li>
-    <li><a href="emergency.html">Emergency cases</a></li>
-    <li><a href="patient-records.html">Patient record</a></li>
-    <li class="active"><a href="doctor.html">Doctor availability</a></li>
+    <li><a href="emergency.html">Emergency Cases</a></li>
+    <li><a href="patient-records.html">Patient Record</a></li>
+    <li class="active"><a href="doctor.html">Doctor Availability</a></li>
     <li><a href="appointment.html">Create Appointment</a></li>
     <li><a href="hom.html">HOM</a></li>
   </ul>
@@ -36,33 +35,67 @@
   <button class="logout">LOG OUT</button>
 </div>
 
-<!-- Content -->
-<div class="container">
-  <h2>Doctor Availability</h2>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Doctor ID</th>
-        <th>Doctor Name</th>
-        <th>Specialization</th>
-        <th>Start Time</th>
-        <th>End Time</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-
-    <tbody id="doctorTable"></tbody>
-  </table>
+<!-- KPI Cards — Matches PRE.html, emergency.html, and patient-records.html -->
+<div class="cards">
+  <div class="card">
+    <h3>Total Specialists</h3>
+    <p id="kpi-total-doctors">0 Doctors</p>
+  </div>
+  <div class="card">
+    <h3>Available for Consultations</h3>
+    <p id="kpi-available-doctors" style="color:var(--status-success, #15803d);">0 Available</p>
+  </div>
+  <div class="card">
+    <h3>In Surgery / On Leave</h3>
+    <p id="kpi-unavailable-doctors" style="color:var(--status-warning-fg, #b45309);">0 Engaged</p>
+  </div>
 </div>
 
-  <script>window.APP_MODULE = "PRE";</script>
+<!-- Main Container -->
+<div class="container">
+  <div class="directory-header">
+    <div class="directory-title-group">
+      <h2>Doctor Availability &amp; Rosters</h2>
+      <p>Review active physician duty hours, consultation slots, and departmental specializations.</p>
+    </div>
+    <div class="directory-toolbar">
+      <input type="text" id="doctorSearchInput" placeholder="Search doctor, dept, ID..." class="directory-search-input">
+      <select id="filterSpecialization" class="directory-filter-select">
+        <option value="">All Specializations</option>
+      </select>
+      <select id="filterStatus" class="directory-filter-select">
+        <option value="">All Statuses</option>
+        <option value="Available">Available</option>
+        <option value="In Surgery">In Surgery</option>
+        <option value="Unavailable">Unavailable / Off-Duty</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-container" style="margin:0;">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:12px 16px;">Doctor ID</th>
+          <th style="text-align:left; padding:12px 16px;">Doctor Name</th>
+          <th style="text-align:left; padding:12px 16px;">Specialization</th>
+          <th style="text-align:center; padding:12px 14px;">Consultation Days</th>
+          <th style="text-align:center; padding:12px 14px;">Duty Hours</th>
+          <th style="text-align:center; padding:12px 14px;">Status</th>
+        </tr>
+      </thead>
+      <tbody id="doctorTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>window.APP_MODULE = "PRE";</script>
 <script src="../../shared/constants.js"></script>
 <script src="../../shared/api-client.js"></script>
+<script src="../../shared/formatters.js"></script>
 <script src="../../shared/rbac.js"></script>
 <script src="../../shared/ui-feedback.js"></script>
 <script src="../../shared/auth-guard.js"></script>
-<script src="../../shared/formatters.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/doctor.js"></script>
 <script src="../js/logout.js"></script>

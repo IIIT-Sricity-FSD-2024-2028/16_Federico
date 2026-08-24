@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const helperBox = document.getElementById('login-credential-helper');
   const errorBox = document.getElementById('login-error');
   const orgSelect = document.getElementById('organization');
+  const rememberCheckbox = document.getElementById('remember-me');
+  const emailInput = document.getElementById('email');
   const submitButton = loginForm?.querySelector("button[type='submit'], .login-submit");
 
   function escape(str) {
@@ -24,19 +26,52 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#39;');
   }
 
-  // Organization Marketplace Resolver. Public endpoint. Preselects from ?org=<id>
+  // Restore Remembered Credentials on Load
+  (function restoreRememberMe() {
+    try {
+      const saved = localStorage.getItem('FedericoRememberMe');
+      if (!saved) return;
+      const data = JSON.parse(saved);
+      if (data.email && emailInput) {
+        emailInput.value = data.email;
+      }
+      if (rememberCheckbox) {
+        rememberCheckbox.checked = true;
+      }
+      if (data.role) {
+        roleTabs.forEach((tab) => {
+          if (tab.textContent.trim().toLowerCase() === data.role.toLowerCase()) {
+            roleTabs.forEach((item) => item.classList.remove('active'));
+            tab.classList.add('active');
+          }
+        });
+      }
+    } catch (_) {}
+  })();
+
+  // Organization Marketplace Resolver. Public endpoint. Preselects from ?org=<id> or RememberMe
   (async function loadOrganizations() {
     if (!orgSelect) return;
     const preselect = new URLSearchParams(window.location.search).get('org');
+    let rememberedOrgId = null;
+    try {
+      const saved = localStorage.getItem('FedericoRememberMe');
+      if (saved) rememberedOrgId = JSON.parse(saved).orgId;
+    } catch (_) {}
+
     try {
       const api = window.API || window.ApiClient;
       const organizations = await api.marketplace.organizations();
       orgSelect.innerHTML = (organizations || [])
         .map((org) => `<option value="${escape(org.organization_id)}">${escape(org.name)}</option>`)
         .join('');
+
       if (preselect && organizations.some((o) => String(o.organization_id) === preselect)) {
         orgSelect.value = preselect;
+      } else if (rememberedOrgId && organizations.some((o) => String(o.organization_id) === String(rememberedOrgId))) {
+        orgSelect.value = String(rememberedOrgId);
       }
+
       renderCredentialHelper(document.querySelector('.role-tab.active')?.textContent.trim() || 'Patient');
     } catch (_) {
       orgSelect.innerHTML = '<option value="">Could not load hospitals — refresh to retry</option>';
@@ -50,13 +85,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderCredentialHelper(role) {
     const organizationId = orgSelect?.value ? Number(orgSelect.value) : 1;
-    const accounts = window.RoleAccess?.mockAccountsFor?.(organizationId)?.[role] || [];
+    const orgAccounts = window.RoleAccess?.mockAccountsFor?.(organizationId);
+    const accounts = orgAccounts?.[role] || [];
     if (!helperBox) return;
+
+    if (accounts.length === 0) {
+      helperBox.innerHTML = `
+        <div style="padding: 10px 12px; font-size: 12px; color: var(--md-on-surface-variant); text-align: center; background: var(--md-surface); border-radius: var(--radius-sm); border-left: 3px solid var(--md-outline-variant);">
+          No pre-configured demo users for this hospital. Please sign in with your registered account.
+        </div>
+      `;
+      return;
+    }
 
     helperBox.innerHTML = accounts
       .map(
         (account) => `
-            <div class="demo-credential-row">
+            <div class="demo-credential-row" style="cursor: pointer;" title="Click to fill credentials">
                 <strong>${escape(account.displayName)}</strong>
                 <span>${escape(account.email)}</span>
                 <code>${escape(account.password)}</code>
@@ -69,6 +114,20 @@ document.addEventListener('DOMContentLoaded', () => {
     void helperBox.offsetWidth;
     helperBox.classList.add('md-fade-switch');
   }
+
+  // Click-to-autofill: clicking any demo credential row automatically populates the form
+  helperBox?.addEventListener('click', (event) => {
+    const row = event.target.closest('.demo-credential-row');
+    if (!row) return;
+    const emailSpan = row.querySelector('span');
+    const pwdCode = row.querySelector('code');
+    const emailInput = document.getElementById('email');
+    const pwdInput = document.getElementById('password');
+    if (emailSpan && emailInput) emailInput.value = emailSpan.textContent.trim();
+    if (pwdCode && pwdInput) pwdInput.value = pwdCode.textContent.trim();
+    clearError();
+    window.UIFeedback?.toast('Demo credentials copied to form', 'info');
+  });
 
   function clearError() {
     if (errorBox) errorBox.textContent = '';
@@ -122,11 +181,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       clearError();
 
+      // Save or clear Remember Me preferences
+      try {
+        if (rememberCheckbox?.checked) {
+          localStorage.setItem(
+            'FedericoRememberMe',
+            JSON.stringify({
+              email: emailInput,
+              orgId: organizationId,
+              role: activeRole,
+            }),
+          );
+        } else {
+          localStorage.removeItem('FedericoRememberMe');
+        }
+      } catch (_) {}
+
       // Route to role portal
       if (activeRole === 'Patient') {
         window.location.href = '../Patient/patient-dashboard.html';
       } else if (activeRole === 'PRE') {
-        window.location.href = '../PRE/index.html';
+        window.location.href = '../PRE/pages/PRE.html';
       } else if (activeRole === 'HOM') {
         window.location.href = '../HOM/screen-01-dashboard.html';
       } else if (activeRole === 'FA') {

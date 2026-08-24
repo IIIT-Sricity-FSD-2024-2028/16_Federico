@@ -42,19 +42,22 @@
       })
       .join('');
 
-    var safeBrand = escape(brandName);
-    var safeRole = escape(roleName);
-    var brandInitial = escape(brandName.charAt(0) || 'F');
-    var roleInitial = escape(roleName.slice(0, 2).toUpperCase() || 'ST');
+    var safeBrand = escape(brandName || 'Federico');
+    var safeRole = escape(roleName || 'HOM');
+    var safeHospitalName = escape(config.hospitalName || 'City General Hospital');
+    var brandInitial = escape(safeBrand.charAt(0) || 'F');
+    var roleInitial = escape(safeRole.slice(0, 2).toUpperCase() || 'HO');
 
     var navHtml = `
       <style>
         .top-nav { height: 76px; background: var(--color-bg); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; font-family: var(--font-body); }
         .nav-logo-group { display: flex; align-items: center; gap: 12px; }
-        .nav-logo-icon { width: 32px; height: 32px; border-radius: var(--radius-sm, 8px); background: var(--color-accent); color: var(--md-on-primary, #fff); display: grid; place-items: center; font-family: var(--font-heading); font-size: 16px; font-weight: 700; }
-        .nav-logo-text { font-family: var(--font-heading); font-size: 19px; display: flex; gap: 6px; }
-        .nav-logo-text .brand-title { color: var(--color-fg); }
-        .nav-logo-text .hospital-subtitle { color: var(--color-muted-fg); font-style: italic; }
+        .nav-logo-icon { width: 34px; height: 34px; border-radius: var(--radius-sm, 8px); background: var(--color-accent, #6750A4); color: var(--md-on-primary, #fff); display: grid; place-items: center; font-family: var(--font-heading); font-size: 17px; font-weight: 700; }
+        .nav-logo-text { display: flex; flex-direction: column; justify-content: center; }
+        .nav-brand-row { display: flex; align-items: center; gap: 8px; }
+        .nav-logo-text .brand-title { font-family: var(--font-heading); font-size: 18px; font-weight: 700; color: var(--color-fg); line-height: 1.2; }
+        .nav-role-badge { background: var(--md-primary-container, #EADDFF); color: var(--md-on-primary-container, #21005D); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full, 9999px); letter-spacing: 0.06em; text-transform: uppercase; }
+        .nav-logo-text .hospital-subtitle { color: var(--color-muted-fg); font-size: 11px; font-weight: 500; margin-top: 2px; line-height: 1.2; }
         .nav-links { display: flex; align-items: center; gap: 4px; }
         .nav-link { padding: 10px 16px; border-radius: var(--radius-full, 9999px); font-size: 13px; font-weight: 500; letter-spacing: 0.01em; color: var(--color-muted-fg); text-decoration: none; transition: color var(--duration-base) var(--ease-luxury), background-color var(--duration-fast) var(--ease-luxury); cursor: pointer; border: none; background: transparent; }
         .nav-link:hover { color: var(--color-fg); background: rgba(103, 80, 164, 0.08); }
@@ -74,8 +77,11 @@
         <div class="nav-logo-group">
           <div class="nav-logo-icon">${brandInitial}</div>
           <div class="nav-logo-text">
-            <span class="brand-title">${safeBrand}</span>
-            <span class="hospital-subtitle">Hospital</span>
+            <div class="nav-brand-row">
+              <span class="brand-title">${safeBrand}</span>
+              <span class="nav-role-badge">${safeRole}</span>
+            </div>
+            <span class="hospital-subtitle">${safeHospitalName}</span>
           </div>
         </div>
         <div class="nav-links">${linksHtml}</div>

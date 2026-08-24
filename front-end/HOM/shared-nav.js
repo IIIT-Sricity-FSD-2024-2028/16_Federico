@@ -7,12 +7,16 @@
 document.addEventListener('DOMContentLoaded', () => {
   if (window.SharedNav && typeof window.SharedNav.renderNavbar === 'function') {
     const session = window.RoleAccess?.getSessionInfo?.();
-    const brandName = session?.tenant?.organization_name || 'Federico';
+    const hospitalName =
+      session?.tenant?.hospital_name ||
+      session?.tenant?.organization_name ||
+      'City General Hospital';
 
     window.SharedNav.renderNavbar({
       containerId: 'main-nav',
       roleName: 'HOM',
-      brandName: brandName,
+      brandName: 'Federico',
+      hospitalName: hospitalName,
       links: [
         { href: 'screen-01-dashboard.html', label: 'Dashboard' },
         { href: 'screen-02-bed-management.html', label: 'Bed Management' },

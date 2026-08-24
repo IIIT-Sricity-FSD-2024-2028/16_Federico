@@ -16,13 +16,13 @@ button, a { font-family: inherit; cursor: pointer; }
 .topbar {
     position: relative;
     z-index: 2;
-    height: 88px;
+    height: 72px;
     background: var(--md-background);
     border-bottom: 1px solid var(--md-outline-variant);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 var(--page-pad, 64px);
+    justify-content: flex-start;
+    padding: 0 var(--page-pad, 48px);
 }
 
 .brand { display: flex; align-items: center; gap: 12px; }
@@ -43,7 +43,7 @@ button, a { font-family: inherit; cursor: pointer; }
 .brand-text {
     font-family: var(--font-heading);
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.01em;
     color: var(--md-on-background);
 }
@@ -52,9 +52,9 @@ button, a { font-family: inherit; cursor: pointer; }
 .page {
     position: relative;
     z-index: 2;
-    max-width: 1600px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 56px var(--page-pad, 64px) 64px;
+    padding: 36px var(--page-pad, 48px) 48px;
 }
 
 /* ─── Hero section — atmospheric MD3 container with blur-shape glow ─── */
@@ -62,26 +62,28 @@ button, a { font-family: inherit; cursor: pointer; }
     position: relative;
     overflow: hidden;
     display: grid;
-    grid-template-columns: 1.6fr 1fr;
-    gap: 48px;
-    align-items: start;
-    border-radius: var(--radius-xxl);
+    grid-template-columns: 1.35fr 1fr;
+    gap: 36px;
+    align-items: stretch;
+    border-radius: var(--radius-xl);
     background: var(--md-surface-container);
-    padding: 64px var(--page-pad, 64px);
+    padding: 44px 44px;
 }
 
-.hero-section .md-blur-shape { width: 420px; height: 420px; }
-.hero-section .md-blur-primary { top: -160px; left: -140px; }
-.hero-section .md-blur-tertiary { width: 360px; height: 360px; bottom: -160px; right: -120px; }
+.hero-section .md-blur-shape { width: 380px; height: 380px; }
+.hero-section .md-blur-primary { top: -140px; left: -120px; }
+.hero-section .md-blur-tertiary { width: 320px; height: 320px; bottom: -140px; right: -100px; }
 
-/* ─── Hero card — transparent content layer sitting above the blur glow ─── */
+/* ─── Hero card ─── */
 .hero-card {
     position: relative;
     z-index: 1;
     background: transparent;
     box-shadow: none;
     padding: 0;
-    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* ─── Badges / chips ─── */
@@ -97,15 +99,16 @@ button, a { font-family: inherit; cursor: pointer; }
     color: var(--md-on-tertiary-container);
     background: var(--md-tertiary-container);
     border-radius: var(--radius-full);
-    padding: 8px 16px;
+    padding: 6px 14px;
+    align-self: flex-start;
 }
 
-.hero-badge { margin-bottom: 32px; }
+.hero-badge { margin-bottom: 20px; }
 
 .hero-badge::before {
     content: "";
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--md-tertiary);
     display: inline-block;
@@ -116,11 +119,11 @@ button, a { font-family: inherit; cursor: pointer; }
 .hero-card h1 {
     margin: 0;
     font-family: var(--font-heading);
-    font-weight: 500;
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    line-height: 1.1;
+    font-weight: 600;
+    font-size: clamp(2rem, 3.5vw, 3rem);
+    line-height: 1.15;
     letter-spacing: -0.01em;
-    max-width: 640px;
+    max-width: 620px;
     color: var(--md-on-background);
 }
 
@@ -131,68 +134,100 @@ button, a { font-family: inherit; cursor: pointer; }
 }
 
 .hero-card p {
-    margin: 24px 0 0;
-    max-width: 460px;
-    font-size: 16px;
-    line-height: 1.7;
+    margin: 16px 0 0;
+    max-width: 520px;
+    font-size: 15px;
+    line-height: 1.65;
     color: var(--md-on-surface-variant);
     font-weight: 400;
 }
 
 /* ─── Hero action buttons ─── */
 .hero-actions {
-    margin-top: 40px;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    max-width: 480px;
 }
 
-/* Primary/secondary button visuals (pill shape, filled/outlined states)
-   are shared across landing/login/signup — see shared/design-tokens.css.
-   Don't override the radius/shape here, only layout. */
+.hero-actions .primary-btn {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+    background: var(--md-primary);
+    color: var(--md-on-primary);
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: background var(--duration-base) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.hero-actions .primary-btn:hover {
+    box-shadow: var(--shadow-2);
+    filter: brightness(1.08);
+}
+
+.hero-actions .primary-btn:active {
+    transform: scale(0.98);
+}
 
 /* ─── Side panels ─── */
-.side-panels { position: relative; z-index: 1; display: grid; gap: 24px; }
+.side-panels {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+}
 
 .info-card {
     background: var(--md-surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-1);
-    padding: 28px;
+    padding: 22px 24px;
     transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
 }
 
-.info-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
+.info-card:hover {
+    box-shadow: var(--shadow-2);
+    transform: translateY(-2px);
+}
 
 .info-card h2 {
-    margin: 0 0 12px;
+    margin: 0 0 8px;
     font-family: var(--font-heading);
-    font-size: 20px;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--md-on-background);
 }
 
 .info-card p {
     margin: 0;
-    font-size: 14px;
-    line-height: 1.7;
+    font-size: 13px;
+    line-height: 1.6;
     color: var(--md-on-surface-variant);
     font-weight: 400;
 }
 
-/* Emergency call button — the one deliberate exception to the purple
-   accent rule: an emergency action is a genuine safety signal, not
-   decoration, so it keeps a clear red for instant recognition. Still
-   pill-shaped and tactile like every other button on these pages. */
+/* Emergency call button */
 .call-btn {
-    margin-top: 20px;
+    margin-top: 14px;
     width: 100%;
     border: none;
     border-radius: var(--radius-full);
-    height: 52px;
+    height: 44px;
     font-family: var(--font-body);
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: var(--tracking-button);
     text-transform: uppercase;
     background: var(--status-error-bg);
@@ -207,98 +242,71 @@ button, a { font-family: inherit; cursor: pointer; }
 
 .call-btn:active { transform: scale(0.97); }
 
-/* ─── Locations card ─── */
-.locations-card { padding-bottom: 16px; }
-
-.location-item {
-    border: none;
-    border-top: 1px solid var(--md-outline-variant);
-    padding: 18px 0;
-    background: transparent;
-    transition: padding var(--duration-base) var(--ease-standard);
+/* Highlights list in side panel */
+.highlights-list {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.location-item:first-of-type { border-top: none; padding-top: 0; }
-
-.location-item:hover { padding-left: 8px; }
-
-.location-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-
-.location-head h3 {
-    margin: 0;
-    font-family: var(--font-body);
+.highlights-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     font-size: 13px;
     line-height: 1.5;
-    color: var(--md-on-background);
-    font-weight: 600;
+    color: var(--md-on-surface-variant);
 }
 
-.status-badge {
-    background: var(--status-success-bg);
-    color: var(--status-success-fg);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: var(--radius-full);
-    white-space: nowrap;
-}
-
-.location-item p { margin: 10px 0 12px; font-size: 13px; color: var(--md-on-surface-variant); }
-
-.location-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; }
-
-.location-foot a {
+.highlight-bullet {
     color: var(--md-primary);
-    text-decoration: none;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    border-bottom: 1px solid transparent;
-    transition: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
 }
-
-.location-foot a:hover { border-color: var(--md-primary); }
 
 /* ─── Why Federico section ─── */
 .why-section {
     position: relative;
-    padding: 96px 0 80px;
+    padding: 48px 0 32px;
     text-align: left;
 }
 
 .section-badge { margin-bottom: 8px; }
 
 .why-section h2 {
-    margin: 20px 0 24px;
+    margin: 14px 0 16px;
     font-family: var(--font-heading);
-    font-size: clamp(1.875rem, 4vw, 3rem);
-    line-height: 1.15;
+    font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+    line-height: 1.2;
     color: var(--md-on-background);
-    font-weight: 500;
-    max-width: 720px;
+    font-weight: 600;
+    max-width: 680px;
 }
 
 .section-text {
     margin: 0;
-    max-width: 560px;
+    max-width: 580px;
     color: var(--md-on-surface-variant);
-    font-size: 16px;
-    line-height: 1.7;
+    font-size: 15px;
+    line-height: 1.65;
     font-weight: 400;
 }
 
 /* ─── Feature cards ─── */
 .features-grid {
-    margin-top: 48px;
+    margin-top: 28px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    gap: 18px;
 }
 
 .feature-card {
     text-align: left;
-    padding: 32px 28px;
+    padding: 24px 22px;
     background: var(--md-surface-container);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-1);
@@ -312,18 +320,18 @@ button, a { font-family: inherit; cursor: pointer; }
 }
 
 .feature-card h3 {
-    margin: 0 0 12px;
+    margin: 0 0 10px;
     font-family: var(--font-heading);
-    font-size: 20px;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--md-on-background);
     transition: color var(--duration-base) var(--ease-standard);
 }
 
 .feature-card p {
     margin: 0;
-    font-size: 14px;
-    line-height: 1.8;
+    font-size: 13.5px;
+    line-height: 1.7;
     color: var(--md-on-surface-variant);
     font-weight: 400;
 }
@@ -337,7 +345,7 @@ button, a { font-family: inherit; cursor: pointer; }
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    padding: 24px var(--page-pad, 64px) 32px;
+    padding: 20px var(--page-pad, 48px) 28px;
     color: var(--md-on-surface-variant);
     font-size: 0.8125rem;
 }
@@ -353,29 +361,28 @@ button, a { font-family: inherit; cursor: pointer; }
 
 /* ─── Responsive ─── */
 @media (max-width: 1024px) {
-    .hero-section { grid-template-columns: 1fr; }
+    .hero-section { grid-template-columns: 1fr; gap: 28px; }
     .features-grid { grid-template-columns: 1fr; }
+    .hero-actions { max-width: 100%; }
 }
 
 @media (max-width: 640px) {
-    :root { --page-pad: 24px; }
+    :root { --page-pad: 20px; }
 
-    .page { padding: 40px 24px 40px; }
+    .topbar { height: 64px; padding: 0 20px; }
 
-    .hero-section { padding: 40px 24px; border-radius: var(--radius-lg); }
+    .page { padding: 24px 20px 32px; }
 
-    .hero-section .md-blur-shape { width: 260px; height: 260px; }
-    .hero-section .md-blur-tertiary { width: 220px; height: 220px; }
+    .hero-section { padding: 28px 20px; border-radius: var(--radius-lg); }
 
-    .hero-card h1, .why-section h2 { font-size: 2rem; }
+    .hero-section .md-blur-shape { width: 240px; height: 240px; }
+    .hero-section .md-blur-tertiary { width: 200px; height: 200px; }
 
-    .why-section { padding: 64px 0 48px; }
+    .hero-card h1, .why-section h2 { font-size: 1.75rem; }
 
-    .hero-actions { flex-direction: column; }
+    .why-section { padding: 36px 0 24px; }
 
-    .primary-btn, .secondary-btn { width: 100%; text-align: center; }
+    .hero-actions { grid-template-columns: 1fr; max-width: 100%; }
 
-    .location-head, .location-foot { flex-direction: column; align-items: flex-start; }
-
-    .site-footer { padding: 20px 24px 28px; flex-direction: column; align-items: flex-start; }
+    .site-footer { padding: 16px 20px 24px; flex-direction: column; align-items: flex-start; }
 }

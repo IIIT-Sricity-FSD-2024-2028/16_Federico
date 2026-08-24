@@ -1,55 +1,67 @@
 :root {
-  /* Federico HOM — Material You (Material Design 3) local aliases.
-     See ../shared/design-tokens.css for the canonical --md-* token layer
-     and ../shared/material-components.css for the shared .md-* component
-     classes this file's own classes are now styled to match. Custom
-     property NAMES are kept identical to the pre-redesign file so every
-     existing rule (and every inline `var(...)` in dashboard.js/beds.js/
-     inventory.js/patient-flow.js/billing.js/HTML) picks up the new
-     Material You values with zero JS/markup changes. */
-  --primary: var(--color-accent);
-  --primary-hover: color-mix(in srgb, var(--color-accent) 85%, black);
-  --primary-light: var(--color-muted-bg);
-  --background: var(--color-bg);
-  --surface: var(--md-surface, var(--color-bg));
-  --border: var(--color-border);
+  /* Federico HOM — Material You (Material Design 3) canonical tokens matching Patient & PRE */
+  --bg: var(--md-background, #fdf8fd);
+  --surface: var(--md-surface-container, #f3edf7);
+  --border: var(--md-outline-variant, #cac4d0);
+  --text: var(--md-on-background, #1c1b1f);
+  --muted: var(--md-on-surface-variant, #49454f);
+  --primary: var(--md-primary, #6750a4);
+  --primary-dark: var(--md-primary, #6750a4);
+  --primary-soft: var(--md-secondary-container, #e8def8);
+  --primary-hover: color-mix(in srgb, var(--md-primary, #6750a4) 85%, black);
+  --primary-light: var(--md-secondary-container, #e8def8);
+  --background: var(--md-background, #fdf8fd);
+  --danger: var(--status-error, #b3261e);
+  --danger-dark: var(--status-error, #b3261e);
+
+  /* Status Colors */
+  --success: var(--status-success, #2e7d32);
+  --success-bg: var(--status-success-bg, #e3f3e4);
+  --success-text: var(--status-success-fg, #1b5e20);
+  --success-soft: var(--status-success-bg, #e3f3e4);
+
+  --blue-bg: var(--status-info-bg, #e0f2fe);
+  --blue-text: var(--status-info-fg, #075985);
+  --info: var(--status-info, #0ea5e9);
+  --info-bg: var(--status-info-bg, #e0f2fe);
+  --info-text: var(--status-info-fg, #075985);
+
+  --yellow-bg: var(--status-warning-bg, #fbf2dc);
+  --yellow-text: var(--status-warning-fg, #7a5300);
+  --warn-bg: var(--status-warning-bg, #fbf2dc);
+  --warn-text: var(--status-warning-fg, #7a5300);
+  --warning: var(--status-warning, #a5720a);
+  --warning-bg: var(--status-warning-bg, #fbf2dc);
+  --warning-text: var(--status-warning-fg, #7a5300);
+
+  --error: var(--status-error, #b3261e);
+  --error-bg: var(--status-error-bg, #fbe8e6);
+  --error-text: var(--status-error-fg, #8c1d18);
+
+  --neutral-bg: var(--md-surface-container-high, #ece6f0);
+  --neutral-text: var(--md-on-surface-variant, #49454f);
 
   /* Text Colors */
-  --text-primary: var(--color-fg);
-  --text-secondary: var(--color-muted-fg);
-  --text-muted: var(--color-muted-fg);
+  --text-primary: var(--md-on-background, #1c1b1f);
+  --text-secondary: var(--md-on-surface-variant, #49454f);
+  --text-muted: var(--color-muted-fg, #64748b);
 
-  /* Status Colors — kept legible/functional (dense ops dashboard: bed
-     grids, patient tables, inventory alerts, billing queues), see
-     ../shared/design-tokens.css file header for why. These already match
-     ../shared/material-components.css's .md-chip-*/.badge-* tokens. */
-  --success: var(--status-success);
-  --success-bg: var(--status-success-bg);
-  --success-text: var(--status-success-fg);
-  --warning: var(--status-warning);
-  --warning-bg: var(--status-warning-bg);
-  --warning-text: var(--status-warning-fg);
-  --error: var(--status-error);
-  --error-bg: var(--status-error-bg);
-  --error-text: var(--status-error-fg);
-  --info: var(--status-info);
-  --info-bg: var(--status-info-bg);
-  --info-text: var(--status-info-fg);
-  --neutral-bg: var(--color-muted-bg);
-  --neutral-text: var(--color-muted-fg);
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-base: 12px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
 
-  /* Border Radius — Material You's organic, generous scale (was forced
-     to 0px for the prior rectangular "Luxury/Editorial" look). */
-  --radius-sm: var(--radius-xs);
-  --radius-base: var(--radius-md);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-full: var(--radius-full);
+  /* Shadows */
+  --shadow-sm: var(--shadow-1, 0 1px 3px rgba(0,0,0,0.06));
+  --shadow-md: var(--shadow-2, 0 4px 12px rgba(0,0,0,0.08));
+  --shadow-lg: var(--shadow-3, 0 8px 24px rgba(0,0,0,0.12));
 
-  /* Shadows — MD3 elevation scale (see ../shared/design-tokens.css) */
-  --shadow-sm: var(--shadow-card);
-  --shadow-md: var(--shadow-card-hover);
-  --shadow-lg: var(--shadow-image-hover);
+  /* Animation */
+  --trans: var(--duration-base, 200ms) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
 }
 
 /* Base Styles & Typography */
@@ -96,8 +108,8 @@ small, .text-small { font-size: 12px; font-weight: 400; color: var(--text-muted)
   align-items: center;
   height: 28px;
   padding: 0 12px;
-  border-radius: var(--radius-full);
-  border: none;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid transparent;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -105,28 +117,27 @@ small, .text-small { font-size: 12px; font-weight: 400; color: var(--text-muted)
   white-space: nowrap;
   background-color: var(--neutral-bg);
   color: var(--neutral-text);
+  box-sizing: border-box;
 }
-.badge-success { background-color: var(--success-bg); color: var(--success-text); }
-.badge-warning { background-color: var(--warning-bg); color: var(--warning-text); }
-.badge-error { background-color: var(--error-bg); color: var(--error-text); }
-.badge-info { background-color: var(--info-bg); color: var(--info-text); }
-.badge-neutral { background-color: var(--neutral-bg); color: var(--neutral-text); }
+.badge-success { background-color: var(--status-success-bg, #e3f3e4); color: var(--status-success-fg, #1b5e20); border-color: rgba(46, 125, 50, 0.2); }
+.badge-warning { background-color: var(--status-warning-bg, #fbf2dc); color: var(--status-warning-fg, #7a5300); border-color: rgba(165, 114, 10, 0.2); }
+.badge-error { background-color: var(--status-error-bg, #fbe8e6); color: var(--status-error-fg, #8c1d18); border-color: rgba(179, 38, 30, 0.2); }
+.badge-info { background-color: var(--status-info-bg, #e0f2fe); color: var(--status-info-fg, #075985); border-color: rgba(14, 165, 233, 0.2); }
+.badge-neutral { background-color: var(--md-surface-container-high, #ece6f0); color: var(--md-on-surface-variant, #49454f); border-color: var(--color-border); }
 
-/* 2. Button Component — MD3 pill button, state-layer interaction model.
-   Class names kept identical to the pre-redesign markup (every screen's
-   HTML and every JS-generated string uses .btn/.btn-primary/etc.
-   directly) — only the visual language changes. */
+/* 2. Button Component — MD3 unified pill button matching PRE & Patient modules */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   white-space: nowrap;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full, 9999px);
   font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: var(--tracking-button);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   transition: background-color var(--duration-fast) var(--ease-standard),
               box-shadow var(--duration-base) var(--ease-standard),
               transform var(--duration-fast) var(--ease-standard),
@@ -136,6 +147,7 @@ small, .text-small { font-size: 12px; font-weight: 400; color: var(--text-muted)
   border: 1px solid transparent;
   outline: none;
   position: relative;
+  box-sizing: border-box;
 }
 .btn:disabled { opacity: 0.5; pointer-events: none; }
 .btn:active { transform: scale(0.96); }
@@ -143,62 +155,94 @@ small, .text-small { font-size: 12px; font-weight: 400; color: var(--text-muted)
 
 /* Button Variants */
 .btn-primary {
-  background-color: var(--primary);
-  color: var(--md-on-primary, #fff);
-  box-shadow: none;
-  border-color: var(--primary);
+  background-color: var(--md-primary, #6750a4);
+  color: var(--md-on-primary, #ffffff);
+  box-shadow: var(--shadow-1);
+  border-color: transparent;
 }
-.btn-primary:hover { background-color: var(--primary-hover); box-shadow: var(--shadow-2, var(--shadow-md)); }
+.btn-primary:hover {
+  background-color: color-mix(in srgb, var(--md-primary, #6750a4) 90%, black);
+  box-shadow: var(--shadow-2);
+}
 
-.btn-secondary { background-color: var(--md-secondary-container, var(--surface)); border-color: transparent; color: var(--md-on-secondary-container, var(--text-primary)); }
-.btn-secondary:hover { background-color: color-mix(in srgb, var(--md-secondary-container, var(--neutral-bg)) 85%, black); }
+.btn-secondary {
+  background-color: var(--md-surface-container-high, #ece6f0);
+  border-color: var(--color-border, #cac4d0);
+  color: var(--md-on-surface-variant, #49454f);
+}
+.btn-secondary:hover {
+  background-color: var(--md-surface-variant, #e7e0ec);
+  color: var(--color-fg, #1c1b1f);
+}
 
-.btn-outline { background-color: transparent; border-color: var(--border); color: var(--text-primary); }
-.btn-outline:hover { background-color: color-mix(in srgb, var(--primary) 8%, transparent); border-color: var(--color-fg); }
+.btn-outline {
+  background-color: transparent;
+  border-color: var(--color-border);
+  color: var(--text-primary);
+}
+.btn-outline:hover {
+  background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+  border-color: var(--color-fg);
+}
 
-.btn-danger { background-color: transparent; border-color: var(--status-error); color: var(--error-text); }
-.btn-danger:hover { background-color: var(--status-error); border-color: var(--status-error); color: #fff; }
+.btn-danger {
+  background-color: transparent;
+  border-color: var(--status-error);
+  color: var(--status-error);
+}
+.btn-danger:hover {
+  background-color: var(--status-error);
+  border-color: var(--status-error);
+  color: #ffffff;
+}
 
 /* Button Sizes */
-.btn-default { height: 40px; padding: 0 24px; }
-.btn-sm { height: 32px; padding: 0 16px; font-size: 12px; }
-.btn-lg { height: 48px; padding: 0 32px; font-size: 15px; }
+.btn-default { height: 40px; padding: 0 20px; }
+.btn-sm { height: 34px; padding: 0 16px; font-size: 11px; }
+.btn-lg { height: 46px; padding: 0 28px; font-size: 13px; }
 
-/* 3. Card Component — tonal Material You surface, not a bordered box. */
+/* 3. Card Component — Tonal Material You surface with subtle border */
 .card {
   background-color: var(--md-surface-container, var(--surface));
   color: var(--text-primary);
   border-radius: var(--radius-lg);
-  border: none;
-  box-shadow: var(--shadow-1, var(--shadow-sm));
+  border: 1px solid var(--color-border, #cac4d0);
+  box-shadow: var(--shadow-1);
   display: flex;
   flex-direction: column;
   transition: box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
+  box-sizing: border-box;
 }
-.card:hover { box-shadow: var(--shadow-2, var(--shadow-md)); }
+.card:hover {
+  box-shadow: var(--shadow-2);
+}
 .card-header { padding: 24px 24px 0 24px; display: flex; flex-direction: column; gap: 6px; }
 .card-title { font-family: var(--font-heading); font-size: 18px; font-weight: 500; margin: 0; }
 .card-description { font-size: 14px; color: var(--text-secondary); margin: 0; }
 .card-content { padding: 24px; flex: 1; }
 .card-footer { padding: 0 24px 24px 24px; display: flex; align-items: center; gap: 12px; }
 
-/* 4. Input Component — MD3 filled text field look. */
+/* 4. Input Component — MD3 search and input fields */
 .input {
-  height: 44px;
+  height: 40px;
   width: 100%;
-  border: none;
-  border-bottom: 2px solid var(--md-outline, var(--border));
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 9999px);
   padding: 0 16px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
-  background-color: var(--md-surface-container-low, var(--neutral-bg));
-  transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
+  background-color: var(--md-surface-container-low, #f8fafc);
+  transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
   outline: none;
+  box-sizing: border-box;
 }
 .input::placeholder { font-family: var(--font-body); font-style: normal; color: var(--text-muted); opacity: 0.8; }
-.input:focus { border-bottom-color: var(--primary); background-color: var(--md-surface-container, var(--primary-light)); box-shadow: none; }
+.input:focus {
+  border-color: var(--primary);
+  background-color: var(--md-surface, #ffffff);
+  box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.12);
+}
 .input:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* select elements use .input too via inline styles in JS — keep the
@@ -324,52 +368,131 @@ select.input { cursor: pointer; }
   overflow-x: auto;
   width: 100%;
 }
+.table-scroll-container {
+  max-height: 440px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--color-border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-outline-variant, #cac4d0) transparent;
+}
+.table-scroll-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.table-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background-color: var(--md-outline-variant, #cac4d0);
+  border-radius: var(--radius-full);
+}
+
+.scrollable-feed {
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-outline-variant, #cac4d0) transparent;
+}
+.scrollable-feed::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollable-feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollable-feed::-webkit-scrollbar-thumb {
+  background-color: var(--md-outline-variant, #cac4d0);
+  border-radius: var(--radius-full);
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
-/* th/td/tr:hover below match screens 02/03/04/05's shared 16px-24px
-   density; screen-01's own denser 12px-16px + hover-cursor variant stays
-   as a local override in that screen's <style> block. */
+/* Sticky header when inside scrollable containers */
+.table-scroll-container .data-table thead th,
+.table-container .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--md-surface-container-high, #ece6f0);
+}
 .data-table th {
-  padding: 16px 24px;
-  background: #f8fafc;
-  color: var(--text-secondary);
+  padding: 14px 18px;
+  background: var(--md-surface-container-high, #ece6f0);
+  color: var(--md-on-surface-variant, #49454f);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--color-border);
 }
 .data-table td {
-  padding: 16px 24px;
-  font-size: 14px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--text-primary);
 }
 .data-table tr:hover td {
-  background-color: #f8fafc;
+  background-color: var(--md-surface-container-low, #f8fafc);
 }
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
-.metric-card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+
+.kpi-card {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-lg, 16px);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 112px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color var(--duration-fast, 0.2s) ease, box-shadow var(--duration-fast, 0.2s) ease;
+}
+.kpi-card:hover {
+  border-color: var(--primary, #0D9488);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 6px;
+}
+
+.kpi-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.kpi-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  gap: 8px;
+  margin-top: auto;
 }
 
 .filter-bar {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--md-surface-container, #ffffff);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
   padding: 16px 24px;
   display: flex;
   align-items: center;
@@ -382,9 +505,9 @@ select.input { cursor: pointer; }
   gap: 12px;
 }
 .bed-card {
-  width: 120px;
-  height: 80px;
-  border-radius: 8px;
+  width: 124px;
+  height: 84px;
+  border-radius: var(--radius-md, 12px);
   border: 2px solid;
   display: flex;
   flex-direction: column;
@@ -392,18 +515,19 @@ select.input { cursor: pointer; }
   justify-content: center;
   padding: 8px;
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  transition: box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
   background: transparent;
 }
 .bed-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
 }
 .bed-card-title {
   font-size: 14px;
   font-weight: 600;
 }
 .bed-card-subtitle {
-  font-size: 12px;
+  font-size: 11px;
   margin-top: 4px;
   text-align: center;
   white-space: nowrap;

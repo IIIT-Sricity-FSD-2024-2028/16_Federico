@@ -66,9 +66,9 @@
     1: {
       Admin: [{ email: "owner@hosp.com", password: "Owner@123", displayName: "Hospital Owner" }],
       Patient: [
-        { email: "hamiz@hosp.com", password: "Hamiz@123", displayName: "Hamiz Shams" },
-        { email: "salma@hosp.com", password: "Salma@123", displayName: "Salma Begum" },
-        { email: "john@hosp.com", password: "John@123", displayName: "John Doe" },
+        { email: 'arjun.k@hosp.com', password: 'Hamiz@123', displayName: 'Arjun Kapoor' },
+        { email: 'priyanka.n@hosp.com', password: 'Salma@123', displayName: 'Priyanka Nair' },
+        { email: 'rohan.m@hosp.com', password: 'John@123', displayName: 'Rohan Mehta' },
       ],
       PRE: [
         { email: "rekha.pre@hosp.com", password: "Pre@123", displayName: "Rekha Nair" },
@@ -87,7 +87,8 @@
   };
 
   function mockAccountsFor(organizationId) {
-    return mockAccountsByOrg[organizationId] || mockAccountsByOrg[1];
+    if (!organizationId) return mockAccountsByOrg[1];
+    return mockAccountsByOrg[organizationId] || null;
   }
 
   // Back-compat: organization 1's accounts, for any caller not yet passing
@@ -302,8 +303,8 @@
     }
 
     if (currentActor === "PRE") {
-      if (currentModule === "PRE") return "../index.html";
-      return "../PRE/index.html";
+      if (currentModule === "PRE") return "PRE.html";
+      return crossModulePrefix + "../PRE/pages/PRE.html";
     }
 
     if (currentActor === "Patient") {

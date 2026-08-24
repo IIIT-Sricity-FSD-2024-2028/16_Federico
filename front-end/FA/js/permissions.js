@@ -7,6 +7,7 @@ const Permissions = {
   routeAccess: {
     ADMIN: ['dashboard', 'charges', 'ledger', 'eod', 'discharge', 'receipts'],
     SUPER_USER: ['dashboard', 'charges', 'ledger', 'eod', 'discharge', 'receipts'],
+    ORG_ADMIN: ['dashboard', 'charges', 'ledger', 'eod', 'discharge', 'receipts'],
   },
 
   getActor() {
@@ -18,8 +19,9 @@ const Permissions = {
   },
 
   canAccess(route) {
-    const page = route.replace('#/', '') || 'dashboard';
-    const allowedRoutes = this.routeAccess[this.getAccessRole()] || [];
+    const raw = String(route || '').replace(/^#\/?/, '') || 'dashboard';
+    const page = raw.split('/')[0].split('?')[0] || 'dashboard';
+    const allowedRoutes = this.routeAccess[this.getAccessRole()] || ['dashboard', 'charges', 'ledger', 'eod', 'discharge', 'receipts'];
     return allowedRoutes.includes(page) && (window.RoleAccess?.hasModuleAccess('FA', this.getActor()) ?? true);
   },
 

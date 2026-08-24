@@ -208,6 +208,9 @@
         const grossTotal = H().ledgerTotal(entries);
         const treatmentsReceived = entries.map((e) => servicesById[e.service_id]?.service_name).filter(Boolean).join(', ') || 'Standard Care';
 
+        const session = window.ApiClient.getSession();
+        const hospitalName = session?.tenant?.organization_name || 'Hospital';
+
         const win = window.open('', '_blank');
         win.document.write(`
             <html><head><title>Discharge & Billing Summary - ${H().escapeHtml(row.patient.name || '')}</title>
@@ -228,7 +231,7 @@
             </style></head>
             <body>
                 <div class="header">
-                    <div><h1 class="hospital-name">Federico Hospital</h1><div style="font-size: 13px; color: #6C6863; margin-top: 4px;">123 Health Avenue, Medical District</div></div>
+                    <div><h1 class="hospital-name">${H().escapeHtml(hospitalName)}</h1><div style="font-size: 13px; color: #6C6863; margin-top: 4px;">123 Health Avenue, Medical District</div></div>
                     <div style="text-align: right;"><div style="font-size: 12px; color: #6C6863; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">Discharge & Billing Summary</div></div>
                 </div>
                 <div class="info-grid">

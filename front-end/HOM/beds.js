@@ -1,12 +1,22 @@
 'use strict';
 
 /**
- * beds.js — HOM Bed Management.
+ * beds.js — HOM Bed Management & Allocation.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
   bindControls();
   await loadAndRender();
+
+  // Auto-refresh bed status every 15 seconds
+  setInterval(() => {
+    if (!document.hidden) loadAndRender();
+  }, 15000);
+
+  // Instant refresh on tab focus
+  window.addEventListener('focus', () => {
+    loadAndRender();
+  });
 });
 
 let activeTab = 'all';
@@ -28,14 +38,22 @@ function bindControls() {
 }
 
 async function loadAndRender() {
-  const [wards, beds, bedRequests, patients, preRequests] = await Promise.all([
-    window.ApiClient.wards.list(),
-    window.ApiClient.wards.beds(),
-    window.ApiClient.wards.bedRequests.list(),
-    window.ApiClient.patients.list(),
-    window.ApiClient.preRequests.list(),
+  const [wards, beds, bedRequests, patients, preRequests, doctors] = await Promise.all([
+    window.ApiClient.wards.list().catch(() => []),
+    window.ApiClient.wards.beds().catch(() => []),
+    window.ApiClient.wards.bedRequests.list().catch(() => []),
+    window.ApiClient.patients.list().catch(() => []),
+    window.ApiClient.preRequests.list().catch(() => []),
+    window.ApiClient.doctors.list().catch(() => []),
   ]);
-  bedsData = { wards, beds, bedRequests, patients, preRequests };
+  bedsData = {
+    wards: Array.isArray(wards) ? wards : [],
+    beds: Array.isArray(beds) ? beds : [],
+    bedRequests: Array.isArray(bedRequests) ? bedRequests : [],
+    patients: Array.isArray(patients) ? patients : [],
+    preRequests: Array.isArray(preRequests) ? preRequests : [],
+    doctors: Array.isArray(doctors) ? doctors : [],
+  };
   renderPage();
 }
 
@@ -69,11 +87,18 @@ function renderTabs() {
 function renderFilters() {
   const container = document.getElementById('status-filters');
   if (!container) return;
+
+  const beds = bedsData.beds || [];
+  const total = beds.length;
+  const available = beds.filter((b) => b.status === 'AVAILABLE').length;
+  const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;
+  const maintenance = beds.filter((b) => b.status === 'MAINTENANCE').length;
+
   const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'AVAILABLE', label: 'Available' },
-    { id: 'OCCUPIED', label: 'Occupied' },
-    { id: 'MAINTENANCE', label: 'Maintenance' },
+    { id: 'all', label: `All (${total})` },
+    { id: 'AVAILABLE', label: `Available (${available})` },
+    { id: 'OCCUPIED', label: `Occupied (${occupied})` },
+    { id: 'MAINTENANCE', label: `Maintenance (${maintenance})` },
   ];
   container.innerHTML = filters
     .map((f) => `<button class="pill-btn ${activeFilter === f.id ? 'active' : ''}" onclick="setActiveFilter('${f.id}')">${f.label}</button>`)
@@ -88,10 +113,42 @@ function renderStats() {
   const maintenance = beds.filter((b) => b.status === 'MAINTENANCE').length;
 
   document.getElementById('stats-container').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total Beds</div><div class="stat-value" style="color: var(--text-primary);">${total}</div></div>
-    <div class="stat-card"><div class="stat-label">Available</div><div class="stat-value" style="color: var(--success);">${available}</div></div>
-    <div class="stat-card"><div class="stat-label">Occupied</div><div class="stat-value" style="color: var(--warning);">${occupied}</div></div>
-    <div class="stat-card"><div class="stat-label">Maintenance</div><div class="stat-value" style="color: var(--text-secondary);">${maintenance}</div></div>
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Total Beds</div>
+        <div class="kpi-value">${total}</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: 'neutral', children: 'All Registered' })}
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Available Beds</div>
+        <div class="kpi-value" style="color: var(--status-success-fg, #1b5e20);">${available}</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: 'success', children: 'Ready for Admission' })}
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Occupied Beds</div>
+        <div class="kpi-value" style="color: var(--status-warning-fg, #7a5300);">${occupied}</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: 'warning', children: 'In Active Care' })}
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Under Maintenance</div>
+        <div class="kpi-value" style="color: var(--text-secondary);">${maintenance}</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: 'neutral', children: 'Out of Service' })}
+      </div>
+    </div>
   `;
 }
 
@@ -104,7 +161,7 @@ function patientForBed(bedId) {
 
 function bedMatchesSearch(bed, linked) {
   if (!bedSearchQuery) return true;
-  const haystack = [bed.bed_number, linked?.patient.uhid || '', linked?.patient.name || ''].join(' ').toLowerCase();
+  const haystack = [bed.bed_number, linked?.patient.uhid || '', linked?.patient.name || '', linked?.request.department || ''].join(' ').toLowerCase();
   return haystack.includes(bedSearchQuery);
 }
 
@@ -132,39 +189,34 @@ function renderWards() {
         <div class="ward-header">
           <div>
             <h2 class="h2" style="font-size: 18px;">${window.HOMHelpers.escapeHtml(ward.ward_name)}</h2>
-            <p class="body-text" style="font-size: 14px; margin-top: 4px;">${total} beds | ${occupied} Occupied | ${available} Available</p>
+            <p class="body-text" style="font-size: 13px; margin-top: 4px;">${total} beds total · <strong style="color: var(--warning);">${occupied} Occupied</strong> · <strong style="color: var(--success);">${available} Available</strong></p>
           </div>
         </div>
-        <div class="bed-grid">
+        <div class="bed-scroll-container">
+          <div class="bed-grid">
     `;
 
     wardBeds.forEach((bed) => {
       const style = window.HOMHelpers.bedStyle(bed.status);
       const linked = patientForBed(bed.bed_id);
-      const subtitle = linked ? `${linked.patient.name} (${linked.patient.uhid})` : style.label;
-      const onClick = bed.status === 'AVAILABLE' ? `openAssignModal(${bed.bed_id})` : `openDetailModal(${bed.bed_id})`;
+      const subtitle = linked ? `${linked.patient.name}` : style.label;
 
       html += `
-        <button class="bed-card" style="background-color: ${style.bg}; border-color: ${style.border}; color: ${style.text};" onclick="${onClick}">
+        <button class="bed-card" style="background-color: ${style.bg}; border-color: ${style.border}; color: ${style.text};" onclick="openDetailModal(${bed.bed_id})" title="Click to view bed details">
           <div class="bed-card-title">${window.HOMHelpers.escapeHtml(bed.bed_number)}</div>
           <div class="bed-card-subtitle">${window.HOMHelpers.escapeHtml(subtitle)}</div>
         </button>
       `;
     });
 
-    html += '</div></div>';
+    html += '</div></div></div>';
   });
 
-  container.innerHTML = html || `<div class="ward-section"><p style="margin: 0; color: var(--text-secondary);">No beds match the current filters.</p></div>`;
+  container.innerHTML = html || `<div class="ward-section"><p style="margin: 0; color: var(--text-secondary);">No beds match the current search or filters.</p></div>`;
 }
 
-// closeModals() now lives in hom-helpers.js (window.closeModals) — see that
-// file for why removing this file's duplicate copy is safe: every
-// open*Modal() below re-initializes currentDetailBedId/selectedRequestId/
-// pendingBedTarget itself before showing a modal, so the extra resets this
-// duplicate used to do on close were already redundant.
-
 window.openAssignModal = function (bedId) {
+  closeModals();
   pendingBedTarget = (bedsData.beds || []).find((b) => b.bed_id === bedId);
   if (!pendingBedTarget) return;
   selectedRequestId = null;
@@ -187,17 +239,17 @@ window.openAssignModal = function (bedId) {
           const patient = patientsById[r.patient_id] || {};
           const dept = r.pre_request_id ? preRequestsById[r.pre_request_id]?.department : null;
           return `
-        <button type="button" class="modal-bed-btn" onclick="selectPendingRequest(${r.bed_request_id})" id="modal-req-${r.bed_request_id}" style="padding: 16px; border-radius: 8px; border: 2px solid var(--border); background: white; text-align: left; cursor: pointer; grid-column: 1 / -1;">
-          <div style="font-weight: 600; font-size: 14px;">${window.HOMHelpers.escapeHtml(patient.name || '-')}</div>
-          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${window.HOMHelpers.escapeHtml(patient.uhid || '-')} • ${window.HOMHelpers.escapeHtml(dept || 'General')} • ${window.HOMHelpers.escapeHtml(r.priority || 'NORMAL')}</div>
+        <button type="button" class="modal-bed-btn" onclick="selectPendingRequest(${r.bed_request_id})" id="modal-req-${r.bed_request_id}" style="padding: 14px 16px; border-radius: var(--radius-base); border: 1px solid var(--border); background: var(--surface); text-align: left; cursor: pointer; transition: all 0.2s;">
+          <div style="font-weight: 600; font-size: 14px; color: var(--text);">${window.HOMHelpers.escapeHtml(patient.name || '-')}</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${window.HOMHelpers.escapeHtml(patient.uhid || '-')} • ${window.HOMHelpers.escapeHtml(dept || 'General')} • Priority: ${window.HOMHelpers.escapeHtml(r.priority || 'NORMAL')}</div>
         </button>
       `;
         })
         .join('')
-    : `<p style="grid-column: 1 / -1; color: var(--text-secondary); margin: 0;">No pending bed requests for this ward.</p>`;
+    : `<p style="color: var(--text-secondary); margin: 0; padding: 12px 0;">No pending bed requests queued for this ward.</p>`;
 
   document.getElementById('assign-bed-error').style.display = 'none';
-  document.getElementById('assign-patient-hint').textContent = `Assigning bed ${pendingBedTarget.bed_number}. Select a pending request below.`;
+  document.getElementById('assign-patient-hint').textContent = `Assigning Bed ${pendingBedTarget.bed_number}. Select an incoming patient request:`;
   document.getElementById('modal-assign-bed').classList.add('active');
 };
 
@@ -205,7 +257,7 @@ window.selectPendingRequest = function (bedRequestId) {
   selectedRequestId = bedRequestId;
   document.querySelectorAll('.modal-bed-btn').forEach((btn) => {
     btn.style.borderColor = 'var(--border)';
-    btn.style.backgroundColor = 'white';
+    btn.style.backgroundColor = 'var(--surface)';
   });
   const selected = document.getElementById(`modal-req-${bedRequestId}`);
   if (selected) {
@@ -218,13 +270,14 @@ window.confirmBedAllocation = async function () {
   if (!pendingBedTarget) return;
   if (!selectedRequestId) {
     const el = document.getElementById('assign-bed-error');
-    el.textContent = 'Select a pending bed request before confirming.';
+    el.textContent = 'Please select a pending patient bed request before confirming.';
     el.style.display = 'block';
     return;
   }
 
   try {
     await window.ApiClient.wards.bedRequests.allocate(selectedRequestId, pendingBedTarget.bed_id);
+    window.UIFeedback?.toast('Bed allocated and patient admitted successfully.', 'success');
   } catch (err) {
     const el = document.getElementById('assign-bed-error');
     el.textContent = err.message || 'Unable to allocate this bed.';
@@ -241,22 +294,110 @@ window.openDetailModal = function (bedId) {
   if (!bed) return;
   const ward = (bedsData.wards || []).find((w) => w.ward_id === bed.ward_id);
   const linked = patientForBed(bedId);
+  const doctorsById = {};
+  (bedsData.doctors || []).forEach((d) => (doctorsById[d.doctor_id] = d));
 
   currentDetailBedId = bedId;
 
-  document.getElementById('detail-title').innerText = `Bed Details - ${bed.bed_number}`;
-  document.getElementById('detail-badge').innerHTML = window.UI.Badge({ variant: bed.status === 'OCCUPIED' ? 'error' : 'neutral', children: window.HOMHelpers.bedStyle(bed.status).label });
-  document.getElementById('detail-patient').innerText = linked ? linked.patient.name : 'Not linked to an active patient';
-  document.getElementById('detail-uhid').innerText = linked ? linked.patient.uhid : '-';
-  document.getElementById('detail-dept').innerText = linked ? linked.request.department || '-' : '-';
+  document.getElementById('detail-title').innerText = `Bed Details — ${bed.bed_number}`;
   document.getElementById('detail-ward').innerText = ward ? ward.ward_name : '-';
-  document.getElementById('detail-physician').innerText = linked && linked.request.doctor_id ? `Doctor #${linked.request.doctor_id}` : '-';
-  const since = document.getElementById('detail-since');
-  if (since) since.innerText = linked ? `Since: ${window.HOMHelpers.formatDate(linked.request.decided_at || linked.request.updated_at)}` : '';
+  document.getElementById('detail-number').innerText = bed.bed_number || '-';
+
+  const patientSection = document.getElementById('detail-patient-section');
+  const vacantSection = document.getElementById('detail-vacant-section');
+  const actionBtn = document.getElementById('detail-action-btn');
+  const statusBtn = document.getElementById('detail-status-btn');
+  const badgeEl = document.getElementById('detail-badge');
+  const sinceEl = document.getElementById('detail-since');
+
+  if (bed.status === 'OCCUPIED' && linked) {
+    if (patientSection) patientSection.style.display = 'block';
+    if (vacantSection) vacantSection.style.display = 'none';
+    if (statusBtn) statusBtn.style.display = 'none';
+
+    badgeEl.innerHTML = window.UI.Badge({ variant: 'error', children: 'OCCUPIED' });
+    if (sinceEl) {
+      sinceEl.innerText = `Admitted: ${window.HOMHelpers.formatDateTime(linked.request.decided_at || linked.request.updated_at || bed.updated_at)}`;
+    }
+
+    document.getElementById('detail-patient').innerText = linked.patient.name || '-';
+    document.getElementById('detail-uhid').innerText = linked.patient.uhid || '-';
+    document.getElementById('detail-dept').innerText = linked.request.department || 'General';
+
+    const doctor = linked.request.doctor_id ? doctorsById[linked.request.doctor_id] : null;
+    document.getElementById('detail-physician').innerText = doctor ? `Dr. ${doctor.name}` : linked.request.doctor_id ? `Doctor #${linked.request.doctor_id}` : 'Staff Physician';
+
+    if (actionBtn) {
+      actionBtn.style.display = 'inline-flex';
+      actionBtn.innerText = 'View in Patient Flow';
+      actionBtn.onclick = window.viewInPatientFlow;
+    }
+  } else if (bed.status === 'AVAILABLE') {
+    if (patientSection) patientSection.style.display = 'none';
+    if (vacantSection) vacantSection.style.display = 'block';
+
+    badgeEl.innerHTML = window.UI.Badge({ variant: 'success', children: 'AVAILABLE · Not Occupied' });
+    if (sinceEl) sinceEl.innerText = 'Status: Vacant & Clean';
+
+    if (statusBtn) {
+      statusBtn.style.display = 'inline-flex';
+      statusBtn.innerText = 'Mark as Under Maintenance';
+    }
+
+    const compatibleRequests = (bedsData.bedRequests || []).filter(
+      (r) => r.status === 'PENDING' && (!r.ward_id || r.ward_id === bed.ward_id),
+    );
+
+    if (actionBtn) {
+      if (compatibleRequests.length > 0) {
+        actionBtn.style.display = 'inline-flex';
+        actionBtn.innerText = `Assign Patient (${compatibleRequests.length} Waiting)`;
+        actionBtn.onclick = () => window.openAssignModal(bed.bed_id);
+      } else {
+        actionBtn.style.display = 'none';
+      }
+    }
+  } else {
+    // MAINTENANCE
+    if (patientSection) patientSection.style.display = 'none';
+    if (vacantSection) {
+      vacantSection.style.display = 'block';
+      vacantSection.innerHTML = `
+        <h3 class="h3" style="font-size: 14px; margin-bottom: 6px; color: var(--text-secondary);">Bed Under Maintenance</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">This bed is temporarily offline for maintenance or sanitation.</p>
+      `;
+    }
+    badgeEl.innerHTML = window.UI.Badge({ variant: 'neutral', children: 'UNDER MAINTENANCE' });
+    if (sinceEl) sinceEl.innerText = 'Status: Maintenance';
+
+    if (statusBtn) {
+      statusBtn.style.display = 'inline-flex';
+      statusBtn.innerText = 'Mark as Available';
+    }
+
+    if (actionBtn) actionBtn.style.display = 'none';
+  }
+
   document.getElementById('modal-bed-detail').classList.add('active');
+};
+
+window.toggleCurrentBedMaintenance = async function () {
+  if (!currentDetailBedId) return;
+  const bed = (bedsData.beds || []).find((b) => b.bed_id === currentDetailBedId);
+  if (!bed) return;
+  const targetStatus = bed.status === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE';
+  try {
+    await window.ApiClient.wards.updateBedStatus(currentDetailBedId, targetStatus);
+    window.UIFeedback?.toast(`Bed ${bed.bed_number} status updated to ${targetStatus}.`, 'success');
+    closeModals();
+    await loadAndRender();
+  } catch (err) {
+    window.UIFeedback?.toast(err.message || 'Failed to update bed status', 'error');
+  }
 };
 
 window.viewInPatientFlow = function () {
   if (!currentDetailBedId) return;
   window.location.href = 'screen-03-patient-flow.html';
 };
+

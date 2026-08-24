@@ -30,89 +30,126 @@
     <main class="dashboard-container">
         <div class="header-section">
             <div>
-                <h1 class="h1" style="margin-bottom: 8px;">Non-Clinical Inventory Management</h1>
-                <p class="body-text">Track and manage all non-clinical supplies and allocations</p>
+                <h1 class="h1" style="margin-bottom: 8px;">Non-Clinical Supplies &amp; Inventory</h1>
+                <p class="body-text">Track ward stock levels, request purchase orders, and record patient supply usage</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <input type="text" class="input" placeholder="Search inventory" style="width: 240px;" id="inventory-search">
-                <button class="btn btn-primary btn-default" onclick="openRestockModal('')">Request Restock</button>
+                <button class="btn btn-secondary btn-default" id="inventory-export">Export CSV</button>
                 <button class="btn btn-secondary btn-default" onclick="openLogUsageModal()">Log Usage</button>
+                <button class="btn btn-primary btn-default" onclick="openRestockModal('')">Request Restock</button>
             </div>
         </div>
 
-        <div class="metrics-grid" id="metrics-container">
-            </div>
+        <div class="metrics-grid" id="metrics-container"></div>
 
-        <div class="main-grid">
-            
-            <div class="card" style="overflow: hidden;">
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Item Name</th>
-                                <th>Category</th>
-                                <th>Stock</th>
-                                <th>Unit Cost</th>
-                                <th>Used/Month</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-tbody">
-                            </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="flex-col" style="gap: 24px;">
-                
-                <div class="card" style="padding: 24px;">
+        <!-- Middle Action Section: Low Stock / POs & Quick Post Usage -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; margin-bottom: 24px;">
+            <!-- Left Card: Low Stock Alerts & Purchase Orders -->
+            <div class="card" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h2 class="h2" style="font-size: 18px;">⚠ Low Stock Alerts</h2>
-                        <span id="low-stock-badge"></span>
-                    </div>
-                    <div id="low-stock-list">
+                        <div style="display: flex; gap: 8px;" id="inventory-tab-group">
+                            <button class="pill-btn active" id="tab-btn-low-stock" onclick="setInventoryActionTab('low-stock')">Low Stock Alerts</button>
+                            <button class="pill-btn" id="tab-btn-orders" onclick="setInventoryActionTab('orders')">Pending POs</button>
                         </div>
-                </div>
+                        <span id="action-tab-badge"></span>
+                    </div>
 
-                <div class="card" style="padding: 24px;">
-                    <h2 class="h2" style="font-size: 18px; margin-bottom: 16px;">Post Usage to Patient</h2>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <input type="text" class="input" id="sidebar-uhid" placeholder="Patient UHID (e.g. FED-2026-8901)" oninput="lookupSidebarPatient(this.value)">
-                        <div id="sidebar-patient-name" style="font-size: 12px; color: var(--primary); font-weight: 500; height: 16px;"></div>
-                        
-                        <select class="input" id="sidebar-item-select" style="appearance: auto;" onchange="updateSidebarCost()">
-                            <option value="">Select item...</option>
-                        </select>
-                        
-                        <div style="display: flex; gap: 8px; align-items: center;">
+                    <!-- Low Stock Alerts Panel -->
+                    <div id="panel-low-stock" style="display: block;">
+                        <div id="low-stock-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 240px; overflow-y: auto; padding-right: 4px;"></div>
+                    </div>
+
+                    <!-- Pending Orders Panel -->
+                    <div id="panel-orders" style="display: none;">
+                        <div id="pending-orders-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 240px; overflow-y: auto; padding-right: 4px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Card: Quick Post Usage to Inpatient -->
+            <div class="card" style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 class="h2" style="font-size: 18px;">Post Usage to Patient</h2>
+                    <span class="badge badge-info" style="font-size: 11px;">Administrative Ledger</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <input type="text" class="input" id="sidebar-uhid" placeholder="Patient UHID (e.g. FED-2026-8901)" oninput="lookupSidebarPatient(this.value)">
+                            <div id="sidebar-patient-name" style="font-size: 12px; color: var(--primary); font-weight: 500; min-height: 16px; margin-top: 4px;"></div>
+                        </div>
+                        <div>
+                            <select class="input" id="sidebar-item-select" style="appearance: auto;" onchange="updateSidebarCost()">
+                                <option value="">Select item...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; align-items: center;">
+                        <div style="display: flex; gap: 6px; align-items: center;">
                             <button class="stepper-btn" onclick="updateSidebarQty(-1)">−</button>
                             <input type="number" class="stepper-input" id="sidebar-qty" value="1" readonly>
                             <button class="stepper-btn" onclick="updateSidebarQty(1)">+</button>
                         </div>
-                        
-                        <div style="background: var(--neutral-bg); padding: 12px; border-radius: var(--radius-base); font-size: 14px; color: var(--text-secondary);">
-                            Cost preview: <span id="sidebar-cost-preview">₹0</span>
+                        <div style="background: var(--neutral-bg); padding: 10px 14px; border-radius: var(--radius-base); font-size: 13px; color: var(--text-secondary);">
+                            Cost: <span id="sidebar-cost-preview" style="font-weight: 600; color: var(--text-primary);">₹0</span>
                         </div>
-                        <div id="sidebar-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
-                        <button class="btn btn-primary btn-default" style="width: 100%;" onclick="submitSidebarUsage()">Post to Ledger</button>
                     </div>
-                </div>
 
-                <div class="card" style="padding: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h2 class="h2" style="font-size: 18px;">Pending Orders</h2>
-                        <span id="pending-orders-badge"></span>
-                    </div>
-                    <div id="pending-orders-list" style="display: flex; flex-direction: column; gap: 12px;">
-                        </div>
+                    <div id="sidebar-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
+                    <button class="btn btn-primary btn-default" style="width: 100%; height: 42px;" onclick="submitSidebarUsage()">Post to Patient Ledger</button>
                 </div>
+            </div>
+        </div>
 
+        <!-- Main Full-Width Supplies Registry -->
+        <div class="card" style="overflow: hidden; padding: 0; margin-bottom: 24px;">
+            <div style="padding: 20px 24px 16px 24px; border-bottom: 1px solid var(--border); background: var(--md-surface-container); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="h2" style="font-size: 18px;">Supplies &amp; Inventory Registry</h2>
+                    <p class="body-text" style="font-size: 13px; margin-top: 2px;">Comprehensive catalog of non-clinical hospital supplies and ward stock allocations</p>
+                </div>
+            </div>
+
+            <div class="filter-bar" style="border: none; border-radius: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; background: #ffffff; padding: 16px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                <input type="text" class="input filter-input" placeholder="Search by item name or category..." style="flex: 2; min-width: 240px;" id="inventory-search">
+                <select class="input filter-dropdown" id="inventory-category" style="flex: 1; min-width: 160px; appearance: auto;">
+                    <option value="">All Categories</option>
+                </select>
+                <select class="input filter-dropdown" id="inventory-status-filter" style="flex: 1; min-width: 150px; appearance: auto;">
+                    <option value="">All Stock Levels</option>
+                    <option value="Adequate">Adequate</option>
+                    <option value="Low Stock">Low Stock</option>
+                    <option value="Critical">Critical</option>
+                </select>
+                <button class="btn btn-outline btn-default" style="height: 44px;" id="inventory-clear">Clear Filters</button>
+            </div>
+
+            <div class="table-scroll-container" style="max-height: 560px; min-height: 380px; border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>In Stock</th>
+                            <th>Reorder Level</th>
+                            <th>Unit Cost</th>
+                            <th>Stock Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-tbody"></tbody>
+                </table>
+            </div>
+
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--md-surface-container);">
+                <p class="text-small" id="inventory-count">Loading supplies...</p>
             </div>
         </div>
     </main>
 
+    <!-- Modal: Log Usage -->
     <div class="modal-overlay" id="modal-log-usage">
         <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
@@ -121,14 +158,14 @@
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
                 <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Item</label>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Supply Item *</label>
                     <select class="input" id="modal-item-select" style="appearance: auto;" onchange="handleModalItemChange(this.value)">
                         <option value="">Select item...</option>
                     </select>
                 </div>
 
                 <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Patient UHID</label>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Patient UHID *</label>
                     <input type="text" class="input" id="modal-uhid" placeholder="Enter UHID (e.g., FED-2026-8901)" oninput="lookupModalPatient(this.value)">
                 </div>
 
@@ -137,7 +174,7 @@
                 </div>
 
                 <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Quantity</label>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Quantity *</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button class="stepper-btn" onclick="updateModalQty(-1)">−</button>
                         <input type="number" class="stepper-input" id="modal-qty" value="1" readonly>
@@ -152,7 +189,7 @@
                 </div>
                 
                 <div style="background: var(--info-bg); border-radius: var(--radius-base); padding: 12px;">
-                    <p style="font-size: 12px; color: var(--info-text); margin: 0;">This charge will be posted to patient's administrative ledger.</p>
+                    <p style="font-size: 12px; color: var(--info-text); margin: 0;">This charge will be posted to the patient's administrative billing ledger.</p>
                 </div>
                 <div id="modal-usage-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
             </div>
@@ -163,6 +200,7 @@
         </div>
     </div>
 
+    <!-- Modal: Request Restock / Purchase Order -->
     <div class="modal-overlay" id="modal-request-restock">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
@@ -171,22 +209,18 @@
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
                 <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Item</label>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Supply Item *</label>
                     <select class="input" id="restock-item-select" style="appearance: auto;" onchange="handleRestockItemChange(this.value)">
                         <option value="">Select item...</option>
                     </select>
                 </div>
                 <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Quantity</label>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Quantity *</label>
                     <input type="number" class="input" id="restock-qty" value="20" min="1" step="1" oninput="updateRestockCalc()">
                 </div>
                 <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Supplier</label>
-                    <select class="input" id="restock-supplier" style="appearance: auto;">
-                        <option value="">Select supplier...</option>
-                        <option>MediSupply Co.</option>
-                        <option>Global Health Logistics</option>
-                    </select>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Supplier Name *</label>
+                    <input type="text" class="input" id="restock-supplier" placeholder="e.g. MediSupply Co., Global Health Logistics" value="MediSupply Co.">
                 </div>
                 <div>
                     <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Priority</label>
@@ -202,7 +236,7 @@
                 </div>
                 <div>
                     <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Notes (Optional)</label>
-                    <textarea class="input" id="restock-notes" style="height: 80px; padding: 12px; resize: none;" placeholder="Add any additional notes..."></textarea>
+                    <textarea class="input" id="restock-notes" style="height: 80px; padding: 12px; resize: none;" placeholder="Add delivery or batch instructions..."></textarea>
                 </div>
                 <div id="restock-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
             </div>
@@ -224,6 +258,7 @@
     <script src="hom-helpers.js"></script>
     <script src="ui-template.js"></script>
 
+    <script src="../shared/shared-nav.js"></script>
     <script src="shared-nav.js"></script>
     <script src="inventory.js"></script>
 </body>

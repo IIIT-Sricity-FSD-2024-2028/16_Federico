@@ -85,6 +85,8 @@ async function finalApprove(id) {
   }
 }
 
+window.finalApprove = finalApprove;
+
 document.addEventListener('DOMContentLoaded', () => {
   renderDischarge();
   renderApproved();

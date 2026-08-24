@@ -34,9 +34,9 @@
         <div class="topbar-right">
             <button class="logout-btn" type="button" id="logout-btn">LOG OUT</button>
             <div class="user-chip">
-                <div class="user-avatar">HA</div>
+                <div class="user-avatar">--</div>
                 <div class="user-meta">
-                    <strong>Hamiz</strong>
+                    <strong>Loading...</strong>
                     <span>Patient</span>
                 </div>
             </div>
@@ -68,22 +68,23 @@
                         <div class="form-grid-two">
                             <div class="form-group">
                                 <label for="first-name">First Name</label>
-                                <input id="first-name" type="text" value="Hamiz" disabled />
+                                <input id="first-name" type="text" placeholder="First Name" disabled />
                             </div>
                             <div class="form-group">
                                 <label for="last-name">Last Name</label>
-                                <input id="last-name" type="text" value="Ahmed" disabled />
+                                <input id="last-name" type="text" placeholder="Last Name" disabled />
                             </div>
                         </div>
                         <div class="form-grid-two">
                             <div class="form-group">
                                 <label for="dob">Date of Birth</label>
-                                <input id="dob" type="text" value="05/03/2007" disabled />
+                                <input id="dob" type="date" disabled />
                             </div>
                             <div class="form-group">
                                 <label for="gender">Gender</label>
                                 <select id="gender" disabled>
-                                    <option selected>Male</option>
+                                    <option value="" disabled selected>Select gender</option>
+                                    <option>Male</option>
                                     <option>Female</option>
                                     <option>Other</option>
                                 </select>
@@ -93,16 +94,20 @@
                             <div class="form-group">
                                 <label for="blood-group">Blood Group</label>
                                 <select id="blood-group" disabled>
+                                    <option value="" disabled selected>Select group</option>
                                     <option>A+</option>
                                     <option>A-</option>
-                                    <option selected>B+</option>
+                                    <option>B+</option>
+                                    <option>B-</option>
                                     <option>O+</option>
+                                    <option>O-</option>
                                     <option>AB+</option>
+                                    <option>AB-</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="uhid">UHID</label>
-                                <input id="uhid" type="text" value="FED-2026-5432" disabled readonly />
+                                <input id="uhid" type="text" placeholder="UHID" disabled readonly />
                             </div>
                         </div>
                         <div class="form-actions hidden" id="actions-personal">
@@ -125,12 +130,12 @@
                     <form class="panel-form" id="form-contact">
                         <div class="form-group full">
                             <label for="email">Email Address</label>
-                            <input id="email" type="email" value="hamiz.ahmed@gmail.com" disabled />
+                            <input id="email" type="email" placeholder="email@domain.com" disabled />
                         </div>
                         <div class="form-grid-two">
                             <div class="form-group">
                                 <label for="phone">Phone Number</label>
-                                <input id="phone" type="text" value="+91 98123 45678" disabled />
+                                <input id="phone" type="text" placeholder="+91..." disabled />
                             </div>
                             <div class="form-group">
                                 <label for="alt-phone">Alternate Phone</label>
@@ -139,8 +144,7 @@
                         </div>
                         <div class="form-group full">
                             <label for="address">Address</label>
-                            <textarea id="address" rows="2"
-                                disabled>12-A, Sector 4, Hyderabad, Telangana - 500001</textarea>
+                            <textarea id="address" rows="2" placeholder="Full address" disabled></textarea>
                         </div>
                         <div class="form-actions hidden" id="actions-contact">
                             <button class="cancel-btn" type="button" data-section="contact">Cancel</button>
@@ -230,7 +234,7 @@
                         <div class="form-grid-two">
                             <div class="form-group">
                                 <label for="ins-provider">Insurance Provider</label>
-                                <input id="ins-provider" type="text" value="Star Health" disabled />
+                                <input id="ins-provider" type="text" placeholder="e.g. Star Health" disabled />
                             </div>
                             <div class="form-group">
                                 <label for="ins-coverage">Coverage Type</label>
@@ -244,26 +248,26 @@
                         <div class="form-grid-two">
                             <div class="form-group">
                                 <label for="policy-number">Policy Number</label>
-                                <input id="policy-number" type="text" value="POL-2026-STAR01" disabled />
+                                <input id="policy-number" type="text" placeholder="POL-..." disabled />
                             </div>
                             <div class="form-group">
                                 <label for="member-id">Member / Card ID</label>
-                                <input id="member-id" type="text" value="MEM-HAM-0012" disabled />
+                                <input id="member-id" type="text" placeholder="MEM-..." disabled />
                             </div>
                         </div>
                         <div class="form-grid-two">
                             <div class="form-group">
                                 <label for="valid-from">Valid From</label>
-                                <input id="valid-from" type="text" value="01/04/2025" disabled />
+                                <input id="valid-from" type="date" disabled />
                             </div>
                             <div class="form-group">
                                 <label for="valid-to">Valid To (Expiry)</label>
-                                <input id="valid-to" type="text" value="31/03/2027" disabled />
+                                <input id="valid-to" type="date" disabled />
                             </div>
                         </div>
                         <div class="form-group full">
                             <label for="coverage-amount">Coverage Amount (₹)</label>
-                            <input id="coverage-amount" type="text" value="5,00,000" disabled />
+                            <input id="coverage-amount" type="text" placeholder="0" disabled />
                         </div>
 
                         <div class="upload-section" id="upload-section">
@@ -321,9 +325,9 @@
             <aside class="profile-sidebar">
                 <section class="panel side-card">
                     <div class="avatar-block">
-                        <div class="big-avatar">HA</div>
-                        <strong>Hamiz Ahmed</strong>
-                        <span>UHID: FED-2026-5432</span>
+                        <div class="big-avatar">--</div>
+                        <strong>Loading...</strong>
+                        <span>UHID: --</span>
                         <span class="patient-tag">Patient</span>
                     </div>
 
@@ -332,27 +336,27 @@
                     <div class="side-info">
                         <div class="side-row">
                             <span>Age / Gender</span>
-                            <strong>19 yrs / Male</strong>
+                            <strong>--</strong>
                         </div>
                         <div class="side-row">
                             <span>Blood Group</span>
-                            <strong>B+</strong>
+                            <strong>--</strong>
                         </div>
                         <div class="side-row">
                             <span>Contact</span>
-                            <strong>+91 98123 45678</strong>
+                            <strong>--</strong>
                         </div>
                         <div class="side-row" data-requires-module="INSURANCE">
                             <span>Insurance</span>
-                            <strong><span class="verified-badge">Verified</span></strong>
+                            <strong><span class="verified-badge">--</span></strong>
                         </div>
                         <div class="side-row">
                             <span>Provider</span>
-                            <strong>Star Health</strong>
+                            <strong>--</strong>
                         </div>
                         <div class="side-row">
                             <span>Coverage</span>
-                            <strong>₹5,00,000</strong>
+                            <strong>--</strong>
                         </div>
                     </div>
                 </section>
@@ -363,15 +367,16 @@
     <!-- patient-profile.html -->
   <script>window.APP_MODULE = "PATIENT";</script>
   <script src="../shared/constants.js"></script>
-<script src="../shared/sanitizer.js"></script>
-<script src="../shared/insurance.js"></script>
-<script src="../shared/api-client.js"></script>
-<script src="../shared/rbac.js"></script>
-<script src="../shared/ui-feedback.js"></script>
-<script src="../shared/auth-guard.js"></script>
+  <script src="../shared/formatters.js"></script>
+  <script src="../shared/sanitizer.js"></script>
+  <script src="../shared/insurance.js"></script>
+  <script src="../shared/api-client.js"></script>
+  <script src="../shared/rbac.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="../shared/auth-guard.js"></script>
 
-<script src="js/patient-store.js"></script>
-<script src="patient-profile.js"></script>
+  <script src="js/patient-store.js"></script>
+  <script src="patient-profile.js"></script>
 </body>
 
 </html> 

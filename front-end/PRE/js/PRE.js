@@ -76,14 +76,19 @@ async function updateDashboardCounters() {
   const pending = preRequests.filter((r) => r.status === 'PENDING').length;
   const rejected = preRequests.filter((r) => r.status === 'REJECTED').length;
   const admitted = preRequests.filter((r) => r.status === 'ADMITTED').length;
+  const dischargeApproved = preRequests.filter((r) => r.status === 'DISCHARGE_APPROVED' || r.status === 'DISCHARGE_REQUESTED').length;
 
   const p = document.getElementById('pending');
   const r = document.getElementById('rejected');
   const a = document.getElementById('admitted');
+  const d = document.getElementById('discharge-count');
   if (p) p.innerText = pending + ' Requests';
   if (r) r.innerText = rejected + ' Requests';
   if (a) a.innerText = admitted + ' Patients';
+  if (d) d.innerText = dischargeApproved + ' In Queue';
 }
+
+window.setVisitType = setVisitType;
 
 document.addEventListener('DOMContentLoaded', () => {
   renderApproved();

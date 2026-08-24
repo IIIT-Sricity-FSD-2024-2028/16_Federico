@@ -12,8 +12,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     roleBadge.innerHTML = window.UI.Badge({ variant: 'info', children: label });
   }
 
+  const dateSubtitle = document.getElementById('dashboard-date-subtitle');
+  if (dateSubtitle) {
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    dateSubtitle.textContent = `${today} · Live operational overview`;
+  }
+
   initializeDashboardControls();
   await renderDashboard();
+
+  // Live polling: auto-refresh metrics, queues, and activity log every 15s
+  setInterval(() => {
+    if (!document.hidden) renderDashboard();
+  }, 15000);
+
+  // Instant refresh when user switches focus to this tab
+  window.addEventListener('focus', () => {
+    renderDashboard();
+  });
 });
 
 let currentWardFilter = 'ALL';
@@ -21,57 +37,29 @@ let currentStatusFilter = 'ALL';
 let selectedBedRequestId = null;
 let selectedBedId = null;
 
-function showMessage(message, type = 'error') {
-  window.UIFeedback.toast(message, type);
-}
-
 function initializeDashboardControls() {
-  document.querySelector('[data-flow="goto-full-reports"]')?.addEventListener('click', () => {
-    window.location.href = 'screen-05-billing.html';
-  });
-  document.querySelector('[data-flow="goto-patient-flow"]')?.addEventListener('click', () => {
-    window.location.href = 'screen-03-patient-flow.html';
-  });
-  document.querySelector('[data-flow="goto-inventory"]')?.addEventListener('click', () => {
-    window.location.href = 'screen-04-inventory.html';
-  });
-  document.querySelector('[data-flow="open-alerts-panel"]')?.addEventListener('click', () => {
-    document.getElementById('activity-log-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-  document.querySelector('[data-flow="open-discharge-queue-modal"]')?.addEventListener('click', () => {
-    document.getElementById('pre-discharge-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-  document.querySelector('[data-flow="open-generate-report-modal"]')?.addEventListener('click', () => {
-    window.location.href = 'screen-05-billing.html';
-  });
-
-  document.querySelector('[data-flow="ward-filter"]')?.addEventListener('click', async () => {
-    const wards = dashboardData.wards || [];
-    const states = ['ALL', ...wards.map((w) => String(w.ward_id))];
-    const idx = states.indexOf(currentWardFilter);
-    currentWardFilter = states[(idx + 1) % states.length];
-    renderBedRegistry(dashboardData);
-  });
-  document.querySelector('[data-flow="status-filter"]')?.addEventListener('click', () => {
-    const states = ['ALL', 'AVAILABLE', 'OCCUPIED', 'MAINTENANCE'];
-    currentStatusFilter = states[(states.indexOf(currentStatusFilter) + 1) % states.length];
-    renderBedRegistry(dashboardData);
-  });
+  // Navigation & action buttons initialized
 }
 
 let dashboardData = {};
 
 async function loadDashboardData() {
-  const [preRequests, patients, wards, beds, bedRequests, activity, ledgers] = await Promise.all([
-    window.ApiClient.preRequests.list(),
-    window.ApiClient.patients.list(),
-    window.ApiClient.wards.list(),
-    window.ApiClient.wards.beds(),
-    window.ApiClient.wards.bedRequests.list(),
-    window.ApiClient.activityLog.list(),
-    window.ApiClient.billing.ledger.listAll().catch(() => []),
+  const [preRequests, patients, wards, beds, bedRequests, activity] = await Promise.all([
+    window.ApiClient.preRequests.list().catch(() => []),
+    window.ApiClient.patients.list().catch(() => []),
+    window.ApiClient.wards.list().catch(() => []),
+    window.ApiClient.wards.beds().catch(() => []),
+    window.ApiClient.wards.bedRequests.list().catch(() => []),
+    window.ApiClient.activityLog.list().catch(() => []),
   ]);
-  return { preRequests, patients, wards, beds, bedRequests, activity, ledgers };
+  return {
+    preRequests: Array.isArray(preRequests) ? preRequests : [],
+    patients: Array.isArray(patients) ? patients : [],
+    wards: Array.isArray(wards) ? wards : [],
+    beds: Array.isArray(beds) ? beds : [],
+    bedRequests: Array.isArray(bedRequests) ? bedRequests : [],
+    activity: Array.isArray(activity) ? activity : [],
+  };
 }
 
 async function renderDashboard() {
@@ -83,29 +71,14 @@ async function renderDashboard() {
     console.error('Failed to render metrics:', e);
   }
   try {
-    renderBedRegistry(dashboardData);
-  } catch (e) {
-    console.error('Failed to render bed registry:', e);
-  }
-  try {
     renderAdmissionsTable(dashboardData);
   } catch (e) {
     console.error('Failed to render admissions:', e);
   }
   try {
-    renderWardOccupancy(dashboardData);
-  } catch (e) {
-    console.error('Failed to render occupancy:', e);
-  }
-  try {
     renderActivityLog(dashboardData);
   } catch (e) {
     console.error('Failed to render activity log:', e);
-  }
-  try {
-    renderBillingQueue(dashboardData);
-  } catch (e) {
-    console.error('Failed to render billing queue:', e);
   }
   try {
     await renderDischargeQueue();
@@ -115,89 +88,53 @@ async function renderDashboard() {
 }
 
 function renderMetrics(data) {
-  const beds = data.beds || [];
-  const totalBeds = beds.length;
-  const available = beds.filter((b) => b.status === 'AVAILABLE').length;
-  const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;
+  const totalBeds = (data.wards || []).reduce((sum, w) => sum + (w.total_beds || 0), 0);
+  const occupied = (data.wards || []).reduce((sum, w) => sum + (w.occupied_beds || 0), 0);
+  const available = Math.max(0, totalBeds - occupied);
   const occupancyRate = totalBeds > 0 ? Math.round((occupied / totalBeds) * 100) : 0;
 
   const activeStatuses = ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED'];
   const activeInpatients = (data.preRequests || []).filter((r) => activeStatuses.includes(r.status)).length;
   const pendingCount = (data.bedRequests || []).filter((r) => r.status === 'PENDING').length;
 
-  const icons = {
-    bed: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>`,
-    users: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-    chart: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-4"/></svg>`,
-    alert: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
-  };
-
   document.getElementById('metrics-container').innerHTML = `
-    <div class="card" style="padding: 24px;">
-      <div class="metric-card-icon" style="background: #E0F7F6;">${icons.bed}</div>
-      <div class="metric-value" style="color: var(--text-primary);">${totalBeds}</div>
-      <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">Total Beds Managed</div>
-      ${window.UI.Badge({ variant: 'neutral', children: `${available} Available · ${occupied} Occupied` })}
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Total Beds Managed</div>
+        <div class="kpi-value">${totalBeds}</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: 'neutral', children: `${available} Available · ${occupied} Occupied` })}
+      </div>
     </div>
-    <div class="card" style="padding: 24px;">
-      <div class="metric-card-icon" style="background: #FEF3C7;">${icons.users}</div>
-      <div class="metric-value" style="color: var(--text-primary);">${activeInpatients}</div>
-      <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">Active Inpatients</div>
-      ${window.UI.Badge({ variant: 'success', children: 'Admitted or in discharge flow' })}
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Active Inpatients</div>
+        <div class="kpi-value">${activeInpatients}</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: 'success', children: 'Admitted & Flow' })}
+      </div>
     </div>
-    <div class="card" style="padding: 24px;">
-      <div class="metric-card-icon" style="background: #FEF3C7;">${icons.chart}</div>
-      <div class="metric-value" style="color: #F59E0B;">${occupancyRate}%</div>
-      <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">Bed Occupancy Rate</div>
-      ${window.UI.Badge({ variant: occupancyRate >= 90 ? 'error' : occupancyRate >= 75 ? 'warning' : 'success', children: occupancyRate >= 75 ? 'Nearing capacity' : 'Healthy' })}
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Bed Occupancy Rate</div>
+        <div class="kpi-value" style="color: ${occupancyRate >= 90 ? 'var(--status-error-fg, #b3261e)' : occupancyRate >= 75 ? 'var(--status-warning-fg, #7a5300)' : 'var(--text-primary)'};">${occupancyRate}%</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: occupancyRate >= 90 ? 'error' : occupancyRate >= 75 ? 'warning' : 'success', children: occupancyRate >= 75 ? 'Nearing capacity' : 'Healthy' })}
+      </div>
     </div>
-    <div class="card" style="padding: 24px;">
-      <div class="metric-card-icon" style="background: #FEE2E2;">${icons.alert}</div>
-      <div class="metric-value" style="color: #EF4444;">${pendingCount}</div>
-      <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">Pending Bed Requests</div>
-      ${window.UI.Badge({ variant: pendingCount > 0 ? 'error' : 'success', children: pendingCount > 0 ? 'Requires action' : 'All clear' })}
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">Pending Bed Requests</div>
+        <div class="kpi-value" style="color: ${pendingCount > 0 ? 'var(--status-error-fg, #b3261e)' : 'var(--text-primary)'};">${pendingCount}</div>
+      </div>
+      <div class="kpi-footer">
+        ${window.UI.Badge({ variant: pendingCount > 0 ? 'error' : 'success', children: pendingCount > 0 ? 'Requires action' : 'All clear' })}
+      </div>
     </div>
   `;
-}
-
-function renderBedRegistry(data) {
-  const container = document.getElementById('bed-registry-container');
-  if (!container) return;
-
-  const wards = data.wards || [];
-  const beds = data.beds || [];
-  const visibleWards = currentWardFilter === 'ALL' ? wards : wards.filter((w) => String(w.ward_id) === currentWardFilter);
-
-  let html = '';
-  visibleWards.forEach((ward) => {
-    const wardBeds = beds
-      .filter((b) => b.ward_id === ward.ward_id)
-      .filter((b) => currentStatusFilter === 'ALL' || b.status === currentStatusFilter);
-    if (!wardBeds.length) return;
-
-    html += `<h3 style="font-size: 14px; font-weight: 500; margin: 0 0 12px 0;">${window.HOMHelpers.escapeHtml(ward.ward_name)}</h3>`;
-    html += `<div class="bed-grid">`;
-    wardBeds.slice(0, 8).forEach((bed) => {
-      const style = window.HOMHelpers.bedStyle(bed.status);
-      html += `
-        <div class="bed-card" style="background-color: ${style.bg}; border-color: ${style.border}; color: ${style.text}; cursor: default;">
-          <div class="bed-card-title">${window.HOMHelpers.escapeHtml(bed.bed_number)}</div>
-          <div class="bed-card-subtitle">${style.label}</div>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  });
-
-  container.innerHTML = html || `<p style="margin:0; color: var(--text-secondary);">No beds match the current filters.</p>`;
-
-  const wardFilterBtn = document.querySelector('[data-flow="ward-filter"]');
-  if (wardFilterBtn) {
-    const label = currentWardFilter === 'ALL' ? 'All' : wards.find((w) => String(w.ward_id) === currentWardFilter)?.ward_name || 'All';
-    wardFilterBtn.textContent = `Ward: ${label} ▼`;
-  }
-  const statusFilterBtn = document.querySelector('[data-flow="status-filter"]');
-  if (statusFilterBtn) statusFilterBtn.textContent = `Status: ${currentStatusFilter === 'ALL' ? 'All' : currentStatusFilter} ▼`;
 }
 
 function renderAdmissionsTable(data) {
@@ -235,76 +172,117 @@ function renderAdmissionsTable(data) {
     .join('');
 }
 
-function renderWardOccupancy(data) {
-  const container = document.getElementById('occupancy-container');
-  if (!container) return;
+function timeAgo(dateString) {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+  const diffDays = Math.floor(diffHour / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
-  const beds = data.beds || [];
-  let html = '';
-  (data.wards || []).forEach((ward) => {
-    const wardBeds = beds.filter((b) => b.ward_id === ward.ward_id);
-    const occupied = wardBeds.filter((b) => b.status === 'OCCUPIED').length;
-    const percentage = wardBeds.length > 0 ? Math.round((occupied / wardBeds.length) * 100) : 0;
-    let color = '#10B981';
-    if (percentage >= 90) color = '#EF4444';
-    else if (percentage >= 75) color = '#F59E0B';
+function parseOperationalLog(log) {
+  const text = log.text || '';
+  const meta = log.meta || {};
+  let category = 'OPERATION';
+  let badgeVariant = 'neutral';
+  let title = text;
+  let subtitle = 'Hospital operational event';
+  const actor = meta.actorRole ? `By ${meta.actorRole}` : 'System';
 
-    html += `
-      <div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
-          <span style="font-weight: 500; color: var(--text-primary);">${window.HOMHelpers.escapeHtml(ward.ward_name)}</span>
-          <span style="color: var(--text-secondary);">${occupied}/${wardBeds.length} beds (${percentage}%)</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${percentage}%; background-color: ${color};"></div></div>
-      </div>
-    `;
-  });
-  container.innerHTML = html;
+  if (/allocated/i.test(text)) {
+    category = 'BED ALLOCATED';
+    badgeVariant = 'success';
+    title = text;
+    subtitle = 'Physical bed assigned and patient admitted to ward';
+  } else if (/Bed requested/i.test(text)) {
+    category = 'BED REQUESTED';
+    badgeVariant = 'info';
+    title = text;
+    subtitle = 'Bed allocation queued for incoming patient';
+  } else if (/Pre-registration submitted/i.test(text)) {
+    category = 'ADMISSION QUEUED';
+    badgeVariant = 'info';
+    title = text;
+    subtitle = 'New patient pre-registration submitted';
+  } else if (/DISCHARGE_REQUESTED/i.test(text)) {
+    category = 'DISCHARGE CLEARANCE';
+    badgeVariant = 'warning';
+    title = `Discharge clearance requested for Pre-request #${meta.preRequestId || ''}`;
+    subtitle = 'Awaiting HOM operational discharge sign-off';
+  } else if (/DISCHARGE_APPROVED/i.test(text)) {
+    category = 'DISCHARGE APPROVED';
+    badgeVariant = 'success';
+    title = `Discharge approved by HOM for Pre-request #${meta.preRequestId || ''}`;
+    subtitle = 'Patient cleared for release and bed turnover';
+  } else if (/ADMITTED/i.test(text)) {
+    category = 'PATIENT ADMITTED';
+    badgeVariant = 'success';
+    title = `Inpatient admission confirmed for Pre-request #${meta.preRequestId || ''}`;
+    subtitle = 'Patient active under hospital ward care';
+  } else if (/Emergency/i.test(text)) {
+    category = 'EMERGENCY ADMISSION';
+    badgeVariant = 'error';
+    title = text;
+    subtitle = 'High-priority emergency walk-in registered';
+  } else if (/denied/i.test(text)) {
+    category = 'REQUEST DENIED';
+    badgeVariant = 'error';
+    title = text;
+    subtitle = 'Bed request denied by HOM';
+  } else if (/Ledger|Charge|Billing/i.test(text)) {
+    category = 'BILLING EVENT';
+    badgeVariant = 'neutral';
+    title = text;
+    subtitle = 'Patient billing ledger updated';
+  }
+
+  return { category, badgeVariant, title, subtitle, actor };
 }
 
 function renderActivityLog(data) {
   const container = document.getElementById('activity-log-container');
   if (!container) return;
-  const colors = { success: '#10B981', info: '#3B82F6', warning: '#F59E0B', error: '#EF4444' };
 
-  container.innerHTML = (data.activity || []).slice(0, 5).map((log) => `
-    <div style="display: flex; gap: 12px; align-items: flex-start;">
-      <div style="width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background-color: ${colors[log.type] || colors.info}"></div>
-      <div>
-        <p style="font-size: 14px; margin: 0; color: var(--text-primary);">${window.HOMHelpers.escapeHtml(log.text)}</p>
-        <p style="font-size: 12px; margin: 2px 0 0 0; color: var(--text-muted);">${window.HOMHelpers.formatDateTime(log.created_at)}</p>
-      </div>
-    </div>
-  `).join('') || `<p style="margin:0; color: var(--text-secondary); font-size: 14px;">No activity recorded yet.</p>`;
-}
+  const sortedLogs = [...(data.activity || [])].sort((a, b) => {
+    const timeA = new Date(a.created_at || 0).getTime();
+    const timeB = new Date(b.created_at || 0).getTime();
+    if (timeB !== timeA) return timeB - timeA;
+    return (b.id || b.log_id || 0) - (a.id || a.log_id || 0);
+  });
 
-function renderBillingQueue(data) {
-  const tbody = document.getElementById('dispatch-queue-body');
-  const badge = document.getElementById('dispatch-queue-badge');
-  if (!tbody || !badge) return;
-
-  const dispatched = (data.ledgers || []).filter((l) => l.status === 'DISPATCHED' || l.status === 'PAID');
-  badge.innerHTML = window.UI.Badge({ variant: dispatched.length ? 'warning' : 'neutral', children: `${dispatched.length} Dispatched` });
-
-  if (!dispatched.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 24px;">No bills dispatched by FA yet.</td></tr>`;
+  if (!sortedLogs.length) {
+    container.innerHTML = `<p style="margin:0; color: var(--text-secondary); font-size: 14px; text-align: center; padding: 24px 0;">No activity recorded yet.</p>`;
     return;
   }
 
-  tbody.innerHTML = dispatched
-    .slice(0, 6)
-    .map(
-      (ledger) => `
-      <tr>
-        <td>Admission #${ledger.admission_id}</td>
-        <td>Billing Ledger</td>
-        <td>-</td>
-        <td>${window.UI.Badge({ variant: ledger.status === 'PAID' ? 'success' : 'warning', children: ledger.status })}</td>
-        <td>${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'View', onClick: `window.location.href='screen-05-billing.html'` })}</td>
-      </tr>
-    `,
-    )
-    .join('');
+  container.innerHTML = sortedLogs.slice(0, 12).map((log) => {
+    const parsed = parseOperationalLog(log);
+    const ago = timeAgo(log.created_at);
+    const fullTime = window.HOMHelpers.formatDateTime(log.created_at);
+
+    return `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--md-surface-container, #ffffff); border: 1px solid var(--border); border-radius: var(--radius-md, 12px); gap: 16px; transition: background-color 0.2s;">
+        <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
+          <span class="badge badge-${parsed.badgeVariant}" style="font-size: 11px; flex-shrink: 0;">${parsed.category}</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.HOMHelpers.escapeHtml(parsed.title)}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${window.HOMHelpers.escapeHtml(parsed.subtitle)}</div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-size: 12px; font-weight: 500; color: var(--text-primary);" title="${fullTime}">${ago}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${parsed.actor}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 async function renderDischargeQueue() {
@@ -312,9 +290,9 @@ async function renderDischargeQueue() {
   const badge = document.getElementById('pre-discharge-badge');
   if (!tbody || !badge) return;
 
-  const [doctors] = await Promise.all([window.ApiClient.doctors.list()]);
+  const doctors = await window.ApiClient.doctors.list().catch(() => []);
   const doctorsById = {};
-  doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
+  (Array.isArray(doctors) ? doctors : []).forEach((d) => (doctorsById[d.doctor_id] = d));
 
   const joined = window.HOMHelpers.joinPreRequestsWithPatients(dashboardData.preRequests || [], dashboardData.patients || [], doctorsById);
   const pending = joined.filter((r) => r.status === 'DISCHARGE_REQUESTED');

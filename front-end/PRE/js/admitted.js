@@ -57,4 +57,6 @@ async function dischargePatient(id) {
   }
 }
 
+window.dischargePatient = dischargePatient;
+
 document.addEventListener('DOMContentLoaded', renderAdmittedRecords);

@@ -40,21 +40,17 @@
         }
       }
 
-      .left-column {
+      .dashboard-stack {
         display: flex;
         flex-direction: column;
         gap: 24px;
-      }
-      .right-column {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
+        width: 100%;
       }
 
       .metric-card-icon {
         width: 44px;
         height: 44px;
-        border-radius: 8px;
+        border-radius: var(--radius-md, 12px);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -67,48 +63,22 @@
         margin-bottom: 8px;
       }
 
-      /* .bed-grid/.bed-card* and .table-container/.data-table base now
-         live once in global.css; this screen only adds its own
-         bed-grid bottom margin and denser table padding below. */
       .bed-grid {
         margin-bottom: 24px;
       }
 
-      .data-table th {
-        padding: 12px 16px;
-        background: #f8fafc;
-        color: var(--text-secondary);
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        border-bottom: 1px solid var(--border);
-      }
-      .data-table td {
-        padding: 12px 16px;
-        font-size: 14px;
-        border-bottom: 1px solid #f1f5f9;
-      }
-      .data-table tr:hover td {
-        background-color: #f8fafc;
-        cursor: pointer;
-      }
-
       .progress-bar-bg {
-        height: 8px;
-        background: #f1f5f9;
-        border-radius: 999px;
+        height: 6px;
+        background: var(--md-surface-container-highest, #e7e0ec);
+        border-radius: var(--radius-full, 9999px);
         overflow: hidden;
         margin-top: 6px;
       }
       .progress-bar-fill {
         height: 100%;
-        border-radius: 999px;
+        border-radius: var(--radius-full, 9999px);
         transition: width 0.3s ease;
       }
-
-      /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
-         now live once in global.css (Material You dialog styling) instead
-         of being duplicated in every screen's own <style> block. */
     </style>
   </head>
   <body>
@@ -118,171 +88,85 @@
       <div class="header-section">
         <div>
           <h1 class="h1" style="margin-bottom: 8px">
-            Bed & Patient Operations Dashboard
+            Bed &amp; Patient Operations Dashboard
           </h1>
-          <p class="body-text" style="margin-bottom: 12px">
-            Sunday, March 8, 2026 · Live operational overview
+          <p class="body-text" id="dashboard-date-subtitle">
+            Live operational overview
           </p>
-          <span id="role-badge"></span>
-        </div>
-        <div class="header-actions">
-
-          <button
-            class="btn btn-primary btn-default"
-            data-flow="goto-full-reports"
-          >
-            ↗ Full Reports
-          </button>
         </div>
       </div>
 
       <div class="metrics-grid" id="metrics-container"></div>
 
-      <div class="main-grid">
-        <div class="left-column">
-          <div class="card" style="padding: 24px">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 24px;
-              "
-            >
-              <h2 class="h2" style="font-size: 18px">Live Bed Registry</h2>
-              <div style="display: flex; gap: 12px">
-                <button
-                  class="btn btn-secondary btn-sm"
-                  data-flow="ward-filter"
-                >
-                  Ward ▼
-                </button>
-                <button
-                  class="btn btn-secondary btn-sm"
-                  data-flow="status-filter"
-                >
-                  Status ▼
-                </button>
-
-              </div>
-            </div>
-            <div id="bed-registry-container"></div>
+      <div class="dashboard-stack">
+        <!-- 1. Pending Admission Requests Queue -->
+        <div class="card" style="padding: 24px;">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 16px;
+            "
+          >
+            <h2 class="h2" style="font-size: 18px">
+              Pending Admission Requests
+            </h2>
+            <span id="pending-badge-header"></span>
           </div>
-
-          <div class="card" style="padding: 24px; overflow: hidden">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <h2 class="h2" style="font-size: 18px">
-                Pending Admission Requests
-              </h2>
-              <span id="pending-badge-header"></span>
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Patient</th>
-                    <th>UHID</th>
-                    <th>Dept</th>
-                    <th>Requested By</th>
-
-                    <th>Time</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="admissions-table-body"></tbody>
-              </table>
-            </div>
+          <div class="table-scroll-container" style="max-height: 380px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>UHID</th>
+                  <th>Dept</th>
+                  <th>Requested By</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admissions-table-body"></tbody>
+            </table>
           </div>
-
         </div>
 
-        <div class="right-column">
-          <div class="card" style="padding: 24px">
-            <h2 class="h2" style="font-size: 18px; margin-bottom: 16px">
-              Quick Actions
-            </h2>
-            <div class="flex-col" style="gap: 8px">
-              <button
-                class="btn btn-primary btn-default"
-                style="width: 100%; justify-content: flex-start"
-                data-flow="goto-patient-flow"
-              >
-                👥 View Patient Flow
-              </button>
-              <button
-                class="btn btn-secondary btn-default"
-                style="width: 100%; justify-content: flex-start"
-                data-flow="goto-inventory"
-              >
-                📦 Check Inventory Levels
-              </button>
-            </div>
+        <!-- 2. PRE Discharge Requests Queue -->
+        <div class="card" style="padding: 24px;">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 16px;
+            "
+          >
+            <h2 class="h2" style="font-size: 18px">PRE Discharge Requests</h2>
+            <span id="pre-discharge-badge"></span>
           </div>
-
-
-
-          <div class="card" style="padding: 24px">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <h2 class="h2" style="font-size: 18px">Billing Summary Queue</h2>
-              <span id="dispatch-queue-badge"></span>
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Patient</th>
-                    <th>Document</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="dispatch-queue-body"></tbody>
-              </table>
-            </div>
+          <div class="table-scroll-container" style="max-height: 320px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Department</th>
+                  <th>Doctor</th>
+                  <th>PRE Status</th>
+                  <th>HOM Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="pre-discharge-body"></tbody>
+            </table>
           </div>
+        </div>
 
-          <div class="card" style="padding: 24px">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <h2 class="h2" style="font-size: 18px">PRE Discharge Requests</h2>
-              <span id="pre-discharge-badge"></span>
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Patient</th>
-                    <th>Department</th>
-                    <th>Doctor</th>
-                    <th>PRE Status</th>
-                    <th>HOM Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="pre-discharge-body"></tbody>
-              </table>
-            </div>
-          </div>
+        <!-- 3. Operational Activity Log -->
+        <div class="card" style="padding: 24px;">
+          <h2 class="h2" style="font-size: 18px; margin-bottom: 16px">
+            Operational Activity Log
+          </h2>
+          <div id="activity-log-container" class="scrollable-feed flex-col" style="gap: 16px; max-height: 240px;"></div>
         </div>
       </div>
     </main>
@@ -399,6 +283,7 @@
     <script src="hom-helpers.js"></script>
     <script src="ui-template.js"></script>
 
+    <script src="../shared/shared-nav.js"></script>
     <script src="shared-nav.js"></script>
     <script src="dashboard.js"></script>
   </body>

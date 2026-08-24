@@ -1,6 +1,13 @@
 'use strict';
 
+/**
+ * PRE/js/Appointment.js — Outpatient Appointment Booking & Scheduling.
+ * Dynamically binds patient catalog, department specializations, and consulting physicians.
+ */
+
 let appointmentPatientCatalog = [];
+let allDoctorsCatalog = [];
+let allAvailabilitiesCatalog = [];
 let appointmentPickerOpen = false;
 let selectedAppointmentPatient = null;
 
@@ -13,9 +20,9 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-// ── VALIDATION ───────────────────────────────────────────
+// ── VALIDATION HELPERS ──────────────────────────────────
 function isValidPhone(phone) {
-  return /^[0-9]{10}$/.test(phone);
+  return /^[0-9]{10}$/.test(String(phone || '').trim());
 }
 function isValidAge(age) {
   return /^[1-9]\d*$/.test(String(age || '').trim());
@@ -54,7 +61,7 @@ function handleAgeInput(inputId, errorRenderer) {
     const sanitized = sanitizeAge(original);
     if (original !== sanitized) {
       input.value = sanitized;
-      errorRenderer('Age only number');
+      errorRenderer('Age must be a valid number');
       return;
     }
     if (!input.value.trim()) return;
@@ -62,29 +69,65 @@ function handleAgeInput(inputId, errorRenderer) {
   });
 }
 
-// ── REAL PATIENT CATALOG (backend-backed) ───────────────
+// ── DATA FETCHING (Zero Hardcoded Data) ───────────────────
 async function loadPatientCatalog() {
-  appointmentPatientCatalog = await window.ApiClient.patients.list();
+  appointmentPatientCatalog = await window.ApiClient.patients.list().catch(() => []);
   return appointmentPatientCatalog;
 }
 
-// ── DEPARTMENT DROPDOWN (live doctor specializations — shared/department-options.js) ──
-async function loadDepartmentOptions() {
-  const doctors = await window.ApiClient.doctors.list().catch(() => []);
-  window.DepartmentOptions.populateDepartmentSelect(document.getElementById('department'), doctors, {
+async function loadDoctorCatalog() {
+  const [doctors, availabilities] = await Promise.all([
+    window.ApiClient.doctors.list().catch(() => []),
+    window.ApiClient.doctors.availabilityAll().catch(() => []),
+  ]);
+  allDoctorsCatalog = doctors || [];
+  allAvailabilitiesCatalog = availabilities || [];
+
+  window.DepartmentOptions.populateDepartmentSelect(document.getElementById('department'), allDoctorsCatalog, {
     placeholder: 'Select Department',
+  });
+
+  return allDoctorsCatalog;
+}
+
+function populateDoctorsByDepartment(selectedDept, preSelectedDoctorId = null) {
+  const docSelect = document.getElementById('doctorSelect');
+  if (!docSelect) return;
+
+  docSelect.innerHTML = '<option value="">Any Available Specialist</option>';
+
+  const availMap = {};
+  allAvailabilitiesCatalog.forEach((a) => {
+    if (!availMap[a.doctor_id]) availMap[a.doctor_id] = a;
+  });
+
+  const matchingDoctors = allDoctorsCatalog.filter((d) => {
+    if (!selectedDept) return true;
+    return (d.specialization || '').toLowerCase() === selectedDept.toLowerCase();
+  });
+
+  matchingDoctors.forEach((d) => {
+    const avail = availMap[d.doctor_id];
+    const timeHint = avail?.start_time ? ` (${PREHelpers.to12Hour(avail.start_time)} – ${PREHelpers.to12Hour(avail.end_time)})` : '';
+    const opt = document.createElement('option');
+    opt.value = d.doctor_id;
+    opt.textContent = `${d.name.startsWith('Dr.') ? d.name : 'Dr. ' + d.name} (DOC-${String(d.doctor_id).padStart(3, '0')})${timeHint}`;
+    if (preSelectedDoctorId && Number(preSelectedDoctorId) === d.doctor_id) {
+      opt.selected = true;
+    }
+    docSelect.appendChild(opt);
   });
 }
 
 function toPickerShape(patient) {
   return {
-    patientId: patient.uhid,
+    patientId: patient.uhid || `UHID-${patient.patient_id}`,
     realId: patient.patient_id,
     name: patient.name,
     age: PREHelpers.formatAge(patient.dob),
-    gender: patient.gender,
-    phone: patient.phone,
-    address: patient.address,
+    gender: patient.gender || '—',
+    phone: patient.phone || '—',
+    address: patient.address || '—',
   };
 }
 
@@ -106,12 +149,68 @@ function setAppointmentPickerVisibility(isVisible) {
 
 function fillPatientForm(pickerPatient) {
   selectedAppointmentPatient = pickerPatient;
-  document.getElementById('patientId').value = pickerPatient.patientId || '';
-  document.getElementById('patientName').value = pickerPatient.name || '';
-  document.getElementById('age').value = pickerPatient.age || '';
-  document.getElementById('gender').value = pickerPatient.gender || '';
-  document.getElementById('phone').value = pickerPatient.phone || '';
-  document.getElementById('address').value = pickerPatient.address || '';
+
+  // Update visible verification summary card
+  const nameEl = document.getElementById('cardPatientName');
+  const uhidEl = document.getElementById('cardPatientUhid');
+  const ageGenderEl = document.getElementById('cardPatientAgeGender');
+  const phoneEl = document.getElementById('cardPatientPhone');
+  const addressEl = document.getElementById('cardPatientAddress');
+
+  if (nameEl) nameEl.innerText = pickerPatient.name || 'Verified Patient';
+  if (uhidEl) uhidEl.innerText = pickerPatient.patientId || 'UHID';
+  if (ageGenderEl) ageGenderEl.innerText = `${pickerPatient.age || '—'} / ${pickerPatient.gender || '—'}`;
+  if (phoneEl) phoneEl.innerText = pickerPatient.phone || '—';
+  if (addressEl) addressEl.innerText = pickerPatient.address || '—';
+
+  // Update input fields
+  const patientIdInput = document.getElementById('patientId');
+  if (patientIdInput) patientIdInput.value = `${pickerPatient.name} (${pickerPatient.patientId})`;
+
+  const pName = document.getElementById('patientName');
+  const pAge = document.getElementById('age');
+  const pGender = document.getElementById('gender');
+  const pPhone = document.getElementById('phone');
+  const pAddress = document.getElementById('address');
+
+  if (pName) pName.value = pickerPatient.name || '';
+  if (pAge) pAge.value = String(pickerPatient.age || '').replace(/\D/g, '') || '';
+  if (pGender) pGender.value = pickerPatient.gender || '';
+  if (pPhone) pPhone.value = pickerPatient.phone || '';
+  if (pAddress) pAddress.value = pickerPatient.address || '';
+}
+
+function clearAppointmentForm() {
+  selectedAppointmentPatient = null;
+
+  const nameEl = document.getElementById('cardPatientName');
+  const uhidEl = document.getElementById('cardPatientUhid');
+  const ageGenderEl = document.getElementById('cardPatientAgeGender');
+  const phoneEl = document.getElementById('cardPatientPhone');
+  const addressEl = document.getElementById('cardPatientAddress');
+
+  if (nameEl) nameEl.innerText = 'No Patient Selected';
+  if (uhidEl) uhidEl.innerText = '—';
+  if (ageGenderEl) ageGenderEl.innerText = '—';
+  if (phoneEl) phoneEl.innerText = '—';
+  if (addressEl) addressEl.innerText = '—';
+
+  const idsToClear = ['patientId', 'searchPhone', 'patientName', 'age', 'gender', 'phone', 'address', 'appointmentDate', 'appointmentReason'];
+  idsToClear.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  const deptEl = document.getElementById('department');
+  if (deptEl) deptEl.value = '';
+
+  const docEl = document.getElementById('doctorSelect');
+  if (docEl) docEl.innerHTML = '<option value="">Any Available Specialist</option>';
+
+  const visitEl = document.getElementById('visitType');
+  if (visitEl) visitEl.value = 'Consultation';
+
+  setAppointmentPickerVisibility(false);
 }
 
 function renderAppointmentPatientDropdown(query = '') {
@@ -129,8 +228,8 @@ function renderAppointmentPatientDropdown(query = '') {
   if (matches.length === 0) {
     dropdown.innerHTML = `
       <div class="appointment-picker-empty">
-        <strong>No matching patients</strong>
-        <span>Register a new patient below if this is their first visit.</span>
+        <strong>No matching records found</strong>
+        <span>Click "+ Register Walk-In Patient" above to add a new patient profile.</span>
       </div>
     `;
     setAppointmentPickerVisibility(true);
@@ -142,11 +241,12 @@ function renderAppointmentPatientDropdown(query = '') {
       (p) => `
     <button type="button" class="appointment-picker-option" data-patient-id="${escapeHtml(p.patientId)}">
       <div class="appointment-picker-row">
-        <strong>${escapeHtml(p.patientId)}</strong>
+        <strong>${escapeHtml(p.name)}</strong>
+        <span style="font-size:11px; color:var(--md-primary, #0f766e); font-weight:600;">${escapeHtml(p.patientId)}</span>
       </div>
       <div class="appointment-picker-row appointment-picker-meta">
-        <span>${escapeHtml(p.name)}</span>
-        <span>${escapeHtml(p.phone || 'No phone')}</span>
+        <span>${escapeHtml(p.age)} • ${escapeHtml(p.gender)}</span>
+        <span>${escapeHtml(p.phone)}</span>
       </div>
     </button>
   `,
@@ -196,35 +296,55 @@ function bindAppointmentFormFieldBehavior() {
     field.addEventListener('focus', () => setAppointmentPickerVisibility(false));
     if (field.tagName === 'INPUT' || field.tagName === 'TEXTAREA') field.setAttribute('autocomplete', 'off');
   });
+
+  const deptSelect = document.getElementById('department');
+  if (deptSelect) {
+    deptSelect.addEventListener('change', () => {
+      populateDoctorsByDepartment(deptSelect.value);
+    });
+  }
 }
 
-// ── SEARCH BY PHONE ──────────────────────────────────────
+// ── SEARCH BY PHONE / UHID ──────────────────────────────
 async function searchPatient() {
-  const phone = document.getElementById('searchPhone').value.trim();
-  if (!isValidPhone(phone)) return UIFeedback.toast('Enter valid 10 digit phone', 'error');
+  const rawQuery = document.getElementById('searchPhone').value.trim();
+  if (!rawQuery) return UIFeedback.toast('Enter phone number or UHID to search', 'error');
 
   await loadPatientCatalog();
-  const found = appointmentPatientCatalog.find((p) => (p.phone || '').replace(/\D/g, '').endsWith(phone));
+  const cleanPhone = rawQuery.replace(/\D/g, '');
+  const lowerQuery = rawQuery.toLowerCase();
+
+  const found = appointmentPatientCatalog.find((p) => {
+    const matchUhid = (p.uhid || '').toLowerCase() === lowerQuery;
+    const matchPhone = cleanPhone && (p.phone || '').replace(/\D/g, '').endsWith(cleanPhone);
+    const matchName = (p.name || '').toLowerCase().includes(lowerQuery);
+    return matchUhid || matchPhone || matchName;
+  });
 
   if (found) {
-    fillPatientForm(toPickerShape(found));
+    const shape = toPickerShape(found);
+    fillPatientForm(shape);
     setAppointmentPickerVisibility(false);
-    openSearchResultPopup(toPickerShape(found));
+    openSearchResultPopup(shape);
   } else {
-    UIFeedback.toast('Patient not found', 'error');
+    UIFeedback.toast('No verified patient found matching query', 'error');
   }
 }
 
 function openPatientPopup() {
-  document.getElementById('patientPopup').classList.add('active');
+  const popup = document.getElementById('patientPopup');
+  if (popup) popup.classList.add('active');
 }
 function closePatientPopup() {
-  document.getElementById('patientPopup').classList.remove('active');
+  const popup = document.getElementById('patientPopup');
+  if (popup) popup.classList.remove('active');
 }
 function openSearchResultPopup(patient) {
   const popup = document.getElementById('searchResultPopup');
-  document.getElementById('searchResultPatientId').innerText = patient.patientId || '-';
-  document.getElementById('searchResultPatientName').innerText = patient.name || '-';
+  const idEl = document.getElementById('searchResultPatientId');
+  const nameEl = document.getElementById('searchResultPatientName');
+  if (idEl) idEl.innerText = patient.patientId || '-';
+  if (nameEl) nameEl.innerText = patient.name || '-';
   if (popup) popup.classList.add('active');
 }
 function closeSearchResultPopup() {
@@ -232,7 +352,7 @@ function closeSearchResultPopup() {
   if (popup) popup.classList.remove('active');
 }
 
-// ── REGISTER NEW PATIENT (real backend record) ──────────
+// ── REGISTER NEW PATIENT (Real Backend Database Record) ─
 async function registerPatient() {
   const name = document.getElementById('newName').value.trim();
   const age = document.getElementById('newAge').value.trim();
@@ -240,13 +360,13 @@ async function registerPatient() {
   const phone = document.getElementById('newPhone').value.trim();
   const address = document.getElementById('newAddress').value.trim();
 
-  if (!name || !age || !gender || !phone || !address) return UIFeedback.toast('Please fill all required fields', 'error');
+  if (!name || !age || !gender || !phone || !address) {
+    return UIFeedback.toast('Please fill all required patient demographic fields', 'error');
+  }
   if (!isValidPatientName(name)) return UIFeedback.toast('Name should contain letters only', 'error');
   if (!isValidAge(age)) return UIFeedback.toast('Enter age as a positive integer only', 'error');
-  if (!isValidPhone(phone)) return UIFeedback.toast('Phone must be 10 digits', 'error');
+  if (!isValidPhone(phone)) return UIFeedback.toast('Phone number must be exactly 10 digits', 'error');
 
-  // The quick-register form only collects age (not a full DOB) — approximate
-  // a DOB from it since the backend's patient record requires one.
   const birthYear = new Date().getFullYear() - Number(age);
   const approximateDob = `${birthYear}-01-01`;
 
@@ -269,25 +389,28 @@ async function registerPatient() {
     document.getElementById('newAddress').value = '';
 
     closePatientPopup();
-    UIFeedback.toast(`Patient created successfully — UHID ${patient.uhid}`, 'success');
+    UIFeedback.toast(`Patient registered successfully with UHID ${patient.uhid}`, 'success');
   } catch (err) {
     UIFeedback.toast(err.message || 'Could not register patient', 'error');
   }
 }
 
-// ── CREATE PRE-REQUEST (the actual "appointment" record) ─
+// ── CREATE APPOINTMENT (Synced with PRE Dashboard & HOM) ──
 async function createAppointment() {
   if (!selectedAppointmentPatient) {
-    UIFeedback.toast('Select an existing patient or register a new one first', 'error');
+    UIFeedback.toast('Please select a verified patient from the directory first', 'error');
     return;
   }
 
   const appointmentDate = document.getElementById('appointmentDate').value;
   const department = document.getElementById('department').value;
+  const doctorSelectEl = document.getElementById('doctorSelect');
+  const doctorId = doctorSelectEl?.value ? Number(doctorSelectEl.value) : null;
+  const appointmentTime = document.getElementById('appointmentTime')?.value || '10:00 AM';
   const visitType = document.getElementById('visitType')?.value || 'Consultation';
 
   if (!appointmentDate || !department) {
-    UIFeedback.toast('Please fill all required fields', 'error');
+    UIFeedback.toast('Please select appointment date and clinical department', 'error');
     return;
   }
 
@@ -295,49 +418,82 @@ async function createAppointment() {
     const result = await window.ApiClient.preRequests.create({
       patient_id: selectedAppointmentPatient.realId,
       department,
+      doctor_id: doctorId,
       visit_type: visitType,
       requested_date: appointmentDate,
+      appointment_time: appointmentTime,
+      status: 'APPROVED',
     });
 
-    UIFeedback.toast('Appointment created successfully — reference #' + result.pre_request_id, 'success');
-
-    document.getElementById('patientId').value = '';
-    document.getElementById('patientName').value = '';
-    document.getElementById('age').value = '';
-    document.getElementById('gender').value = '';
-    document.getElementById('phone').value = '';
-    document.getElementById('address').value = '';
-    document.getElementById('appointmentDate').value = '';
-    document.getElementById('department').value = '';
-    const visitTypeField = document.getElementById('visitType');
-    if (visitTypeField) visitTypeField.value = 'Consultation';
-    selectedAppointmentPatient = null;
-    setAppointmentPickerVisibility(false);
+    UIFeedback.toast(`Appointment scheduled successfully (Ref #${result.pre_request_id})`, 'success');
+    clearAppointmentForm();
   } catch (err) {
     UIFeedback.toast(err.message || 'Could not create appointment', 'error');
   }
 }
 
+window.searchPatient = searchPatient;
+window.openPatientPopup = openPatientPopup;
+window.closePatientPopup = closePatientPopup;
+window.openSearchResultPopup = openSearchResultPopup;
+window.closeSearchResultPopup = closeSearchResultPopup;
+window.registerPatient = registerPatient;
+window.createAppointment = createAppointment;
+window.clearAppointmentForm = clearAppointmentForm;
+
 document.addEventListener('DOMContentLoaded', async () => {
   const appointmentDateInput = document.getElementById('appointmentDate');
-  const ageInput = document.getElementById('age');
   const newAgeInput = document.getElementById('newAge');
   if (appointmentDateInput) appointmentDateInput.min = new Date().toISOString().split('T')[0];
-  if (ageInput) {
-    ageInput.min = '1';
-    ageInput.step = '1';
-  }
   if (newAgeInput) {
     newAgeInput.min = '1';
     newAgeInput.step = '1';
   }
 
-  handleNameInput('patientName', (msg) => UIFeedback.toast(msg, 'error'));
   handleNameInput('newName', (msg) => UIFeedback.toast(msg, 'error'));
-  handleAgeInput('age', (msg) => UIFeedback.toast(msg, 'error'));
   handleAgeInput('newAge', (msg) => UIFeedback.toast(msg, 'error'));
 
   bindAppointmentPatientPicker();
   bindAppointmentFormFieldBehavior();
-  await Promise.all([loadPatientCatalog(), loadDepartmentOptions()]);
+  await Promise.all([loadPatientCatalog(), loadDoctorCatalog()]);
+
+  // Handle URL query parameters for pre-selected patient and doctor
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetPatientId = urlParams.get('patient_id');
+  if (targetPatientId) {
+    const matched = appointmentPatientCatalog.find((p) => p.patient_id === Number(targetPatientId));
+    if (matched) {
+      fillPatientForm(toPickerShape(matched));
+    }
+  }
+
+  const targetDocId = urlParams.get('doctor_id');
+  if (targetDocId) {
+    const doc = allDoctorsCatalog.find((d) => d.doctor_id === Number(targetDocId));
+    if (doc) {
+      const deptSelect = document.getElementById('department');
+      if (deptSelect) {
+        deptSelect.value = doc.specialization;
+        populateDoctorsByDepartment(doc.specialization, doc.doctor_id);
+      }
+    }
+  }
+
+  // Backdrop dismissal and Escape key support for modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closePatientPopup();
+      closeSearchResultPopup();
+    }
+  });
+
+  const popups = document.querySelectorAll('.popup');
+  popups.forEach((popup) => {
+    popup.addEventListener('click', (e) => {
+      if (e.target === popup) {
+        popup.classList.remove('active');
+      }
+    });
+  });
 });
+

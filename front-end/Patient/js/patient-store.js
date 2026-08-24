@@ -39,9 +39,33 @@ function flushCallbacks() {
 /* ── formatting helpers ─────────────────────────────────────────── */
 
 function formatShortDate(value) {
+    if (!value || value === "--") return "--";
     const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "--";
+    if (Number.isNaN(d.getTime())) {
+        const fallback = new Date(String(value).replace(/-/g, "/"));
+        if (!Number.isNaN(fallback.getTime())) {
+            return fallback.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+        }
+        return String(value);
+    }
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatTimeString(value) {
+    if (!value || value === "--") return "--";
+    const raw = String(value).trim();
+    if (raw.includes("AM") || raw.includes("PM")) return raw;
+    const parts = raw.split(":");
+    if (parts.length >= 2) {
+        const h = parseInt(parts[0], 10);
+        const m = parts[1].slice(0, 2);
+        if (!Number.isNaN(h)) {
+            const ampm = h >= 12 ? "PM" : "AM";
+            const hr = h % 12 || 12;
+            return `${String(hr).padStart(2, "0")}:${m} ${ampm}`;
+        }
+    }
+    return raw;
 }
 
 function formatFullDate(value) {
@@ -70,8 +94,10 @@ function computeAge(dob) {
 
 function mapPreRequestStatus(status) {
     const s = String(status || "").toUpperCase();
-    if (s === "ADMITTED" || s === "DISCHARGE_REQUESTED") return "Completed";
-    if (s === "REJECTED") return "Cancelled";
+    if (s === "APPROVED" || s === "CONFIRMED") return "Confirmed";
+    if (s === "SCHEDULED") return "Scheduled";
+    if (s === "CONSULTATION_DONE" || s === "ADMITTED" || s === "DISCHARGE_APPROVED" || s === "DISCHARGED" || s === "COMPLETED") return "Completed";
+    if (s === "REJECTED" || s === "CANCELLED") return "Cancelled";
     return "Pending";
 }
 
@@ -123,27 +149,94 @@ function buildProfile(patient, user, insurance) {
     };
 }
 
-function buildAppointments(preRequests, doctorsById) {
-    return preRequests
-        .map((pr) => {
-            const date = pr.requested_date || "";
-            const doctor = pr.doctor_id ? doctorsById[pr.doctor_id] : null;
-            return {
-                id: pr.pre_request_id,
-                date,
-                displayDate: date ? formatShortDate(date + "T00:00:00") : "To be confirmed",
-                time: pr.requested_time || "--",
-                department: pr.department || "General",
-                type: pr.visit_type || "Consultation",
-                status: mapPreRequestStatus(pr.status),
-                rawStatus: pr.status,
-                doctorName: doctor ? doctor.name : "",
-                rejectReason: pr.reject_reason || "",
-                homStatus: pr.hom_status || "",
-                source: "Patient",
-            };
-        })
-        .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+function buildAppointments(preRequests = [], doctorsById = {}, rawAppointments = []) {
+    const items = [];
+    const seenMap = new Set();
+
+    // 1. Process explicit confirmed/scheduled appointments from appointments table
+    rawAppointments.forEach((apt) => {
+        let date = "";
+        let time = "--";
+        if (apt.scheduled_datetime) {
+            const parts = String(apt.scheduled_datetime).split("T");
+            date = parts[0] || "";
+            time = parts[1] ? parts[1].slice(0, 5) : "--";
+        } else if (apt.appointment_date) {
+            date = apt.appointment_date;
+            time = apt.appointment_time || "--";
+        } else if (apt.created_at) {
+            date = String(apt.created_at).split("T")[0] || "";
+        }
+
+        const docId = apt.doctor_id || (apt.availability ? apt.availability.doctor_id : null);
+        const doctor = docId ? doctorsById[docId] : null;
+        const statusStr = String(apt.status || "CONFIRMED").toUpperCase();
+        let status = "Confirmed";
+        if (statusStr === "SCHEDULED") status = "Scheduled";
+        else if (statusStr === "COMPLETED") status = "Completed";
+        else if (statusStr === "CANCELLED") status = "Cancelled";
+        else if (statusStr === "PENDING") status = "Pending";
+
+        const item = {
+            id: `APT-${apt.appointment_id}`,
+            appointmentId: apt.appointment_id,
+            date,
+            displayDate: formatShortDate(date ? `${date}T00:00:00` : apt.created_at),
+            time: formatTimeString(time),
+            department: apt.department || (doctor ? doctor.specialization : "General Medicine"),
+            type: apt.visit_type || "Consultation",
+            status,
+            rawStatus: apt.status,
+            doctorName: doctor ? doctor.name : (apt.doctor_name || ""),
+            rejectReason: "",
+            homStatus: "Confirmed Appointment",
+            source: "Hospital",
+        };
+        items.push(item);
+        seenMap.add(`APT-${apt.appointment_id}`);
+    });
+
+    // 2. Process preRequests / intake submissions
+    preRequests.forEach((pr) => {
+        if (pr.appointment_id && seenMap.has(`APT-${pr.appointment_id}`)) {
+            const existing = items.find((i) => i.id === `APT-${pr.appointment_id}`);
+            if (existing) {
+                if (pr.reject_reason) existing.rejectReason = pr.reject_reason;
+                if (pr.hom_status) existing.homStatus = pr.hom_status;
+                if (!existing.doctorName && pr.doctor_id && doctorsById[pr.doctor_id]) {
+                    existing.doctorName = doctorsById[pr.doctor_id].name;
+                }
+            }
+            return;
+        }
+
+        const date = pr.requested_date || (pr.created_at ? pr.created_at.split("T")[0] : "");
+        const doctor = pr.doctor_id ? doctorsById[pr.doctor_id] : null;
+        const status = mapPreRequestStatus(pr.status);
+
+        items.push({
+            id: `PRE-${pr.pre_request_id}`,
+            preRequestId: pr.pre_request_id,
+            appointmentId: pr.appointment_id || null,
+            date,
+            displayDate: formatShortDate(date ? `${date}T00:00:00` : pr.created_at),
+            time: formatTimeString(pr.requested_time || "10:00 AM"),
+            department: pr.department || (doctor ? doctor.specialization : "General Medicine"),
+            type: pr.visit_type || "Consultation",
+            status,
+            rawStatus: pr.status,
+            doctorName: doctor ? doctor.name : "",
+            rejectReason: pr.reject_reason || "",
+            homStatus: pr.hom_status || "",
+            source: "Patient",
+        });
+    });
+
+    return items.sort((a, b) => {
+        const l = `${a.date || "9999-99-99"} ${a.time || "99:99"}`;
+        const r = `${b.date || "9999-99-99"} ${b.time || "99:99"}`;
+        return l.localeCompare(r);
+    });
 }
 
 function buildVisits(bundles, bedsById, preRequests) {
@@ -160,13 +253,15 @@ function buildVisits(bundles, bedsById, preRequests) {
     });
 
     const fromPreRequests = preRequests
-        .filter((pr) => ["ADMITTED", "DISCHARGE_REQUESTED"].includes(String(pr.status || "").toUpperCase()))
+        .filter((pr) => ["ADMITTED", "DISCHARGE_REQUESTED", "EMERGENCY"].includes(String(pr.status || "").toUpperCase()) || pr.visit_type === "Emergency")
         .map((pr) => ({
             id: `PRE-${pr.pre_request_id}`,
-            date: formatFullDate(pr.decided_at || pr.updated_at),
-            isoDate: toIsoDate(pr.decided_at || pr.updated_at),
-            department: pr.department || "General",
-            description: `${pr.department || "General"} ${pr.visit_type || ""}`.trim(),
+            date: formatFullDate(pr.decided_at || pr.updated_at || pr.created_at),
+            isoDate: toIsoDate(pr.decided_at || pr.updated_at || pr.created_at),
+            department: pr.department || "Emergency Care",
+            description: pr.visit_type === "Emergency"
+                ? `Emergency Care (${pr.department || "Emergency"}) — ${pr.status === "ADMITTED" ? "In Care" : "Triage Active"}`
+                : `${pr.department || "General"} ${pr.visit_type || ""}`.trim(),
         }));
 
     const merged = [...fromAdmissions, ...fromPreRequests];
@@ -182,7 +277,7 @@ function buildBillsAndDocuments(bundles, servicesById, receipts, dischargeSummar
 
     bundles.forEach(({ admission, ledger, entries }) => {
         if (!ledger) return;
-        if (ledger.status !== "DISPATCHED" && ledger.status !== "PAID") return;
+        if (!["OPEN", "DISPATCHED", "PAID"].includes(ledger.status)) return;
 
         const total = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
         const serviceNames = entries.map((e) => (servicesById[e.service_id] || {}).service_name).filter(Boolean);
@@ -378,14 +473,14 @@ async function refreshStore() {
         );
 
         AppStore.patient = profile;
-        AppStore.appointments = buildAppointments(preRequests, doctorsById);
+        AppStore.appointments = buildAppointments(preRequests, doctorsById, summary.appointments || []);
         AppStore.visits = buildVisits(bundles, bedsById, preRequests);
         AppStore.bills = bills;
         AppStore.documents = documents;
         AppStore.billingSections = billingSections;
         AppStore.notifications = buildNotifications(preRequests);
         AppStore._docIndex = docIndex;
-        AppStore._raw = { bundles, preRequests, doctorsById, bedsById, servicesById, insurance };
+        AppStore._raw = { bundles, preRequests, doctorsById, bedsById, servicesById, insurance, appointments: summary.appointments || [] };
     } catch (err) {
         console.warn("[PatientStore] Failed to load portal summary, attempting individual fetch fallback:", err);
         const [me, insuranceList, bundles, receipts, doctors, beds, services] = await Promise.all([
@@ -421,7 +516,7 @@ async function refreshStore() {
         );
 
         AppStore.patient = profile;
-        AppStore.appointments = buildAppointments(preRequests, doctorsById);
+        AppStore.appointments = buildAppointments(preRequests, doctorsById, []);
         AppStore.visits = buildVisits(bundles, bedsById, preRequests);
         AppStore.bills = bills;
         AppStore.documents = documents;
@@ -458,10 +553,9 @@ function getAllAppointments() {
 }
 
 function getUpcomingAppointments() {
-    const today = new Date().toISOString().split("T")[0];
     return AppStore.appointments
-        .filter((a) => (a.date === "" || a.date >= today) && !["Cancelled", "Completed"].includes(a.status))
-        .sort((left, right) => left.date.localeCompare(right.date));
+        .filter((a) => !["Cancelled", "Completed"].includes(a.status))
+        .sort((left, right) => (left.date || "").localeCompare(right.date || ""));
 }
 
 function getVisits() {
@@ -504,13 +598,17 @@ function getBillingDocumentByRef(sourceType, sourceId) {
 
 async function addAppointment(data) {
     if (!AppStore.patient) return null;
-    const result = await window.ApiClient.preRequests.create({
+    const payload = {
         patient_id: AppStore.patient.patientId,
         department: data.department,
         visit_type: ["Admit", "Emergency", "Consultation"].includes(data.type) ? data.type : "Consultation",
         requested_date: data.date || undefined,
         requested_time: data.time || undefined,
-    });
+    };
+    if (data.doctorId) payload.doctor_id = Number(data.doctorId);
+    if (data.note) payload.note = data.note;
+
+    const result = await window.ApiClient.preRequests.create(payload);
     await refreshStore();
     notifyPatientStoreUpdated();
     return result.pre_request_id;

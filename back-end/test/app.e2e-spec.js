@@ -112,7 +112,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
   it("prevents a patient from reading another patient's bills", async () => {
     const patient = await request(app)
       .post('/auth/login')
-      .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
+      .send({ email: 'arjun.k@hosp.com', password: 'Hamiz@123' })
       .expect(200);
     if (b(patient).patient.patient_id !== 201)
       throw new Error('Expected patient_id 201');
@@ -131,7 +131,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
   it('blocks a patient from every list-all-patients/payments/receipts endpoint', async () => {
     const patient = await request(app)
       .post('/auth/login')
-      .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
+      .send({ email: 'arjun.k@hosp.com', password: 'Hamiz@123' })
       .expect(200);
     const auth = `Bearer ${b(patient).token}`;
 
@@ -176,11 +176,11 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
 
     const otherPatient = await request(app)
       .post('/auth/login')
-      .send({ email: 'salma@hosp.com', password: 'Salma@123' })
+      .send({ email: 'priyanka.n@hosp.com', password: 'Salma@123' })
       .expect(200);
     const owningPatient = await request(app)
       .post('/auth/login')
-      .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
+      .send({ email: 'arjun.k@hosp.com', password: 'Hamiz@123' })
       .expect(200);
 
     // A different patient can neither see nor cancel it
@@ -223,7 +223,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
 
     const patient201 = await request(app)
       .post('/auth/login')
-      .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
+      .send({ email: 'arjun.k@hosp.com', password: 'Hamiz@123' })
       .expect(200);
     const list = await request(app)
       .get('/pre-requests')
@@ -389,7 +389,7 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
 
   it('lets PRE reschedule (field update) but blocks Patient from the same endpoint', async () => {
     const pre = await login('rekha.pre@hosp.com', 'Pre@123');
-    const patient = await login('hamiz@hosp.com', 'Hamiz@123');
+    const patient = await login('arjun.k@hosp.com', 'Hamiz@123');
 
     const created = await request(app)
       .post('/pre-requests')

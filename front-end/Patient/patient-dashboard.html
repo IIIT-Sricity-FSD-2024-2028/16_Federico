@@ -32,47 +32,46 @@
 
         <div class="topbar-right">
             <button class="user-chip" type="button" id="profile-chip" aria-label="Go to profile">
-                <div class="user-avatar">HA</div>
+                <div class="user-avatar" id="topbar-avatar">--</div>
                 <div class="user-meta">
-                    <strong>Hamiz</strong>
+                    <strong id="topbar-name">Loading...</strong>
                     <span>Patient</span>
                 </div>     
             </button>
         </div>
     </header>
 
-
-
     <main class="dashboard-page">
         <p class="welcome-text">
-            Welcome back, <span>Hamiz</span> ! Here's your health summary for today.
+            Welcome back, <span>Patient</span>! Here's your health summary for today.
         </p>
 
         <section class="dashboard-layout">
             <div class="content-area">
                 <section class="summary-grid">
                     <article class="summary-card">
-                        <h2>3</h2>
+                        <h2>--</h2>
                         <p>Upcoming Appointments</p>
-                        <small class="info-teal">Next: Mar 8, 9:00 AM</small>
+                        <small class="info-teal">Loading...</small>
                     </article>
 
                     <article class="summary-card">
-                        <h2>₹2,450</h2>
+                        <h2>--</h2>
                         <p>Pending Bills</p>
-                        <small class="info-warning">Due: Today</small>
+                        <small class="info-warning">Loading...</small>
                     </article>
 
                     <article class="summary-card">
-                        <h2>Mar 2</h2>
+                        <h2>--</h2>
                         <p>Last Visit</p>
+                        <small>Loading...</small>
                     </article>
                 </section>
 
                 <section class="panel table-panel">
                     <div class="panel-head">
                         <h3>Upcoming Appointments</h3>
-                        <a href="#" id="view-all-appt">View All →</a>
+                        <button type="button" class="view-all-link" id="view-all-appt">View All →</button>
                     </div>
 
                     <div class="table-wrap">
@@ -86,30 +85,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Mar 8, 2026</td>
-                                    <td>9:00 AM</td>
-                                    <td>Cardiology</td>
-                                    <td><span class="status confirmed">Confirmed</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mar 10, 2026</td>
-                                    <td>11:00 AM</td>
-                                    <td>Neurology</td>
-                                    <td><span class="status scheduled">Scheduled</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mar 15, 2026</td>
-                                    <td>2:00 PM</td>
-                                    <td>Orthopedics</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mar 20, 2026</td>
-                                    <td>10:30 AM</td>
-                                    <td>Cardiology</td>
-                                    <td><span class="status scheduled">Scheduled</span></td>
-                                </tr>
+                                <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading appointments...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -118,7 +94,7 @@
                 <section class="panel visits-panel">
                     <div class="panel-head">
                         <h3>Recent Visits</h3>
-                        <a href="#" id="toggle-visits">View History →</a>
+                        <button type="button" class="view-all-link" id="toggle-visits">View History →</button>
                     </div>
 
                     <div class="visit-list">
@@ -152,71 +128,53 @@
                     </div>
 
                     <div class="profile-head">
-                        <div class="profile-avatar">HA</div>
+                        <div class="profile-avatar">--</div>
                         <div class="profile-meta">
-                            <strong>Hamiz Ahmed</strong>
-                            <span>UHID: FED-2026-5432</span>
+                            <strong>Loading...</strong>
+                            <span>UHID: --</span>
                         </div>
                     </div>
 
                     <div class="profile-grid">
                         <div class="label">Age / Gender</div>
-                        <div class="value">19 yrs / Male</div>
+                        <div class="value">--</div>
 
                         <div class="label">Blood Group</div>
-                        <div class="value">B+</div>
+                        <div class="value">--</div>
 
                         <div class="label">Contact</div>
-                        <div class="value">+91 89123 45678</div>
+                        <div class="value">--</div>
                     </div>
 
                     <hr />
 
                     <div class="profile-grid insurance-grid">
                         <div class="label">Insurance</div>
-                        <div class="value"><span class="verify-badge">Verified</span></div>
+                        <div class="value"><span class="verify-badge">--</span></div>
 
                         <div class="label">Provider</div>
-                        <div class="value">Star Health</div>
+                        <div class="value">--</div>
 
                         <div class="label">Coverage</div>
-                        <div class="value">₹5,00,000</div>
+                        <div class="value">--</div>
                     </div>
                 </section>
 
                 <section class="panel side-panel">
                     <div class="panel-head">
                         <h3>Bill Summary</h3>
-                        <a href="#" id="view-all-bills">View All →</a>
+                        <button type="button" class="view-all-link" id="view-all-bills">View All →</button>
                     </div>
 
                     <div class="bill-list">
                         <div class="bill-item">
-                            <div>
-                                <strong>Bill #B-2026-001</strong>
-                                <span>Cardiology – Mar 2</span>
-                            </div>
-                            <div class="bill-meta">
-                                <span class="status pending">Pending</span>
-                                <strong>₹1,800</strong>
-                            </div>
-                        </div>
-
-                        <div class="bill-item">
-                            <div>
-                                <strong>Bill #B-2026-002</strong>
-                                <span>Diagnostics – Feb 20</span>
-                            </div>
-                            <div class="bill-meta">
-                                <span class="status pending">Pending</span>
-                                <strong>₹650</strong>
-                            </div>
+                            <div><span style="color:var(--muted)">Loading bills...</span></div>
                         </div>
                     </div>
 
                     <div class="bill-total">
                         <span>Total Due</span>
-                        <strong>₹2,450</strong>
+                        <strong>--</strong>
                     </div>
                 </section>
 
@@ -225,181 +183,130 @@
                         <h3>Documents From HOM</h3>
                     </div>
 
-                    <div id="patient-documents-list">
-                        <div class="bill-list">
-                            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #475569;">Receipts</h4>
+                    <div id="patient-documents-list" class="hom-documents-wrap">
+                        <div class="doc-group">
+                            <div class="doc-group-header">
+                                <span class="doc-group-title">🧾 Receipts</span>
+                            </div>
                             <div id="documents-receipts"></div>
                         </div>
-                        <div class="bill-list" style="margin-top: 14px;">
-                            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #475569;">Discharge Summary</h4>
+
+                        <div class="doc-group">
+                            <div class="doc-group-header">
+                                <span class="doc-group-title">📋 Discharge Summary</span>
+                            </div>
                             <div id="documents-discharge"></div>
                         </div>
-                        <div class="bill-list" style="margin-top: 14px;">
-                            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #475569;">EOD Bills</h4>
+
+                        <div class="doc-group">
+                            <div class="doc-group-header">
+                                <span class="doc-group-title">📑 EOD Bills</span>
+                            </div>
                             <div id="documents-eod"></div>
                         </div>
                     </div>
                 </section>
             </aside>
         </section>
-
-        <!-- ALL APPOINTMENTS MODAL -->
-        <div class="modal-overlay hidden" id="modal-appointments">
-            <div class="dash-modal" role="dialog" aria-modal="true" aria-labelledby="modal-appt-title">
-                <div class="modal-head">
-                    <h2 id="modal-appt-title">All Upcoming Appointments</h2>
-                    <button class="modal-close" type="button" data-modal="modal-appointments" aria-label="Close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Department</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Mar 8, 2026</td>
-                                    <td>9:00 AM</td>
-                                    <td>Cardiology</td>
-                                    <td><span class="status confirmed">Confirmed</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mar 10, 2026</td>
-                                    <td>11:00 AM</td>
-                                    <td>Neurology</td>
-                                    <td><span class="status scheduled">Scheduled</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mar 15, 2026</td>
-                                    <td>2:00 PM</td>
-                                    <td>Orthopedics</td>
-                                    <td>Review</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mar 20, 2026</td>
-                                    <td>10:30 AM</td>
-                                    <td>Cardiology</td>
-                                    <td>Check-up</td>
-                                    <td><span class="status scheduled">Scheduled</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Apr 3, 2026</td>
-                                    <td>9:00 AM</td>
-                                    <td>General</td>
-                                    <td>Annual Check</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="modal-footer-action">
-                        <button class="modal-book-btn" type="button" id="modal-book-new">
-                            + Book New Appointment
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- VISIT HISTORY MODAL -->
-        <div class="modal-overlay hidden" id="modal-visits">
-            <div class="dash-modal" role="dialog" aria-modal="true" aria-labelledby="modal-visits-title">
-                <div class="modal-head">
-                    <h2 id="modal-visits-title">Full Visit History</h2>
-                    <button class="modal-close" type="button" data-modal="modal-visits" aria-label="Close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="visit-list modal-visit-list">
-                        <div class="visit-item">
-                            <span style="color: var(--muted);">No visit history.</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- BILL SUMMARY MODAL -->
-        <div class="modal-overlay hidden" id="modal-bills">
-            <div class="dash-modal" role="dialog" aria-modal="true" aria-labelledby="modal-bills-title">
-                <div class="modal-head">
-                    <h2 id="modal-bills-title">Bill Summary</h2>
-                    <button class="modal-close" type="button" data-modal="modal-bills" aria-label="Close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Bill No</th>
-                                    <th>Description</th>
-                                    <th>Amount</th>
-                                    <th>Due Date</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="bill-id-cell">#B-2026-001</td>
-                                    <td>Cardiology – Mar 2</td>
-                                    <td><strong>₹1,800</strong></td>
-                                    <td>Mar 15, 2026</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="bill-id-cell">#B-2026-002</td>
-                                    <td>Diagnostics – Feb 20</td>
-                                    <td><strong>₹650</strong></td>
-                                    <td>Mar 20, 2026</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="bill-id-cell">#B-2025-041</td>
-                                    <td>Annual Check-up – Dec</td>
-                                    <td><strong>₹1,500</strong></td>
-                                    <td>Dec 20, 2025</td>
-                                    <td><span class="status confirmed">Paid</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="bill-id-cell">#B-2025-039</td>
-                                    <td>Neurology – Nov</td>
-                                    <td><strong>₹3,300</strong></td>
-                                    <td>Dec 5, 2025</td>
-                                    <td><span class="status confirmed">Paid</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="modal-bill-total">
-                        <span>Total Outstanding</span>
-                        <strong>₹2,450</strong>
-                    </div>
-                    <div class="modal-footer-action">
-                        <button class="modal-book-btn" type="button" id="modal-go-bills">
-                            View Full Billing Page →
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </main>
 
+    <!-- ALL APPOINTMENTS MODAL -->
+    <div class="modal-overlay hidden" id="modal-appointments">
+        <div class="dash-modal" role="dialog" aria-modal="true" aria-labelledby="modal-appt-title">
+            <div class="modal-head">
+                <h2 id="modal-appt-title">All Appointments</h2>
+                <button class="modal-close" type="button" data-modal="modal-appointments" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Department / Doctor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading appointments...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer-action">
+                    <button class="modal-book-btn" type="button" id="modal-book-new">
+                        + Book New Appointment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- VISIT HISTORY MODAL -->
+    <div class="modal-overlay hidden" id="modal-visits">
+        <div class="dash-modal" role="dialog" aria-modal="true" aria-labelledby="modal-visits-title">
+            <div class="modal-head">
+                <h2 id="modal-visits-title">Full Visit History</h2>
+                <button class="modal-close" type="button" data-modal="modal-visits" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="visit-list modal-visit-list">
+                    <div class="visit-item">
+                        <span style="color: var(--muted);">No visit history recorded yet.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- BILL SUMMARY MODAL -->
+    <div class="modal-overlay hidden" id="modal-bills">
+        <div class="dash-modal" role="dialog" aria-modal="true" aria-labelledby="modal-bills-title">
+            <div class="modal-head">
+                <h2 id="modal-bills-title">Bill Summary</h2>
+                <button class="modal-close" type="button" data-modal="modal-bills" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Bill No</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading bills...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-bill-total">
+                    <span>Total Outstanding</span>
+                    <strong>--</strong>
+                </div>
+                <div class="modal-footer-action">
+                    <button class="modal-book-btn" type="button" id="modal-go-bills">
+                        View Full Billing Page →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
   <script>window.APP_MODULE = "PATIENT";</script>
-<script src="../shared/constants.js"></script>
-<script src="../shared/sanitizer.js"></script>
-<script src="../shared/insurance.js"></script>
-<script src="../shared/api-client.js"></script>
-<script src="../shared/rbac.js"></script>
-<script src="../shared/ui-feedback.js"></script>
-<script src="../shared/auth-guard.js"></script>
-<script src="js/patient-store.js"></script>
-<script src="patient-dashboard.js"></script>
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/formatters.js"></script>
+  <script src="../shared/sanitizer.js"></script>
+  <script src="../shared/insurance.js"></script>
+  <script src="../shared/api-client.js"></script>
+  <script src="../shared/rbac.js"></script>
+  <script src="../shared/ui-feedback.js"></script>
+  <script src="../shared/auth-guard.js"></script>
+  <script src="js/patient-store.js"></script>
+  <script src="patient-dashboard.js"></script>
 </body>
 
 </html>

@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Emergency Patients</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Cases – Federico PRE</title>
   <link rel="stylesheet" href="../../shared/design-tokens.css">
   <link rel="stylesheet" href="../../shared/material-components.css">
   <link rel="stylesheet" href="../../shared/ui-feedback.css">
@@ -11,20 +12,21 @@
   <link rel="stylesheet" href="../css/components.css">
 </head>
 <body>
+<!-- Navbar -->
 <div class="navbar">
   <div class="logo">
     <div class="icon">F</div>
     <div class="text">
       <h2>Federico</h2>
-      <p>patient relational executive</p>
+      <p>Patient Relational Executive</p>
     </div>
   </div>
 
   <ul class="nav-links">
     <li><a href="PRE.html">Dashboard</a></li>
-    <li class="active"><a href="emergency.html">Emergency cases</a></li>
-    <li><a href="patient-records.html">Patient record</a></li>
-    <li><a href="doctor.html">Doctor availability</a></li>
+    <li class="active"><a href="emergency.html">Emergency Cases</a></li>
+    <li><a href="patient-records.html">Patient Record</a></li>
+    <li><a href="doctor.html">Doctor Availability</a></li>
     <li><a href="appointment.html">Create Appointment</a></li>
     <li><a href="hom.html">HOM</a></li>
   </ul>
@@ -32,35 +34,146 @@
   <button class="logout">LOG OUT</button>
 </div>
 
-<div class="container">
-  <h2>Emergency Patient Records</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Patient ID</th>
-        <th>Name</th>
-        <th>Age</th>
-        <th>Gender</th>
-        <th>Department</th>
-        <th>Doctor</th>
-        <th>Appointment Date</th>
-        <th>Appointment Time</th>
-        <th>Status</th>
-        <th>Bed No</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="admittedTable"></tbody>
-  </table>
+<!-- Emergency KPI Cards -->
+<div class="cards">
+  <div class="card">
+    <h3>Active Emergencies</h3>
+    <p id="total-emergency">0 Cases</p>
+  </div>
+  <div class="card">
+    <h3>Awaiting Bed Allocation</h3>
+    <p id="awaiting-bed" style="color:var(--status-warning-fg, #b45309);">0 Cases</p>
+  </div>
+  <div class="card">
+    <h3>Admitted Under Care</h3>
+    <p id="admitted-emergency" style="color:var(--status-success, #15803d);">0 Patients</p>
+  </div>
+  <div class="card">
+    <h3>Discharge in Progress</h3>
+    <p id="discharge-emergency" style="color:var(--status-error, #b91c1c);">0 In Queue</p>
+  </div>
 </div>
 
-  <script>window.APP_MODULE = "PRE";</script>
+<!-- Main Emergency Container -->
+<div class="container">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+    <div>
+      <h2 style="margin:0;">Emergency Patient Triage &amp; Bed Tracking</h2>
+      <p style="margin:4px 0 0; color:var(--color-muted-fg); font-size:13px;">Manage critical emergency intakes, request priority bed allocations from HOM, and process inpatient discharges.</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <input type="text" id="emergencySearch" placeholder="Search patient, UHID, dept..." style="padding:10px 16px; border:1px solid var(--md-outline, #cbd5e1); border-radius:var(--radius-full, 99px); font-size:13px; outline:none; min-width:240px;">
+      <button class="btn green" id="btnRegisterEmergency" type="button" onclick="openEmergencyModal()">+ Register Walk-In Emergency</button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient ID</th>
+          <th>Patient Name</th>
+          <th>Age / Gender</th>
+          <th>Department / Complaint</th>
+          <th>Attending Doctor</th>
+          <th>Triage Date &amp; Time</th>
+          <th>Triage Status</th>
+          <th>Bed Allocation</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="admittedTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Walk-In Emergency Registration Modal -->
+<div id="emergencyModal" class="popup" role="dialog" aria-modal="true" aria-labelledby="emergencyModalTitle">
+  <div class="emergency-modal-content">
+    <div class="emergency-modal-head">
+      <div>
+        <h2 id="emergencyModalTitle">Register Walk-In Emergency</h2>
+        <p>Quickly register an urgent triage case. A priority bed request will automatically be queued to HOM.</p>
+      </div>
+      <button class="emergency-modal-close" type="button" onclick="closeEmergencyModal()" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="emergency-form-group">
+      <label class="emergency-form-label" for="emergencyPatientSelect">Patient Selection</label>
+      <select id="emergencyPatientSelect" class="emergency-form-control">
+        <option value="">-- Select Existing Patient --</option>
+      </select>
+    </div>
+
+    <div id="quickPatientFields" class="quick-patient-box" style="display:none;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+        <div>
+          <label class="emergency-form-label" for="quickName">Full Name</label>
+          <input type="text" id="quickName" placeholder="Patient Full Name" class="emergency-form-control">
+        </div>
+        <div>
+          <label class="emergency-form-label" for="quickAge">Age (Years)</label>
+          <input type="number" id="quickAge" placeholder="Age" min="1" max="120" class="emergency-form-control">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="emergency-form-label" for="quickGender">Gender</label>
+          <select id="quickGender" class="emergency-form-control">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="emergency-form-label" for="quickPhone">Phone Number</label>
+          <input type="text" id="quickPhone" placeholder="10-digit Phone" class="emergency-form-control">
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:right; margin-bottom:16px;">
+      <button type="button" id="btnToggleNewPatient" style="background:none; border:none; color:var(--md-primary, #0f766e); font-size:12px; font-weight:600; cursor:pointer; padding:4px 0;" onclick="toggleQuickPatientFields()">+ Or Quick Create New Patient</button>
+    </div>
+
+    <div class="emergency-form-group">
+      <label class="emergency-form-label" for="emergencyDeptSelect">Emergency Department / Unit</label>
+      <select id="emergencyDeptSelect" class="emergency-form-control">
+        <option value="Emergency Medicine">Emergency Medicine</option>
+        <option value="Trauma &amp; Surgery">Trauma &amp; Surgery</option>
+        <option value="Cardiology (ICU)">Cardiology (ICU)</option>
+        <option value="Critical Care (CCU)">Critical Care (CCU)</option>
+        <option value="Pediatrics Emergency">Pediatrics Emergency</option>
+        <option value="Neurology Emergency">Neurology Emergency</option>
+      </select>
+    </div>
+
+    <div class="emergency-form-group">
+      <label class="emergency-form-label" for="emergencyDoctorSelect">On-Duty Emergency Physician</label>
+      <select id="emergencyDoctorSelect" class="emergency-form-control">
+        <option value="">-- Assign Emergency Specialist (Optional) --</option>
+      </select>
+    </div>
+
+    <div class="emergency-form-group">
+      <label class="emergency-form-label" for="emergencyNotes">Chief Complaint / Clinical Triage Notes</label>
+      <textarea id="emergencyNotes" rows="3" placeholder="e.g., Acute respiratory distress, SPO2 88%, severe chest pain..." class="emergency-form-control" style="resize:vertical;"></textarea>
+    </div>
+
+    <div class="emergency-modal-actions">
+      <button class="btn reject" type="button" onclick="closeEmergencyModal()">Cancel</button>
+      <button class="btn green" type="button" onclick="submitEmergencyRegistration()">Register &amp; Request Bed</button>
+    </div>
+  </div>
+</div>
+
+<script>window.APP_MODULE = "PRE";</script>
 <script src="../../shared/constants.js"></script>
 <script src="../../shared/api-client.js"></script>
+<script src="../../shared/formatters.js"></script>
 <script src="../../shared/rbac.js"></script>
 <script src="../../shared/ui-feedback.js"></script>
 <script src="../../shared/auth-guard.js"></script>
-<script src="../../shared/formatters.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/emergency.js"></script>
 <script src="../js/logout.js"></script>

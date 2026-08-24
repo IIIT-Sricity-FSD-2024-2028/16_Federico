@@ -3,29 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Billing Summary | Federico Hospital HOM</title>
+    <title>Billing Ledger | Federico Hospital HOM</title>
     <link rel="stylesheet" href="../shared/design-tokens.css">
     <link rel="stylesheet" href="../shared/material-components.css">
     <link rel="stylesheet" href="../shared/ui-feedback.css">
     <link rel="stylesheet" href="global.css">
     <style>
-        /* .dashboard-container / .header-section (base) / .metrics-grid /
-           .metric-card-icon / .data-table now live once in global.css —
-           this screen adds only its shorter header margin and card-style
-           table wrapper below. */
+        /* Billing-specific overrides on top of global.css shared base */
         .header-section { margin-bottom: 24px; }
-        .table-container { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); }
 
-        /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
-           now live once in global.css (Material You dialog styling) instead
-           of being duplicated in every screen's own <style> block. */
+        .info-banner {
+            background: var(--status-info-bg, #e0f2fe);
+            border: 1px solid rgba(14, 165, 233, 0.25);
+            border-radius: var(--radius-base);
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: var(--status-info-fg, #075985);
+            line-height: 1.5;
+        }
 
-        .summary-bar { background: var(--neutral-bg); border-radius: var(--radius-base); padding: 16px; display: flex; align-items: center; justify-content: space-between; }
-        .summary-divider { width: 1px; height: 40px; background: var(--border); }
-        
-        .breakdown-table th { padding: 8px 16px; font-size: 12px; }
-        .breakdown-table td { padding: 8px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
+        .summary-bar {
+            background: var(--neutral-bg);
+            border-radius: var(--radius-base);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+        .summary-divider { width: 1px; height: 36px; background: var(--border); }
+        .summary-field { display: flex; flex-direction: column; gap: 4px; }
+        .summary-field-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); }
+        .summary-field-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+
+        .breakdown-table th { padding: 10px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; background: var(--md-surface-container-high, #ece6f0); color: var(--text-secondary); }
+        .breakdown-table td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
         .breakdown-table tr:last-child td { border-bottom: none; }
+
+        .total-bar {
+            background: var(--primary-light, #e8def8);
+            border: 1px solid rgba(103, 80, 164, 0.2);
+            border-radius: var(--radius-base);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Consistent close button across all modals */
+        .modal-close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background var(--trans), color var(--trans);
+        }
+        .modal-close-btn:hover { background: var(--neutral-bg); color: var(--text-primary); }
     </style>
 </head>
 <body>
@@ -35,88 +76,98 @@
         <div class="header-section">
             <div>
                 <h1 class="h1" style="margin-bottom: 8px;">Patient Billing Ledger</h1>
-                <p class="body-text">Administrative billing overview — Room charges and supply costs</p>
+                <p class="body-text">Administrative billing overview — room charges, services, and supply costs</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <input type="text" class="input" placeholder="Search billing" style="width: 240px;" id="billing-search">
-                <button class="btn btn-primary btn-default" id="btn-open-post-service">+ Post Service Used</button>
-                <button class="btn btn-secondary btn-default" id="billing-export">Export Ledger</button>
+                <button class="btn btn-secondary btn-default" id="billing-export">Export CSV</button>
+                <button class="btn btn-primary btn-default" id="btn-open-post-service">+ Post Service</button>
             </div>
         </div>
 
-        <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: var(--radius-base); padding: 16px; margin-bottom: 24px;">
-            <p style="color: #92400E; font-size: 14px; margin: 0;">
-                ℹ You have view-only access. When HOM posts a User ID and Service Used, it is sent to Finance Associate (FA) Recent Charges for review and approval.
-            </p>
+        <div class="info-banner">
+            <strong>View-Only Notice:</strong> HOM may post a service charge for review by Finance Associate (FA). Once submitted, FA processes final approval and ledger dispatch.
         </div>
 
-        <div class="metrics-grid" id="metrics-container">
-            </div>
+        <div class="metrics-grid" id="metrics-container"></div>
 
-        <div class="table-container">
-            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border);">
-                <h2 class="h2" style="font-size: 18px; margin: 0;">Active Patient Ledgers</h2>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Patient</th>
-                        <th>UHID</th>
-                        <th>Department</th>
-                        <th>Bed</th>
-                        <th>Total Billed</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="billing-tbody">
-                    </tbody>
-            </table>
-            
-            <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
-                <p class="text-small" id="pagination-text">Showing ledgers</p>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" style="width: 32px; padding: 0;">1</button>
-                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">2</button>
+        <!-- Filter Bar -->
+        <div class="filter-bar" style="border-radius: var(--radius-lg); margin-bottom: 24px; gap: 12px; flex-wrap: wrap;">
+            <input type="text" class="input" placeholder="Search by patient name or UHID..." style="flex: 2; min-width: 220px;" id="billing-search">
+            <select class="input" id="billing-status-filter" style="flex: 1; min-width: 150px; appearance: auto;">
+                <option value="">All Statuses</option>
+                <option value="OPEN">Open</option>
+                <option value="DISPATCHED">Dispatched</option>
+                <option value="PAID">Paid</option>
+            </select>
+            <button class="btn btn-outline btn-default" style="height: 44px;" id="billing-clear-filters">Clear</button>
+        </div>
+
+        <!-- Ledger Table -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 20px 24px 16px 24px; border-bottom: 1px solid var(--border); background: var(--md-surface-container); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="h2" style="font-size: 18px; margin: 0;">Active Patient Ledgers</h2>
+                    <p class="body-text" style="font-size: 13px; margin-top: 2px;">Real-time billing status for all inpatient admissions</p>
                 </div>
+            </div>
+            <div class="table-scroll-container" style="max-height: 540px; min-height: 320px; border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>UHID</th>
+                            <th>Department</th>
+                            <th>Bed</th>
+                            <th>Admission Date</th>
+                            <th>Total Billed</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="billing-tbody"></tbody>
+                </table>
+            </div>
+
+            <div style="padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); background: var(--md-surface-container);">
+                <p class="text-small" id="pagination-text">Loading ledgers...</p>
             </div>
         </div>
     </main>
 
-    <!-- Modal: Post Service Used (HOM -> FA) -->
+    <!-- Modal: Post Service Used (HOM → FA) -->
     <div class="modal-overlay" id="modal-post-service">
-        <div class="modal-content" style="max-width: 540px;">
+        <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
-                <h2 class="h2" style="font-size: 20px;">Post Service Used</h2>
-                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+                <h2 class="h2" style="font-size: 18px;">Post Service Used</h2>
+                <button class="modal-close-btn" onclick="closeModals()">✕</button>
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
-                <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
-                    Submit the User ID and Service used. This will be sent directly to FA Recent Charges for approval.
+                <p style="font-size: 13px; color: var(--text-secondary); margin: 0; padding: 10px 14px; background: var(--status-info-bg, #e0f2fe); border-radius: var(--radius-sm); color: var(--status-info-fg, #075985);">
+                    Select a patient and the service they used. This will be forwarded to Finance Associate for approval.
                 </p>
                 <div>
-                    <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">User ID / Patient *</label>
-                    <select class="input" id="post-admission-select" style="width: 100%;">
-                        <option value="">Select patient / user...</option>
+                    <label class="label" style="display: block; margin-bottom: 6px;">Patient / User ID <span style="color: var(--error);">*</span></label>
+                    <select class="input" id="post-admission-select" style="width: 100%; height: 44px; border-radius: var(--radius-base); appearance: auto;">
+                        <option value="">Select patient...</option>
                     </select>
                 </div>
                 <div>
-                    <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">Service Used *</label>
-                    <select class="input" id="post-service-select" style="width: 100%;">
-                        <option value="">Select service used...</option>
+                    <label class="label" style="display: block; margin-bottom: 6px;">Service Used <span style="color: var(--error);">*</span></label>
+                    <select class="input" id="post-service-select" style="width: 100%; height: 44px; border-radius: var(--radius-base); appearance: auto;">
+                        <option value="">Select service...</option>
                     </select>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div>
-                        <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">Quantity *</label>
-                        <input type="number" class="input" id="post-quantity" min="1" value="1" style="width: 100%;">
+                        <label class="label" style="display: block; margin-bottom: 6px;">Quantity <span style="color: var(--error);">*</span></label>
+                        <input type="number" class="input" id="post-quantity" min="1" value="1" style="width: 100%; border-radius: var(--radius-base);">
                     </div>
                     <div>
-                        <label class="label" style="display:block; margin-bottom: 6px; font-weight: 600;">Charge Amount</label>
-                        <input type="text" class="input" id="post-total-preview" value="₹0" readonly style="width: 100%; background: var(--neutral-bg); font-weight: 600;">
+                        <label class="label" style="display: block; margin-bottom: 6px;">Charge Amount</label>
+                        <input type="text" class="input" id="post-total-preview" value="₹0" readonly style="width: 100%; border-radius: var(--radius-base); background: var(--neutral-bg); font-weight: 600; color: var(--text-primary);">
                     </div>
                 </div>
-                <div id="post-modal-error" style="display:none; font-size: 13px; color: var(--danger, #EF4444); font-weight: 500;"></div>
+                <div id="post-modal-error" style="display: none; font-size: 13px; color: var(--error); font-weight: 500; padding: 8px 12px; background: var(--error-bg); border-radius: var(--radius-sm);"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-default" onclick="closeModals()">Cancel</button>
@@ -125,38 +176,55 @@
         </div>
     </div>
 
+    <!-- Modal: Billing Detail -->
     <div class="modal-overlay" id="modal-billing-detail">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 760px;">
             <div class="modal-header">
-                <h2 class="h2" style="font-size: 20px;" id="bd-title">Billing Details</h2>
-                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
+                <h2 class="h2" style="font-size: 18px;" id="bd-title">Billing Details</h2>
+                <button class="modal-close-btn" onclick="closeModals()">✕</button>
             </div>
-            
+
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
-                
+
+                <!-- Patient Summary Bar -->
                 <div class="summary-bar">
-                    <div style="display: flex; gap: 32px; align-items: center;">
-                        <div><div class="label">UHID</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="bd-uhid"></div></div>
-                        <div class="summary-divider"></div>
-                        <div><div class="label">Department</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="bd-dept"></div></div>
-                        <div class="summary-divider"></div>
-                        <div><div class="label">Bed</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="bd-bed"></div></div>
-                        <div class="summary-divider"></div>
-                        <div><div class="label">Status</div><div style="margin-top: 4px;" id="bd-status"></div></div>
+                    <div class="summary-field">
+                        <div class="summary-field-label">UHID</div>
+                        <div class="summary-field-value" id="bd-uhid">—</div>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-field">
+                        <div class="summary-field-label">Department</div>
+                        <div class="summary-field-value" id="bd-dept">—</div>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-field">
+                        <div class="summary-field-label">Bed</div>
+                        <div class="summary-field-value" id="bd-bed">—</div>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-field">
+                        <div class="summary-field-label">Admission Date</div>
+                        <div class="summary-field-value" id="bd-admission-date">—</div>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-field">
+                        <div class="summary-field-label">Ledger Status</div>
+                        <div id="bd-status"></div>
                     </div>
                 </div>
 
+                <!-- Charges Breakdown -->
                 <div>
-                    <h3 class="h3" style="font-size: 18px; margin-bottom: 16px;">Charges Breakdown</h3>
-
+                    <h3 class="h3" style="font-size: 15px; margin-bottom: 12px;">Charges Breakdown</h3>
                     <div style="border: 1px solid var(--border); border-radius: var(--radius-base); overflow: hidden;">
-                        <table class="w-full breakdown-table" style="width: 100%; text-align: left;">
+                        <table class="w-full breakdown-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                             <thead>
                                 <tr>
-                                    <th style="color: var(--text-secondary);">Service</th>
-                                    <th style="text-align: right; color: var(--text-secondary);">Qty</th>
-                                    <th style="text-align: right; color: var(--text-secondary);">Unit Price</th>
-                                    <th style="text-align: right; color: var(--text-secondary);">Amount</th>
+                                    <th>Service</th>
+                                    <th style="text-align: right;">Qty</th>
+                                    <th style="text-align: right;">Unit Price</th>
+                                    <th style="text-align: right;">Amount</th>
                                 </tr>
                             </thead>
                             <tbody id="bd-entries-tbody"></tbody>
@@ -164,28 +232,31 @@
                     </div>
                 </div>
 
-                <div style="background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius-base); padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 18px; font-weight: 600;">Total Billed</span>
-                    <span style="font-size: 24px; font-weight: 600; color: var(--primary);" id="bd-total">-</span>
+                <!-- Total Billed -->
+                <div class="total-bar">
+                    <span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">Total Billed</span>
+                    <span style="font-size: 24px; font-weight: 700; color: var(--primary);" id="bd-total">—</span>
                 </div>
 
+                <!-- Payment History -->
                 <div>
-                    <h3 class="h3" style="font-size: 14px; margin-bottom: 8px;">Payment History</h3>
-                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);" id="bd-payments">
-                        <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">No payments recorded yet</p>
+                    <h3 class="h3" style="font-size: 15px; margin-bottom: 10px;">Payment History</h3>
+                    <div style="background: var(--neutral-bg); padding: 14px 16px; border-radius: var(--radius-base);" id="bd-payments">
+                        <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Loading...</p>
                     </div>
                 </div>
 
-                <div style="background: #E0F2FE; border-radius: var(--radius-base); padding: 12px;">
-                    <p style="font-size: 14px; color: #075985; margin: 0;">
-                        <strong>Note:</strong> Ledger creation and dispatch are handled by Finance Associate.
+                <!-- Note -->
+                <div style="background: var(--status-info-bg, #e0f2fe); border-radius: var(--radius-sm); padding: 10px 14px;">
+                    <p style="font-size: 13px; color: var(--status-info-fg, #075985); margin: 0;">
+                        <strong>Note:</strong> Ledger creation, dispatch, and final settlement are handled by Finance Associate.
                     </p>
                 </div>
             </div>
-            
+
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-default" onclick="closeModals()">Close</button>
-                <button class="btn btn-outline btn-default" onclick="window.location.href='screen-03-patient-flow.html'">View Full Patient Record</button>
+                <button class="btn btn-outline btn-default" id="bd-view-patient-btn">View Patient Record</button>
             </div>
         </div>
     </div>
@@ -201,6 +272,7 @@
 <script src="hom-helpers.js"></script>
 <script src="ui-template.js"></script>
 
+<script src="../shared/shared-nav.js"></script>
 <script src="shared-nav.js"></script>
 <script src="billing.js"></script>
 </body>

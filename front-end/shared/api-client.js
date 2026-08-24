@@ -160,9 +160,19 @@
     BASE_URL: API_BASE_URL,
     withAsyncLock: withAsyncLock,
 
+    // Session accessors — exposed so rbac.js and auth-guard.js can read/write
+    // the session object without duplicating localStorage logic here.
+    getSession: getSession,
+    setSession: setSession,
+    clearSession: clearSession,
+
     auth: {
-      login: async function (email, password) {
-        var payload = await request("POST", "/auth/login", { email: email, password: password }, { auth: false });
+      login: async function (email, password, organizationId) {
+        var body = { email: email, password: password };
+        if (organizationId !== undefined && organizationId !== null) {
+          body.organization_id = organizationId;
+        }
+        var payload = await request("POST", "/auth/login", body, { auth: false });
         if (payload && payload.token) {
           setSession({
             token: payload.token,
@@ -431,6 +441,15 @@
         update: function (id, patch) {
           return request("PUT", "/ward/bed-requests/" + id, patch);
         },
+        // Convenience wrappers — HOM allocates a specific bed to a pending
+        // request or denies it outright. Both map to the same PUT endpoint
+        // but with different status payloads as the backend expects.
+        allocate: function (requestId, bedId) {
+          return request("PUT", "/ward/bed-requests/" + requestId, { status: "ALLOCATED", bed_id: bedId });
+        },
+        deny: function (requestId) {
+          return request("PUT", "/ward/bed-requests/" + requestId, { status: "DENIED" });
+        },
       },
       emergencies: {
         list: function () {
@@ -594,4 +613,7 @@
   };
 
   window.ApiClient = Api;
+  // Alias — several portal scripts (Admin, HOM, PRE, FA) and login-page.js
+  // reference `window.API`. Both names point at the same object so either works.
+  window.API = Api;
 })();

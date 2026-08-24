@@ -7,6 +7,16 @@
 document.addEventListener('DOMContentLoaded', async () => {
   bindControls();
   await loadAndRender();
+
+  // Auto-refresh patient flow data every 15 seconds
+  setInterval(() => {
+    if (!document.hidden) loadAndRender();
+  }, 15000);
+
+  // Instant refresh on tab focus
+  window.addEventListener('focus', () => {
+    loadAndRender();
+  });
 });
 
 let flowData = {};
@@ -14,15 +24,13 @@ let currentSelectedRequest = null;
 let flowFilters = { search: '', department: '', status: '', dateRange: '' };
 
 function bindControls() {
-  ['patient-flow-search', 'patient-flow-filter-search'].forEach((id) => {
-    const input = document.getElementById(id);
-    if (!input) return;
-    input.addEventListener('input', (event) => {
+  const searchInput = document.getElementById('patient-flow-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (event) => {
       flowFilters.search = event.target.value.trim().toLowerCase();
-      syncSearchInputs(event.target.value);
       renderPatientsTable();
     });
-  });
+  }
 
   ['patient-flow-department', 'patient-flow-status', 'patient-flow-date-range'].forEach((id) => {
     const el = document.getElementById(id);
@@ -37,21 +45,18 @@ function bindControls() {
 
   document.getElementById('patient-flow-clear')?.addEventListener('click', () => {
     flowFilters = { search: '', department: '', status: '', dateRange: '' };
-    syncSearchInputs('');
-    document.getElementById('patient-flow-department').value = '';
-    document.getElementById('patient-flow-status').value = '';
-    document.getElementById('patient-flow-date-range').value = '';
+    const searchEl = document.getElementById('patient-flow-search');
+    if (searchEl) searchEl.value = '';
+    const deptEl = document.getElementById('patient-flow-department');
+    if (deptEl) deptEl.value = '';
+    const statusEl = document.getElementById('patient-flow-status');
+    if (statusEl) statusEl.value = '';
+    const dateEl = document.getElementById('patient-flow-date-range');
+    if (dateEl) dateEl.value = '';
     renderPatientsTable();
   });
 
   document.getElementById('patient-flow-export')?.addEventListener('click', exportPatientFlow);
-}
-
-function syncSearchInputs(value) {
-  ['patient-flow-search', 'patient-flow-filter-search'].forEach((id) => {
-    const input = document.getElementById(id);
-    if (input && input.value !== value) input.value = value;
-  });
 }
 
 function setDischargeError(message) {
@@ -65,26 +70,84 @@ const FLOW_STATUSES = ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED', 
 
 async function loadAndRender() {
   const [preRequests, patients, doctors, beds] = await Promise.all([
-    window.ApiClient.preRequests.list(),
-    window.ApiClient.patients.list(),
-    window.ApiClient.doctors.list(),
-    window.ApiClient.wards.beds(),
+    window.ApiClient.preRequests.list().catch(() => []),
+    window.ApiClient.patients.list().catch(() => []),
+    window.ApiClient.doctors.list().catch(() => []),
+    window.ApiClient.wards.beds().catch(() => []),
   ]);
   const doctorsById = {};
-  doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
+  (Array.isArray(doctors) ? doctors : []).forEach((d) => (doctorsById[d.doctor_id] = d));
   const bedsById = {};
-  beds.forEach((b) => (bedsById[b.bed_id] = b));
+  (Array.isArray(beds) ? beds : []).forEach((b) => (bedsById[b.bed_id] = b));
+
+  const validPreRequests = Array.isArray(preRequests) ? preRequests : [];
+  const validPatients = Array.isArray(patients) ? patients : [];
 
   const joined = window.HOMHelpers.joinPreRequestsWithPatients(
-    preRequests.filter((r) => FLOW_STATUSES.includes(r.status)),
-    patients,
+    validPreRequests.filter((r) => FLOW_STATUSES.includes(r.status)),
+    validPatients,
     doctorsById,
   ).map((r) => ({ ...r, bedNumber: bedsById[r.bed_id]?.bed_number || '-' }));
 
   flowData = { rows: joined, bedsById };
+  renderDischargeQueue();
   populateDepartmentFilter();
   renderPatientsTable();
-  renderDispatchQueue();
+}
+
+function renderDischargeQueue() {
+  const tbody = document.getElementById('discharge-queue-tbody');
+  const badge = document.getElementById('discharge-queue-badge');
+  if (!tbody || !badge) return;
+
+  const pending = (flowData.rows || []).filter((r) => r.status === 'DISCHARGE_REQUESTED');
+  const approved = (flowData.rows || []).filter((r) => r.status === 'DISCHARGE_APPROVED');
+
+  badge.innerHTML = window.UI.Badge({
+    variant: pending.length ? 'warning' : 'success',
+    children: pending.length ? `${pending.length} Clearance Pending` : 'All Cleared',
+  });
+
+  if (!pending.length && !approved.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-secondary);">No pending discharge clearance requests from PRE. All active inpatients are under ongoing ward care.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML =
+    pending
+      .map((row) => `
+        <tr>
+          <td style="font-weight: 500; color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(row.patientUhid)}</td>
+          <td>
+            <div style="font-weight: 600; color: var(--text-primary);">${window.HOMHelpers.escapeHtml(row.patientName)}</div>
+            <div style="font-size: 12px; color: var(--text-muted);">${row.patientAge}</div>
+          </td>
+          <td>${window.HOMHelpers.escapeHtml(row.department || 'General')}</td>
+          <td style="font-weight: 500;">${window.HOMHelpers.escapeHtml(row.bedNumber)}</td>
+          <td>${window.HOMHelpers.escapeHtml(row.doctorName)}</td>
+          <td>${window.HOMHelpers.formatDate(row.decided_at || row.created_at)}</td>
+          <td>${window.HOMHelpers.daysSince(row.decided_at || row.created_at)} days</td>
+          <td>${window.UI.Button({ variant: 'primary', size: 'sm', children: 'Approve Clearance', onClick: `openDischargeModal(${row.pre_request_id})` })}</td>
+        </tr>
+      `)
+      .join('') +
+    approved
+      .map((row) => `
+        <tr>
+          <td style="font-weight: 500; color: var(--text-secondary);">${window.HOMHelpers.escapeHtml(row.patientUhid)}</td>
+          <td>
+            <div style="font-weight: 500; color: var(--text-primary);">${window.HOMHelpers.escapeHtml(row.patientName)}</div>
+            <div style="font-size: 12px; color: var(--text-muted);">${row.patientAge}</div>
+          </td>
+          <td>${window.HOMHelpers.escapeHtml(row.department || 'General')}</td>
+          <td>${window.HOMHelpers.escapeHtml(row.bedNumber)}</td>
+          <td>${window.HOMHelpers.escapeHtml(row.doctorName)}</td>
+          <td>${window.HOMHelpers.formatDate(row.decided_at || row.created_at)}</td>
+          <td>${window.HOMHelpers.daysSince(row.decided_at || row.created_at)} days</td>
+          <td><span style="font-size: 12px; color: var(--status-success-fg, #1b5e20); font-weight: 500;">Cleared · Awaiting PRE</span></td>
+        </tr>
+      `)
+      .join('');
 }
 
 function populateDepartmentFilter() {
@@ -113,12 +176,10 @@ function matchesDateRange(row) {
   }
 }
 
-const STATUS_FILTER_MAP = { Admitted: 'ADMITTED', 'Pending Discharge': 'DISCHARGE_REQUESTED', Critical: '__NONE__', Discharged: 'DISCHARGED' };
-
 function getFilteredRows() {
   return (flowData.rows || []).filter((row) => {
     if (flowFilters.department && row.department !== flowFilters.department) return false;
-    if (flowFilters.status && row.status !== (STATUS_FILTER_MAP[flowFilters.status] || flowFilters.status)) return false;
+    if (flowFilters.status && row.status !== flowFilters.status) return false;
     if (!matchesDateRange(row)) return false;
     if (!flowFilters.search) return true;
     const haystack = [row.patientUhid, row.patientName, row.department, row.bedNumber, row.doctorName].join(' ').toLowerCase();
@@ -131,6 +192,11 @@ function renderPatientsTable() {
   if (!tbody) return;
 
   const rows = getFilteredRows();
+  const countEl = document.getElementById('patient-flow-count');
+  if (countEl) {
+    countEl.textContent = `Showing ${rows.length} patient${rows.length === 1 ? '' : 's'}`;
+  }
+
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="9" style="padding: 24px; text-align: center; color: var(--text-secondary);">No patients match the selected filters.</td></tr>`;
     return;
@@ -244,32 +310,48 @@ window.openDischargeFromDetail = function () {
   openDischargeModal(preRequestId);
 };
 
-window.openDischargeModal = function (preRequestId) {
+window.openDischargeModal = async function (preRequestId) {
   const row = (flowData.rows || []).find((r) => r.pre_request_id === preRequestId);
   if (!row) return;
   currentSelectedRequest = row;
 
-  document.getElementById('discharge-title').innerText = `Approve Discharge - ${row.patientName}`;
+  document.getElementById('discharge-title').innerText = `Approve Discharge — ${row.patientName}`;
   document.getElementById('d-patient').innerText = row.patientName;
   document.getElementById('d-uhid').innerText = row.patientUhid;
+  document.getElementById('d-dept').innerText = row.department || 'General';
   document.getElementById('d-bed').innerText = row.bedNumber;
+  document.getElementById('d-physician').innerText = row.doctorName || 'Staff Physician';
   document.getElementById('d-days').innerText = `${window.HOMHelpers.daysSince(row.decided_at || row.created_at)} days`;
+
+  const totalCostEl = document.getElementById('d-total-cost');
+  if (totalCostEl) totalCostEl.innerText = 'Calculating...';
+
   setDischargeError('');
   document.getElementById('modal-initiate-discharge').classList.add('active');
+
+  const billing = await findAdmissionAndLedger(row.patient_id);
+  if (billing && billing.ledger) {
+    const entries = await window.ApiClient.billing.ledger.entries(billing.ledger.ledger_id).catch(() => []);
+    const total = (Array.isArray(entries) ? entries : []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    if (totalCostEl) totalCostEl.innerText = window.HOMHelpers.formatCurrency(total);
+  } else {
+    if (totalCostEl) totalCostEl.innerText = '₹0';
+  }
 };
 
 window.confirmDischarge = async function () {
   if (!currentSelectedRequest) return;
   if (currentSelectedRequest.status !== 'DISCHARGE_REQUESTED') {
-    setDischargeError('This patient is not awaiting a HOM discharge approval.');
+    setDischargeError('This patient is not awaiting a HOM discharge clearance approval.');
     return;
   }
 
   setDischargeError('');
   try {
     await window.ApiClient.preRequests.update(currentSelectedRequest.pre_request_id, { status: 'DISCHARGE_APPROVED' });
+    window.UIFeedback?.toast('Discharge clearance approved successfully. PRE notified to finalize release.', 'success');
   } catch (err) {
-    setDischargeError(err.message || 'Unable to approve discharge.');
+    setDischargeError(err.message || 'Unable to approve discharge clearance.');
     return;
   }
   closeModals();
@@ -317,49 +399,3 @@ window.openBillingFromDetail = function () {
 window.openBillingFromUhid = function (uhid) {
   window.location.href = `screen-05-billing.html?uhid=${encodeURIComponent(uhid)}`;
 };
-
-async function renderDispatchQueue() {
-  const section = document.getElementById('fa-dispatch-queue-section');
-  if (!section) return;
-
-  let ledgers = [];
-  try {
-    ledgers = (await window.ApiClient.billing.ledger.listAll()).filter((l) => l.status === 'DISPATCHED');
-  } catch (err) {
-    ledgers = [];
-  }
-
-  if (!ledgers.length) {
-    section.innerHTML = `
-      <div class="card" style="padding: 24px;">
-        <h3 style="margin: 0 0 8px 0;">FA Dispatch Queue</h3>
-        <p style="margin: 0; color: var(--text-secondary);">No bills dispatched by FA yet.</p>
-      </div>
-    `;
-    return;
-  }
-
-  section.innerHTML = `
-    <div class="card" style="padding: 24px;">
-      <h3 style="margin: 0 0 16px 0;">FA Dispatch Queue</h3>
-      <div class="table-container">
-        <table class="data-table">
-          <thead><tr><th>Admission</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            ${ledgers
-              .map(
-                (l) => `
-              <tr>
-                <td>#${l.admission_id}</td>
-                <td>${window.UI.Badge({ variant: 'warning', children: l.status })}</td>
-                <td>${window.UI.Button({ variant: 'secondary', size: 'sm', children: 'View in Billing', onClick: `window.location.href='screen-05-billing.html'` })}</td>
-              </tr>
-            `,
-              )
-              .join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}

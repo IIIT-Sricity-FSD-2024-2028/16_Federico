@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Patient Records</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Directory &amp; Records – Federico PRE</title>
   <link rel="stylesheet" href="../../shared/design-tokens.css">
   <link rel="stylesheet" href="../../shared/material-components.css">
   <link rel="stylesheet" href="../../shared/ui-feedback.css">
@@ -11,20 +12,21 @@
   <link rel="stylesheet" href="../css/components.css">
 </head>
 <body>
+<!-- Navbar -->
 <div class="navbar">
   <div class="logo">
     <div class="icon">F</div>
     <div class="text">
       <h2>Federico</h2>
-      <p>patient relational executive</p>
+      <p>Patient Relational Executive</p>
     </div>
   </div>
 
   <ul class="nav-links">
     <li><a href="PRE.html">Dashboard</a></li>
-    <li><a href="emergency.html">Emergency cases</a></li>
-    <li class="active"><a href="patient-records.html">Patient record</a></li>
-    <li><a href="doctor.html">Doctor availability</a></li>
+    <li><a href="emergency.html">Emergency Cases</a></li>
+    <li class="active"><a href="patient-records.html">Patient Record</a></li>
+    <li><a href="doctor.html">Doctor Availability</a></li>
     <li><a href="appointment.html">Create Appointment</a></li>
     <li><a href="hom.html">HOM</a></li>
   </ul>
@@ -32,35 +34,215 @@
   <button class="logout">LOG OUT</button>
 </div>
 
-<div class="container">
-  <h2>Patient Records</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Patient ID</th>
-        <th>Name</th>
-        <th>Age</th>
-        <th>Gender</th>
-        <th>Department</th>
-        <th>Doctor</th>
-        <th>Appointment Date</th>
-        <th>Appointment Time</th>
-        <th>Bed No</th>
-        <th>Visit Type</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="recordTable"></tbody>
-  </table>
+<!-- KPI Cards — Matches PRE.html & emergency.html card layouts -->
+<div class="cards">
+  <div class="card">
+    <h3>Total Registered Patients</h3>
+    <p id="kpi-total-patients">0 Patients</p>
+  </div>
+  <div class="card">
+    <h3>Active Inpatients</h3>
+    <p id="kpi-active-inpatients" style="color:var(--status-warning-fg, #b45309);">0 In Beds</p>
+  </div>
+  <div class="card">
+    <h3>Insured Patients</h3>
+    <p id="kpi-insured-patients" style="color:var(--status-success, #15803d);">0 Policies</p>
+  </div>
 </div>
 
-  <script>window.APP_MODULE = "PRE";</script>
+<!-- Main Container -->
+<div class="container">
+  <div class="directory-header">
+    <div class="directory-title-group">
+      <h2>Master Patient Directory</h2>
+      <p>Review verified patient demographics, active insurance policies, and complete clinical encounter logs.</p>
+    </div>
+    <div class="directory-toolbar">
+      <input type="text" id="patientSearchInput" placeholder="Search by name, UHID, phone..." class="directory-search-input">
+      <select id="filterBloodGroup" class="directory-filter-select">
+        <option value="">All Blood Groups</option>
+        <option value="A+">A+</option>
+        <option value="A-">A-</option>
+        <option value="B+">B+</option>
+        <option value="B-">B-</option>
+        <option value="O+">O+</option>
+        <option value="O-">O-</option>
+        <option value="AB+">AB+</option>
+        <option value="AB-">AB-</option>
+      </select>
+      <button class="btn green directory-action-btn" id="btnRegisterPatient" type="button" onclick="openRegisterPatientModal()">+ Register New Patient</button>
+    </div>
+  </div>
+
+  <div class="table-container" style="margin:0;">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient UHID</th>
+          <th>Patient Name</th>
+          <th>Age / Gender</th>
+          <th>Contact Details</th>
+          <th>Blood Group</th>
+          <th>Insurance Coverage</th>
+          <th>Activity Summary</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="recordTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Register New Patient Modal Dialog -->
+<div id="registerPatientModal" class="popup" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle">
+  <div class="emergency-modal-content" style="max-width:600px;">
+    <div class="emergency-modal-head">
+      <div>
+        <h2 id="registerModalTitle" style="color:var(--md-primary, #0f766e);">Register New Patient</h2>
+        <p>Create a verified hospital record with unique UHID generation.</p>
+      </div>
+      <button class="emergency-modal-close" type="button" onclick="closeRegisterPatientModal()" aria-label="Close modal">✕</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="regName">Full Name *</label>
+        <input type="text" id="regName" placeholder="e.g. Rahul Sharma" class="emergency-form-control">
+      </div>
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="regDob">Date of Birth *</label>
+        <input type="date" id="regDob" class="emergency-form-control">
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="regGender">Gender *</label>
+        <select id="regGender" class="emergency-form-control">
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="regBloodGroup">Blood Group</label>
+        <select id="regBloodGroup" class="emergency-form-control">
+          <option value="O+">O+</option>
+          <option value="O-">O-</option>
+          <option value="A+">A+</option>
+          <option value="A-">A-</option>
+          <option value="B+">B+</option>
+          <option value="B-">B-</option>
+          <option value="AB+">AB+</option>
+          <option value="AB-">AB-</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="regPhone">Primary Phone (10-Digit) *</label>
+        <input type="text" id="regPhone" placeholder="e.g. 9876543210" class="emergency-form-control">
+      </div>
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="regAltPhone">Alternate Phone</label>
+        <input type="text" id="regAltPhone" placeholder="Optional" class="emergency-form-control">
+      </div>
+    </div>
+
+    <div class="emergency-form-group">
+      <label class="emergency-form-label" for="regAddress">Residential Address</label>
+      <input type="text" id="regAddress" placeholder="e.g. 14 MG Road, Hyderabad" class="emergency-form-control">
+    </div>
+
+    <!-- Insurance Details Box -->
+    <div class="quick-patient-box" style="margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong style="font-size:12px; text-transform:uppercase; color:var(--color-fg);">Health Insurance Policy (Optional)</strong>
+        <span style="font-size:11px; color:var(--color-muted-fg);">For instant cashless billing</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
+        <input type="text" id="regInsProvider" placeholder="Provider (e.g. Star Health)" class="emergency-form-control">
+        <input type="text" id="regInsPolicyNo" placeholder="Policy / Card No" class="emergency-form-control">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <input type="number" id="regInsLimit" placeholder="Coverage Limit (₹)" class="emergency-form-control">
+        <select id="regInsType" class="emergency-form-control">
+          <option value="Self">Individual Policy</option>
+          <option value="Family">Family Floater</option>
+          <option value="Corporate">Corporate / Group</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="emergency-modal-actions">
+      <button class="btn reject" type="button" onclick="closeRegisterPatientModal()">Cancel</button>
+      <button class="btn green" type="button" onclick="submitRegisterPatient()">Create Patient Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Patient 360 / Clinical History Modal Dialog -->
+<div id="patientHistoryModal" class="popup" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
+  <div class="emergency-modal-content" style="max-width:720px;">
+    <div class="emergency-modal-head">
+      <div>
+        <h2 id="historyModalTitle" style="color:var(--md-primary, #0f766e);">Patient 360 Profile</h2>
+        <p id="historyModalSubtitle">Comprehensive medical history, visits, and insurance summary.</p>
+      </div>
+      <button class="emergency-modal-close" type="button" onclick="closePatientHistoryModal()" aria-label="Close modal">✕</button>
+    </div>
+
+    <!-- Patient Header Card -->
+    <div style="background:var(--md-surface-container-low, #f8fafc); border:1px solid var(--md-outline-variant, #e2e8f0); padding:16px 20px; border-radius:12px; margin-bottom:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; font-size:13px;">
+      <div>
+        <span style="display:block; font-size:11px; font-weight:600; color:var(--color-muted-fg); text-transform:uppercase;">UHID</span>
+        <strong id="modalUhid" style="color:var(--md-primary, #0f766e); font-size:14px;">--</strong>
+      </div>
+      <div>
+        <span style="display:block; font-size:11px; font-weight:600; color:var(--color-muted-fg); text-transform:uppercase;">Age / Gender</span>
+        <strong id="modalDemographics">--</strong>
+      </div>
+      <div>
+        <span style="display:block; font-size:11px; font-weight:600; color:var(--color-muted-fg); text-transform:uppercase;">Blood Group</span>
+        <strong id="modalBloodGroup">--</strong>
+      </div>
+      <div>
+        <span style="display:block; font-size:11px; font-weight:600; color:var(--color-muted-fg); text-transform:uppercase;">Phone</span>
+        <strong id="modalPhone">--</strong>
+      </div>
+      <div>
+        <span style="display:block; font-size:11px; font-weight:600; color:var(--color-muted-fg); text-transform:uppercase;">Insurance</span>
+        <strong id="modalInsurance">--</strong>
+      </div>
+    </div>
+
+    <!-- History Sections Container -->
+    <div style="margin-bottom:16px;">
+      <h3 style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; margin:0 0 10px; color:var(--color-fg);">Outpatient Encounters &amp; Appointments</h3>
+      <div id="modalAppointmentsContainer" style="max-height:180px; overflow-y:auto; border:1px solid var(--md-outline-variant, #e2e8f0); border-radius:8px;"></div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <h3 style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; margin:0 0 10px; color:var(--color-fg);">Inpatient Admissions &amp; Bed Allocations</h3>
+      <div id="modalAdmissionsContainer" style="max-height:180px; overflow-y:auto; border:1px solid var(--md-outline-variant, #e2e8f0); border-radius:8px;"></div>
+    </div>
+
+    <div class="emergency-modal-actions">
+      <button class="btn reject" type="button" onclick="closePatientHistoryModal()">Close</button>
+      <button class="btn green" type="button" id="btnModalCreateAppoint">Create Appointment for Patient</button>
+    </div>
+  </div>
+</div>
+
+<script>window.APP_MODULE = "PRE";</script>
 <script src="../../shared/constants.js"></script>
 <script src="../../shared/api-client.js"></script>
+<script src="../../shared/formatters.js"></script>
 <script src="../../shared/rbac.js"></script>
 <script src="../../shared/ui-feedback.js"></script>
 <script src="../../shared/auth-guard.js"></script>
-<script src="../../shared/formatters.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/patient-records.js"></script>
 <script src="../js/logout.js"></script>

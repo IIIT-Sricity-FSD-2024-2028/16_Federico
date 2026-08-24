@@ -2,31 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Create Appointment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Appointment – Federico PRE</title>
   <link rel="stylesheet" href="../../shared/design-tokens.css">
   <link rel="stylesheet" href="../../shared/material-components.css">
   <link rel="stylesheet" href="../../shared/ui-feedback.css">
   <link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/layout.css">
-<link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
 </head>
 
 <body>
-
+<!-- Navbar -->
 <div class="navbar">
   <div class="logo">
     <div class="icon">F</div>
     <div class="text">
       <h2>Federico</h2>
-      <p>patient relational executive</p>
+      <p>Patient Relational Executive</p>
     </div>
   </div>
 
   <ul class="nav-links">
     <li><a href="PRE.html">Dashboard</a></li>
-    <li><a href="emergency.html">Emergency cases</a></li>
-    <li><a href="patient-records.html">Patient record</a></li>
-    <li><a href="doctor.html">Doctor availability</a></li>
+    <li><a href="emergency.html">Emergency Cases</a></li>
+    <li><a href="patient-records.html">Patient Record</a></li>
+    <li><a href="doctor.html">Doctor Availability</a></li>
     <li class="active"><a href="appointment.html">Create Appointment</a></li>
     <li><a href="hom.html">HOM</a></li>
   </ul>
@@ -34,106 +35,213 @@
   <button class="logout">LOG OUT</button>
 </div>
 
-<div class="container-appointment">
-  <div class="card-appointment">
-
-    <h2>Create Appointment</h2>
-
-    <div class="search-box">
-      <input type="text" id="searchPhone" placeholder="Search by Phone">
-      <button onclick="searchPatient()">🔍</button>
+<!-- Main Container -->
+<div class="container" style="max-width: 1080px; margin: 24px auto;">
+  <div class="directory-header">
+    <div class="directory-title-group">
+      <h2>Schedule Patient Appointment</h2>
+      <p>Select verified patient record, assign specialty department &amp; consulting physician, and allocate appointment time slots.</p>
     </div>
-
-    <button class="btn green" onclick="openPatientPopup()">Create New Patient</button>
-
-    <div class="appointment-patient-picker" id="appointmentPatientPicker">
-      <input type="text" id="patientId" placeholder="Click or type Patient ID from shared list" autocomplete="off">
-      <div class="appointment-picker-dropdown" id="appointmentPatientDropdown" hidden></div>
+    <div class="directory-toolbar">
+      <button class="btn green directory-action-btn" type="button" onclick="openPatientPopup()">+ Register Walk-In Patient</button>
     </div>
-    <div class="appointment-picker-helper">Click the patient ID field to browse all shared patients used across the other actors.</div>
-    <input type="text" id="patientName" placeholder="Patient Name">
-    <input type="number" id="age" placeholder="Age">
-
-    <select id="gender">
-      <option value="">Select Gender</option>
-      <option value="Male">Male</option>
-      <option value="Female">Female</option>
-    </select>
-
-    <input type="text" id="phone" placeholder="Phone Number">
-
-    <input type="date" id="appointmentDate">
-
-    <select id="department">
-      <option value="" disabled selected>Select Department</option>
-    </select>
-
-    <select id="visitType">
-      <option value="Consultation">Consultation (OPD)</option>
-      <option value="Admit">Admit (IPD)</option>
-      <option value="Emergency">Emergency</option>
-    </select>
-
-    <input type="text" id="address" placeholder="Address">
-
-    <button class="btn green" onclick="createAppointment()">Create Appointment</button>
-
   </div>
-</div>
 
-
-<div id="patientPopup" class="popup">
-  <div class="popup-content">
-
-    <h2>New Patient</h2>
-
-    <input type="text" id="newName" placeholder="Name">
-    <input type="number" id="newAge" placeholder="Age">
-
-    <select id="newGender">
-      <option value="">Gender</option>
-      <option value="Male">Male</option>
-      <option value="Female">Female</option>
-    </select>
-
-    <input type="text" id="newPhone" placeholder="Phone">
-    <input type="text" id="newAddress" placeholder="Address">
-
-    <button class="btn green" onclick="registerPatient()">Submit</button>
-    <button class="btn reject" onclick="closePatientPopup()">Close</button>
-
-  </div>
-</div>
-
-<div id="searchResultPopup" class="popup">
-  <div class="popup-content search-result-popup-content">
-    <h2>Patient Found</h2>
-    <div class="search-result-card">
-      <div class="search-result-row">
-        <span>Patient ID</span>
-        <strong id="searchResultPatientId">-</strong>
+  <div class="appointment-grid">
+    <!-- Left Column: Patient Information & Search -->
+    <div class="appointment-card-section">
+      <h3 class="appointment-section-title">1. Patient Identification</h3>
+      
+      <div class="appointment-form-group">
+        <label class="emergency-form-label" for="searchPhone">Quick Search by Phone or UHID</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="searchPhone" placeholder="Enter 10-digit phone or UHID..." class="emergency-form-control" style="flex:1;">
+          <button class="btn suggest" type="button" onclick="searchPatient()" style="height:40px; padding:0 16px; margin:0; border-radius:var(--radius-sm, 6px);">Search</button>
+        </div>
       </div>
-      <div class="search-result-row">
-        <span>Name</span>
+
+      <div class="appointment-form-group">
+        <label class="emergency-form-label" for="patientId">Select from Patient Directory</label>
+        <div class="appointment-patient-picker" id="appointmentPatientPicker">
+          <input type="text" id="patientId" placeholder="Click or type name, UHID, phone..." autocomplete="off" class="emergency-form-control">
+          <div class="appointment-picker-dropdown" id="appointmentPatientDropdown" hidden></div>
+        </div>
+        <div class="appointment-picker-helper">Type to search existing hospital records or browse all registered patients.</div>
+      </div>
+
+      <!-- Verified Patient Demographic Details -->
+      <div id="selectedPatientCard" class="quick-patient-box" style="margin-top:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <strong id="cardPatientName" style="font-size:15px; color:var(--color-fg);">No Patient Selected</strong>
+          <span id="cardPatientUhid" class="status pending" style="background:#f1f5f9; color:#475569; font-size:11px; padding:2px 8px; border-radius:12px;">—</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px;">
+          <div><span style="color:var(--color-muted-fg);">Age / Gender:</span> <strong id="cardPatientAgeGender">—</strong></div>
+          <div><span style="color:var(--color-muted-fg);">Contact:</span> <strong id="cardPatientPhone">—</strong></div>
+          <div style="grid-column:1 / -1;"><span style="color:var(--color-muted-fg);">Address:</span> <strong id="cardPatientAddress">—</strong></div>
+        </div>
+      </div>
+
+      <!-- Hidden standard inputs for form binding compatibility -->
+      <input type="hidden" id="patientName">
+      <input type="hidden" id="age">
+      <input type="hidden" id="gender">
+      <input type="hidden" id="phone">
+      <input type="hidden" id="address">
+    </div>
+
+    <!-- Right Column: Clinical Details & Slot Allocation -->
+    <div class="appointment-card-section">
+      <h3 class="appointment-section-title">2. Clinical &amp; Scheduling Details</h3>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="appointment-form-group">
+          <label class="emergency-form-label" for="department">Specialty Department *</label>
+          <select id="department" class="emergency-form-control">
+            <option value="" disabled selected>Select Department</option>
+          </select>
+        </div>
+
+        <div class="appointment-form-group">
+          <label class="emergency-form-label" for="doctorSelect">Attending Physician</label>
+          <select id="doctorSelect" class="emergency-form-control">
+            <option value="">Any Available Specialist</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="appointment-form-group">
+          <label class="emergency-form-label" for="appointmentDate">Appointment Date *</label>
+          <input type="date" id="appointmentDate" class="emergency-form-control">
+        </div>
+
+        <div class="appointment-form-group">
+          <label class="emergency-form-label" for="appointmentTime">Preferred Time Slot *</label>
+          <select id="appointmentTime" class="emergency-form-control">
+            <option value="09:00 AM">09:00 AM – Morning</option>
+            <option value="10:00 AM" selected>10:00 AM – Morning</option>
+            <option value="11:30 AM">11:30 AM – Morning</option>
+            <option value="02:00 PM">02:00 PM – Afternoon</option>
+            <option value="03:30 PM">03:30 PM – Afternoon</option>
+            <option value="05:00 PM">05:00 PM – Evening</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="appointment-form-group">
+          <label class="emergency-form-label" for="visitType">Encounter Type *</label>
+          <select id="visitType" class="emergency-form-control">
+            <option value="Consultation">Consultation (OPD)</option>
+            <option value="Admit">Admission Referral (IPD)</option>
+            <option value="Follow-Up">Follow-Up Review</option>
+            <option value="Emergency">Emergency Triage</option>
+          </select>
+        </div>
+
+        <div class="appointment-form-group">
+          <label class="emergency-form-label" for="appointmentReason">Chief Complaint / Notes</label>
+          <input type="text" id="appointmentReason" placeholder="e.g. Routine checkup, follow-up..." class="emergency-form-control">
+        </div>
+      </div>
+
+      <div style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
+        <button class="btn suggest" type="button" onclick="clearAppointmentForm()" style="height:44px; padding:0 20px; border-radius:var(--radius-sm, 6px);">Clear Form</button>
+        <button class="btn green" type="button" onclick="createAppointment()" style="height:44px; padding:0 24px; border-radius:var(--radius-sm, 6px); font-size:13px; font-weight:600;">Confirm &amp; Schedule Appointment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Register New Patient Modal Dialog -->
+<div id="patientPopup" class="popup" role="dialog" aria-modal="true" aria-labelledby="patientModalTitle">
+  <div class="emergency-modal-content" style="max-width:560px;">
+    <div class="emergency-modal-head">
+      <div>
+        <h2 id="patientModalTitle" style="color:var(--md-primary, #0f766e);">Register Walk-In Patient</h2>
+        <p>Create verified hospital record for new walk-in patient.</p>
+      </div>
+      <button class="emergency-modal-close" type="button" onclick="closePatientPopup()" aria-label="Close modal">✕</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="newName">Full Name *</label>
+        <input type="text" id="newName" placeholder="e.g. Rahul Sharma" class="emergency-form-control">
+      </div>
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="newAge">Age (Years) *</label>
+        <input type="number" id="newAge" placeholder="e.g. 35" min="1" max="120" class="emergency-form-control">
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="newGender">Gender *</label>
+        <select id="newGender" class="emergency-form-control">
+          <option value="">Select Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="emergency-form-group" style="margin-bottom:0;">
+        <label class="emergency-form-label" for="newPhone">Phone Number *</label>
+        <input type="tel" id="newPhone" placeholder="10-digit mobile" maxlength="10" class="emergency-form-control">
+      </div>
+    </div>
+
+    <div class="emergency-form-group" style="margin-bottom:16px;">
+      <label class="emergency-form-label" for="newAddress">Residential Address *</label>
+      <input type="text" id="newAddress" placeholder="e.g. 45 Green Park, New Delhi" class="emergency-form-control">
+    </div>
+
+    <div class="emergency-modal-actions">
+      <button class="btn suggest" type="button" onclick="closePatientPopup()">Cancel</button>
+      <button class="btn green" type="button" onclick="registerPatient()">Register &amp; Select</button>
+    </div>
+  </div>
+</div>
+
+<!-- Search Result Modal Dialog -->
+<div id="searchResultPopup" class="popup" role="dialog" aria-modal="true" aria-labelledby="searchFoundTitle">
+  <div class="emergency-modal-content" style="max-width:440px;">
+    <div class="emergency-modal-head">
+      <div>
+        <h2 id="searchFoundTitle" style="color:var(--md-primary, #0f766e);">Patient Record Found</h2>
+        <p>Verified profile linked to this contact number.</p>
+      </div>
+      <button class="emergency-modal-close" type="button" onclick="closeSearchResultPopup()" aria-label="Close modal">✕</button>
+    </div>
+    
+    <div class="quick-patient-box" style="margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+        <span style="color:var(--color-muted-fg); font-size:12px;">Patient UHID:</span>
+        <strong id="searchResultPatientId" style="color:var(--md-primary, #0f766e);">-</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--color-muted-fg); font-size:12px;">Full Name:</span>
         <strong id="searchResultPatientName">-</strong>
       </div>
     </div>
-    <button class="btn green" onclick="closeSearchResultPopup()">OK</button>
+
+    <div class="emergency-modal-actions">
+      <button class="btn green" type="button" onclick="closeSearchResultPopup()">Continue Booking</button>
+    </div>
   </div>
 </div>
 
-
-  <script>window.APP_MODULE = "PRE";</script>
+<script>window.APP_MODULE = "PRE";</script>
 <script src="../../shared/constants.js"></script>
 <script src="../../shared/api-client.js"></script>
+<script src="../../shared/formatters.js"></script>
 <script src="../../shared/rbac.js"></script>
 <script src="../../shared/ui-feedback.js"></script>
 <script src="../../shared/auth-guard.js"></script>
-<script src="../../shared/formatters.js"></script>
 <script src="../../shared/department-options.js"></script>
 <script src="../js/shared-state.js"></script>
 <script src="../js/Appointment.js"></script>
 <script src="../js/logout.js"></script>
-
 </body>
 </html>

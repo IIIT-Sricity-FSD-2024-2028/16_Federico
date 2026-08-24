@@ -32,7 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const modal = document.getElementById(id);
         if (modal) {
             modal.classList.remove("hidden");
-            document.body.style.overflow = "hidden";
+            document.documentElement.classList.add("modal-open");
+            document.body.classList.add("modal-open");
         }
     }
 
@@ -40,7 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const modal = document.getElementById(id);
         if (modal) {
             modal.classList.add("hidden");
-            document.body.style.overflow = "";
+            const anyOpen = document.querySelector(".modal-overlay:not(.hidden)");
+            if (!anyOpen) {
+                document.documentElement.classList.remove("modal-open");
+                document.body.classList.remove("modal-open");
+            }
         }
     }
 
@@ -148,8 +153,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function statusBadge(status) {
+        const s = String(status || "").toLowerCase();
+        if (s === "emergency") {
+            return '<span class="status overdue" style="background:#fee2e2;color:#b91c1c;font-weight:700;">Emergency</span>';
+        }
         const map = { confirmed: "confirmed", scheduled: "scheduled", pending: "pending", cancelled: "pending", completed: "confirmed" };
-        return `<span class="status ${map[status.toLowerCase()] || "pending"}">${status}</span>`;
+        return `<span class="status ${map[s] || "pending"}">${status}</span>`;
     }
 
     function billStatusBadge(status) {
@@ -276,9 +285,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         tbody.innerHTML = upcoming.map(a => `
       <tr>
-        <td>${a.displayDate}</td>
+        <td><strong>${a.displayDate}</strong></td>
         <td>${a.time}</td>
-        <td>${a.department}</td>
+        <td>
+          <strong>${a.department}</strong>
+          ${a.doctorName ? `<div style="color:var(--muted);font-size:11px;">Dr. ${a.doctorName.replace(/^Dr\.\s*/i, '')}</div>` : ''}
+        </td>
         <td>${statusBadge(a.status)}</td>
       </tr>`
         ).join("");
@@ -291,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const recent = getVisits().slice(0, 3);
         if (recent.length === 0) {
-            container.innerHTML = `<div class="visit-item"><span style="color:var(--muted)">No visit history.</span></div>`;
+            container.innerHTML = `<div class="visit-item"><span style="color:var(--muted)">No visit history recorded.</span></div>`;
             return;
         }
 
@@ -299,7 +311,10 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="visit-item">
         <div class="visit-title">
           <span class="visit-dot"></span>
-          <strong>${v.description}</strong>
+          <div>
+            <strong>${v.description}</strong>
+            <div style="font-size:11px;color:var(--muted);">${v.department || "General"}</div>
+          </div>
         </div>
         <span class="visit-date">${v.date}</span>
       </div>`
@@ -334,10 +349,12 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="visit-item">
                 <div class="visit-title">
                     <span class="visit-dot" style="background:${colorMap[note.variant] || colorMap.info};"></span>
-                    <strong>${note.title}</strong>
+                    <div>
+                        <strong>${note.title}</strong>
+                        <div style="font-size:12px; color:#64748b; margin-top:4px; line-height:1.4;">${note.message}</div>
+                    </div>
                 </div>
                 <span class="visit-date">${new Date(note.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-                <div style="font-size:13px; color:#64748b; margin-top:6px; line-height:1.5;">${note.message}</div>
             </div>
         `).join("");
     }
@@ -380,6 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /* ── Documents from HOM Panel ── */
     function renderDocumentsPanel() {
         const receiptsContainer = document.getElementById("documents-receipts");
         const dischargeContainer = document.getElementById("documents-discharge");
@@ -391,31 +409,138 @@ document.addEventListener("DOMContentLoaded", () => {
         const discharge = documents.filter((doc) => doc.section === "Discharge Summary");
         const eod = documents.filter((doc) => doc.section === "EOD Bills");
 
-        const renderDocRows = (rows, emptyText) => {
+        const renderDocItems = (rows, emptyText, actionLabel) => {
             if (!rows.length) {
-                return `
-                <div class="bill-item">
-                    <div>
-                        <strong>${emptyText}</strong>
-                    </div>
-                </div>`;
+                return `<div class="doc-empty-hint">${emptyText}</div>`;
             }
-            return rows.slice(0, 4).map(doc => `
-            <div class="bill-item">
-                <div>
-                    <strong>${doc.title}</strong>
-                    <span>${new Date(doc.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            return rows.slice(0, 3).map((doc, idx) => `
+            <div class="doc-card">
+                <div class="doc-info">
+                    <strong>${escapeHtml(doc.title)}</strong>
+                    <span>${new Date(doc.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} • ₹${Number(doc.amount || 0).toLocaleString("en-IN")}</span>
                 </div>
-                <div class="bill-meta">
-                    <button type="button" class="status pending" style="border:none; cursor:pointer;" onclick="window.open('${doc.reference}', '_blank')">Open</button>
-                </div>
+                <button type="button" class="btn-doc-view" data-doc-type="${doc.type || ''}" data-doc-title="${escapeAttr(doc.title || '')}" data-source-type="${doc.sourceType || ''}" data-source-id="${doc.sourceId || ''}">
+                    ${actionLabel}
+                </button>
             </div>
         `).join("");
         };
 
-        receiptsContainer.innerHTML = renderDocRows(receipts, "No receipts available.");
-        dischargeContainer.innerHTML = renderDocRows(discharge, "No discharge summary available.");
-        eodContainer.innerHTML = renderDocRows(eod, "No EOD bills available.");
+        receiptsContainer.innerHTML = renderDocItems(receipts, "No payment receipts posted yet.", "View Receipt");
+        dischargeContainer.innerHTML = renderDocItems(discharge, "No discharge summaries available.", "View Summary");
+        eodContainer.innerHTML = renderDocItems(eod, "No EOD bills available.", "View Bill");
+
+        // Attach digital copy viewers to all document view buttons
+        document.querySelectorAll("#patient-documents-list .btn-doc-view").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const sourceType = btn.getAttribute("data-source-type");
+                const sourceId = btn.getAttribute("data-source-id");
+                const docTitle = btn.getAttribute("data-doc-title");
+                const docType = btn.getAttribute("data-doc-type");
+
+                const record = typeof getBillingDocumentByRef === "function"
+                    ? getBillingDocumentByRef(sourceType, sourceId)
+                    : null;
+
+                openDigitalCopy(record || {
+                    type: docType,
+                    title: docTitle,
+                    ts: Date.now(),
+                    amount: 0,
+                    status: "AVAILABLE",
+                }, { rowTitle: docTitle, rowType: docType });
+            });
+        });
+    }
+
+    /* ── Digital Document Window Viewer ── */
+    function openDigitalCopy(record, context = {}) {
+        const win = window.open("", "_blank");
+        if (!win) {
+            UIFeedback.toast("Please allow popups to view document copy.", "warning");
+            return;
+        }
+
+        const rowType = context.rowType || record.type || "DOCUMENT";
+        const title = context.rowTitle || record.title || "Hospital Document";
+        const createdAt = new Date(
+            record.receipt_sent_at || record.confirmed_at || record.payment_confirmed_at ||
+            record.sent_at || record.created_at || record.ts || Date.now()
+        ).toLocaleString("en-IN");
+        const profile = getProfile();
+        const patientName = record.patient || record.patient_name || profile?.name || "Patient";
+        const uhid = profile?.uhid || "UHID-882100";
+        const paymentMode = record.mode || record.payment_mode || "UPI";
+        const gross = Number(record.gross || record.amount || 0);
+        const coverage = Number(record.coverage || record.insurance_deduction || 0);
+        const amount = Number(record.amount || gross);
+        const docStatus = record.status || "OFFICIAL";
+
+        win.document.write(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>${escapeHtml(title)} — Federico Cloud Health</title>
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+                <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; padding: 48px 24px; color: #1e293b; max-width: 640px; margin: 0 auto; background: #f8fafc; }
+                    .doc-sheet { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 40px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
+                    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #6750A4; padding-bottom: 20px; margin-bottom: 24px; }
+                    .hospital-brand { font-size: 20px; font-weight: 700; color: #6750A4; font-family: 'Playfair Display', serif; }
+                    .hospital-sub { font-size: 11px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+                    .badge { background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+                    h2 { font-size: 18px; font-weight: 600; color: #0f172a; margin-bottom: 20px; }
+                    .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 14px; }
+                    .row span:first-child { color: #64748b; font-weight: 500; }
+                    .row span:last-child { font-weight: 600; color: #0f172a; }
+                    .net { font-size: 16px; font-weight: 700; background: #f1f5f9; padding: 16px; border-radius: 12px; margin: 16px 0; border-bottom: none; }
+                    .net span:last-child { color: #6750A4; font-size: 18px; }
+                    .print-btn { background: #6750A4; color: #ffffff; border: none; padding: 12px 24px; border-radius: 9999px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 28px; width: 100%; transition: background 0.2s; }
+                    .print-btn:hover { background: #523e85; }
+                    @media print { .print-btn { display: none; } body { padding: 0; background: #fff; } .doc-sheet { border: none; box-shadow: none; padding: 0; } }
+                </style>
+            </head>
+            <body>
+                <div class="doc-sheet">
+                    <div class="header">
+                        <div>
+                            <div class="hospital-brand">City General Hospital</div>
+                            <div class="hospital-sub">Official Medical & Financial Record</div>
+                        </div>
+                        <span class="badge">${escapeHtml(String(docStatus).replace(/_/g, ' '))}</span>
+                    </div>
+                    <h2>${escapeHtml(title)}</h2>
+                    <div class="row"><span>Document Type</span><span>${escapeHtml(rowType.replace(/_/g, ' '))}</span></div>
+                    <div class="row"><span>Patient Name</span><span>${escapeHtml(patientName)}</span></div>
+                    <div class="row"><span>UHID</span><span>${escapeHtml(uhid)}</span></div>
+                    <div class="row"><span>Issued Date</span><span>${escapeHtml(createdAt)}</span></div>
+                    <div class="row"><span>Payment / Process Mode</span><span>${escapeHtml(String(paymentMode).toUpperCase())}</span></div>
+                    <div class="row"><span>Gross Billed Amount</span><span>₹${gross.toLocaleString("en-IN")}</span></div>
+                    <div class="row"><span>Insurance Deduction</span><span>-₹${coverage.toLocaleString("en-IN")}</span></div>
+                    <div class="row net"><span>Net Paid / Settled</span><span>₹${amount.toLocaleString("en-IN")}</span></div>
+                    <button class="print-btn" onclick="window.print()">🖨️ Print / Save Document (PDF)</button>
+                </div>
+            </body>
+            </html>
+        `);
+        win.document.close();
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttr(value) {
+        return String(value ?? '').replace(/"/g, '&quot;');
     }
 
     /* ── Appointments modal tbody ── */
@@ -423,17 +548,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const tbody = document.querySelector("#modal-appointments tbody");
         if (!tbody) return;
 
-        const upcoming = getUpcomingAppointments();
-        if (upcoming.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No upcoming appointments.</td></tr>`;
+        const all = getAllAppointments();
+        if (all.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No appointments found.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = upcoming.map(a => `
+        tbody.innerHTML = all.map(a => `
       <tr>
-        <td>${a.displayDate}</td>
+        <td><strong>${a.displayDate}</strong></td>
         <td>${a.time}</td>
-        <td>${a.department}</td>
+        <td>
+          <strong>${a.department}</strong>
+          ${a.doctorName ? `<div style="color:var(--muted);font-size:11px;">Dr. ${a.doctorName.replace(/^Dr\.\s*/i, '')}</div>` : ''}
+        </td>
         <td>${statusBadge(a.status)}</td>
       </tr>`
         ).join("");
@@ -445,11 +573,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!container) return;
 
         const visits = getVisits();
+        if (visits.length === 0) {
+            container.innerHTML = `<div class="visit-item"><span style="color:var(--muted)">No visit history recorded yet.</span></div>`;
+            return;
+        }
+
         container.innerHTML = visits.map(v => `
       <div class="visit-item">
         <div class="visit-title">
           <span class="visit-dot"></span>
-          <strong>${v.description}</strong>
+          <div>
+            <strong>${v.description}</strong>
+            <div style="font-size:12px;color:var(--muted);">${v.department || "General"}</div>
+          </div>
         </div>
         <span class="visit-date">${v.date}</span>
       </div>`
@@ -466,18 +602,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const unpaid = bills.filter(b => getEffectiveStatus(b) !== "paid");
         const totalOwed = unpaid.reduce((sum, b) => sum + b.youPay, 0);
 
-        tbody.innerHTML = bills.map(bill => {
-            const safeBill = window.Sanitizer ? window.Sanitizer.forRole(bill, 'PATIENT') : bill;
-            const status = getEffectiveStatus(bill);
-            return `
-        <tr>
-          <td class="bill-id-cell">${safeBill.billNo}</td>
-          <td>${safeBill.description}</td>
-          <td><strong>₹${bill.youPay.toLocaleString("en-IN")}</strong></td>
-          <td>${safeBill.dueDate}</td>
-          <td>${billStatusBadge(status)}</td>
-        </tr>`;
-        }).join("");
+        if (bills.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No bills found.</td></tr>`;
+        } else {
+            tbody.innerHTML = bills.map(bill => {
+                const safeBill = window.Sanitizer ? window.Sanitizer.forRole(bill, 'PATIENT') : bill;
+                const status = getEffectiveStatus(bill);
+                return `
+            <tr>
+              <td class="bill-id-cell">${safeBill.billNo}</td>
+              <td>${safeBill.description}</td>
+              <td><strong>₹${bill.youPay.toLocaleString("en-IN")}</strong></td>
+              <td>${safeBill.dueDate}</td>
+              <td>${billStatusBadge(status)}</td>
+            </tr>`;
+            }).join("");
+        }
 
         if (totalEl) {
             totalEl.textContent = "₹" + totalOwed.toLocaleString("en-IN");

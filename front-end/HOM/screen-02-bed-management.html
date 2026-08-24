@@ -28,13 +28,26 @@
         .stat-label { font-size: 14px; color: var(--text-secondary); }
         .stat-value { font-size: 24px; font-weight: 600; margin-top: 4px; }
 
-        /* Bed Grid */
-        .ward-section { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; }
+        /* Bed Grid with scroll bar */
+        .ward-section { background: var(--md-surface-container, #fff); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-1); }
         .ward-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-
-        /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
-           now live once in global.css (Material You dialog styling) instead
-           of being duplicated in every screen's own <style> block. */
+        .bed-scroll-container {
+            max-height: 360px;
+            overflow-y: auto;
+            padding-right: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--md-outline-variant, #cac4d0) transparent;
+        }
+        .bed-scroll-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .bed-scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .bed-scroll-container::-webkit-scrollbar-thumb {
+            background-color: var(--md-outline-variant, #cac4d0);
+            border-radius: var(--radius-full);
+        }
     </style>
 </head>
 <body>
@@ -43,26 +56,22 @@
     <main class="dashboard-container">
         <div class="header-section">
             <div>
-                <h1 class="h1" style="margin-bottom: 8px;">Bed Management & Allocation</h1>
+                <h1 class="h1" style="margin-bottom: 8px;">Bed Management &amp; Allocation</h1>
                 <p class="body-text">Real-time view of all beds, wards, and patient assignments</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <input type="text" class="input" placeholder="Search by UHID or bed number" style="width: 280px;" id="bed-search">
+                <input type="text" class="input" placeholder="Search by UHID, patient name, or bed" style="width: 320px;" id="bed-search">
             </div>
         </div>
 
         <div class="filter-bar">
-            <div class="tab-group" id="ward-tabs">
-                </div>
-            <div class="pill-group" id="status-filters">
-                </div>
+            <div class="tab-group" id="ward-tabs"></div>
+            <div class="pill-group" id="status-filters"></div>
         </div>
 
-        <div class="stats-grid" id="stats-container">
-            </div>
+        <div class="metrics-grid" id="stats-container"></div>
 
-        <div id="wards-container">
-            </div>
+        <div id="wards-container"></div>
     </main>
 
     <div class="modal-overlay" id="modal-assign-bed">
@@ -75,8 +84,7 @@
                 <div id="assign-patient-hint" style="font-size: 13px; color: var(--text-secondary);"></div>
                 <div>
                     <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 12px;">Pending Bed Requests</label>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;" id="modal-available-beds">
-                        </div>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;" id="modal-available-beds"></div>
                 </div>
                 <div id="assign-bed-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
             </div>
@@ -94,31 +102,38 @@
                 <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
-                <div style="display: flex; gap: 16px; align-items: center;">
+                <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between;">
                     <span id="detail-badge"></span>
-                    <span style="font-size: 14px; color: var(--text-secondary);" id="detail-since"></span>
+                    <span style="font-size: 13px; color: var(--text-secondary);" id="detail-since"></span>
                 </div>
                 
-                <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
-                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Patient Information</h3>
+                <div id="detail-patient-section" style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Current Inpatient Information</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <div><div class="label">Patient Name</div><div style="font-weight: 500;" id="detail-patient"></div></div>
-                        <div><div class="label">UHID</div><div style="font-weight: 500;" id="detail-uhid"></div></div>
-                        <div><div class="label">Department</div><div style="font-weight: 500;" id="detail-dept"></div></div>
+                        <div><div class="label">Patient Name</div><div style="font-weight: 600; font-size: 14px;" id="detail-patient"></div></div>
+                        <div><div class="label">UHID</div><div style="font-weight: 600; font-size: 14px;" id="detail-uhid"></div></div>
+                        <div><div class="label">Department</div><div style="font-weight: 500; font-size: 14px;" id="detail-dept"></div></div>
+                        <div><div class="label">Attending Physician</div><div style="font-weight: 500; font-size: 14px;" id="detail-physician"></div></div>
                     </div>
                 </div>
 
+                <div id="detail-vacant-section" style="display: none; background: var(--status-success-bg, #e3f3e4); padding: 16px; border-radius: var(--radius-base); border: 1px solid rgba(46, 125, 50, 0.2);">
+                    <h3 class="h3" style="font-size: 14px; margin-bottom: 6px; color: var(--status-success-fg, #1b5e20);">Bed Vacant &amp; Available</h3>
+                    <p style="font-size: 13px; color: var(--status-success-fg, #1b5e20); margin: 0;">This bed is clean, sanitized, and ready for patient allocation.</p>
+                </div>
+
                 <div>
-                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Bed Information</h3>
+                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Ward Location</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div><div class="label">Ward</div><div style="font-weight: 500;" id="detail-ward"></div></div>
-                        <div><div class="label">Physician</div><div style="font-weight: 500;" id="detail-physician"></div></div>
+                        <div><div class="label">Bed Number</div><div style="font-weight: 500;" id="detail-number"></div></div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer" style="justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-secondary btn-default" id="detail-status-btn" style="display: none;" onclick="toggleCurrentBedMaintenance()">Toggle Maintenance</button>
                 <button class="btn btn-secondary btn-default" onclick="closeModals()">Close</button>
-                <button class="btn btn-primary btn-default" onclick="viewInPatientFlow()">View in Patient Flow</button>
+                <button class="btn btn-primary btn-default" id="detail-action-btn" onclick="viewInPatientFlow()">View in Patient Flow</button>
             </div>
         </div>
     </div>
@@ -132,6 +147,7 @@
 <script src="../shared/formatters.js"></script>
 <script src="hom-helpers.js"></script>
 <script src="ui-template.js"></script>
+<script src="../shared/shared-nav.js"></script>
 <script src="shared-nav.js"></script>
 <script src="beds.js"></script>
 </body>

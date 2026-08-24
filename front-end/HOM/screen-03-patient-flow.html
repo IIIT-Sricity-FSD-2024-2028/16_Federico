@@ -41,69 +41,93 @@
     <main class="dashboard-container">
         <div class="header-section">
             <div>
-                <h1 class="h1" style="margin-bottom: 8px;">Patient Flow & Admissions</h1>
-                <p class="body-text">Track all inpatients from admission to discharge</p>
+                <h1 class="h1" style="margin-bottom: 8px;">Patient Flow &amp; Admissions</h1>
+                <p class="body-text">Manage inpatient care paths and process PRE discharge clearances</p>
             </div>
-            <div style="display: flex; gap: 12px;">
-                <input type="text" class="input filter-input" placeholder="Search patients" id="patient-flow-search">
-                <button class="btn btn-secondary btn-default" id="patient-flow-export">Export</button>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button class="btn btn-secondary btn-default" id="patient-flow-export">Export CSV</button>
             </div>
         </div>
 
-        <div class="filter-bar">
-            <input type="text" class="input filter-input" placeholder="Search UHID, Name, Department" id="patient-flow-filter-search">
-            <select class="input filter-dropdown" id="patient-flow-department" style="appearance: auto;">
-                <option value="">All Departments</option>
-            </select>
-            <select class="input filter-dropdown" id="patient-flow-status" style="appearance: auto;">
-                <option value="">All Statuses</option>
-                <option value="Admitted">Admitted</option>
-                <option value="Pending Discharge">Pending Discharge</option>
-                <option value="Critical">Critical</option>
-                <option value="Discharged">Discharged</option>
-            </select>
-            <select class="input filter-dropdown" id="patient-flow-date-range" style="appearance: auto;">
-                <option value="">All Dates</option>
-                <option value="today">Admitted Today</option>
-                <option value="last3">Last 3 Days</option>
-                <option value="last7">Last 7 Days</option>
-                <option value="older">Older Than 7 Days</option>
-            </select>
-            <button class="btn btn-outline btn-default" style="height: 44px;" id="patient-flow-clear">Clear Filters</button>
-        </div>
-
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>UHID</th>
-                        <th>Patient</th>
-                        <th>Department</th>
-                        <th>Assigned Bed</th>
-                        <th>Physician</th>
-                        <th>Admitted</th>
-                        <th>Days Stay</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="patients-table-body">
-                    </tbody>
-            </table>
-            
-            <div style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fff;">
-                <p class="text-small">Showing 1–8 of 186 patients</p>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" style="width: 32px; padding: 0;">1</button>
-                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">2</button>
-                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">3</button>
-                    <span style="color: var(--text-secondary); padding: 0 4px;">...</span>
-                    <button class="btn btn-secondary btn-sm" style="width: 32px; padding: 0;">24</button>
+        <!-- 1. Dedicated Discharge Clearance Section -->
+        <div class="card" style="padding: 24px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                    <h2 class="h2" style="font-size: 18px;">Pending Discharge Clearances</h2>
+                    <p class="body-text" style="font-size: 13px; margin-top: 2px;">Review and approve discharge requests submitted by PRE</p>
                 </div>
+                <span id="discharge-queue-badge"></span>
+            </div>
+            <div class="table-scroll-container" style="max-height: 280px;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>UHID</th>
+                            <th>Patient</th>
+                            <th>Department</th>
+                            <th>Assigned Bed</th>
+                            <th>Physician</th>
+                            <th>Admitted</th>
+                            <th>Days Stay</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="discharge-queue-tbody"></tbody>
+                </table>
             </div>
         </div>
 
-        <div id="fa-dispatch-queue-section" style="margin-top: 32px;"></div>
+        <!-- 2. Comprehensive Inpatient Registry Section -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 20px 24px 16px 24px; border-bottom: 1px solid var(--border); background: var(--md-surface-container);">
+                <h2 class="h2" style="font-size: 18px;">Inpatient &amp; Admissions Registry</h2>
+            </div>
+            
+            <div class="filter-bar" style="border: none; border-radius: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; background: #ffffff; padding: 16px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                <input type="text" class="input filter-input" placeholder="Search by UHID, patient, bed, doctor..." style="flex: 2; min-width: 240px;" id="patient-flow-search">
+                <select class="input filter-dropdown" id="patient-flow-department" style="flex: 1; min-width: 160px; appearance: auto;">
+                    <option value="">All Departments</option>
+                </select>
+                <select class="input filter-dropdown" id="patient-flow-status" style="flex: 1; min-width: 160px; appearance: auto;">
+                    <option value="">All Care Statuses</option>
+                    <option value="ADMITTED">Admitted / Active</option>
+                    <option value="DISCHARGE_REQUESTED">Discharge Requested</option>
+                    <option value="DISCHARGE_APPROVED">Discharge Approved</option>
+                    <option value="DISCHARGED">Discharged</option>
+                </select>
+                <select class="input filter-dropdown" id="patient-flow-date-range" style="flex: 1; min-width: 140px; appearance: auto;">
+                    <option value="">All Dates</option>
+                    <option value="today">Admitted Today</option>
+                    <option value="last3">Last 3 Days</option>
+                    <option value="last7">Last 7 Days</option>
+                    <option value="older">Older Than 7 Days</option>
+                </select>
+                <button class="btn btn-outline btn-default" style="height: 44px;" id="patient-flow-clear">Clear Filters</button>
+            </div>
+
+            <div class="table-scroll-container" style="max-height: 480px; border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>UHID</th>
+                            <th>Patient</th>
+                            <th>Department</th>
+                            <th>Assigned Bed</th>
+                            <th>Physician</th>
+                            <th>Admitted</th>
+                            <th>Days Stay</th>
+                            <th>Care Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patients-table-body"></tbody>
+                </table>
+            </div>
+            
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--md-surface-container);">
+                <p class="text-small" id="patient-flow-count">Loading patients...</p>
+            </div>
+        </div>
     </main>
 
     <div class="modal-overlay" id="modal-patient-detail">
@@ -111,15 +135,15 @@
             <div class="modal-header" style="display: block;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="display: flex; gap: 16px; align-items: center;">
-                        <div class="avatar-circle" id="pd-avatar">RK</div>
+                        <div class="avatar-circle" id="pd-avatar">--</div>
                         <div>
-                            <h2 class="h2" style="font-size: 20px;" id="pd-name">Rajesh Kumar</h2>
+                            <h2 class="h2" style="font-size: 20px;" id="pd-name">Loading...</h2>
                             <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 14px;">
-                                <span style="color: var(--text-secondary);" id="pd-uhid">FED-2026-8901</span>
+                                <span style="color: var(--text-secondary);" id="pd-uhid">--</span>
                                 <span style="color: var(--border);">·</span>
                                 <span id="pd-status-badge"></span>
                                 <span style="color: var(--border);">·</span>
-                                <span style="color: var(--text-secondary);" id="pd-dept">Cardiology</span>
+                                <span style="color: var(--text-secondary);" id="pd-dept">--</span>
                             </div>
                         </div>
                     </div>
@@ -127,8 +151,7 @@
                 </div>
                 
                 <div class="modal-tabs">
-                    <button class="modal-tab active" onclick="switchTab('overview')" id="tab-overview">Overview</button>
-                    <button class="modal-tab" onclick="switchTab('bed')" id="tab-bed">Bed & Stay Info</button>
+                    <button class="modal-tab active" onclick="switchTab('overview')" id="tab-overview">Overview &amp; Ward Care</button>
                     <button class="modal-tab" onclick="switchTab('supply')" id="tab-supply">Billing Ledger</button>
                 </div>
             </div>
@@ -138,90 +161,74 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
                         <div><div class="label">Age / Gender</div><div style="font-weight: 500; margin-top: 4px;" id="pd-age">-</div></div>
                         <div><div class="label">Contact Number</div><div style="font-weight: 500; margin-top: 4px;" id="pd-contact">-</div></div>
-                        <div><div class="label">Admission Date</div><div style="font-weight: 500; margin-top: 4px;" id="pd-admitted">-</div></div>
-                        <div><div class="label">Days in Hospital</div><div style="font-weight: 500; margin-top: 4px;" id="pd-days">-</div></div>
+                        <div><div class="label">Blood Group</div><div style="font-weight: 500; margin-top: 4px;" id="pd-blood-group">-</div></div>
                         <div><div class="label">Department</div><div style="font-weight: 500; margin-top: 4px;" id="pd-dept-detail">-</div></div>
                         <div><div class="label">Assigned Bed</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed">-</div></div>
-                        <div><div class="label">Physician</div><div style="font-weight: 500; margin-top: 4px;" id="pd-physician">-</div></div>
-                        <div><div class="label">Blood Group</div><div style="font-weight: 500; margin-top: 4px;" id="pd-blood-group">-</div></div>
-                    </div>
-                </div>
-
-                <div class="tab-content-panel" id="content-bed">
-                    <div style="background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
-                        <h3 class="h3" style="font-size: 14px; margin-bottom: 16px;">Bed Information</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                            <div><div class="label">Bed Number</div><div style="font-weight: 500; margin-top: 4px;" id="pd-bed-info">-</div></div>
-                        </div>
+                        <div><div class="label">Attending Physician</div><div style="font-weight: 500; margin-top: 4px;" id="pd-physician">-</div></div>
+                        <div><div class="label">Admission Date</div><div style="font-weight: 500; margin-top: 4px;" id="pd-admitted">-</div></div>
+                        <div><div class="label">Length of Stay</div><div style="font-weight: 500; margin-top: 4px;" id="pd-days">-</div></div>
                     </div>
                 </div>
 
                 <div class="tab-content-panel" id="content-supply">
-                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 12px 0;">Ledger status: <span id="pd-ledger-status" style="font-weight: 600; color: var(--text-primary);">-</span></p>
-                    <table class="data-table" style="border: 1px solid var(--border); border-radius: var(--radius-base); overflow: hidden;">
-                        <thead>
-                            <tr><th>Service</th><th>Qty</th><th>Amount</th></tr>
-                        </thead>
-                        <tbody id="pd-charges-tbody"></tbody>
-                    </table>
-                    <div style="text-align: right; margin-top: 16px; font-weight: 600; font-size: 16px;">Total Billed: <span id="pd-charges-total" style="color: var(--primary);">-</span></div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 12px 0;">Ledger Status: <span id="pd-ledger-status" style="font-weight: 600; color: var(--text-primary);">-</span></p>
+                    <div class="table-scroll-container" style="max-height: 240px; margin-bottom: 16px;">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Service / Item</th><th>Qty</th><th>Amount</th></tr>
+                            </thead>
+                            <tbody id="pd-charges-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div style="text-align: right; font-weight: 600; font-size: 16px;">Total Billed: <span id="pd-charges-total" style="color: var(--primary);">-</span></div>
                 </div>
             </div>
             
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-default" onclick="closeModals()">Close</button>
-                <button class="btn btn-outline btn-default" data-flow="goto-billing" onclick="openBillingFromDetail()">View Billing</button>
-                <button class="btn btn-primary btn-default" onclick="openDischargeFromDetail()" id="btn-pd-discharge">Initiate Discharge</button>
+                <button class="btn btn-outline btn-default" data-flow="goto-billing" onclick="openBillingFromDetail()">View in Billing</button>
+                <button class="btn btn-primary btn-default" onclick="openDischargeFromDetail()" id="btn-pd-discharge">Approve Discharge</button>
             </div>
         </div>
     </div>
 
+    <!-- Modal: Approve Discharge Clearance -->
     <div class="modal-overlay" id="modal-initiate-discharge">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h2 class="h2" style="font-size: 20px;" id="discharge-title">Initiate Discharge</h2>
-                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px; position: absolute; right: 24px; top: 24px;" onclick="closeModals()">✕</button>
+                <h2 class="h2" style="font-size: 20px;" id="discharge-title">Approve Discharge Clearance</h2>
+                <button class="btn btn-outline btn-sm" style="border:none; padding: 4px 8px;" onclick="closeModals()">✕</button>
             </div>
             
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
-                <div style="background: var(--warning-bg); border: 1px solid #FDE68A; border-radius: var(--radius-base); padding: 16px;">
-                    <p style="color: var(--warning-text); font-size: 14px; margin: 0;">⚠ Initiating discharge will freeze the billing ledger and free the bed.</p>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
+                <div style="background: var(--status-warning-bg, #fbf2dc); border: 1px solid rgba(165, 114, 10, 0.2); border-radius: var(--radius-base); padding: 16px;">
+                    <p style="color: var(--status-warning-fg, #7a5300); font-size: 13px; margin: 0; line-height: 1.5;">
+                        <strong>Discharge Clearance:</strong> Confirming clearance approves the patient's release request and notifies PRE to finalize discharge documentation.
+                    </p>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div><div class="label">Patient</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-patient"></div></div>
-                    <div><div class="label">UHID</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-uhid"></div></div>
-                    <div><div class="label">Bed</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-bed"></div></div>
-                    <div><div class="label">Days Stay</div><div style="font-weight: 500; font-size: 14px; margin-top: 4px;" id="d-days"></div></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: var(--neutral-bg); padding: 16px; border-radius: var(--radius-base);">
+                    <div><div class="label">Patient</div><div style="font-weight: 600; font-size: 14px; margin-top: 2px;" id="d-patient"></div></div>
+                    <div><div class="label">UHID</div><div style="font-weight: 600; font-size: 14px; margin-top: 2px;" id="d-uhid"></div></div>
+                    <div><div class="label">Department</div><div style="font-weight: 500; font-size: 14px; margin-top: 2px;" id="d-dept">-</div></div>
+                    <div><div class="label">Assigned Bed</div><div style="font-weight: 500; font-size: 14px; margin-top: 2px;" id="d-bed"></div></div>
+                    <div><div class="label">Attending Physician</div><div style="font-weight: 500; font-size: 14px; margin-top: 2px;" id="d-physician">-</div></div>
+                    <div><div class="label">Length of Stay</div><div style="font-weight: 500; font-size: 14px; margin-top: 2px;" id="d-days"></div></div>
                 </div>
 
-                <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Discharge Type</label>
-                    <select class="input" id="discharge-type" style="appearance: auto;">
-                        <option value="">Select discharge type...</option>
-                        <option value="Regular Discharge">Regular Discharge</option>
-                        <option value="Transfer to another facility">Transfer to another facility</option>
-                        <option value="Leave Against Medical Advice (LAMA)">Leave Against Medical Advice (LAMA)</option>
-                    </select>
+                <div style="background: var(--md-surface-container, #ffffff); border: 1px solid var(--border); padding: 16px; border-radius: var(--radius-base);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">Active Billing Balance</span>
+                        <span style="font-weight: 600; font-size: 16px; color: var(--primary);" id="d-total-cost">₹0</span>
+                    </div>
                 </div>
 
-                <div style="background: var(--primary-light); padding: 16px; border-radius: var(--radius-base);">
-                    <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Billing Summary Preview</h3>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;"><span style="color: var(--text-secondary);" id="d-room-label">Room Charges</span><span style="font-weight: 500;" id="d-room-cost"></span></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;"><span style="color: var(--text-secondary);">Supply Charges</span><span style="font-weight: 500;" id="d-supply-cost"></span></div>
-                    <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--primary);"><span style="font-weight: 600; font-size: 14px;">Total</span><span style="font-weight: 600; font-size: 18px; color: var(--primary);" id="d-total-cost"></span></div>
-                </div>
-
-                <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Discharge Notes</label>
-                    <textarea class="input" id="discharge-notes" style="height: 80px; padding: 12px; resize: none;" placeholder="Add any discharge notes or instructions..."></textarea>
-                </div>
                 <div id="discharge-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
             </div>
             
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-default" onclick="closeModals()">Cancel</button>
-                <button class="btn btn-primary btn-default" onclick="confirmDischarge()">Confirm Discharge</button>
+                <button class="btn btn-primary btn-default" onclick="confirmDischarge()">Confirm Clearance</button>
             </div>
         </div>
     </div>
@@ -236,6 +243,7 @@
 <script src="hom-helpers.js"></script>
 <script src="ui-template.js"></script>
 
+<script src="../shared/shared-nav.js"></script>
 <script src="shared-nav.js"></script>
 <script src="patient-flow.js"></script>
 </body>

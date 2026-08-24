@@ -15,12 +15,7 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-icon">F</div>
-        <div class="brand-text">Federico</div>
-      </div>
-      <div style="display:flex; align-items:center; gap:14px;">
-        <a href="../marketplace/marketplace-page.html" class="md-btn md-btn-text" style="color:var(--md-on-surface); text-decoration:none;">Browse Hospitals</a>
-        <a href="../platform/platform-login.html" class="md-btn md-btn-text" style="color:var(--md-on-surface-variant); text-decoration:none; font-size:0.85rem;">Platform Super User</a>
-        <a href="../signup/org-signup.html" class="md-btn md-btn-filled" style="text-decoration:none;">For Hospitals: Join Network</a>
+        <div class="brand-text">Federico Cloud</div>
       </div>
     </header>
 
@@ -28,8 +23,8 @@
       <section class="hero-section">
         <div class="md-blur-shape md-blur-primary" aria-hidden="true"></div>
         <div class="md-blur-shape md-blur-tertiary" aria-hidden="true"></div>
+
         <div class="hero-card">
-          <span class="hero-badge">Multi-Tenant Hospital Administrative Platform</span>
 
           <h1>
             Hospital Administrative Operations,
@@ -41,18 +36,18 @@
             and dynamic billing for hospital chains, while connecting patients directly to care.
           </p>
 
-          <div class="hero-actions" style="flex-wrap: wrap;">
+          <div class="hero-actions">
             <button id="login-btn" class="primary-btn" type="button">
               Login to Portal
             </button>
-            <button id="signup-btn" class="secondary-btn" type="button">
+            <button id="signup-btn" class="primary-btn" type="button">
               Patient Registration
             </button>
-            <button id="org-signup-btn" class="primary-btn" style="background:#2e7d32;" type="button">
-              🏥 Hospital Chain Onboarding
+            <button id="org-signup-btn" class="primary-btn" type="button">
+              Hospital Onboarding
             </button>
-            <button id="marketplace-btn" class="secondary-btn" type="button">
-              Browse Marketplace
+            <button id="marketplace-btn" class="primary-btn" type="button">
+              Browse Hospitals
             </button>
           </div>
         </div>
@@ -61,46 +56,27 @@
           <article class="info-card emergency-card">
             <h2>Emergency Help</h2>
             <p>
-              For urgent support, tap the button below to connect with the
-              hospital immediately.
+              For urgent support, tap the button below to connect with emergency medical services immediately.
             </p>
             <button class="call-btn" type="button">Call 112</button>
           </article>
 
-          <article class="info-card locations-card">
-            <h2>Nearest Locations</h2>
-
-            <div class="location-item">
-              <div class="location-head">
-                <h3>Federico Hospital — Attapur Branch</h3>
-                <span class="status-badge">Open</span>
-              </div>
-              <p>Attapur, Hyderabad, Telangana</p>
-              <div class="location-foot">
-                <a
-                  href="#"
-                  class="branch-directions-btn"
-                  data-address="Federico Hospital, Attapur, Hyderabad, Telangana"
-                  >Get Directions →</a
-                >
-              </div>
-            </div>
-            
-            <div class="location-item">
-              <div class="location-head">
-                <h3>Federico Hospital — Tolichowki Branch</h3>
-                <span class="status-badge">Open</span>
-              </div>
-              <p>Tolichowki, Hyderabad, Telangana</p>
-              <div class="location-foot">
-                <a
-                  href="#"
-                  class="branch-directions-btn"
-                  data-address="Federico Hospital, Tolichowki, Hyderabad, Telangana"
-                  >Get Directions →</a
-                >
-              </div>
-            </div>
+          <article class="info-card platform-highlights-card">
+            <h2>Platform Highlights</h2>
+            <ul class="highlights-list">
+              <li>
+                <span class="highlight-bullet">✓</span>
+                <span><strong>24×7 Network Operations</strong> — Unified multi-branch administrative control.</span>
+              </li>
+              <li>
+                <span class="highlight-bullet">✓</span>
+                <span><strong>Real-Time Bed Allocation</strong> — Dynamic status tracking from admission to discharge.</span>
+              </li>
+              <li>
+                <span class="highlight-bullet">✓</span>
+                <span><strong>Integrated Billing</strong> — Automated room charges, ledger updates, and receipts.</span>
+              </li>
+            </ul>
           </article>
         </div>
       </section>
@@ -153,7 +129,7 @@
       <a href="../platform/platform-login.html" class="footer-admin-link">Federico staff — Platform Admin</a>
     </footer>
 
-  <script src="../shared/constants.js"></script>
+    <script src="../shared/constants.js"></script>
     <script src="../shared/rbac.js"></script>
     <script src="../shared/api-client.js"></script>
     <script src="landing-page.js"></script>

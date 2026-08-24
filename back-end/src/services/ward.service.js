@@ -3,6 +3,8 @@
 const {
   wardRepository,
   patientRepository,
+  preRequestRepository,
+  admissionRepository,
 } = require('../repositories');
 const activityService = require('./activity.service');
 
@@ -174,6 +176,29 @@ function updateBedRequest(id, patch) {
         status: 'ALLOCATED',
         decided_at: new Date().toISOString(),
       });
+
+      // Synchronize linked preRequest and admission
+      if (request.pre_request_id) {
+        preRequestRepository.update(request.pre_request_id, {
+          status: 'ADMITTED',
+          bed_id: Number(patch.bed_id),
+          hom_status: 'Bed confirmed',
+        });
+        const existingAdm = admissionRepository.findOne(
+          (a) => a.patient_id === request.patient_id && a.status === 'ADMITTED',
+        );
+        if (!existingAdm) {
+          admissionRepository.create({
+            patient_id: request.patient_id,
+            bed_id: Number(patch.bed_id),
+            status: 'ADMITTED',
+            admission_date: new Date().toISOString().slice(0, 10),
+            organization_id: request.organization_id,
+            hospital_id: request.hospital_id,
+          });
+        }
+      }
+
       activityService.log(
         'success',
         `Bed ${bed.bed_number} allocated (bed request #${id})`,
