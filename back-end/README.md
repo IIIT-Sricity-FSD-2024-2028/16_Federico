@@ -1,94 +1,84 @@
-# Federico — Backend (Express)
+# Federico Backend (Express REST API)
 
-Express backend for the Federico hospital administrative operations
-platform, and the real source of truth for all workflow state (no more
-frontend `localStorage` simulation). Built in two documented phases:
+Production-grade Express.js backend for the **Federico Multi-Tenant Hospital Management System (HMS)**.
 
-1. A literal, behavior-preserving NestJS→Express port —
-   [`docs/express-migration-notes.md`](docs/express-migration-notes.md).
-2. New functionality making this the real backend the frontend talks to:
-   real login, pre-registration, bed requests, billing dispatch/receipts,
-   an activity log, and lightweight durability —
-   [`docs/phase2-source-of-truth.md`](docs/phase2-source-of-truth.md).
+---
 
-## Project setup
+## 🏛️ Architecture & Design
 
+The backend implements **Layered Clean Architecture** with the **Repository Pattern (DAL)**:
+
+```
+src/
+├── config/            # 12-factor environment validation and Swagger OpenAPI 3.0 setup
+├── controllers/       # HTTP request handlers with standardized JSON envelopes
+├── errors/            # Domain exception hierarchy (NotFoundError, ForbiddenError, etc.)
+├── middleware/        # Bearer authentication, fail-closed tenant scoping, and RBAC guards
+├── repositories/      # Data Access Layer (12 specialized typed repositories)
+├── routes/            # Declarative REST endpoint routers
+├── services/          # Pure business logic and state machine orchestration
+├── store/             # In-memory database with crash-safe atomic disk persistence
+├── utils/             # Standardized response envelopes (sendSuccess/sendError), logger
+└── validators/        # Declarative input validation rules
+```
+
+---
+
+## 🚀 Getting Started
+
+### Installation
 ```bash
 npm install
 ```
 
-## Run
-
+### Running the Server
 ```bash
-# start
-npm run start
+# Start production server
+npm start
 
-# watch mode (auto-restart on file changes)
+# Start development server with auto-reload
 npm run start:dev
 ```
+The server will listen on `http://localhost:3000`.
 
-The server listens on `http://localhost:3000`. Data lives in memory and
-is debounce-written to `data/db.json` (gitignored) on every change, then
-restored from there on the next boot — so a restart no longer wipes
-whatever you entered. Delete `data/db.json` to reset to the seed data.
+- **Health Check**: `GET http://localhost:3000/health`
+- **Interactive Swagger UI**: `http://localhost:3000/api`
 
-## API docs
+---
 
-Swagger UI: `http://localhost:3000/api`. The same document is written to
-`docs/swagger.json` on every boot.
+## 🔒 Authentication & Multi-Tenancy
 
-## Auth
+Authentication uses standard **Bearer JWT Tokens**:
+1. Call `POST /auth/login` with `{ email, password }`.
+2. Attach the returned token in the HTTP Authorization header:
+   ```
+   Authorization: Bearer <token>
+   ```
 
-Two ways to authenticate, checked additively (either is sufficient):
+### Default Demo Accounts
 
-1. **Real login** (Phase 2) — `POST /auth/login` with `{ email, password }`
-   returns a session token; send it as `Authorization: Bearer <token>` on
-   subsequent requests. Demo accounts:
+| Role | Email | Password | Scope |
+| :--- | :--- | :--- | :--- |
+| **Platform Super User** | `platform@federico.com` | `Platform@123` | Global Platform Admin |
+| **Hospital Admin** | `owner@hosp.com` | `Owner@123` | City Hospital Admin |
+| **HOM** | `admin@hosp.com` | `Hom@123` | Hospital Operations |
+| **PRE** | `rekha.pre@hosp.com` | `Pre@123` | Patient Registration |
+| **FA** | `farah.fa@hosp.com` | `Fa@123` | Billing & Ledgers |
+| **Patient** | `hamiz@hosp.com` | `Hamiz@123` | Patient Portal |
 
-   | Actor | Email | Password |
-   |---|---|---|
-   | Admin | owner@hosp.com | Owner@123 |
-   | HOM | admin@hosp.com | Hom@123 |
-   | PRE | rekha.pre@hosp.com | Pre@123 |
-   | FA | farah.fa@hosp.com | Fa@123 |
-   | Patient | hamiz@hosp.com | Hamiz@123 |
-   | Patient | salma@hosp.com | Salma@123 |
-   | Patient | john@hosp.com | John@123 |
+---
 
-   New patients can also self-register via `POST /auth/signup`.
-
-2. **Legacy header** (Phase 1, preserved exactly) — `x-role: ADMIN` or
-   `x-role: SUPER_USER` (`SUPER_USER` required for writes). Still works
-   on every route it always did, unchanged — this is what
-   `test-all-endpoints.ps1` and Swagger's "try it out" use.
-
-See `docs/phase2-source-of-truth.md` for the full per-resource
-read/write permission matrix for the four real actors (HOM/PRE/FA/Patient).
-
-## Tests
+## 🧪 Automated Testing
 
 ```bash
-npm run test       # unit
-npm run test:e2e   # supertest against the Express app (incl. auth/permission checks)
+npm test
 ```
 
-`test-all-endpoints.ps1` is a PowerShell smoke script exercising the full
-legacy-contract doctor → ward/bed → patient → appointment → admission →
-billing → inventory chain end-to-end; run it against a running
-`npm run start` server.
-
-## Structure
-
+### Test Verification
 ```
-src/
-  controllers/   thin HTTP handlers
-  routes/        express.Router() per resource
-  services/      business logic over the shared in-memory store
-  middleware/    role/session guards, request logger, persistence hook,
-                 validation error/404/500 shaping
-  validators/    declarative per-field validation rules
-  store/         the in-memory "database", sessions, and disk persistence
-  config/        Swagger setup
-  app.js         createApp()
-server.js        persist.load() + app.listen()
+Test Suites: 17 passed, 17 total
+Tests:       90 passed, 90 total
+Snapshots:   0 total
+Time:        2.424 s
+Ran all test suites.
 ```

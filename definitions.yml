@@ -1,0 +1,350 @@
+# ==============================================================================
+# Federico Multi-Tenant Hospital Management System (HMS) — System Definitions
+# ==============================================================================
+
+project:
+  name: "Federico"
+  title: "Federico — Multi-Tenant Hospital Administrative Operations Platform"
+  version: "2.0.0"
+  description: "Enterprise Multi-Tenant SaaS Hospital Management System providing unified non-clinical operations: patient intake, bed allocation, inventory management, dynamic RBAC, and transparent billing workflows."
+  type: "Full-Stack Web Application (SaaS Multi-Tenant HMS)"
+  architecture: "Layered Clean Architecture (Routes -> Thin Controllers -> Domain Services -> DAL Repositories -> Crash-Safe Atomic Persistence)"
+
+# ------------------------------------------------------------------------------
+# Technology Stack
+# ------------------------------------------------------------------------------
+tech_stack:
+  backend:
+    runtime: "Node.js (>= 18.0.0)"
+    framework: "Express.js 4.x"
+    architecture: "Layered Clean Architecture + Repository Pattern (DAL)"
+    security: "OWASP Top 10, Bearer JWT Auth, Fail-Closed Multi-Tenancy, Dynamic RBAC"
+    durability: "ACID Crash-Safe Atomic Disk Persistence (.tmp write + atomic swap)"
+    testing: "Jest + Supertest (17 Test Suites, 90 Automated Tests)"
+    api_docs: "OpenAPI 3.0 (Swagger UI at /api)"
+  frontend:
+    architecture: "Vanilla ES6+ Modules + Material Design 3 (Material You Tokens)"
+    client: "Unified REST API Client (front-end/shared/api-client.js)"
+    state_sync: "Reactive Cross-Tab LocalStorage Sync (storage event listeners)"
+    resilience: "15s AbortSignal Timeouts + withAsyncLock Double-Submit Prevention"
+
+# ------------------------------------------------------------------------------
+# Actors & Roles
+# ------------------------------------------------------------------------------
+actors:
+  platform_super_user:
+    code: "PLATFORM_SUPER_USER"
+    role_id: 0
+    portal: "front-end/platform/"
+    description: "SaaS Platform Owner overseeing all tenant organizations, subscription plans, module flags, and platform-wide metrics."
+    responsibilities:
+      - "Provision, activate, and suspend hospital organizations"
+      - "Manage subscription plans (Starter, Growth, Enterprise)"
+      - "Toggle module feature flags (PHARMACY, LAB, INSURANCE, EMERGENCY)"
+      - "Monitor platform resource usage and inspect audit logs"
+
+  hospital_admin:
+    code: "Admin"
+    role_id: 5
+    portal: "front-end/Admin/"
+    description: "Owner/Administrator of a specific hospital organization."
+    responsibilities:
+      - "Manage hospital organization branding and branches"
+      - "Create custom dynamic RBAC roles and assign permissions"
+      - "Manage hospital staff members (HOM, PRE, FA)"
+      - "Configure departments, wards, and inventory catalogs"
+
+  hospital_operations_manager:
+    code: "HOM"
+    role_id: 1
+    portal: "front-end/HOM/"
+    description: "Oversees physical resources, bed occupancy, and operational flow."
+    responsibilities:
+      - "Manage wards and real-time bed registry"
+      - "Allocate inpatient beds to pending pre-registration requests"
+      - "Log clinical service usage and medication charges (Leader charges)"
+      - "Approve medical readiness for patient discharge"
+      - "Manage non-clinical inventory supply requests"
+
+  patient_relation_executive:
+    code: "PRE"
+    role_id: 4
+    portal: "front-end/PRE/"
+    description: "Front-desk officer managing patient intake and scheduling."
+    responsibilities:
+      - "Review and approve/reject patient pre-registration requests"
+      - "Manage scheduled OPD doctor appointments"
+      - "Handle emergency patient admissions"
+      - "Grant final administrative discharge sign-off (auto-frees physical beds)"
+
+  finance_associate:
+    code: "FA"
+    role_id: 3
+    portal: "front-end/FA/"
+    description: "Financial administrator managing billing ledgers and receipts."
+    responsibilities:
+      - "Review and approve HOM Leader service charges into ledger entries"
+      - "Calculate insurance coverage, deductibles, and patient copays"
+      - "Dispatch itemized digital bills to patient portal"
+      - "Process payments (UPI, Card, Cash) and issue official receipts"
+
+  patient:
+    code: "Patient"
+    role_id: 2
+    portal: "front-end/Patient/"
+    description: "End-user patient accessing healthcare services."
+    responsibilities:
+      - "Self-service online registration and profile management"
+      - "Book OPD appointments and request inpatient admissions"
+      - "Manage health insurance policy information"
+      - "View itemized dispatched bills and execute online payments"
+      - "Download payment receipts and medical discharge summaries"
+
+# ------------------------------------------------------------------------------
+# Feature Modules & Toggles
+# ------------------------------------------------------------------------------
+modules:
+  - code: "CORE"
+    name: "Core Hospital Operations"
+    description: "Essential patient registration, appointments, wards, and basic billing."
+    is_core: true
+  - code: "INSURANCE"
+    name: "Insurance & TPA Claims"
+    description: "Insurance policy tracking, copay calculation, and claim breakdowns."
+    is_core: false
+  - code: "EMERGENCY"
+    name: "Emergency Admissions"
+    description: "Immediate triage intake, bypass queues, and emergency room allocation."
+    is_core: false
+  - code: "PHARMACY"
+    name: "Pharmacy & Medication"
+    description: "Prescription fulfillment and pharmaceutical inventory tracking."
+    is_core: false
+  - code: "LAB"
+    name: "Laboratory & Diagnostics"
+    description: "Diagnostic test orders, sample collection, and reporting."
+    is_core: false
+
+# ------------------------------------------------------------------------------
+# State Machines
+# ------------------------------------------------------------------------------
+state_machines:
+  pre_registration_lifecycle:
+    states:
+      - PENDING
+      - APPROVED
+      - REJECTED
+      - ADMITTED
+      - DISCHARGE_REQUESTED
+      - DISCHARGE_APPROVED
+      - DISCHARGED
+    transitions:
+      - from: "PENDING"
+        to: "APPROVED"
+        actor: "PRE"
+      - from: "PENDING"
+        to: "REJECTED"
+        actor: "PRE"
+      - from: "APPROVED"
+        to: "ADMITTED"
+        actor: "HOM (via Bed Allocation Cascade)"
+      - from: "ADMITTED"
+        to: "DISCHARGE_REQUESTED"
+        actor: "HOM / Staff"
+      - from: "DISCHARGE_REQUESTED"
+        to: "DISCHARGE_APPROVED"
+        actor: "HOM"
+      - from: "DISCHARGE_APPROVED"
+        to: "DISCHARGED"
+        actor: "PRE (requires Payment Confirmed)"
+
+  bed_lifecycle:
+    states:
+      - AVAILABLE
+      - OCCUPIED
+      - MAINTENANCE
+    transitions:
+      - from: "AVAILABLE"
+        to: "OCCUPIED"
+        event: "Bed allocated to approved pre-request"
+      - from: "OCCUPIED"
+        to: "AVAILABLE"
+        event: "PRE final discharge sign-off completed"
+
+  billing_ledger_lifecycle:
+    states:
+      - OPEN
+      - DISPATCHED
+      - PAID
+    transitions:
+      - from: "OPEN"
+        to: "DISPATCHED"
+        actor: "FA (Bill sent to patient portal)"
+      - from: "DISPATCHED"
+        to: "PAID"
+        actor: "Patient / FA (Payment processed)"
+
+# ------------------------------------------------------------------------------
+# REST API Endpoints Catalog
+# ------------------------------------------------------------------------------
+api_endpoints:
+  health:
+    - method: "GET"
+      path: "/health"
+      auth: "Public"
+      description: "System uptime, timestamp, and health status."
+
+  auth:
+    - method: "POST"
+      path: "/auth/login"
+      auth: "Public"
+      description: "Multi-tenant user authentication; returns Bearer JWT."
+    - method: "POST"
+      path: "/auth/signup"
+      auth: "Public"
+      description: "Patient self-service account registration."
+    - method: "GET"
+      path: "/auth/me"
+      auth: "Bearer Token"
+      description: "Get active user profile and tenant session."
+    - method: "POST"
+      path: "/auth/logout"
+      auth: "Bearer Token"
+      description: "Invalidate session."
+
+  patients:
+    - method: "GET"
+      path: "/patient"
+      auth: "Staff"
+      description: "List organization patients."
+    - method: "GET"
+      path: "/patient/portal/summary/:id?"
+      auth: "Patient / Staff"
+      description: "Composite endpoint returning profile, appointments, bills, receipts in 1 call."
+    - method: "GET"
+      path: "/patient/:id"
+      auth: "Patient / Staff"
+      description: "Get patient by ID or UHID."
+    - method: "POST"
+      path: "/patient"
+      auth: "Staff"
+      description: "Register a patient record."
+    - method: "PUT"
+      path: "/patient/:id"
+      auth: "Patient / Staff"
+      description: "Update patient profile."
+    - method: "GET"
+      path: "/patient/:id/insurance"
+      auth: "Patient / Staff"
+      description: "Get insurance policy details."
+    - method: "POST"
+      path: "/patient/insurance"
+      auth: "Patient / Staff"
+      description: "Attach insurance policy to patient."
+
+  wards_and_beds:
+    - method: "GET"
+      path: "/ward"
+      auth: "Staff"
+      description: "List all hospital wards."
+    - method: "POST"
+      path: "/ward"
+      auth: "Admin / HOM"
+      description: "Create a new ward."
+    - method: "GET"
+      path: "/ward/beds"
+      auth: "Staff"
+      description: "List all beds across wards."
+    - method: "POST"
+      path: "/ward/bed-requests"
+      auth: "PRE"
+      description: "Create inpatient bed request."
+    - method: "PUT"
+      path: "/ward/bed-requests/:id"
+      auth: "HOM"
+      description: "Allocate bed (triggers admission & ledger cascade with rollback)."
+
+  billing_and_finance:
+    - method: "GET"
+      path: "/billing/services"
+      auth: "Staff"
+      description: "List billable service catalog."
+    - method: "GET"
+      path: "/billing/ledgers"
+      auth: "FA / HOM"
+      description: "List all patient billing ledgers."
+    - method: "GET"
+      path: "/billing/ledger/:admissionId"
+      auth: "FA / HOM"
+      description: "Get ledger for an admission."
+    - method: "POST"
+      path: "/billing/leaders"
+      auth: "HOM"
+      description: "Log service charge entry for FA approval."
+    - method: "PUT"
+      path: "/billing/leaders/:id/approve"
+      auth: "FA"
+      description: "Approve Leader charge into ledger entries."
+    - method: "PUT"
+      path: "/billing/ledger/:id/dispatch"
+      auth: "FA"
+      description: "Dispatch final bill to patient."
+    - method: "POST"
+      path: "/billing/payments"
+      auth: "Patient / FA"
+      description: "Record bill payment and auto-generate receipt."
+
+  appointments:
+    - method: "GET"
+      path: "/appointment"
+      auth: "Staff"
+      description: "List scheduled appointments."
+    - method: "POST"
+      path: "/appointment"
+      auth: "PRE / Patient"
+      description: "Book OPD doctor appointment."
+
+  rbac_and_admin:
+    - method: "GET"
+      path: "/rbac/roles"
+      auth: "Admin"
+      description: "List custom dynamic roles."
+    - method: "POST"
+      path: "/rbac/roles"
+      auth: "Admin"
+      description: "Create a custom role."
+    - method: "POST"
+      path: "/rbac/roles/:id/permissions"
+      auth: "Admin"
+      description: "Grant granular permissions to role."
+    - method: "POST"
+      path: "/rbac/staff/:userId/role"
+      auth: "Admin"
+      description: "Assign custom role to staff user."
+
+# ------------------------------------------------------------------------------
+# Test Suites & Quality Assurance
+# ------------------------------------------------------------------------------
+testing:
+  runner: "Jest"
+  total_suites: 17
+  total_tests: 90
+  pass_rate: "100%"
+  test_suites:
+    - "src/test/data_integrity.spec.js"
+    - "src/test/e2e_hospital_lifecycle.spec.js"
+    - "src/test/frontend_shared.spec.js"
+    - "src/repositories/repositories.spec.js"
+    - "src/middleware/middleware.spec.js"
+    - "src/services/admission.service.spec.js"
+    - "src/services/billing.service.spec.js"
+    - "src/services/inventory.service.spec.js"
+    - "src/services/marketplace_revenue.spec.js"
+    - "src/services/organization.service.spec.js"
+    - "src/services/platformActivity.service.spec.js"
+    - "src/services/provisioning.service.spec.js"
+    - "src/services/rbac.service.spec.js"
+    - "src/services/subscription.service.spec.js"
+    - "src/services/subscriptionPlan.service.spec.js"
+    - "src/services/ward.service.spec.js"
+    - "src/utils/tenant.spec.js"

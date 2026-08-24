@@ -1,102 +1,180 @@
-# Federico – Hospital Administrative Operations Platform
+# 🏥 Federico — Multi-Tenant Hospital Administrative Operations Platform
 
-## 1. Problem Statement : Hospital Administrative Operations Platform
+[![Node.js CI](https://img.shields.io/badge/Node.js-18.x%20%7C%2020.x-green.svg)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-4.x-blue.svg)](https://expressjs.com/)
+[![Tests](https://img.shields.io/badge/Tests-17%20passed%20%7C%2090%20passed-success.svg)](https://jestjs.io/)
+[![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Layered%20DAL-purple.svg)](https://github.com/IIIT-Sricity-FSD-2024-2028/16_Federico)
+[![OpenAPI 3.0](https://img.shields.io/badge/Swagger-OpenAPI%203.0-orange.svg)](http://localhost:3000/api)
 
-Hospitals today face critical challenges in maintaining efficient administrative workflows:
+**Federico** is an enterprise-grade, Multi-Tenant SaaS Hospital Management System (HMS) built to streamline non-clinical administrative workflows: patient intake, real-time bed management, department & inventory cataloging, dynamic role-based access control (RBAC), and transparent billing ledgers.
 
-- **Fragmented Operations:** Appointment booking, patient admission, bed allocation, and billing operate in silos without unified data flow
-- **Resource Inefficiency:** No centralized visibility into bed availability and inventory tracking, leading to underutilization and bottlenecks
-- **Poor Patient Experience:** Lack of real-time confirmation and transparent communication from appointment to discharge
-- **Long Waiting Periods:** Patients experience delays due to manual processes and lack of centralized coordination
-- **Billing Opacity:** Patients don't know what charges are applied; manual, error-prone billing processes without clear itemization and verification
-- **Data Inconsistency:** Multiple systems handling patient information increase the risk of duplication, errors, and compliance violations
-
-**Federico addresses these challenges** by providing a single, unified administrative hub that manages patient check-ins, resource allocation, inventory tracking, and billing—enabling seamless workflows from appointment scheduling through final billing.
-
-> **Scope:** Federico is a **non-clinical system** and does not handle diagnosis, treatment, prescriptions, lab reports, or clinical decision support.
+> ⚠️ **Scope Notice**: Federico is a **non-clinical administrative system**. It manages administrative operations, beds, and billing; it does not perform clinical diagnosis, medical prescriptions, or clinical decision support.
 
 ---
 
-## 2. System Overview
+## 🏛️ System Architecture
 
-**Purpose:** To simplify hospital administrative operations by managing patient check-ins, resource allocation, inventory tracking, and billing through a unified, non-clinical system.
+Federico is built following **Clean Layered Architecture** with strict multi-tenant isolation, fail-closed access controls, and ACID crash-safe atomic disk persistence:
 
-**Target Environment:** Web-based system for hospitals with 50–100 beds, accessible via Chrome, Edge, and Firefox.
+```mermaid
+graph TD
+    Client["Frontend Single-Page Apps (HOM / FA / PRE / Patient / Admin / Platform)"]
+    API["Shared REST API Client (front-end/shared/api-client.js)"]
+    Express["Express Application Pipeline (back-end/src/app.js)"]
+    Auth["Security & Multi-Tenancy Middleware (Bearer JWT, Tenant Scope, Dynamic RBAC)"]
+    Services["Domain Services (15 Services with Pure Business Logic)"]
+    DAL["Repository Data Access Layer (12 Specialized Repositories)"]
+    Persist["Atomic Persistence Engine (db.json.tmp -> fs.renameSync)"]
 
-**Core Capabilities:**
-- Appointment scheduling and confirmation
-- Patient admission and discharge tracking
-- Real-time bed and ward management
-- Non-clinical inventory tracking and usage logging
-- Transparent billing and payment processing
-
----
-
-## 3. Identified Actors and Features
-
-### 3.1 Patient
-
-**Role:** End-user seeking medical services with transparent administrative support
-
-**Features:**
-- Book appointments online
-- View available slots
-- Receive appointment confirmations
-- Enter insurance details
-- View dynamic billing summary
-- Access payment link
-- Download receipts and discharge summaries
+    Client --> API
+    API -->|Bearer JWT / REST| Express
+    Express --> Auth
+    Auth --> Services
+    Services --> DAL
+    DAL --> Persist
+```
 
 ---
 
-### 3.2 Patient-Relation-Executive (PRE)
+## 👥 6-Tier Role Personas & Portals
 
-**Role:** Bridge between patients and hospital systems; manages appointment verification and admission workflows
-
-**Features:**
-- Generate and verify patient UHID (Unique Health Identifier)
-- Verify appointment details
-- Confirm patient check-in
-- Generate encounter token for billing
-- Send appointment notifications to patients
-- Resolve appointment conflicts and reschedule if needed
-
----
-
-### 3.3 Hospital Operations Manager
-
-**Role:** Oversees resource allocation and patient flow; ensures operational efficiency
-
-**Features:**
-- Track real-time bed availability
-- Allocate beds to patients
-- Track patient admissions and discharges
-- Monitor inventory usage for non-clinical supplies
-- Manage daily room charges
-- Request procurement for non-clinical inventory
+| Role | Portal Path | Responsibilities |
+| :--- | :--- | :--- |
+| **👑 Platform Super User** | `front-end/platform/` | Multi-tenant SaaS management: provisions organizations, manages subscription plans, toggles module flags (`PHARMACY`, `LAB`, `INSURANCE`, `EMERGENCY`), and inspects audit logs. |
+| **🏢 Hospital Admin** | `front-end/Admin/` | Organization owner: manages hospital branches, department catalogs, inventory items, custom RBAC roles, and staff permissions. |
+| **🏥 Hospital Operations Manager (HOM)** | `front-end/HOM/` | Operational resource management: real-time bed registry, bed allocations, clinical service usage logging (Leader charges), and medical discharge approval. |
+| **📋 Patient Registration & Eligibility (PRE)** | `front-end/PRE/` | Front-desk patient intake: reviews pre-registrations, schedules OPD appointments, handles emergency admissions, and grants final administrative discharge. |
+| **💰 Finance Associate (FA)** | `front-end/FA/` | Financial administration: reviews HOM Leader charges, approves ledger entries, computes insurance copays, dispatches digital bills, and records payments. |
+| **🧑 Patient** | `front-end/Patient/` | Self-service portal: books appointments, uploads insurance policies, tracks inpatient stay, reviews itemized bills, and makes online payments. |
 
 ---
 
-### 3.4 Finance Associate
+## 🔄 Patient Lifecycle State Machine
 
-**Role:** Ensures transparent and accurate billing; handles payment verification and compliance
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Patient Self-Registration / PRE Intake
+    PENDING --> APPROVED: PRE Review & Eligibility Check
+    PENDING --> REJECTED: Incomplete / Cancelled
+    APPROVED --> ADMITTED: HOM Inpatient Bed Allocation (Auto-Opens Ledger)
+    
+    state ADMITTED {
+        [*] --> InpatientStay
+        InpatientStay --> ServiceLogged: HOM Logs Services (Leader)
+        ServiceLogged --> LedgerUpdated: FA Approves into Ledger Entries
+        LedgerUpdated --> InpatientStay
+    }
 
-**Features:**
-- Itemized charges entry
-- Verify insurance details and coverage
-- Generate discharge billing summary
-- Approve and finalize billing
-- Process patient payments
-- Issue receipts
+    ADMITTED --> DISCHARGE_REQUESTED: Ward Staff Requests Discharge
+    DISCHARGE_REQUESTED --> DISCHARGE_APPROVED: HOM Clinical Sign-off
+    DISCHARGE_APPROVED --> PAYMENT_CONFIRMED: FA Dispatches Bill & Patient Pays
+    PAYMENT_CONFIRMED --> DISCHARGED: PRE Final Administrative Sign-off
+    DISCHARGED --> [*]: Physical Bed Auto-Freed to AVAILABLE
+```
 
 ---
 
-## 4. Use-Cases
+## 🚀 Quick Start Guide
 
-- Schedule Online Appointment
-- Process Patient Registration
-- Manage Inpatient Bed Allocation
-- Monitor Inpatient Stay
-- Manage Inventory and Procurement
-- Record Service Charges
-- Generate Bill and Process Payment
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18.x or higher)
+- [npm](https://www.npmjs.com/) (v9.x or higher)
+
+### 1. Install Dependencies
+```bash
+cd back-end
+npm install
+```
+
+### 2. Start the Backend Server
+```bash
+# Production mode
+npm start
+
+# Development mode (auto-restart with nodemon)
+npm run start:dev
+```
+The backend will launch on `http://localhost:3000`.
+
+- **Health Check**: `http://localhost:3000/health`
+- **Interactive OpenAPI Documentation**: `http://localhost:3000/api`
+
+### 3. Launch the Frontend
+You can serve the `front-end/` folder using any static HTTP server or open directly in your browser:
+```bash
+# Example using npx serve or Live Server
+npx serve front-end -p 5500
+```
+Visit `http://localhost:5500/landing/landing-page.html` or `http://localhost:5500/login/login-page.html`.
+
+---
+
+## 🔑 Demo Login Credentials
+
+| Role | Email | Password | Scope |
+| :--- | :--- | :--- | :--- |
+| **Platform Super User** | `platform@federico.com` | `Platform@123` | Global Platform Admin |
+| **Hospital Admin** | `owner@hosp.com` | `Owner@123` | City Hospital Admin |
+| **Hospital Operations (HOM)** | `admin@hosp.com` | `Hom@123` | Ward & Bed Operations |
+| **Patient Registration (PRE)** | `rekha.pre@hosp.com` | `Pre@123` | Patient Intake & Scheduling |
+| **Finance Associate (FA)** | `farah.fa@hosp.com` | `Fa@123` | Billing & Ledgers |
+| **Patient** | `hamiz@hosp.com` | `Hamiz@123` | Patient Portal |
+
+---
+
+## 🧪 Automated Testing
+
+Federico features a comprehensive automated test suite covering unit tests, integration tests, security middleware, and the full multi-role patient lifecycle:
+
+```bash
+cd back-end
+npm test
+```
+
+### Test Suite Results:
+```
+Test Suites: 17 passed, 17 total
+Tests:       90 passed, 90 total
+Snapshots:   0 total
+Time:        2.424 s
+Ran all test suites.
+```
+
+---
+
+## 📁 Repository Structure
+
+```
+16_Federico/
+├── definitions.yml              # Complete YAML domain and endpoint definitions
+├── front-end/                   # Frontend role applications & shared design system
+│   ├── Admin/                   # Hospital Admin portal (branches, roles, catalogs)
+│   ├── FA/                      # Finance Associate billing portal
+│   ├── HOM/                     # Hospital Operations Manager portal
+│   ├── PRE/                     # Patient Registration & Eligibility portal
+│   ├── Patient/                 # Patient self-service portal
+│   ├── platform/                # Platform Super User SaaS management
+│   ├── login/ & signup/         # Multi-tenant authentication & onboarding
+│   ├── marketplace/             # Hospital self-service marketplace
+│   └── shared/                  # Shared REST API client, design tokens & UI components
+└── back-end/                    # Express REST API backend
+    ├── src/
+    │   ├── config/              # 12-factor environment & Swagger configuration
+    │   ├── controllers/         # HTTP controllers with standardized JSON envelopes
+    │   ├── errors/              # Typed domain exception hierarchy (AppError)
+    │   ├── middleware/          # Session auth, fail-closed tenancy, and dynamic RBAC
+    │   ├── repositories/        # Data Access Layer (12 specialized DAL repositories)
+    │   ├── routes/              # Declarative REST endpoint routers
+    │   ├── services/            # Pure domain services & state machine orchestrators
+    │   ├── store/               # In-memory database & crash-safe atomic disk persistence
+    │   ├── utils/               # Response envelopes, password hashing, and formatters
+    │   ├── validators/          # Declarative input validation engine
+    │   └── test/                # Automated test suites (E2E, data integrity, frontend)
+    ├── data/                    # JSON persistence snapshot (db.json)
+    └── package.json             # Backend dependencies and scripts
+```
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
