@@ -21,10 +21,11 @@ const preRequestRoutes = require('./preRequest.routes');
 const activityRoutes = require('./activity.routes');
 
 // Multi-tenancy additions — Platform Super User, Organization Marketplace,
-// dynamic RBAC (tasks.md).
+// dynamic RBAC (tasks.md), and File Upload (evaluation criteria).
 const platformRoutes = require('./platform.routes');
 const marketplaceRoutes = require('./marketplace.routes');
 const rbacRoutes = require('./rbac.routes');
+const uploadRoutes = require('./upload.routes');
 
 const router = Router();
 
@@ -46,5 +47,6 @@ router.use('/activity-log', activityRoutes);
 router.use('/platform', platformRoutes);
 router.use('/marketplace', marketplaceRoutes);
 router.use('/rbac', rbacRoutes);
+router.use('/uploads', uploadRoutes);
 
 module.exports = router;
