@@ -3,12 +3,14 @@
 const express = require('express');
 const cors = require('cors');
 
-const { requestLogger } = require('./middleware/requestLogger');
-const { notFoundHandler } = require('./middleware/notFoundHandler');
-const { errorHandler } = require('./middleware/errorHandler');
-const { attachSession } = require('./middleware/session');
-const { attachTenant } = require('./middleware/tenant');
-const { setupSwagger } = require('./config/swagger');
+const {
+  requestLogger,
+  notFoundHandler,
+  errorHandler,
+  attachSession,
+  attachTenant,
+} = require('./middleware');
+const { setupSwagger } = require('./config');
 const routes = require('./routes');
 
 function createApp() {
@@ -31,7 +33,7 @@ function createApp() {
   app.use(attachTenant);
 
   // Health check endpoint
-  app.get(['/', '/health'], (req, res) => {
+  app.get('/health', (req, res) => {
     res.status(200).json({
       status: 'UP',
       uptime: process.uptime(),

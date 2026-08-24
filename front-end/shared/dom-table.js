@@ -1,13 +1,23 @@
+'use strict';
+
 /**
  * shared/dom-table.js
  *
- * The "empty-state <tr> + rows.map(...).join('')" skeleton was
- * hand-rolled independently in every HOM table-rendering function
- * (billing.js#renderTable, inventory.js#renderTable, dashboard.js's
- * several renderX functions, patient-flow.js, beds.js) — same shape,
- * copy-pasted each time. One shared renderRows() replaces all of them.
+ * Lightweight table rendering utility with standardized empty-state handling.
  */
 (function () {
+  function escape(str) {
+    if (window.Formatters && typeof window.Formatters.escapeHtml === 'function') {
+      return window.Formatters.escapeHtml(str);
+    }
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   /**
    * @param {HTMLElement} tbody
    * @param {Array} items
@@ -21,12 +31,16 @@
     const { toRow, emptyMessage, colspan } = options || {};
 
     if (!items || items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="${colspan || 1}" style="padding: 24px; text-align: center; color: var(--text-secondary);">${emptyMessage || 'No records found.'}</td></tr>`;
+      const safeMessage = escape(emptyMessage || 'No records found.');
+      const safeColspan = Number(colspan) || 1;
+      tbody.innerHTML = `<tr><td colspan="${safeColspan}" style="padding: 24px; text-align: center; color: var(--text-secondary, #6b7280);">${safeMessage}</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = items.map(toRow).join('');
+    if (typeof toRow === 'function') {
+      tbody.innerHTML = items.map(toRow).join('');
+    }
   }
 
-  window.DomTable = { renderRows };
+  window.DomTable = Object.freeze({ renderRows });
 })();

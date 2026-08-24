@@ -1,3 +1,10 @@
+'use strict';
+
+/**
+ * @module errors
+ * Centralized Domain Error Definitions
+ */
+
 const AppError = require('./AppError');
 const NotFoundError = require('./NotFoundError');
 const UnauthorizedError = require('./UnauthorizedError');

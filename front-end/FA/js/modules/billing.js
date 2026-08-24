@@ -8,6 +8,7 @@
  * HOM<->FA handshake required.
  */
 (function () {
+    'use strict';
     const H = () => window.FAHelpers;
 
     function showFormError(id, message) {

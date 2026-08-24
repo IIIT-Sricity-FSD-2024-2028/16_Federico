@@ -15,6 +15,7 @@
  * async (it now makes a network call), which only touches login-page.js.
  */
 (function () {
+  'use strict';
   var actorProfiles = {
     // Distinct from FA's legacy `accessRole: "ADMIN"` label below (an old
     // Phase-1 name that predates this Admin actor and has nothing to do
@@ -55,8 +56,8 @@
   // Demo credentials shown on the login page's per-role helper panel, now
   // keyed by organization_id since provisioning a second demo org (Apollo
   // Hospitals, organization_id 2) means a role's demo login differs by
-  // which hospital is selected — see scripts/seed-multitenant.js's header
-  // comment for the source of truth these mirror. Falls back to
+  // which hospital is selected — see back-end/docs/README.md
+  // for the source of truth these mirror. Falls back to
   // organization 1's accounts if a org has none listed (keeps working for
   // orgs the demo panel doesn't know about, e.g. freshly provisioned ones,
   // just showing federico-general's accounts as a "here's the shape" hint

@@ -1,12 +1,7 @@
+'use strict';
+
 /**
- * billing.js — Phase 3 rewrite.
- *
- * Read-only billing monitoring view for HOM, backed by the real
- * ledger/ledgerEntry/payment tables (billing/ledgers, added in Phase 2
- * specifically for this page — the service function already existed,
- * it just had no route). HOM has read-only access here by design
- * (ACTOR_ACCESS.billing.write is FA-only) — creating/dispatching ledgers
- * is Finance Associate's job, not HOM's.
+ * billing.js — HOM Billing & Charges.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {

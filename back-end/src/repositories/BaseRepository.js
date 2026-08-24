@@ -16,7 +16,9 @@ class BaseRepository {
   constructor(collectionName, idField = 'id') {
     this.collectionName = collectionName;
     this.idField = idField;
-    this._initSequence();
+    this._index = new Map();
+    this._lastCollectionRef = null;
+    this._initSequenceAndIndex();
   }
 
   /**
@@ -31,35 +33,62 @@ class BaseRepository {
   }
 
   /**
-   * Initializes the atomic ID sequence counter based on the existing records.
+   * Initializes or rebuilds the O(1) ID index and atomic sequence counter.
+   * Synchronizes automatically if the underlying collection was replaced or modified.
    */
-  _initSequence() {
+  _initSequenceAndIndex() {
     const records = this._collection;
+    this._index.clear();
     let maxId = 0;
+
     for (const item of records) {
-      const val = Number(item[this.idField]);
-      if (Number.isInteger(val) && val > maxId) {
-        maxId = val;
+      if (item && item[this.idField] !== undefined && item[this.idField] !== null) {
+        const val = Number(item[this.idField]);
+        if (Number.isInteger(val) && val > maxId) {
+          maxId = val;
+        }
+        this._index.set(item[this.idField], item);
+        if (!Number.isNaN(val)) {
+          this._index.set(val, item);
+          this._index.set(String(val), item);
+        }
       }
     }
+
     this._currentId = maxId;
+    this._lastCollectionRef = records;
+    this._lastCollectionLength = records.length;
+  }
+
+  /**
+   * Ensures the O(1) Map index is up-to-date with the collection array.
+   */
+  _ensureIndex() {
+    const records = this._collection;
+    if (records !== this._lastCollectionRef || records.length !== this._lastCollectionLength) {
+      this._initSequenceAndIndex();
+    }
   }
 
   /**
    * Generates the next atomic integer ID for this collection.
+   * Time Complexity: O(1)
    * @returns {number}
    */
   nextId() {
+    this._ensureIndex();
     this._currentId = (this._currentId || 0) + 1;
     return this._currentId;
   }
 
   /**
    * Returns all records, optionally filtered.
+   * Time Complexity: O(N) where N is collection length
    * @param {Function} [predicate=null]
    * @returns {Array<object>}
    */
   findAll(predicate = null) {
+    this._ensureIndex();
     if (typeof predicate === 'function') {
       return this._collection.filter(predicate);
     }
@@ -68,57 +97,72 @@ class BaseRepository {
 
   /**
    * Finds a single record matching predicate.
+   * Time Complexity: O(N)
    * @param {Function} predicate
    * @returns {object|null}
    */
   findOne(predicate) {
     if (typeof predicate !== 'function') return null;
+    this._ensureIndex();
     const found = this._collection.find(predicate);
     return found ? { ...found } : null;
   }
 
   /**
    * Finds a record by its primary key ID.
+   * Time Complexity: O(1) constant time lookup via Map index
+   * Space Complexity: O(1) auxiliary space
    * @param {number|string} id
    * @returns {object|null}
    */
   findById(id) {
+    if (id === undefined || id === null || id === '') return null;
+    this._ensureIndex();
+
     const numId = Number(id);
-    const found = this._collection.find(
-      (item) => item[this.idField] === numId || String(item[this.idField]) === String(id),
-    );
+    const found = this._index.get(numId) || this._index.get(id) || this._index.get(String(id));
     return found ? { ...found } : null;
   }
 
   /**
    * Creates and persists a new record with an atomic ID.
+   * Time Complexity: O(1) average time
    * @param {object} entity
    * @returns {object}
    */
   create(entity) {
+    this._ensureIndex();
     const id = entity[this.idField] ? Number(entity[this.idField]) : this.nextId();
     if (id > this._currentId) {
       this._currentId = id;
     }
-    
+
     const record = {
       [this.idField]: id,
       ...entity,
       created_at: entity.created_at || new Date().toISOString(),
     };
-    
+
     this._collection.push(record);
+    this._index.set(id, record);
+    this._index.set(String(id), record);
+    this._lastCollectionLength = this._collection.length;
+
     persist.save();
     return { ...record };
   }
 
   /**
    * Updates an existing record by ID.
+   * Time Complexity: O(N) for array replacement, O(1) for index update
    * @param {number|string} id
    * @param {object} patch
    * @returns {object|null}
    */
   update(id, patch) {
+    if (id === undefined || id === null) return null;
+    this._ensureIndex();
+
     const numId = Number(id);
     const index = this._collection.findIndex(
       (item) => item[this.idField] === numId || String(item[this.idField]) === String(id),
@@ -129,38 +173,51 @@ class BaseRepository {
     const updated = {
       ...existing,
       ...patch,
-      [this.idField]: existing[this.idField], // Guard primary key
+      [this.idField]: existing[this.idField], // Guard primary key against overwrite
       updated_at: new Date().toISOString(),
     };
 
     this._collection[index] = updated;
+    this._index.set(existing[this.idField], updated);
+    this._index.set(String(existing[this.idField]), updated);
+
     persist.save();
     return { ...updated };
   }
 
   /**
    * Deletes a record by ID.
+   * Time Complexity: O(N) array splice, O(1) index removal
    * @param {number|string} id
    * @returns {boolean}
    */
   delete(id) {
+    if (id === undefined || id === null) return false;
+    this._ensureIndex();
+
     const numId = Number(id);
     const index = this._collection.findIndex(
       (item) => item[this.idField] === numId || String(item[this.idField]) === String(id),
     );
     if (index === -1) return false;
 
-    this._collection.splice(index, 1);
+    const removed = this._collection.splice(index, 1)[0];
+    this._index.delete(removed[this.idField]);
+    this._index.delete(String(removed[this.idField]));
+    this._lastCollectionLength = this._collection.length;
+
     persist.save();
     return true;
   }
 
   /**
    * Counts records matching an optional predicate.
+   * Time Complexity: O(N) if predicate is provided, O(1) otherwise
    * @param {Function} [predicate=null]
    * @returns {number}
    */
   count(predicate = null) {
+    this._ensureIndex();
     if (typeof predicate === 'function') {
       return this._collection.filter(predicate).length;
     }

@@ -1,11 +1,7 @@
+'use strict';
+
 /**
- * HOM/hom-helpers.js — Phase 3 rewrite.
- *
- * Replaces storage.js (a ~1000-line localStorage state manager that kept
- * its own parallel copies of admissions/billing/wards/inventory) with
- * small, pure formatting/join helpers. There is no more client-side
- * "state" — every HOM page fetches fresh from window.ApiClient on load
- * and after each action, same pattern as the PRE and Patient rewrites.
+ * HOM/hom-helpers.js — Helper functions for Head of Medical workflows.
  */
 (function () {
   const STATUS_LABELS = {
@@ -27,7 +23,6 @@
   function statusVariant(status) {
     switch (status) {
       case 'ADMITTED':
-        return 'warning';
       case 'DISCHARGE_REQUESTED':
         return 'warning';
       case 'DISCHARGE_APPROVED':
@@ -39,9 +34,12 @@
     }
   }
 
-  // escapeHtml/formatCurrency/formatDate/formatAge moved to shared/formatters.js
-  // (were byte-identical copies duplicated across HOM/FA/PRE's own helper files).
-  const { escapeHtml, formatCurrency, formatDate, formatAge } = window.Formatters;
+  const { escapeHtml, formatCurrency, formatDate, formatAge } = window.Formatters || {
+    escapeHtml: (s) => String(s ?? ''),
+    formatCurrency: (n) => 'Rs ' + (Number(n) || 0),
+    formatDate: (d) => String(d || '-'),
+    formatAge: () => '-',
+  };
 
   function formatDateTime(value) {
     if (!value) return '-';
@@ -58,19 +56,13 @@
     return Math.max(0, Math.floor(diff / (24 * 60 * 60 * 1000)));
   }
 
-  /**
-   * preRequests are properly normalized (patient_id FK only). Every HOM
-   * page that needs patient/doctor context on a pre-request joins here
-   * once instead of reimplementing it per page. Field names deliberately
-   * match PRE/js/shared-state.js's version of this same join.
-   */
   function joinPreRequestsWithPatients(preRequests, patients, doctorsById) {
     const patientsById = {};
-    patients.forEach((p) => {
+    (patients || []).forEach((p) => {
       patientsById[p.patient_id] = p;
     });
 
-    return preRequests.map((request) => {
+    return (preRequests || []).map((request) => {
       const patient = patientsById[request.patient_id] || {};
       const doctor = request.doctor_id ? doctorsById?.[request.doctor_id] : null;
       return {
@@ -96,23 +88,11 @@
     return BED_STYLES[status] || { bg: '#ffffff', border: '#E2E8F0', text: '#1E293B', label: status || 'Unknown' };
   }
 
-  /**
-   * closeModals() — the ONE shared modal-dismiss helper for HOM.
-   * Previously redefined identically (same `.modal-overlay` query/loop)
-   * in both beds.js and patient-flow.js. Each of those files' extra
-   * per-page state resets (currentDetailBedId, selectedRequestId, etc.)
-   * were already redundant — every open*Modal() function in those files
-   * re-initializes its own state at the top before showing the modal —
-   * so consolidating the shared DOM-hiding logic here changes no
-   * observable behavior. Exposed as a bare global (not just under
-   * HOMHelpers) because every screen's modal markup calls it directly via
-   * `onclick="closeModals()"`.
-   */
   function closeModals() {
     document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
   }
 
-  window.HOMHelpers = {
+  window.HOMHelpers = Object.freeze({
     statusLabel,
     statusVariant,
     escapeHtml,
@@ -124,6 +104,6 @@
     joinPreRequestsWithPatients,
     bedStyle,
     closeModals,
-  };
+  });
   window.closeModals = closeModals;
 })();

@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * AppError.js
  * Base class for all operational/domain exceptions in the application.

@@ -3,6 +3,15 @@
 const request = require('supertest');
 const { createApp } = require('../src/app');
 
+function b(res) {
+  if (!res) return res;
+  const body = res.body !== undefined ? res.body : res;
+  if (body && typeof body === 'object' && 'data' in body && 'success' in body) {
+    return body.data !== null && body.data !== undefined ? body.data : body;
+  }
+  return body;
+}
+
 describe('AppController (e2e)', () => {
   const app = createApp();
 
@@ -15,7 +24,7 @@ describe('AppController (e2e)', () => {
       .get('/doctor')
       .expect(403)
       .expect((res) => {
-        if (res.body.statusCode !== 403 || res.body.error !== 'Forbidden') {
+        if (res.body.statusCode !== 403 || (res.body.error !== 'Forbidden' && (!res.body.error || res.body.error.code !== 'FORBIDDEN'))) {
           throw new Error('Unexpected forbidden response shape');
         }
       });
@@ -42,7 +51,7 @@ describe('AppController (e2e)', () => {
       .get('/totally-unmatched-route')
       .expect(404)
       .expect((res) => {
-        if (res.body.error !== 'Not Found')
+        if (res.body.error !== 'Not Found' && (!res.body.error || res.body.error.code !== 'NOT_FOUND'))
           throw new Error('Unexpected 404 shape');
       });
   });
@@ -63,27 +72,27 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'admin@hosp.com', password: 'Hom@123' })
       .expect(200);
-    if (hom.body.role !== 'HOM') throw new Error('Expected HOM role');
+    if (b(hom).role !== 'HOM') throw new Error('Expected HOM role');
 
     const pre = await request(app)
       .post('/auth/login')
       .send({ email: 'rekha.pre@hosp.com', password: 'Pre@123' })
       .expect(200);
-    if (pre.body.role !== 'PRE') throw new Error('Expected PRE role');
+    if (b(pre).role !== 'PRE') throw new Error('Expected PRE role');
 
     // PRE can create a pre-request via session auth alone (no x-role header)
     const created = await request(app)
       .post('/pre-requests')
-      .set('Authorization', `Bearer ${pre.body.token}`)
+      .set('Authorization', `Bearer ${b(pre).token}`)
       .send({ patient_id: 201, department: 'Cardiology', visit_type: 'ADMIT' })
       .expect(201);
-    if (created.body.status !== 'PENDING')
+    if (b(created).status !== 'PENDING')
       throw new Error('Expected PENDING status on create');
 
     // HOM (not FA/PRE) can read it back
     await request(app)
       .get('/pre-requests')
-      .set('Authorization', `Bearer ${hom.body.token}`)
+      .set('Authorization', `Bearer ${b(hom).token}`)
       .expect(200);
   });
 
@@ -95,7 +104,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
 
     await request(app)
       .post('/pre-requests')
-      .set('Authorization', `Bearer ${fa.body.token}`)
+      .set('Authorization', `Bearer ${b(fa).token}`)
       .send({ patient_id: 201, department: 'Cardiology', visit_type: 'ADMIT' })
       .expect(403);
   });
@@ -105,17 +114,17 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
       .expect(200);
-    if (patient.body.patient.patient_id !== 201)
+    if (b(patient).patient.patient_id !== 201)
       throw new Error('Expected patient_id 201');
 
     await request(app)
       .get('/billing/patient/202/bills')
-      .set('Authorization', `Bearer ${patient.body.token}`)
+      .set('Authorization', `Bearer ${b(patient).token}`)
       .expect(403);
 
     await request(app)
       .get('/billing/patient/201/bills')
-      .set('Authorization', `Bearer ${patient.body.token}`)
+      .set('Authorization', `Bearer ${b(patient).token}`)
       .expect(200);
   });
 
@@ -124,7 +133,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'hamiz@hosp.com', password: 'Hamiz@123' })
       .expect(200);
-    const auth = `Bearer ${patient.body.token}`;
+    const auth = `Bearer ${b(patient).token}`;
 
     await request(app).get('/patient').set('Authorization', auth).expect(403);
     await request(app)
@@ -161,7 +170,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .expect(200);
     const owned = await request(app)
       .post('/pre-requests')
-      .set('Authorization', `Bearer ${pre.body.token}`)
+      .set('Authorization', `Bearer ${b(pre).token}`)
       .send({ patient_id: 201, department: 'Cardiology', visit_type: 'ADMIT' })
       .expect(201);
 
@@ -176,27 +185,27 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
 
     // A different patient can neither see nor cancel it
     await request(app)
-      .get(`/pre-requests/${owned.body.pre_request_id}`)
-      .set('Authorization', `Bearer ${otherPatient.body.token}`)
+      .get(`/pre-requests/${b(owned).pre_request_id}`)
+      .set('Authorization', `Bearer ${b(otherPatient).token}`)
       .expect(403);
     await request(app)
-      .put(`/pre-requests/${owned.body.pre_request_id}`)
-      .set('Authorization', `Bearer ${otherPatient.body.token}`)
+      .put(`/pre-requests/${b(owned).pre_request_id}`)
+      .set('Authorization', `Bearer ${b(otherPatient).token}`)
       .send({ status: 'REJECTED', reject_reason: 'not mine' })
       .expect(403);
 
     // The owning patient cannot self-approve/self-admit or assign a bed —
     // only cancel (status: REJECTED) is allowed from a Patient session.
     await request(app)
-      .put(`/pre-requests/${owned.body.pre_request_id}`)
-      .set('Authorization', `Bearer ${owningPatient.body.token}`)
+      .put(`/pre-requests/${b(owned).pre_request_id}`)
+      .set('Authorization', `Bearer ${b(owningPatient).token}`)
       .send({ status: 'ADMITTED', bed_id: 22 })
       .expect(403);
 
     // But the owning patient CAN cancel their own pending request
     await request(app)
-      .put(`/pre-requests/${owned.body.pre_request_id}`)
-      .set('Authorization', `Bearer ${owningPatient.body.token}`)
+      .put(`/pre-requests/${b(owned).pre_request_id}`)
+      .set('Authorization', `Bearer ${b(owningPatient).token}`)
       .send({ status: 'REJECTED', reject_reason: 'Changed my mind' })
       .expect(200);
   });
@@ -208,7 +217,7 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .expect(200);
     await request(app)
       .post('/pre-requests')
-      .set('Authorization', `Bearer ${pre.body.token}`)
+      .set('Authorization', `Bearer ${b(pre).token}`)
       .send({ patient_id: 202, department: 'Neurology', visit_type: 'OPD' })
       .expect(201);
 
@@ -218,10 +227,10 @@ describe('Phase 2 — real auth and actor permissions (e2e)', () => {
       .expect(200);
     const list = await request(app)
       .get('/pre-requests')
-      .set('Authorization', `Bearer ${patient201.body.token}`)
+      .set('Authorization', `Bearer ${b(patient201).token}`)
       .expect(200);
 
-    if (list.body.some((pr) => pr.patient_id !== 201)) {
+    if (b(list).some((pr) => pr.patient_id !== 201)) {
       throw new Error("Patient list leaked another patient's pre-request");
     }
   });
@@ -247,8 +256,8 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', pre)
       .send({ patient_id: 202, department: 'Orthopedics', visit_type: 'Admit' })
       .expect(201);
-    const id = created.body.pre_request_id;
-    if (created.body.status !== 'PENDING')
+    const id = b(created).pre_request_id;
+    if (b(created).status !== 'PENDING')
       throw new Error('Expected PENDING on create');
 
     // FA has no business approving intake
@@ -265,7 +274,7 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', pre)
       .send({ status: 'APPROVED' })
       .expect(200);
-    if (approved.body.status !== 'APPROVED')
+    if (b(approved).status !== 'APPROVED')
       throw new Error('Expected APPROVED');
 
     // ADMITTED can never be set directly, by anyone, even HOM
@@ -285,9 +294,9 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .get('/ward/beds')
       .set('Authorization', hom)
       .expect(200);
-    const freeBed = beds.body.find((b) => b.status === 'AVAILABLE');
+    const freeBed = b(beds).find((b) => b.status === 'AVAILABLE');
     await request(app)
-      .put(`/ward/bed-requests/${bedReq.body.bed_request_id}`)
+      .put(`/ward/bed-requests/${b(bedReq).bed_request_id}`)
       .set('Authorization', hom)
       .send({ bed_id: freeBed.bed_id })
       .expect(200);
@@ -296,9 +305,9 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .get(`/pre-requests/${id}`)
       .set('Authorization', hom)
       .expect(200);
-    if (afterAllocation.body.status !== 'ADMITTED')
+    if (b(afterAllocation).status !== 'ADMITTED')
       throw new Error('Expected bed allocation to drive status to ADMITTED');
-    if (afterAllocation.body.bed_id !== freeBed.bed_id)
+    if (b(afterAllocation).bed_id !== freeBed.bed_id)
       throw new Error('Expected bed_id to be set on the pre-request');
 
     const bedAfterAllocation = await request(app)
@@ -306,7 +315,7 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', hom)
       .expect(200);
     if (
-      bedAfterAllocation.body.find((b) => b.bed_id === freeBed.bed_id)
+      b(bedAfterAllocation).find((b) => b.bed_id === freeBed.bed_id)
         .status !== 'OCCUPIED'
     ) {
       throw new Error('Expected allocated bed to be OCCUPIED');
@@ -342,7 +351,7 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', pre)
       .send({ status: 'DISCHARGED' })
       .expect(200);
-    if (discharged.body.status !== 'DISCHARGED')
+    if (b(discharged).status !== 'DISCHARGED')
       throw new Error('Expected DISCHARGED');
 
     const bedAfterDischarge = await request(app)
@@ -350,7 +359,7 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .set('Authorization', hom)
       .expect(200);
     if (
-      bedAfterDischarge.body.find((b) => b.bed_id === freeBed.bed_id).status !==
+      b(bedAfterDischarge).find((b) => b.bed_id === freeBed.bed_id).status !==
       'AVAILABLE'
     ) {
       throw new Error(
@@ -372,7 +381,7 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
       .expect(201);
 
     await request(app)
-      .put(`/pre-requests/${created.body.pre_request_id}`)
+      .put(`/pre-requests/${b(created).pre_request_id}`)
       .set('Authorization', pre)
       .send({ status: 'DISCHARGE_REQUESTED' })
       .expect(403);
@@ -391,14 +400,14 @@ describe('Phase 3 — pre-request state machine (e2e)', () => {
         visit_type: 'Consultation',
       })
       .expect(201);
-    const id = created.body.pre_request_id;
+    const id = b(created).pre_request_id;
 
     const rescheduled = await request(app)
       .put(`/pre-requests/${id}`)
       .set('Authorization', pre)
       .send({ requested_date: '2026-09-01', requested_time: '11:00 AM' })
       .expect(200);
-    if (rescheduled.body.requested_time !== '11:00 AM')
+    if (b(rescheduled).requested_time !== '11:00 AM')
       throw new Error('Expected field update to apply');
 
     await request(app)
@@ -435,13 +444,13 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
     const res = await request(app)
       .get('/marketplace/organizations')
       .expect(200);
-    if (!Array.isArray(res.body) || res.body.length < 2)
+    if (!Array.isArray(b(res)) || b(res).length < 2)
       throw new Error('Expected at least the 2 seeded organizations');
-    if (res.body.some((o) => o.status))
+    if (b(res).some((o) => o.status))
       throw new Error(
         'Marketplace listing must not leak internal fields like status',
       );
-    if (!res.body.every((o) => o.name && o.branches))
+    if (!b(res).every((o) => o.name && o.branches))
       throw new Error('Expected name/branches on every listing');
   });
 
@@ -489,7 +498,7 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
       .get('/platform/plans')
       .set('Authorization', platform)
       .expect(200);
-    const starter = plans.body.find((p) => p.name === 'Starter');
+    const starter = b(plans).find((p) => p.name === 'Starter');
 
     const provisioned = await request(app)
       .post('/platform/organizations')
@@ -503,7 +512,7 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
         modules: ['APPOINTMENTS', 'ADMISSIONS'],
       })
       .expect(201);
-    if (!provisioned.body.organization || !provisioned.body.apiKey)
+    if (!b(provisioned).organization || !b(provisioned).apiKey)
       throw new Error('Expected organization + apiKey in provisioning result');
 
     const newAdmin = await login(
@@ -512,7 +521,7 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
     );
     if (
       newAdmin.tenant.organization_id !==
-      provisioned.body.organization.organization_id
+      b(provisioned).organization.organization_id
     ) {
       throw new Error(
         'New admin session not scoped to the newly provisioned organization',
@@ -529,7 +538,7 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
       .get('/doctor')
       .set('Authorization', `Bearer ${newAdmin.token}`)
       .expect(200);
-    if (doctors.body.length !== 0)
+    if (b(doctors).length !== 0)
       throw new Error(
         "New organization must not see another organization's doctors",
       );
@@ -550,20 +559,20 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
       .set('Authorization', `Bearer ${apolloHom.token}`)
       .expect(200);
     if (
-      federicoDoctors.body.some((d) =>
-        apolloDoctors.body.some((ad) => ad.doctor_id === d.doctor_id),
+      b(federicoDoctors).some((d) =>
+        b(apolloDoctors).some((ad) => ad.doctor_id === d.doctor_id),
       )
     ) {
       throw new Error('Doctor lists must not overlap between organizations');
     }
 
     // Apollo cannot read a Federico doctor by ID either (empty body = not-found, this app's existing convention).
-    const federicoDoctorId = federicoDoctors.body[0].doctor_id;
+    const federicoDoctorId = b(federicoDoctors)[0].doctor_id;
     const crossOrgRead = await request(app)
       .get(`/doctor/${federicoDoctorId}`)
       .set('Authorization', `Bearer ${apolloHom.token}`)
       .expect(200);
-    if (crossOrgRead.body && crossOrgRead.body.doctor_id)
+    if (b(crossOrgRead) && b(crossOrgRead).doctor_id)
       throw new Error(
         'Apollo must not be able to read a Federico doctor record',
       );
@@ -619,7 +628,7 @@ describe('Multi-tenancy — Platform Super User, organizations, feature flags, d
       .get('/doctor')
       .set('x-role', 'ADMIN')
       .expect(200);
-    if (res.body.some((d) => d.organization_id !== 1))
+    if (b(res).some((d) => d.organization_id !== 1))
       throw new Error('Legacy caller must only see organization 1 data');
   });
 });
@@ -660,7 +669,7 @@ describe('Admin role — org-wide analytics, wardAdmin/inventoryCatalog, RBAC ow
       .set('Authorization', adminAuth)
       .send({ ward_name: 'e2e Test Ward', total_beds: 2 })
       .expect(201);
-    const wardId = created.body.ward_id;
+    const wardId = b(created).ward_id;
 
     await request(app)
       .put(`/ward/${wardId}`)
@@ -672,7 +681,7 @@ describe('Admin role — org-wide analytics, wardAdmin/inventoryCatalog, RBAC ow
       .get(`/ward/${wardId}/beds`)
       .set('Authorization', adminAuth)
       .expect(200);
-    if (beds.body.length !== 4) throw new Error('Expected 4 beds after resize');
+    if (b(beds).length !== 4) throw new Error('Expected 4 beds after resize');
 
     await request(app)
       .delete(`/ward/${wardId}`)
@@ -707,17 +716,17 @@ describe('Admin role — org-wide analytics, wardAdmin/inventoryCatalog, RBAC ow
       .set('Authorization', homAuth)
       .expect(200);
     await request(app)
-      .put(`/inventory/items/${created.body.item_id}`)
+      .put(`/inventory/items/${b(created).item_id}`)
       .set('Authorization', homAuth)
       .send({ stock_quantity: 4 })
       .expect(200);
 
     await request(app)
-      .delete(`/inventory/items/${created.body.item_id}`)
+      .delete(`/inventory/items/${b(created).item_id}`)
       .set('Authorization', homAuth)
       .expect(403);
     await request(app)
-      .delete(`/inventory/items/${created.body.item_id}`)
+      .delete(`/inventory/items/${b(created).item_id}`)
       .set('Authorization', adminAuth)
       .expect(200);
   });
@@ -764,7 +773,7 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'admin@hosp.com', password: 'Hom@123' })
       .expect(200);
-    const tokenA = userALogin.body.token;
+    const tokenA = b(userALogin).token;
     expect(tokenA).toBeTruthy();
 
     // 2. User B (FA) logs in
@@ -772,7 +781,7 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'farah.fa@hosp.com', password: 'Fa@123' })
       .expect(200);
-    const tokenB = userBLogin.body.token;
+    const tokenB = b(userBLogin).token;
     expect(tokenB).toBeTruthy();
     expect(tokenA).not.toEqual(tokenB);
 
@@ -781,13 +790,13 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       .get('/auth/me')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(meA.body.role).toBe('HOM');
+    expect(b(meA).role).toBe('HOM');
 
     const meB = await request(app)
       .get('/auth/me')
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(meB.body.role).toBe('FA');
+    expect(b(meB).role).toBe('FA');
 
     // 3. User A logs out
     await request(app)
@@ -806,7 +815,7 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       .get('/auth/me')
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(meBAfter.body.role).toBe('FA');
+    expect(b(meBAfter).role).toBe('FA');
 
     // User B can still perform authenticated actions
     await request(app)
@@ -827,12 +836,12 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
     expect(cookie).toContain('sessionId=');
 
     // Use Cookie header instead of Authorization header
-    const token = loginRes.body.token;
+    const token = b(loginRes).token;
     const meRes = await request(app)
       .get('/auth/me')
       .set('Cookie', `sessionId=${token}`)
       .expect(200);
-    expect(meRes.body.role).toBe('HOM');
+    expect(b(meRes).role).toBe('HOM');
 
     // Logout using Cookie
     const logoutRes = await request(app)
@@ -854,20 +863,20 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'admin@hosp.com', password: 'Hom@123' })
       .expect(200);
-    const homAuth = `Bearer ${homLogin.body.token}`;
+    const homAuth = `Bearer ${b(homLogin).token}`;
 
     const faLogin = await request(app)
       .post('/auth/login')
       .send({ email: 'farah.fa@hosp.com', password: 'Fa@123' })
       .expect(200);
-    const faAuth = `Bearer ${faLogin.body.token}`;
+    const faAuth = `Bearer ${b(faLogin).token}`;
 
     // Get an existing admission
     const admissions = await request(app)
       .get('/admission')
       .set('Authorization', homAuth)
       .expect(200);
-    const admissionId = admissions.body[0].admission_id;
+    const admissionId = b(admissions)[0].admission_id;
 
     // 1. HOM adds a Leader
     const createLeaderRes = await request(app)
@@ -880,7 +889,7 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       })
       .expect(201);
 
-    const leader = createLeaderRes.body;
+    const leader = b(createLeaderRes);
     expect(leader.leader_id).toBeTruthy();
     expect(leader.status).toBe('PENDING');
     expect(leader.quantity).toBe(2);
@@ -890,7 +899,7 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       .get('/billing/leaders')
       .set('Authorization', faAuth)
       .expect(200);
-    const found = listRes.body.find((l) => l.leader_id === leader.leader_id);
+    const found = b(listRes).find((l) => l.leader_id === leader.leader_id);
     expect(found).toBeDefined();
     expect(found.status).toBe('PENDING');
 
@@ -900,10 +909,10 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
       .set('Authorization', faAuth)
       .expect(200);
 
-    expect(approveRes.body.success).toBe(true);
-    expect(approveRes.body.leader.status).toBe('APPROVED');
-    expect(approveRes.body.ledgerEntry).toBeDefined();
-    expect(approveRes.body.ledger).toBeDefined();
+    expect(b(approveRes).success).toBe(true);
+    expect(b(approveRes).leader.status).toBe('APPROVED');
+    expect(b(approveRes).ledgerEntry).toBeDefined();
+    expect(b(approveRes).ledger).toBeDefined();
 
     // 4. Duplicate approval attempt is rejected
     await request(app)
@@ -913,10 +922,10 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
 
     // 5. Verify the entry exists in the Ledger
     const ledgerEntries = await request(app)
-      .get(`/billing/ledger/${approveRes.body.ledger.ledger_id}/entries`)
+      .get(`/billing/ledger/${b(approveRes).ledger.ledger_id}/entries`)
       .set('Authorization', faAuth)
       .expect(200);
-    const hasEntry = ledgerEntries.body.some(
+    const hasEntry = b(ledgerEntries).some(
       (e) => e.service_id === 1 && e.quantity === 2,
     );
     expect(hasEntry).toBe(true);

@@ -1,3 +1,5 @@
+'use strict';
+
 async function loadJoined() {
   const [preRequests, patients, doctors] = await Promise.all([
     window.ApiClient.preRequests.list(),

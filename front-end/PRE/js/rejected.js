@@ -1,3 +1,5 @@
+'use strict';
+
 async function renderRejected() {
   const table = document.getElementById('rejectedTable');
   if (!table) return;

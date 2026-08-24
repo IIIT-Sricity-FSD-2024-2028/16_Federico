@@ -1,12 +1,7 @@
+'use strict';
+
 /**
- * inventory.js — Phase 3 rewrite.
- *
- * Non-clinical inventory backed by window.ApiClient. An item only has a
- * billable cost if it's linked to a real service (item.service_id ->
- * billing/services) — the old model's per-item unitCost was invented
- * client-side and never existed on the backend. Items without a linked
- * service (e.g. syringes) can still have usage logged for stock tracking,
- * but nothing gets posted to a patient's ledger for them.
+ * inventory.js — HOM Inventory & Stock.
  */
 
 let activeModalItem = null;

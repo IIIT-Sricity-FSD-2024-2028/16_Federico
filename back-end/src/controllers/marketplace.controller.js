@@ -1,3 +1,5 @@
+'use strict';
+
 const organizationService = require('../services/organization.service');
 const subscriptionPlanService = require('../services/subscriptionPlan.service');
 const provisioningService = require('../services/provisioning.service');

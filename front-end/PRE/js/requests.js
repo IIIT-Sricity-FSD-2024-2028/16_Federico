@@ -1,3 +1,5 @@
+'use strict';
+
 let joinedRequests = [];
 
 async function loadPending() {

@@ -1,10 +1,7 @@
+'use strict';
+
 /**
- * Admin/departments.js — ward/department add-or-remove (table.md issue #2).
- *
- * Previously nobody could add or remove a ward at all: POST /ward existed
- * on the backend but no frontend screen ever called it, and there was no
- * delete/resize endpoint. This screen is the missing UI for the
- * wardAdmin:read/write/delete endpoints added alongside it.
+ * Admin/departments.js — ward/department management.
  */
 
 let wardsCache = [];

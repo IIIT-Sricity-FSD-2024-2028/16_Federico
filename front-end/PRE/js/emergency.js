@@ -1,3 +1,5 @@
+'use strict';
+
 async function renderEmergencyRecords() {
   const table = document.getElementById('admittedTable');
   if (!table) return;

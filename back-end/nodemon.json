@@ -1,15 +1,13 @@
 {
   "watch": [
-    "*.js",
-    "controllers",
-    "routes",
-    "services",
-    "middleware",
-    "store",
-    "utils"
+    "server.js",
+    "src/**"
   ],
   "ignore": [
-    "docs/swagger.json",
+    "data/**",
+    "docs/**",
+    "coverage/**",
+    "test/**",
     "node_modules/**"
   ],
   "ext": "js,json"

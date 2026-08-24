@@ -1,3 +1,5 @@
+'use strict';
+
 async function renderDoctors() {
   const table = document.getElementById('doctorTable');
   if (!table) return;

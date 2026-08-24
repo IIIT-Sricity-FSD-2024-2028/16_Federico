@@ -29,10 +29,14 @@ npm run start:dev
 ## Testing
 
 ```bash
+# Unit and domain integration tests (17 suites, 90 tests)
 npm test
+
+# Full End-to-End lifecycle test suite (31 tests)
+npm run test:e2e
 ```
 
-Executes all 17 Jest test suites (90 unit and integration tests) verifying repository DAL, security middleware, and the full patient lifecycle.
+Executes **121 automated tests** verifying repository DAL, security middleware, multi-tenant boundaries, and the full inpatient admission lifecycle.
 
 ---
 
@@ -44,7 +48,7 @@ API endpoints are secured using standard Bearer tokens:
 Authorization: Bearer <token>
 ```
 
-Tokens are obtained via `POST /auth/login` with `{ email, password }`.
+Tokens are obtained via `POST /auth/login` or `POST /platform/auth/login`.
 
 ---
 
@@ -52,15 +56,15 @@ Tokens are obtained via `POST /auth/login` with `{ email, password }`.
 
 ```
 src/
-├── config/            # Environment validation & Swagger configuration
+├── config/            # Environment validation, clinical catalogs & Swagger setup
 ├── controllers/       # HTTP controllers with standardized response envelopes
 ├── errors/            # Typed domain error classes (AppError)
 ├── middleware/        # Bearer authentication, tenant scoping, and RBAC guards
-├── repositories/      # Data Access Layer (12 typed repositories)
+├── repositories/      # Data Access Layer with O(1) indexed lookups
 ├── routes/            # REST route definitions
 ├── services/          # Pure business logic and state machine orchestration
 ├── store/             # In-memory store and crash-safe atomic disk persistence
 ├── utils/             # Response envelopes, password utilities, formatters
-├── validators/        # Request body validation rules
+├── validators/        # Declarative request body validation rules
 └── test/              # Integration and end-to-end test suites
 ```

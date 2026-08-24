@@ -73,8 +73,11 @@ function dynamicRoleGrants(req, resource, mode) {
 function authorize(_legacyRoles, resource, mode) {
   return function (req, res, next) {
     const allowedActors = ACTOR_ACCESS[resource]?.[mode] || [];
+    const callerRole = (req.session && req.session.role) || (req.headers && req.headers['x-role']);
     const actorOk = Boolean(
-      req.session && allowedActors.includes(req.session.role),
+      callerRole &&
+        (allowedActors.includes(callerRole) ||
+          (_legacyRoles && _legacyRoles.includes(callerRole))),
     );
     const dynamicOk = dynamicRoleGrants(req, resource, mode);
 

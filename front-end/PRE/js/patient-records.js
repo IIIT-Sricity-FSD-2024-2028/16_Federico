@@ -1,3 +1,5 @@
+'use strict';
+
 async function renderRecords() {
   const table = document.getElementById('recordTable');
   if (!table) return;

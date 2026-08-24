@@ -1,20 +1,7 @@
+'use strict';
+
 /**
- * Patient/js/patient-store.js — Phase 3 rewrite.
- *
- * The original ~850-line version derived everything from three
- * overlapping localStorage structures (patientProfiles/patientDirectory/
- * patients, admissions+ledgers, dispatchQueue+receipts+publishedBills)
- * with a lot of best-effort cross-referencing. The backend is now the
- * source of truth and already does the admission↔ledger↔entries join
- * server-side (`GET /billing/patient/:id/bills`), so this version is a
- * thin adapter: fetch from `window.ApiClient`, shape the result into the
- * same records the four page scripts already render, done.
- *
- * Public interface kept identical to the original (`onStoreReady`,
- * `getProfile`, `getBills`, `getAllAppointments`, `addAppointment`, …) so
- * patient-dashboard.js / patient-book-appointment.js / patient-billing.js
- * / patient-profile.js needed only their write-call-sites touched (they
- * now `await` the async store functions), not their render logic.
+ * Patient/js/patient-store.js — Patient portal state adapter.
  */
 
 const AppStore = {

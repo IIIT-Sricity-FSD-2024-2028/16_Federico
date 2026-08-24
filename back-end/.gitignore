@@ -1,4 +1,16 @@
+# Dependencies
 node_modules/
+
+# Build & Test outputs
 dist/
 coverage/
+
+# Persistence & state snapshots
 data/db.json
+data/db.json.tmp
+data/*.corrupt.*
+
+# Local environment variables & secrets
+.env
+.env.local
+.env.*.local

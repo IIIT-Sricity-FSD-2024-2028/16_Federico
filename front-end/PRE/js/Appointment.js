@@ -1,3 +1,5 @@
+'use strict';
+
 let appointmentPatientCatalog = [];
 let appointmentPickerOpen = false;
 let selectedAppointmentPatient = null;

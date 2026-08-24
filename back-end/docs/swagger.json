@@ -11,7 +11,13 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "Enter your session token in the format: Bearer <token>"
+        "description": "Session bearer token obtained from /auth/login or /platform/auth/login"
+      },
+      "xRoleAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-role",
+        "description": "Legacy role header for backward compatibility (e.g. ADMIN, SUPER_USER)"
       }
     }
   },
@@ -104,6 +110,228 @@
         }
       }
     },
+    "/appointment": {
+      "get": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Get all appointments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Create a new appointment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/appointment/{id}": {
+      "put": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Update appointment status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/pre-requests": {
+      "get": {
+        "tags": [
+          "PreRequests"
+        ],
+        "summary": "Get all pre-registration requests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PreRequests"
+        ],
+        "summary": "Create a new pre-registration request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/pre-requests/{id}": {
+      "get": {
+        "tags": [
+          "PreRequests"
+        ],
+        "summary": "Get pre-registration request by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PreRequests"
+        ],
+        "summary": "Transition or update a pre-registration request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "User login authentication",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Patient self-service signup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get currently authenticated user session",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "User logout and session invalidation",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
     "/billing/services": {
       "get": {
         "tags": [
@@ -126,6 +354,24 @@
           "Billing"
         ],
         "summary": "Create a new billable service",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/billing/ledgers": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get all ledgers",
         "security": [
           {
             "bearerAuth": []
@@ -230,6 +476,34 @@
         }
       }
     },
+    "/billing/ledger/{id}/dispatch": {
+      "put": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Dispatch a ledger bill to the patient",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
     "/billing/payments": {
       "get": {
         "tags": [
@@ -282,12 +556,114 @@
         }
       }
     },
-    "/data/full-state": {
+    "/billing/discharge-summary/{admissionId}": {
       "get": {
         "tags": [
-          "Data Sync"
+          "Billing"
         ],
-        "summary": "Get the full in-memory state representing the DB schema",
+        "summary": "Get discharge summary by admission ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "admissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/billing/patient/{patientId}/bills": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get published bills for a patient",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/billing/receipts": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get all receipts",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/billing/patient/{patientId}/receipts": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get receipts for a patient",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/billing/leaders": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get all leader approval requests",
         "security": [
           {
             "bearerAuth": []
@@ -301,12 +677,40 @@
       },
       "post": {
         "tags": [
-          "Data Sync"
+          "Billing"
         ],
-        "summary": "Update the full in-memory state",
+        "summary": "Create a leader request",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/billing/leaders/{id}/approve": {
+      "put": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Approve a leader request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -522,130 +926,6 @@
         }
       }
     },
-    "/inventory/items": {
-      "get": {
-        "tags": [
-          "Inventory"
-        ],
-        "summary": "Get all inventory items",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Inventory"
-        ],
-        "summary": "Add a new inventory item",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
-    "/inventory/items/{id}": {
-      "put": {
-        "tags": [
-          "Inventory"
-        ],
-        "summary": "Update inventory item",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
-    "/inventory/requests": {
-      "get": {
-        "tags": [
-          "Inventory"
-        ],
-        "summary": "Get all purchase requests",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Inventory"
-        ],
-        "summary": "Create a purchase request",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
-    "/inventory/requests/{id}": {
-      "put": {
-        "tags": [
-          "Inventory"
-        ],
-        "summary": "Update purchase request status",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
     "/patient": {
       "get": {
         "tags": [
@@ -689,6 +969,34 @@
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/patient/portal/summary/{id}": {
+      "get": {
+        "tags": [
+          "Patients"
+        ],
+        "summary": "Composite summary for specific patient ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -876,6 +1184,60 @@
         }
       }
     },
+    "/ward/{id}": {
+      "put": {
+        "tags": [
+          "Wards"
+        ],
+        "summary": "Update ward details",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Wards"
+        ],
+        "summary": "Delete a ward",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
     "/ward/beds": {
       "get": {
         "tags": [
@@ -968,12 +1330,12 @@
         }
       }
     },
-    "/appointment": {
+    "/ward/bed-requests": {
       "get": {
         "tags": [
-          "Appointments"
+          "Wards"
         ],
-        "summary": "Get all appointments",
+        "summary": "Get all bed allocation requests",
         "security": [
           {
             "bearerAuth": []
@@ -987,9 +1349,9 @@
       },
       "post": {
         "tags": [
-          "Appointments"
+          "Wards"
         ],
-        "summary": "Create a new appointment",
+        "summary": "Create a bed allocation request",
         "security": [
           {
             "bearerAuth": []
@@ -1002,12 +1364,12 @@
         }
       }
     },
-    "/appointment/{id}": {
+    "/ward/bed-requests/{id}": {
       "put": {
         "tags": [
-          "Appointments"
+          "Wards"
         ],
-        "summary": "Update an appointment status",
+        "summary": "Allocate or reject a bed request",
         "security": [
           {
             "bearerAuth": []
@@ -1030,12 +1392,12 @@
         }
       }
     },
-    "/pre-requests": {
+    "/ward/emergency": {
       "get": {
         "tags": [
-          "PreRequests"
+          "Wards"
         ],
-        "summary": "Get all pre-registration requests",
+        "summary": "Get all emergency intake records",
         "security": [
           {
             "bearerAuth": []
@@ -1049,9 +1411,9 @@
       },
       "post": {
         "tags": [
-          "PreRequests"
+          "Wards"
         ],
-        "summary": "Create a new pre-registration request",
+        "summary": "Create an emergency intake record",
         "security": [
           {
             "bearerAuth": []
@@ -1064,12 +1426,12 @@
         }
       }
     },
-    "/pre-requests/{id}": {
+    "/ward/emergency/{id}": {
       "put": {
         "tags": [
-          "PreRequests"
+          "Wards"
         ],
-        "summary": "Transition or update a pre-registration request",
+        "summary": "Update emergency intake status",
         "security": [
           {
             "bearerAuth": []
@@ -1092,48 +1454,28 @@
         }
       }
     },
-    "/auth/login": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "User login authentication",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
-    "/auth/signup": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Patient self-service signup",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
-    "/auth/me": {
+    "/inventory/items": {
       "get": {
         "tags": [
-          "Auth"
+          "Inventory"
         ],
-        "summary": "Get currently authenticated user session",
+        "summary": "Get all inventory items",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Add a new inventory item",
         "security": [
           {
             "bearerAuth": []
@@ -1146,12 +1488,162 @@
         }
       }
     },
-    "/auth/logout": {
+    "/inventory/items/{id}": {
+      "put": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Update inventory item",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Delete an inventory item",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/inventory/requests": {
+      "get": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Get all purchase requests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
       "post": {
         "tags": [
-          "Auth"
+          "Inventory"
         ],
-        "summary": "User logout and session invalidation",
+        "summary": "Create a purchase request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/inventory/requests/{id}": {
+      "put": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Update purchase request status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/activity-log": {
+      "get": {
+        "tags": [
+          "Activity Log"
+        ],
+        "summary": "Get system audit trail and activity log",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/data/full-state": {
+      "get": {
+        "tags": [
+          "Data Sync"
+        ],
+        "summary": "Get the full in-memory state representing the DB schema",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Data Sync"
+        ],
+        "summary": "Update the full in-memory state",
         "security": [
           {
             "bearerAuth": []
@@ -1170,6 +1662,24 @@
           "Marketplace"
         ],
         "summary": "Public directory of active organizations",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/marketplace/plans": {
+      "get": {
+        "tags": [
+          "Marketplace"
+        ],
+        "summary": "Public directory of available subscription plans",
         "security": [
           {
             "bearerAuth": []
@@ -1224,6 +1734,24 @@
           "Platform"
         ],
         "summary": "Current Platform Super User",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/auth/logout": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Platform Super User logout",
         "security": [
           {
             "bearerAuth": []

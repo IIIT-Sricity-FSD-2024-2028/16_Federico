@@ -95,7 +95,7 @@ describe('services/rbac.service', () => {
   });
 
   it('staffFor() lists only non-Patient users in the organization, each with their custom roles resolved', () => {
-    // Uses the real seeded org-1 dataset (see dataStore.js / seed-multitenant.js):
+    // Uses the real seeded org-1 dataset (see dataStore.js and docs/README.md):
     // admin@hosp.com (HOM), rekha.pre@hosp.com (PRE), farah.fa@hosp.com (FA),
     // billing.assist@hosp.com (PRE, has a custom role) all live in organization_id 1,
     // alongside several Patient users that must NOT appear here.

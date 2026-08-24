@@ -12,6 +12,7 @@ const patientRoutes = require('./patient.routes');
 const wardRoutes = require('./ward.routes');
 const inventoryRoutes = require('./inventory.routes');
 const billingRoutes = require('./billing.routes');
+const appointmentRoutes = require('./appointment.routes');
 const requestRoutes = require('./request.routes');
 const admissionRoutes = require('./admission.routes');
 
@@ -36,7 +37,8 @@ router.use('/patient', patientRoutes);
 router.use('/ward', wardRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/billing', billingRoutes);
-router.use('/appointment', requestRoutes);
+router.use('/appointment', appointmentRoutes);
+router.use('/request', requestRoutes);
 router.use('/admission', admissionRoutes);
 
 router.use('/auth', authRoutes);

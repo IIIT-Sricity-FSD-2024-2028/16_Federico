@@ -21,6 +21,7 @@
  * whole page and cannot be styled) — everything here is a real DOM node.
  */
 (function () {
+  'use strict';
   var ICONS = {
     success: '✓',
     error: '✕',
@@ -242,10 +243,10 @@
     });
   }
 
-  window.UIFeedback = {
+  window.UIFeedback = Object.freeze({
     toast: toast,
     alert: alertDialog,
     confirm: confirmDialog,
     selectOne: selectOneDialog,
-  };
+  });
 })();

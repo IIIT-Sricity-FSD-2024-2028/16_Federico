@@ -1,14 +1,7 @@
+'use strict';
+
 /**
  * Admin/dashboard.js — hospital-wide analytics.
- *
- * Composes the same list endpoints HOM/dashboard.js already calls
- * (wards/beds/patients/billing/inventory), now reachable by Admin via the
- * read grants added in middleware/actorAccess.js, plus rbac.staff() for a
- * headcount. No new backend analytics endpoint was needed for this.
- *
- * Gated by the ANALYTICS module flag (utils/tenant.js's MODULES list) —
- * previously defined and seeded per-org but never actually checked
- * anywhere in the app.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {

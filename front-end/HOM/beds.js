@@ -1,10 +1,7 @@
+'use strict';
+
 /**
- * beds.js — Phase 3 rewrite.
- *
- * Bed management grid backed by window.ApiClient. Assigning a bed always
- * starts from a real pending bed request (ward/bed-requests, created by
- * PRE) — clicking an available bed opens a picker of compatible pending
- * requests rather than a free-text patient field.
+ * beds.js — HOM Bed Management.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {

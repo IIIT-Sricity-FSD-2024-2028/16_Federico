@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Admin/inventory-catalog.js — inventory catalog add-or-remove (table.md
  * issue #2). HOM's own Inventory screen already logs usage/reorders

@@ -1,3 +1,5 @@
+'use strict';
+
 async function renderAdmittedRecords() {
   const table = document.getElementById('admittedTable');
   if (!table) return;

@@ -39,7 +39,22 @@ class BillingRepository extends BaseRepository {
   }
 
   addEntry(entry) {
-    return this.entriesRepo.create(entry);
+    const existing = this.findEntriesByLedger(entry.ledger_id);
+    const entry_id = entry.entry_id ? Number(entry.entry_id) : existing.length + 1;
+
+    return this.entriesRepo.create({
+      entry_id,
+      ledger_id: Number(entry.ledger_id),
+      service_id: Number(entry.service_id),
+      quantity: Number(entry.quantity) || 1,
+      unit_price: Number(entry.unit_price) || 0,
+      amount:
+        Number(entry.amount) ||
+        (Number(entry.unit_price) || 0) * (Number(entry.quantity) || 1),
+      entry_time: entry.entry_time || new Date().toISOString(),
+      organization_id: entry.organization_id || null,
+      hospital_id: entry.hospital_id || null,
+    });
   }
 
   // Payments

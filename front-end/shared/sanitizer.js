@@ -1,83 +1,85 @@
 /**
- * sanitizer.js — Phase 3
+ * shared/sanitizer.js
  * Role-based field sanitizer for cross-role data display.
- * Exposes window.Sanitizer globally.
- *
- * Usage: const safeObj = window.Sanitizer.forRole(dataObject, 'PATIENT');
- *
- * Rules:
- *   PATIENT: strips all internal finance/insurance/billing fields.
- *   HOM:     strips billing links and full insurance sub-objects.
- *   FA, PRE: data returned unchanged.
- *
- * IMPORTANT: returns a shallow CLONE — never mutates the input.
+ * Returns a sanitized shallow clone — never mutates the input.
  */
-(function () {
+(function (root, factory) {
+  'use strict';
+  var exported = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = exported;
+  }
+  if (root) {
+    root.Sanitizer = exported;
+  }
+})(typeof window !== 'undefined' ? window : globalThis, function () {
+  'use strict';
+
   var PATIENT_FIELDS = [
-    "ledger_id",
-    "internal_id",
-    "billing_link",
-    "payment_link",
-    "discharge_summary_link",
-    "receipt_link",
-    "link",
-    "insurance",
-    "policyNumber",
-    "memberId",
-    "validFrom",
-    "validTo",
-    "coverageType",
-    "payment_mode",
-    "payment_confirmed",
-    "dispatchQueue",
-    "faLedgerRequests",
-    "serviceRequests",
-    "billingRecords",
+    'ledger_id',
+    'internal_id',
+    'billing_link',
+    'payment_link',
+    'discharge_summary_link',
+    'receipt_link',
+    'link',
+    'insurance',
+    'policyNumber',
+    'memberId',
+    'validFrom',
+    'validTo',
+    'coverageType',
+    'payment_mode',
+    'payment_confirmed',
+    'dispatchQueue',
+    'faLedgerRequests',
+    'serviceRequests',
+    'billingRecords',
   ];
 
   var HOM_FIELDS = [
-    "billing_link",
-    "payment_link",
-    "discharge_summary_link",
-    "receipt_link",
-    "insurance",
-    "policyNumber",
-    "memberId",
-    "validFrom",
-    "validTo",
-    "coverageType",
-    "faLedgerRequests",
-    "billingRecords",
+    'billing_link',
+    'payment_link',
+    'discharge_summary_link',
+    'receipt_link',
+    'insurance',
+    'policyNumber',
+    'memberId',
+    'validFrom',
+    'validTo',
+    'coverageType',
+    'faLedgerRequests',
+    'billingRecords',
   ];
 
-  window.Sanitizer = {
-    /**
-     * Returns a sanitized shallow clone of `data` for the given role.
-     *
-     * @param {object} data - Any plain object (admission, ledger row, dispatch item, etc.)
-     * @param {string} role - One of "HOM", "FA", "PRE", "PATIENT"
-     * @returns {object} Shallow clone with sensitive fields removed.
-     */
-    forRole: function (data, role) {
-      if (!data || typeof data !== "object") return data;
+  /**
+   * Returns a sanitized shallow clone of `data` for the given role.
+   * @param {object} data
+   * @param {string} role - One of "HOM", "FA", "PRE", "PATIENT"
+   * @returns {object} Shallow clone with sensitive fields removed.
+   */
+  function forRole(data, role) {
+    if (!data || typeof data !== 'object') return data;
 
-      var clone = Object.assign({}, data);
+    var clone = Object.assign({}, data);
+    var fieldsToRemove;
 
-      var fieldsToRemove;
-      if (role === "PATIENT") {
-        fieldsToRemove = PATIENT_FIELDS;
-      } else if (role === "HOM") {
-        fieldsToRemove = HOM_FIELDS;
-      } else {
-        // FA and PRE: return unchanged clone (no removals)
-        return clone;
-      }
-
-      for (var i = 0; i < fieldsToRemove.length; i++) {
-        delete clone[fieldsToRemove[i]];
-      }
-
+    if (role === 'PATIENT') {
+      fieldsToRemove = PATIENT_FIELDS;
+    } else if (role === 'HOM') {
+      fieldsToRemove = HOM_FIELDS;
+    } else {
       return clone;
-    },
-  };
-})();
+    }
+
+    for (var i = 0; i < fieldsToRemove.length; i++) {
+      delete clone[fieldsToRemove[i]];
+    }
+
+    return clone;
+  }
+
+  return Object.freeze({
+    forRole: forRole,
+  });
+});

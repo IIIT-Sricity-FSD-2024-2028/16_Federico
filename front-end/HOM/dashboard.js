@@ -1,11 +1,7 @@
+'use strict';
+
 /**
- * dashboard.js — Phase 3 rewrite.
- *
- * Real operational overview backed by window.ApiClient. Bed assignment
- * only ever happens against a real pending bed request (created by PRE
- * via ward/bed-requests) — there is no more "type a patient name into a
- * free-text box and assign a bed" path, which in the old app could
- * assign a bed to a string with no real patient/admission behind it.
+ * dashboard.js — HOM Dashboard.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {

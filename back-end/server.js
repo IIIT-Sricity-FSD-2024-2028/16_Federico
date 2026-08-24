@@ -1,5 +1,6 @@
 'use strict';
 
+const { env } = require('./src/config');
 const persist = require('./src/store/persist');
 const { createApp } = require('./src/app');
 
@@ -10,12 +11,18 @@ persist.load();
 
 const app = createApp();
 
-// Bind to 0.0.0.0 to ensure accessibility across IPv4/IPv6, same as the
-// original NestJS `app.listen(3000, '0.0.0.0')`. Hardcoded port/host is
-// intentional — the original app used no environment variables at all.
-const PORT = 3000;
-const HOST = '0.0.0.0';
-
-app.listen(PORT, HOST, () => {
-  console.log(`Application is running on: http://localhost:${PORT}`);
+const server = app.listen(env.PORT, env.HOST, () => {
+  console.log(`Application is running on: http://${env.HOST === '0.0.0.0' ? 'localhost' : env.HOST}:${env.PORT}`);
 });
+
+function gracefulShutdown(signal) {
+  console.log(`[Server] Received ${signal}. Flushing pending state writes to disk...`);
+  persist.saveImmediate();
+  server.close(() => {
+    console.log('[Server] HTTP server closed gracefully.');
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

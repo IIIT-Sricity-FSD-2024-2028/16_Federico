@@ -1,13 +1,7 @@
+'use strict';
+
 /**
  * admin.js — Roles & Staff (Dynamic RBAC, tasks.md §9).
- *
- * Lets Admin — the organization's owner/super user, above HOM (see
- * back-end/src/services/provisioning.service.js) — create custom roles,
- * grant them permissions from the fixed catalog, and assign them to HOM/
- * PRE/FA staff — on top of, never instead of, their fixed actor
- * permissions. Backed by back-end/src/routes/rbac.routes.js. Moved here
- * from HOM/admin.js — RBAC administration is Admin's job, not HOM's (see
- * table.md issue #1).
  */
 
 document.addEventListener('DOMContentLoaded', async () => {

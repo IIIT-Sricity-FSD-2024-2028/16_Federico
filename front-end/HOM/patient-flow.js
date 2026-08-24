@@ -1,17 +1,7 @@
+'use strict';
+
 /**
- * patient-flow.js — Phase 3 rewrite.
- *
- * "Admitted patients" is derived entirely from preRequests whose status
- * places them in the admission lifecycle (ADMITTED / DISCHARGE_REQUESTED
- * / DISCHARGE_APPROVED / DISCHARGED) — the same source of truth PRE's own
- * pages read, joined with patients/doctors/beds. There is no separate
- * "patients" list with its own status field to fall out of sync with the
- * pre-request state machine.
- *
- * Discharge itself is PRE-initiated (ADMITTED -> DISCHARGE_REQUESTED) and
- * HOM-approved (DISCHARGE_REQUESTED -> DISCHARGE_APPROVED) — this page's
- * "Approve Discharge" action is the HOM half of that handshake, not a
- * unilateral HOM-only discharge button.
+ * patient-flow.js — HOM Patient Flow & Admissions.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {

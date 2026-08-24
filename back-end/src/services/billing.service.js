@@ -61,24 +61,11 @@ function addLedgerEntry(entry) {
     throw new NotFoundError(`Ledger #${entry.ledger_id} not found`);
   }
 
-  const existing = billingRepository.findEntriesByLedger(entry.ledger_id);
-  const entry_id = existing.length + 1;
-
-  const record = {
-    entry_id,
-    ledger_id: Number(entry.ledger_id),
-    service_id: Number(entry.service_id),
-    quantity: Number(entry.quantity) || 1,
-    unit_price: Number(entry.unit_price) || 0,
-    amount: Number(entry.amount) || (Number(entry.unit_price) || 0) * (Number(entry.quantity) || 1),
-    entry_time: new Date().toISOString(),
+  return billingRepository.addEntry({
+    ...entry,
     organization_id: entry.organization_id || ledger.organization_id || null,
     hospital_id: entry.hospital_id || ledger.hospital_id || null,
-  };
-
-  billingRepository.entriesRepo._collection.push(record);
-  require('../store/persist').save();
-  return { ...record };
+  });
 }
 
 // Payments

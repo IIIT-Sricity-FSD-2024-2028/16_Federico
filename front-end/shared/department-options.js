@@ -1,19 +1,16 @@
+'use strict';
+
 /**
  * shared/department-options.js
  *
- * The appointment-booking department dropdown used to be two separate,
- * hardcoded <option> lists — PRE/pages/APPointment.html and
- * Patient/patient-book-appointment.html — that didn't even agree with
- * each other ("Orthopedic" vs "Orthopedics", "General" vs "General
- * Medicine"). Both now call this once, populating the dropdown from the
- * hospital's actual doctors (their `specialization` field, already
- * fetched via `ApiClient.doctors.list()` elsewhere in the app) instead of
- * a static guess-list — this always matches who a patient can actually
- * be scheduled with, and can never drift out of sync with itself.
+ * Populates department dropdown selections dynamically from active doctor profiles.
  */
 (function () {
-  function escapeHtml(value) {
-    return String(value ?? '')
+  function escape(str) {
+    if (window.Formatters && typeof window.Formatters.escapeHtml === 'function') {
+      return window.Formatters.escapeHtml(str);
+    }
+    return String(str ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -31,8 +28,8 @@
       new Set((doctors || []).map((d) => (d.specialization || '').trim()).filter(Boolean)),
     ).sort((a, b) => a.localeCompare(b));
 
-    const optionHtml = [`<option value="" disabled selected>${escapeHtml(placeholder)}</option>`]
-      .concat(specializations.map((spec) => `<option value="${escapeHtml(spec)}">${escapeHtml(spec)}</option>`))
+    const optionHtml = [`<option value="" disabled selected>${escape(placeholder)}</option>`]
+      .concat(specializations.map((spec) => `<option value="${escape(spec)}">${escape(spec)}</option>`))
       .join('');
     selectEl.innerHTML = optionHtml;
 
@@ -41,5 +38,5 @@
     }
   }
 
-  window.DepartmentOptions = { populateDepartmentSelect };
+  window.DepartmentOptions = Object.freeze({ populateDepartmentSelect });
 })();

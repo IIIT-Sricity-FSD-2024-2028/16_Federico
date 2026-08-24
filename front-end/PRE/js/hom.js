@@ -1,15 +1,7 @@
+'use strict';
+
 /**
- * PRE/js/hom.js — Phase 3 rewrite.
- *
- * Two independent things live on this page:
- *  1. Bed Allocation Request — for a patient who already has a
- *     pre-request needing a bed (APPROVED+visit_type Admit, or
- *     EMERGENCY), PRE requests a bed via the real ward/bed-requests
- *     endpoint (the ONE path that can ever drive a pre-request to
- *     ADMITTED — see preRequest.controller.js).
- *  2. Discharge Requests — a read-only mirror of what HOM has done with
- *     PRE's discharge requests (same data discharge.html shows, kept
- *     here too since the original page had both).
+ * PRE/js/hom.js — Bed allocation and discharge requests.
  */
 
 let candidatePatients = [];

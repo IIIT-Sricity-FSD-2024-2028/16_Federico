@@ -15,7 +15,7 @@ class PatientRepository extends BaseRepository {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
     const candidate = `UHID-${code}`;
-    const exists = this._collection.some((p) => p.uhid === candidate);
+    const exists = this.findOne((p) => p.uhid === candidate);
     if (exists) return this.generateUhid();
     return candidate;
   }
@@ -23,10 +23,9 @@ class PatientRepository extends BaseRepository {
   findByUhid(uhid) {
     if (!uhid) return null;
     const normalized = String(uhid).trim().toUpperCase();
-    const found = this._collection.find(
+    return this.findOne(
       (p) => String(p.uhid || '').toUpperCase() === normalized,
     );
-    return found ? { ...found } : null;
   }
 
   findByIdOrUhid(idOrUhid) {

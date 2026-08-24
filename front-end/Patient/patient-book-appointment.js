@@ -1,4 +1,6 @@
-// front-end/patient-book-appointment.js
+'use strict';
+
+// front-end/Patient/patient-book-appointment.js
 
 document.addEventListener("DOMContentLoaded", () => {
 

@@ -1,3 +1,5 @@
+'use strict';
+
 document.addEventListener("DOMContentLoaded", () => {
     const sections = ["personal", "contact", "password", "insurance"];
     const navLinks = document.querySelectorAll(".nav-link");

@@ -1,4 +1,6 @@
-// front-end/patient-dashboard.js
+'use strict';
+
+// front-end/Patient/patient-dashboard.js
 
 document.addEventListener("DOMContentLoaded", () => {
 

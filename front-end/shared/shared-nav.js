@@ -6,6 +6,18 @@
  * Supports dynamic branding, role switching, notifications overlay, and user profile dropdowns.
  */
 (function () {
+  function escape(str) {
+    if (window.Formatters && typeof window.Formatters.escapeHtml === 'function') {
+      return window.Formatters.escapeHtml(str);
+    }
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function renderNavbar(config) {
     var container = document.getElementById(config.containerId || 'main-nav');
     if (!container) return;
@@ -22,13 +34,18 @@
           '<a class="nav-link' +
           (isActive ? ' active' : '') +
           '" href="' +
-          item.href +
+          escape(item.href) +
           '">' +
-          item.label +
+          escape(item.label) +
           '</a>'
         );
       })
       .join('');
+
+    var safeBrand = escape(brandName);
+    var safeRole = escape(roleName);
+    var brandInitial = escape(brandName.charAt(0) || 'F');
+    var roleInitial = escape(roleName.slice(0, 2).toUpperCase() || 'ST');
 
     var navHtml = `
       <style>
@@ -55,21 +72,21 @@
       </style>
       <div class="top-nav">
         <div class="nav-logo-group">
-          <div class="nav-logo-icon">${brandName.charAt(0)}</div>
+          <div class="nav-logo-icon">${brandInitial}</div>
           <div class="nav-logo-text">
-            <span class="brand-title">${brandName}</span>
+            <span class="brand-title">${safeBrand}</span>
             <span class="hospital-subtitle">Hospital</span>
           </div>
         </div>
         <div class="nav-links">${linksHtml}</div>
         <div class="nav-actions">
-          <div class="nav-profile" id="nav-profile-btn">
-            <div class="nav-avatar">${roleName.slice(0, 2).toUpperCase()}</div>
-            <span class="nav-profile-text">${roleName}</span>
+          <div class="nav-profile" id="nav-profile-btn" role="button" aria-haspopup="true" aria-expanded="false">
+            <div class="nav-avatar">${roleInitial}</div>
+            <span class="nav-profile-text">${safeRole}</span>
           </div>
-          <div class="nav-overlay" id="nav-profile-menu">
-            <div style="padding: 12px 16px; border-bottom: 1px solid var(--color-border); font-size: 11px; color: var(--color-muted-fg);">Signed in as <strong>${roleName}</strong></div>
-            <button class="profile-item danger" id="nav-signout-btn">Sign Out</button>
+          <div class="nav-overlay" id="nav-profile-menu" role="menu">
+            <div style="padding: 12px 16px; border-bottom: 1px solid var(--color-border); font-size: 11px; color: var(--color-muted-fg);">Signed in as <strong>${safeRole}</strong></div>
+            <button class="profile-item danger" id="nav-signout-btn" role="menuitem">Sign Out</button>
           </div>
         </div>
       </div>
@@ -84,24 +101,30 @@
     if (profileBtn && profileMenu) {
       profileBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        profileMenu.classList.toggle('active');
+        var isOpen = profileMenu.classList.toggle('active');
+        profileBtn.setAttribute('aria-expanded', String(isOpen));
       });
       document.addEventListener('click', function () {
         profileMenu.classList.remove('active');
+        profileBtn.setAttribute('aria-expanded', 'false');
       });
     }
 
     if (signoutBtn) {
       signoutBtn.addEventListener('click', async function () {
-        if (window.ApiClient && window.ApiClient.auth && window.ApiClient.auth.logout) {
-          await window.ApiClient.auth.logout();
-        }
+        try {
+          if (window.API && window.API.auth && typeof window.API.auth.logout === 'function') {
+            await window.API.auth.logout();
+          } else if (window.ApiClient && window.ApiClient.auth && typeof window.ApiClient.auth.logout === 'function') {
+            await window.ApiClient.auth.logout();
+          }
+        } catch (_) {}
         window.location.href = '../login/login-page.html';
       });
     }
   }
 
-  window.FedericoNavbar = {
-    render: renderNavbar,
-  };
+  window.SharedNav = Object.freeze({
+    renderNavbar: renderNavbar,
+  });
 })();

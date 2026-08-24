@@ -1,12 +1,6 @@
-// js/app.js — Phase 3 rewrite. See fa-helpers.js for the data-loading rationale.
+'use strict';
 
-// A plain top-level `let` here would create a script-scoped binding, NOT
-// a property of `window` — router.js and modules/billing.js both set
-// `window.currentAdmissionId` directly, so every read in this file must
-// go through `window.currentAdmissionId` too, or navigation silently
-// stops working (found via live testing: createLedgerAndOpen navigated
-// to #/ledger but the page still showed "no ledger" for a ledger that
-// really did just get created).
+// js/app.js — Phase 3 rewrite. See fa-helpers.js for the data-loading rationale.
 window.currentAdmissionId = window.currentAdmissionId || null;
 
 async function render() {
@@ -580,9 +574,14 @@ window.generateReceiptRows = generateReceiptRows;
 // ── BOOT SEQUENCE ──
 document.addEventListener('DOMContentLoaded', () => {
     Permissions.updateUI();
-    document.getElementById('logout-btn')?.addEventListener('click', () => {
-        if (window.RoleAccess) window.RoleAccess.logout();
-        window.location.href = '../landing/landing-page.html';
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+        try {
+            const api = window.API || window.ApiClient;
+            if (api && api.auth && typeof api.auth.logout === 'function') {
+                await api.auth.logout();
+            }
+        } catch (_) {}
+        window.location.href = '../login/login-page.html';
     });
     render();
 });
