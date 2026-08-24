@@ -8,16 +8,13 @@ const { notFoundHandler } = require('./middleware/notFoundHandler');
 const { errorHandler } = require('./middleware/errorHandler');
 const { attachSession } = require('./middleware/session');
 const { attachTenant } = require('./middleware/tenant');
-const { persistOnMutation } = require('./middleware/persistOnMutation');
 const { setupSwagger } = require('./config/swagger');
 const routes = require('./routes');
 
 function createApp() {
   const app = express();
 
-  // Enable CORS for frontend integration (Critical for file:// origins) —
-  // same options object Nest's app.enableCors() passed straight through to
-  // the same underlying `cors` package.
+  // Enable CORS for frontend integration
   app.use(
     cors({
       origin: true,
@@ -26,17 +23,27 @@ function createApp() {
     }),
   );
 
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '2mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
   app.use(requestLogger);
   app.use(attachSession);
   app.use(attachTenant);
-  app.use(persistOnMutation);
+
+  // Health check endpoint
+  app.get(['/', '/health'], (req, res) => {
+    res.status(200).json({
+      status: 'UP',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      service: 'Federico HMS Backend',
+      version: '2.0.0',
+    });
+  });
 
   app.use(routes);
 
-  // Swagger UI at /api + docs/swagger.json export, mirroring main.ts.
+  // Swagger UI at /api
   setupSwagger(app);
 
   app.use(notFoundHandler);

@@ -1,17 +1,14 @@
 'use strict';
 
-const dataStore = require('../store/dataStore');
+const {
+  preRequestRepository,
+  patientRepository,
+  wardRepository,
+  admissionRepository,
+} = require('../repositories');
 const activityService = require('./activity.service');
-const wardService = require('./ward.service');
+const { NotFoundError, ValidationError, ForbiddenError } = require('../errors');
 
-/**
- * Explicit state machine for the PRE intake → admission → discharge
- * lifecycle, replacing the original frontend's ad-hoc `status` +
- * `patientStatus` pair (two overlapping, independently-writable fields —
- * a repeated source of the "state gets out of sync" bugs found in the
- * pre-migration audit). One status field, one table of who may move it
- * where. See TRANSITIONS below for the actual workflow this encodes.
- */
 const STATUSES = [
   'PENDING',
   'APPROVED',
@@ -24,22 +21,18 @@ const STATUSES = [
   'DISCHARGED',
 ];
 
-// fromStatus -> { toStatus: [actors allowed to make this specific move] }
-// Actors not listed for a transition can never make it, regardless of
-// their general 'preRequest' write access — this is deliberately more
-// precise than a coarse read/write gate (see actorAccess.js's comment on
-// this resource for why that distinction matters).
 const TRANSITIONS = {
   PENDING: {
     APPROVED: ['PRE'],
-    REJECTED: ['PRE', 'Patient'], // Patient may only cancel their OWN pending request (ownership enforced in the controller)
+    REJECTED: ['PRE', 'Patient'],
   },
   APPROVED: {
     EMERGENCY: ['PRE'],
     CONSULTATION_DONE: ['PRE'],
+    ADMITTED: ['HOM'],
   },
   EMERGENCY: {
-    ADMITTED: ['HOM'], // via bed allocation — see ward.service.js#updateBedRequest cascade
+    ADMITTED: ['HOM'],
   },
   ADMITTED: {
     DISCHARGE_REQUESTED: ['PRE'],
@@ -48,70 +41,9 @@ const TRANSITIONS = {
     DISCHARGE_APPROVED: ['HOM'],
   },
   DISCHARGE_APPROVED: {
-    DISCHARGED: ['PRE'], // PRE's final sign-off — releases the bed, see below
+    DISCHARGED: ['PRE'],
   },
 };
-
-// APPROVED -> ADMITTED also happens via HOM bed allocation, for the
-// visitType: 'Admit' path (no EMERGENCY stop in between).
-TRANSITIONS.APPROVED.ADMITTED = ['HOM'];
-
-function canTransition(fromStatus, toStatus, actorRole) {
-  const allowedActors = TRANSITIONS[fromStatus]?.[toStatus];
-  return Boolean(allowedActors && allowedActors.includes(actorRole));
-}
-
-function isTerminal(status) {
-  return ['REJECTED', 'CONSULTATION_DONE', 'DISCHARGED'].includes(status);
-}
-
-function findAll() {
-  return dataStore.preRequests;
-}
-
-function findOne(id) {
-  return dataStore.preRequests.find((p) => p.pre_request_id === id) || null;
-}
-
-function create(payload, createdBy) {
-  const newRequest = {
-    pre_request_id:
-      dataStore.preRequests.length > 0
-        ? Math.max(...dataStore.preRequests.map((p) => p.pre_request_id)) + 1
-        : 1,
-    patient_id: payload.patient_id,
-    appointment_id: payload.appointment_id || null,
-    department: payload.department,
-    doctor_id: payload.doctor_id || null,
-    visit_type: payload.visit_type,
-    ward_type: payload.ward_type || null,
-    requested_date: payload.requested_date || null,
-    requested_time: payload.requested_time || null,
-    status: 'PENDING',
-    hom_status: 'Awaiting PRE review',
-    bed_id: null,
-    reject_reason: null,
-    created_by: createdBy || null,
-    organization_id: payload.organization_id || null,
-    hospital_id: payload.hospital_id || null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    decided_at: null,
-  };
-  dataStore.preRequests.push(newRequest);
-
-  const patient = dataStore.patients.find(
-    (p) => p.patient_id === newRequest.patient_id,
-  );
-  activityService.log(
-    'info',
-    `Pre-registration submitted for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`,
-    { preRequestId: newRequest.pre_request_id },
-    newRequest.organization_id,
-  );
-
-  return newRequest;
-}
 
 const HOM_STATUS_BY_STATUS = {
   PENDING: 'Awaiting PRE review',
@@ -125,76 +57,116 @@ const HOM_STATUS_BY_STATUS = {
   DISCHARGED: 'Closed — discharged',
 };
 
-/**
- * Field-level update (doctor/date/time/department/ward_type) — PRE
- * rescheduling or assigning a doctor. Does not change status.
- */
-function updateFields(id, patch) {
-  const request = findOne(id);
-  if (!request) return null;
-  const {
-    doctor_id,
-    requested_date,
-    requested_time,
-    department,
-    ward_type,
-    visit_type,
-  } = patch;
-  if (doctor_id !== undefined) request.doctor_id = doctor_id;
-  if (requested_date !== undefined) request.requested_date = requested_date;
-  if (requested_time !== undefined) request.requested_time = requested_time;
-  if (department !== undefined) request.department = department;
-  if (ward_type !== undefined) request.ward_type = ward_type;
-  if (visit_type !== undefined) request.visit_type = visit_type;
-  request.updated_at = new Date().toISOString();
-  return request;
+function canTransition(fromStatus, toStatus, actorRole) {
+  const allowedActors = TRANSITIONS[fromStatus]?.[toStatus];
+  return Boolean(allowedActors && allowedActors.includes(actorRole));
 }
 
-/**
- * Status transition. Caller (controller) has already verified `actorRole`
- * is allowed to make this specific fromStatus -> toStatus move.
- */
-function transition(id, toStatus, actorRole, extra) {
-  const request = findOne(id);
+function isTerminal(status) {
+  return ['REJECTED', 'CONSULTATION_DONE', 'DISCHARGED'].includes(status);
+}
+
+function findAll() {
+  return preRequestRepository.findAll();
+}
+
+function findOne(id) {
+  return preRequestRepository.findById(id);
+}
+
+function create(payload, createdBy) {
+  const newRequest = preRequestRepository.create({
+    patient_id: Number(payload.patient_id),
+    appointment_id: payload.appointment_id ? Number(payload.appointment_id) : null,
+    department: payload.department,
+    doctor_id: payload.doctor_id ? Number(payload.doctor_id) : null,
+    visit_type: payload.visit_type,
+    ward_type: payload.ward_type || null,
+    requested_date: payload.requested_date || null,
+    requested_time: payload.requested_time || null,
+    status: 'PENDING',
+    hom_status: 'Awaiting PRE review',
+    bed_id: null,
+    reject_reason: null,
+    created_by: createdBy || null,
+    organization_id: payload.organization_id ? Number(payload.organization_id) : null,
+    hospital_id: payload.hospital_id ? Number(payload.hospital_id) : null,
+    decided_at: null,
+  });
+
+  const patient = patientRepository.findById(newRequest.patient_id);
+  activityService.log(
+    'info',
+    `Pre-registration submitted for ${patient ? patient.name : 'patient #' + newRequest.patient_id}`,
+    { preRequestId: newRequest.pre_request_id },
+    newRequest.organization_id,
+  );
+
+  return newRequest;
+}
+
+function updateFields(id, patch) {
+  const request = preRequestRepository.findById(id);
   if (!request) return null;
 
-  request.status = toStatus;
-  request.hom_status = HOM_STATUS_BY_STATUS[toStatus] || request.hom_status;
-  request.updated_at = new Date().toISOString();
+  const allowedFields = ['doctor_id', 'requested_date', 'requested_time', 'department', 'ward_type', 'visit_type'];
+  const updateData = {};
+  for (const field of allowedFields) {
+    if (patch[field] !== undefined) {
+      updateData[field] = patch[field];
+    }
+  }
+
+  return preRequestRepository.update(id, updateData);
+}
+
+function transition(id, toStatus, actorRole, extra) {
+  const request = preRequestRepository.findById(id);
+  if (!request) return null;
+
+  const patch = {
+    status: toStatus,
+    hom_status: HOM_STATUS_BY_STATUS[toStatus] || request.hom_status,
+  };
+
   if (
     isTerminal(toStatus) ||
     ['ADMITTED', 'DISCHARGE_APPROVED'].includes(toStatus)
   ) {
-    request.decided_at = request.decided_at || new Date().toISOString();
+    patch.decided_at = request.decided_at || new Date().toISOString();
   }
 
   if (toStatus === 'REJECTED' && extra?.reject_reason) {
-    request.reject_reason = extra.reject_reason;
+    patch.reject_reason = extra.reject_reason;
   }
 
   if (toStatus === 'ADMITTED' && extra?.bed_id) {
-    request.bed_id = extra.bed_id;
+    patch.bed_id = Number(extra.bed_id);
   }
 
   if (toStatus === 'DISCHARGED') {
-    // Release the bed — the original frontend never did this, so beds
-    // stayed OCCUPIED forever once assigned. Closing the loop here.
+    // Release the physical bed and finalize the inpatient admission
     if (request.bed_id) {
-      wardService.updateBedStatus(request.bed_id, 'AVAILABLE');
+      wardRepository.updateBed(request.bed_id, { status: 'AVAILABLE' });
     }
-    const admission = dataStore.admissions.find(
+    const admission = admissionRepository.findOne(
       (a) => a.patient_id === request.patient_id && a.bed_id === request.bed_id,
     );
-    if (admission) admission.status = 'DISCHARGED';
+    if (admission) {
+      admissionRepository.update(admission.admission_id, { status: 'DISCHARGED' });
+    }
   }
+
+  const updated = preRequestRepository.update(id, patch);
 
   activityService.log(
     'success',
-    `Pre-request #${id} moved ${request.status}`,
+    `Pre-request #${id} moved to ${toStatus}`,
     { preRequestId: id, actorRole },
     request.organization_id,
   );
-  return request;
+
+  return updated;
 }
 
 module.exports = {

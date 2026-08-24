@@ -1,16 +1,17 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Hospital Management System API",
-    "description": "In-memory backend for Review-4",
-    "version": "1.0"
+    "title": "Federico Healthcare Platform API",
+    "description": "Production REST API for Federico Multi-Tenant HMS",
+    "version": "2.0.0"
   },
   "components": {
     "securitySchemes": {
-      "x-role": {
-        "type": "apiKey",
-        "name": "x-role",
-        "in": "header"
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your session token in the format: Bearer <token>"
       }
     }
   },
@@ -23,7 +24,7 @@
         "summary": "Get all admissions",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -39,7 +40,7 @@
         "summary": "Create a new admission",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -57,7 +58,7 @@
         "summary": "Get admission by ID",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -83,7 +84,7 @@
         "summary": "Update admission details",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -111,7 +112,7 @@
         "summary": "Get all billable services",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -127,7 +128,7 @@
         "summary": "Create a new billable service",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -145,7 +146,7 @@
         "summary": "Get ledger for an admission",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -173,7 +174,7 @@
         "summary": "Create a ledger for an admission",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -191,7 +192,7 @@
         "summary": "Get all entries for a ledger",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -219,7 +220,7 @@
         "summary": "Add a ledger entry",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -237,7 +238,7 @@
         "summary": "Get all payments",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -253,7 +254,7 @@
         "summary": "Create a new payment",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -271,7 +272,7 @@
         "summary": "Create a discharge summary",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -289,7 +290,7 @@
         "summary": "Get the full in-memory state representing the DB schema",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -305,7 +306,7 @@
         "summary": "Update the full in-memory state",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -323,7 +324,7 @@
         "summary": "Get all doctors",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -339,7 +340,7 @@
         "summary": "Create a new doctor",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -357,7 +358,7 @@
         "summary": "Get a doctor by ID",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -383,7 +384,7 @@
         "summary": "Update a doctor",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -409,7 +410,7 @@
         "summary": "Delete a doctor",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -437,7 +438,7 @@
         "summary": "Get all doctor availabilities",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -455,7 +456,7 @@
         "summary": "Get availability by doctor ID",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -483,7 +484,7 @@
         "summary": "Create a new doctor availability",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -501,7 +502,7 @@
         "summary": "Delete a doctor availability",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -529,7 +530,7 @@
         "summary": "Get all inventory items",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -545,7 +546,7 @@
         "summary": "Add a new inventory item",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -563,7 +564,7 @@
         "summary": "Update inventory item",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -591,7 +592,7 @@
         "summary": "Get all purchase requests",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -607,7 +608,7 @@
         "summary": "Create a purchase request",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -625,7 +626,7 @@
         "summary": "Update purchase request status",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -653,7 +654,7 @@
         "summary": "Get all patients",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -669,7 +670,25 @@
         "summary": "Register a new patient",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/patient/portal/summary": {
+      "get": {
+        "tags": [
+          "Patients"
+        ],
+        "summary": "Composite summary for patient dashboard",
+        "security": [
+          {
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -687,7 +706,7 @@
         "summary": "Get a patient by ID or UHID",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -713,7 +732,7 @@
         "summary": "Update patient information",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -739,7 +758,7 @@
         "summary": "Delete a patient",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -767,7 +786,7 @@
         "summary": "Get all patient insurances",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -785,7 +804,7 @@
         "summary": "Get insurances by patient ID",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -813,7 +832,7 @@
         "summary": "Add insurance for a patient",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -831,7 +850,7 @@
         "summary": "Get all wards",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -847,7 +866,7 @@
         "summary": "Create a new ward",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -865,7 +884,7 @@
         "summary": "Get all beds across all wards",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -883,7 +902,7 @@
         "summary": "Get beds in a specific ward",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -911,7 +930,7 @@
         "summary": "Create a new bed",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -929,7 +948,7 @@
         "summary": "Update bed status",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -957,7 +976,7 @@
         "summary": "Get all appointments",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -973,7 +992,7 @@
         "summary": "Create a new appointment",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -991,7 +1010,7 @@
         "summary": "Update an appointment status",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1011,6 +1030,140 @@
         }
       }
     },
+    "/pre-requests": {
+      "get": {
+        "tags": [
+          "PreRequests"
+        ],
+        "summary": "Get all pre-registration requests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PreRequests"
+        ],
+        "summary": "Create a new pre-registration request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/pre-requests/{id}": {
+      "put": {
+        "tags": [
+          "PreRequests"
+        ],
+        "summary": "Transition or update a pre-registration request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "User login authentication",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Patient self-service signup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get currently authenticated user session",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "User logout and session invalidation",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
     "/marketplace/organizations": {
       "get": {
         "tags": [
@@ -1019,7 +1172,25 @@
         "summary": "Public directory of active organizations",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/marketplace/register-organization": {
+      "post": {
+        "tags": [
+          "Marketplace"
+        ],
+        "summary": "Self-service organization and superuser registration",
+        "security": [
+          {
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1037,7 +1208,7 @@
         "summary": "Platform Super User login",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1055,7 +1226,7 @@
         "summary": "Current Platform Super User",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1073,7 +1244,7 @@
         "summary": "List all organizations",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1089,7 +1260,7 @@
         "summary": "Provision a new organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1107,7 +1278,7 @@
         "summary": "Get an organization by ID",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1133,7 +1304,7 @@
         "summary": "Delete (soft) an organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1161,7 +1332,7 @@
         "summary": "Suspend an organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1189,7 +1360,7 @@
         "summary": "Activate an organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1217,7 +1388,7 @@
         "summary": "Provisioning audit trail for an organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1245,7 +1416,7 @@
         "summary": "Resource usage for an organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1273,7 +1444,7 @@
         "summary": "Platform-wide usage summary",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1291,7 +1462,7 @@
         "summary": "Platform Super User action audit trail",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1309,7 +1480,7 @@
         "summary": "List an organization's hospital branches",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1335,7 +1506,7 @@
         "summary": "Add a hospital branch",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1363,7 +1534,7 @@
         "summary": "List feature-flag state for an organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1391,7 +1562,7 @@
         "summary": "Enable/disable a module",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1427,7 +1598,7 @@
         "summary": "List API keys for an organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1453,7 +1624,7 @@
         "summary": "Generate a new API key",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1481,7 +1652,7 @@
         "summary": "Revoke an API key",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1509,7 +1680,7 @@
         "summary": "List subscription plans",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1525,7 +1696,7 @@
         "summary": "Create a subscription plan",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1543,7 +1714,7 @@
         "summary": "Update a subscription plan",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1571,7 +1742,7 @@
         "summary": "Get an organization's current subscription + plan",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1597,7 +1768,7 @@
         "summary": "Set/upgrade/downgrade an organization's plan",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1625,7 +1796,7 @@
         "summary": "Renew an organization's subscription",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1653,7 +1824,7 @@
         "summary": "List custom roles for the caller's organization",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1669,7 +1840,7 @@
         "summary": "Create a custom role",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1687,7 +1858,7 @@
         "summary": "List the fixed permission catalog",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1705,7 +1876,7 @@
         "summary": "Grant a permission to a custom role",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1731,7 +1902,7 @@
         "summary": "Get a custom role's currently granted permissions",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1759,7 +1930,7 @@
         "summary": "Revoke a permission from a custom role",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1795,7 +1966,7 @@
         "summary": "Assign a custom role to a staff user",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1823,7 +1994,7 @@
         "summary": "Remove a custom role from a staff user",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -1859,7 +2030,7 @@
         "summary": "List staff in the caller's organization with their roles",
         "security": [
           {
-            "x-role": []
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -1869,13 +2040,15 @@
         }
       }
     },
-    "/": {
+    "/health": {
       "get": {
-        "tags": [],
-        "summary": "Health check",
+        "tags": [
+          "Health"
+        ],
+        "summary": "System health check and uptime monitor",
         "responses": {
           "200": {
-            "description": "Hello World!"
+            "description": "System healthy"
           }
         }
       }

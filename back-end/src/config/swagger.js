@@ -4,10 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 
-// Mirrors the @ApiOperation summaries from the original NestJS controllers,
-// grouped under the same @ApiTags used before, so the generated
-// docs/swagger.json stays a faithful (if hand-assembled rather than
-// decorator-derived) equivalent of the original auto-generated document.
 const ROUTES = [
   ['Admissions', 'get', '/admission', 'Get all admissions'],
   ['Admissions', 'get', '/admission/{id}', 'Get admission by ID'],
@@ -90,6 +86,7 @@ const ROUTES = [
   ],
 
   ['Patients', 'get', '/patient', 'Get all patients'],
+  ['Patients', 'get', '/patient/portal/summary', 'Composite summary for patient dashboard'],
   ['Patients', 'get', '/patient/{id}', 'Get a patient by ID or UHID'],
   ['Patients', 'post', '/patient', 'Register a new patient'],
   ['Patients', 'put', '/patient/{id}', 'Update patient information'],
@@ -114,11 +111,26 @@ const ROUTES = [
   ['Appointments', 'post', '/appointment', 'Create a new appointment'],
   ['Appointments', 'put', '/appointment/{id}', 'Update an appointment status'],
 
+  ['PreRequests', 'get', '/pre-requests', 'Get all pre-registration requests'],
+  ['PreRequests', 'post', '/pre-requests', 'Create a new pre-registration request'],
+  ['PreRequests', 'put', '/pre-requests/{id}', 'Transition or update a pre-registration request'],
+
+  ['Auth', 'post', '/auth/login', 'User login authentication'],
+  ['Auth', 'post', '/auth/signup', 'Patient self-service signup'],
+  ['Auth', 'get', '/auth/me', 'Get currently authenticated user session'],
+  ['Auth', 'post', '/auth/logout', 'User logout and session invalidation'],
+
   [
     'Marketplace',
     'get',
     '/marketplace/organizations',
     'Public directory of active organizations',
+  ],
+  [
+    'Marketplace',
+    'post',
+    '/marketplace/register-organization',
+    'Self-service organization and superuser registration',
   ],
 
   ['Platform', 'post', '/platform/auth/login', 'Platform Super User login'],
@@ -291,30 +303,35 @@ function buildDocument() {
     paths[route][method] = {
       tags: [tag],
       summary,
-      security: [{ 'x-role': [] }],
+      security: [{ bearerAuth: [] }],
       parameters: parameters.length ? parameters : undefined,
       responses: { 200: { description: 'Successful response' } },
     };
   }
 
-  paths['/'] = {
+  paths['/health'] = {
     get: {
-      tags: [],
-      summary: 'Health check',
-      responses: { 200: { description: 'Hello World!' } },
+      tags: ['Health'],
+      summary: 'System health check and uptime monitor',
+      responses: { 200: { description: 'System healthy' } },
     },
   };
 
   return {
     openapi: '3.0.0',
     info: {
-      title: 'Hospital Management System API',
-      description: 'In-memory backend for Review-4',
-      version: '1.0',
+      title: 'Federico Healthcare Platform API',
+      description: 'Production REST API for Federico Multi-Tenant HMS',
+      version: '2.0.0',
     },
     components: {
       securitySchemes: {
-        'x-role': { type: 'apiKey', name: 'x-role', in: 'header' },
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Enter your session token in the format: Bearer <token>',
+        },
       },
     },
     paths,
@@ -325,14 +342,19 @@ function setupSwagger(app) {
   const document = buildDocument();
   app.use('/api', swaggerUi.serve, swaggerUi.setup(document));
 
-  const docsPath = path.resolve(__dirname, '../../docs');
-  if (!fs.existsSync(docsPath)) {
-    fs.mkdirSync(docsPath);
+  // Non-blocking, safe export
+  try {
+    const docsPath = path.resolve(__dirname, '../../docs');
+    if (!fs.existsSync(docsPath)) {
+      fs.mkdirSync(docsPath, { recursive: true });
+    }
+    fs.writeFileSync(
+      path.join(docsPath, 'swagger.json'),
+      JSON.stringify(document, null, 2),
+    );
+  } catch (err) {
+    // Non-fatal in read-only runtimes
   }
-  fs.writeFileSync(
-    path.join(docsPath, 'swagger.json'),
-    JSON.stringify(document, null, 2),
-  );
 }
 
 module.exports = { setupSwagger };

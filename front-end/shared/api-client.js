@@ -1,50 +1,53 @@
+'use strict';
+
 /**
- * shared/api-client.js — Phase 3 rewrite.
+ * shared/api-client.js — Modern REST Client with Reactive Cross-Tab Session Management.
  *
- * Replaces the old localStorage-simulation bridge (which only merged 9 of
- * ~20 state slices and silently dropped the rest — the root cause of most
- * "broken workflow" bugs) with a direct REST client against the Express
- * backend, which is now the real source of truth. There is no more
- * full-state merge: every read goes to the backend, every write goes to
- * the backend, and localStorage is used only as a short-lived render
- * cache (see `shared/render-cache.js`), never as authority.
- *
- * Session (login token) is stored in `localStorage` (not `sessionStorage`)
- * under FEDERICO_SESSION_KEY so a logged-in actor stays logged in across
- * tabs/windows of the same browser — fixing the old per-tab session gap.
+ * Provides a standardized REST interface against the Federico Express backend.
+ * Session token is stored in localStorage under 'FedericoSession' and synchronized
+ * across all open browser tabs via storage event listeners.
  */
 (function () {
-  var API_BASE_URL = "http://localhost:3000";
+  var API_BASE_URL = window.__FEDERICO_API_URL__ || (
+    typeof window !== "undefined" && window.location && window.location.port === "3000"
+      ? window.location.origin
+      : "http://localhost:3000"
+  );
   var SESSION_KEY = "FedericoSession";
+  var REQUEST_TIMEOUT_MS = 15000;
 
-  // ---- session storage -----------------------------------------------
-function getSession() {
+  // ---- Reactive Cross-Tab Session Storage ----
+  function getSession() {
     try {
-        var raw = sessionStorage.getItem(SESSION_KEY);
-        return raw ? JSON.parse(raw) : null;
+      var raw = localStorage.getItem(SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
     } catch (err) {
-        return null;
+      return null;
     }
-}
+  }
 
-function setSession(session) {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  function setSession(session) {
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } catch (_) {}
     window.dispatchEvent(new Event("federicoSessionChanged"));
-}
+  }
 
-function clearSession() {
-    sessionStorage.removeItem(SESSION_KEY);
+  function clearSession() {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+    } catch (_) {}
     window.dispatchEvent(new Event("federicoSessionChanged"));
-}
+  }
 
-  // ---- helpers ----------------------------------------------------------
+  // Synchronize auth state reactively when modified in another browser tab/window
+  window.addEventListener("storage", function (e) {
+    if (e.key === SESSION_KEY) {
+      window.dispatchEvent(new Event("federicoSessionChanged"));
+    }
+  });
 
-  /**
-   * The backend's @IsPhoneNumber() validator requires international
-   * format (a leading "+"). The demo dataset and forms are India-centric,
-   * so a bare local number is assumed to be +91 unless the caller already
-   * supplied a country code.
-   */
+  // ---- Helpers ----
   function normalizePhone(phone) {
     var trimmed = String(phone || "").trim();
     if (!trimmed) return trimmed;
@@ -54,17 +57,42 @@ function clearSession() {
 
   function extractMessage(status, statusText, data) {
     if (data) {
+      if (data.error && data.error.message) return data.error.message;
       if (Array.isArray(data.message)) return data.message.join(", ");
       if (data.message) return data.message;
     }
     return status + " " + statusText;
   }
 
+  function withNormalizedPhones(payload, keys) {
+    if (!payload || typeof payload !== "object") return payload;
+    var copy = Object.assign({}, payload);
+    keys.forEach(function (key) {
+      if (copy[key]) copy[key] = normalizePhone(copy[key]);
+    });
+    return copy;
+  }
+
   /**
-   * Low-level request helper. Attaches the session Bearer token unless
-   * `opts.auth === false`. On a 401 from an authenticated call, clears the
-   * stale/expired session so the next guarded page load redirects to
-   * login instead of looping on invalid-token errors.
+   * Prevents double-submissions by locking a button element during in-flight async operations.
+   */
+  async function withAsyncLock(btnElement, asyncFn) {
+    if (!btnElement) return asyncFn();
+    if (btnElement.disabled || btnElement.dataset.loading === "true") return;
+    btnElement.disabled = true;
+    btnElement.dataset.loading = "true";
+    var originalHtml = btnElement.innerHTML;
+    try {
+      return await asyncFn();
+    } finally {
+      btnElement.disabled = false;
+      btnElement.dataset.loading = "false";
+      btnElement.innerHTML = originalHtml;
+    }
+  }
+
+  /**
+   * Low-level fetch wrapper with bearer authentication, timeouts, and normalized error handling.
    */
   async function request(method, path, body, opts) {
     opts = opts || {};
@@ -74,6 +102,9 @@ function clearSession() {
       headers["Authorization"] = "Bearer " + session.token;
     }
 
+    var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timeoutId = controller ? setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
+
     var res;
     try {
       res = await fetch(API_BASE_URL + path, {
@@ -81,11 +112,19 @@ function clearSession() {
         headers: headers,
         credentials: "include",
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller ? controller.signal : undefined,
       });
     } catch (networkErr) {
+      if (networkErr.name === "AbortError") {
+        var timeoutErr = new Error("Request timed out after " + (REQUEST_TIMEOUT_MS / 1000) + "s. Please try again.");
+        timeoutErr.status = 408;
+        throw timeoutErr;
+      }
       var offlineErr = new Error("Cannot reach the server. Is the backend running on " + API_BASE_URL + "?");
       offlineErr.status = 0;
       throw offlineErr;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
 
     var text = await res.text();
@@ -99,42 +138,64 @@ function clearSession() {
     }
 
     if (!res.ok) {
-      if (res.status === 401 && opts.auth !== false) clearSession();
+      if (res.status === 401 && opts.auth !== false) {
+        clearSession();
+      }
       var err = new Error(extractMessage(res.status, res.statusText, data));
       err.status = res.status;
-      err.body = data;
+      err.data = data;
       throw err;
+    }
+
+    // Unwrap standardized response envelope if present
+    if (data && typeof data === "object" && "success" in data && "data" in data) {
+      return data.data;
     }
 
     return data;
   }
 
-  function withNormalizedPhones(payload, fields) {
-    var out = Object.assign({}, payload);
-    fields.forEach(function (field) {
-      if (out[field]) out[field] = normalizePhone(out[field]);
-    });
-    return out;
-  }
-
-  // ---- API surface --------------------------------------------------
-
+  // ---- Public API Surface ----
   var Api = {
-    request: request,
-    getSession: getSession,
-    setSession: setSession,
-    clearSession: clearSession,
-    normalizePhone: normalizePhone,
+    BASE_URL: API_BASE_URL,
+    withAsyncLock: withAsyncLock,
 
     auth: {
-      login: function (email, password, organizationId) {
-        var body = { email: email, password: password };
-        if (organizationId) body.organization_id = organizationId;
-        return request("POST", "/auth/login", body, { auth: false });
+      login: async function (email, password) {
+        var payload = await request("POST", "/auth/login", { email: email, password: password }, { auth: false });
+        if (payload && payload.token) {
+          setSession({
+            token: payload.token,
+            userId: payload.user ? payload.user.user_id : null,
+            email: payload.user ? payload.user.email : email,
+            name: payload.user ? payload.user.name : null,
+            role: payload.role || (payload.user ? payload.user.role : null),
+            roleId: payload.user ? payload.user.role_id : null,
+            organizationId: payload.organizationId || (payload.user ? payload.user.organization_id : null),
+            hospitalId: payload.hospitalId || (payload.user ? payload.user.hospital_id : null),
+            patientId: payload.patientId || (payload.patient ? payload.patient.patient_id : null),
+            orgName: payload.orgName || (payload.organization ? payload.organization.organization_name : null),
+            orgBranding: payload.orgBranding || null,
+          });
+        }
+        return payload;
       },
-      signup: function (payload) {
-        var body = withNormalizedPhones(payload, ["phone", "emergency_contact_phone"]);
-        return request("POST", "/auth/signup", body, { auth: false });
+      signup: async function (userData) {
+        var payload = await request("POST", "/auth/signup", withNormalizedPhones(userData, ["phone"]), { auth: false });
+        if (payload && payload.token) {
+          setSession({
+            token: payload.token,
+            userId: payload.user ? payload.user.user_id : null,
+            email: payload.user ? payload.user.email : userData.email,
+            name: payload.user ? payload.user.name : userData.name,
+            role: "Patient",
+            roleId: 2,
+            organizationId: payload.organizationId || userData.organization_id || 1,
+            hospitalId: payload.hospitalId || userData.hospital_id || 1,
+            patientId: payload.patientId || (payload.patient ? payload.patient.patient_id : null),
+          });
+        }
+        return payload;
       },
       me: function () {
         return request("GET", "/auth/me");
@@ -142,14 +203,11 @@ function clearSession() {
       logout: async function () {
         try {
           await request("POST", "/auth/logout");
-        } catch (err) {
-          // best-effort — clear local session regardless
-        }
+        } catch (err) {}
         clearSession();
       },
     },
 
-    // ---- Public organization marketplace (tasks.md §4) — no auth ----
     marketplace: {
       organizations: function () {
         return request("GET", "/marketplace/organizations", undefined, { auth: false });
@@ -162,7 +220,6 @@ function clearSession() {
       },
     },
 
-    // ---- Platform Super User (separate session namespace) ----
     platform: {
       auth: {
         login: function (email, password) {
@@ -174,9 +231,7 @@ function clearSession() {
         logout: async function () {
           try {
             await request("POST", "/platform/auth/logout");
-          } catch (err) {
-            // best-effort
-          }
+          } catch (err) {}
           clearSession();
         },
       },
@@ -257,7 +312,6 @@ function clearSession() {
       },
     },
 
-    // ---- Org-scoped dynamic RBAC (custom roles) ----
     rbac: {
       roles: function () {
         return request("GET", "/rbac/roles");
@@ -322,6 +376,9 @@ function clearSession() {
       get: function (idOrUhid) {
         return request("GET", "/patient/" + idOrUhid);
       },
+      portalSummary: function (id) {
+        return request("GET", id ? "/patient/portal/summary/" + id : "/patient/portal/summary");
+      },
       create: function (payload) {
         return request("POST", "/patient", withNormalizedPhones(payload, ["phone", "alternate_phone", "emergency_contact_phone"]));
       },
@@ -355,7 +412,7 @@ function clearSession() {
       beds: function () {
         return request("GET", "/ward/beds");
       },
-      bedsForWard: function (wardId) {
+      bedsInWard: function (wardId) {
         return request("GET", "/ward/" + wardId + "/beds");
       },
       createBed: function (payload) {
@@ -371,22 +428,19 @@ function clearSession() {
         create: function (payload) {
           return request("POST", "/ward/bed-requests", payload);
         },
-        allocate: function (id, bedId) {
-          return request("PUT", "/ward/bed-requests/" + id, { bed_id: bedId });
-        },
-        deny: function (id) {
-          return request("PUT", "/ward/bed-requests/" + id, { status: "DENIED" });
+        update: function (id, patch) {
+          return request("PUT", "/ward/bed-requests/" + id, patch);
         },
       },
-      emergency: {
+      emergencies: {
         list: function () {
-          return request("GET", "/ward/emergency");
+          return request("GET", "/ward/emergencies");
         },
         create: function (payload) {
-          return request("POST", "/ward/emergency", payload);
+          return request("POST", "/ward/emergencies", payload);
         },
         update: function (id, patch) {
-          return request("PUT", "/ward/emergency/" + id, patch);
+          return request("PUT", "/ward/emergencies/" + id, patch);
         },
       },
     },
@@ -429,14 +483,14 @@ function clearSession() {
         },
       },
       ledger: {
-        listAll: function () {
-          return request("GET", "/billing/ledgers");
-        },
         getByAdmission: function (admissionId) {
           return request("GET", "/billing/ledger/" + admissionId);
         },
         create: function (payload) {
           return request("POST", "/billing/ledger", payload);
+        },
+        listAll: function () {
+          return request("GET", "/billing/ledgers");
         },
         entries: function (ledgerId) {
           return request("GET", "/billing/ledger/" + ledgerId + "/entries");
@@ -448,22 +502,6 @@ function clearSession() {
           return request("PUT", "/billing/ledger/" + ledgerId + "/dispatch");
         },
       },
-      payments: {
-        list: function () {
-          return request("GET", "/billing/payments");
-        },
-        create: function (payload) {
-          return request("POST", "/billing/payments", payload);
-        },
-      },
-      dischargeSummary: {
-        create: function (payload) {
-          return request("POST", "/billing/discharge-summary", payload);
-        },
-        getByAdmission: function (admissionId) {
-          return request("GET", "/billing/discharge-summary/" + admissionId);
-        },
-      },
       patient: {
         bills: function (patientId) {
           return request("GET", "/billing/patient/" + patientId + "/bills");
@@ -472,9 +510,25 @@ function clearSession() {
           return request("GET", "/billing/patient/" + patientId + "/receipts");
         },
       },
+      payments: {
+        list: function () {
+          return request("GET", "/billing/payments");
+        },
+        create: function (payload) {
+          return request("POST", "/billing/payments", payload);
+        },
+      },
       receipts: {
         list: function () {
           return request("GET", "/billing/receipts");
+        },
+      },
+      dischargeSummary: {
+        getByAdmission: function (admissionId) {
+          return request("GET", "/billing/discharge-summary/" + admissionId);
+        },
+        create: function (payload) {
+          return request("POST", "/billing/discharge-summary", payload);
         },
       },
       leaders: {

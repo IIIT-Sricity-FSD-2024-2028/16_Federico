@@ -369,47 +369,80 @@ async function refreshStore() {
     const session = window.RoleAccess.getSessionInfo();
     if (!session || !session.patientId) return;
 
-    const [me, insuranceList, bundles, receipts, doctors, beds, services] = await Promise.all([
-        window.ApiClient.auth.me(),
-        window.ApiClient.patients.insuranceForPatient(session.patientId).catch(() => []),
-        window.ApiClient.billing.patient.bills(session.patientId).catch(() => []),
-        window.ApiClient.billing.patient.receipts(session.patientId).catch(() => []),
-        window.ApiClient.doctors.list().catch(() => []),
-        window.ApiClient.wards.beds().catch(() => []),
-        window.ApiClient.billing.services.list().catch(() => []),
-    ]);
+    try {
+        const summary = await window.ApiClient.patients.portalSummary(session.patientId);
+        const me = { patient: summary.patient, user: { email: session.email } };
+        const insurance = summary.insurance;
+        const bundles = summary.bundles || [];
+        const receipts = summary.receipts || [];
+        const doctorsById = indexBy(summary.doctors || [], "doctor_id");
+        const bedsById = indexBy(summary.beds || [], "bed_id");
+        const servicesById = indexBy(summary.services || [], "service_id");
+        const preRequests = summary.preRequests || [];
+        const dischargeSummaries = bundles.map((b) => b.dischargeSummary).filter(Boolean);
 
-    const preRequests = (await window.ApiClient.preRequests.list().catch(() => [])).filter(
-        (pr) => pr.patient_id === session.patientId,
-    );
+        const profile = buildProfile(me.patient, me.user, insurance);
+        const { bills, documents, billingSections, docIndex } = buildBillsAndDocuments(
+            bundles,
+            servicesById,
+            receipts,
+            dischargeSummaries,
+            insurance,
+        );
 
-    const dischargeSummaries = await Promise.all(
-        bundles.map(({ admission }) => window.ApiClient.billing.dischargeSummary.getByAdmission(admission.admission_id).catch(() => null)),
-    );
+        AppStore.patient = profile;
+        AppStore.appointments = buildAppointments(preRequests, doctorsById);
+        AppStore.visits = buildVisits(bundles, bedsById, preRequests);
+        AppStore.bills = bills;
+        AppStore.documents = documents;
+        AppStore.billingSections = billingSections;
+        AppStore.notifications = buildNotifications(preRequests);
+        AppStore._docIndex = docIndex;
+        AppStore._raw = { bundles, preRequests, doctorsById, bedsById, servicesById, insurance };
+    } catch (err) {
+        console.warn("[PatientStore] Failed to load portal summary, attempting individual fetch fallback:", err);
+        const [me, insuranceList, bundles, receipts, doctors, beds, services] = await Promise.all([
+            window.ApiClient.auth.me().catch(() => ({ patient: null, user: null })),
+            window.ApiClient.patients.insuranceForPatient(session.patientId).catch(() => []),
+            window.ApiClient.billing.patient.bills(session.patientId).catch(() => []),
+            window.ApiClient.billing.patient.receipts(session.patientId).catch(() => []),
+            window.ApiClient.doctors.list().catch(() => []),
+            window.ApiClient.wards.beds().catch(() => []),
+            window.ApiClient.billing.services.list().catch(() => []),
+        ]);
 
-    const doctorsById = indexBy(doctors, "doctor_id");
-    const bedsById = indexBy(beds, "bed_id");
-    const servicesById = indexBy(services, "service_id");
-    const insurance = insuranceList && insuranceList[0];
+        const preRequests = (await window.ApiClient.preRequests.list().catch(() => [])).filter(
+            (pr) => pr.patient_id === session.patientId,
+        );
 
-    const profile = buildProfile(me.patient, me.user, insurance);
-    const { bills, documents, billingSections, docIndex } = buildBillsAndDocuments(
-        bundles,
-        servicesById,
-        receipts,
-        dischargeSummaries,
-        insurance,
-    );
+        const dischargeSummaries = await Promise.all(
+            bundles.map(({ admission }) => window.ApiClient.billing.dischargeSummary.getByAdmission(admission.admission_id).catch(() => null)),
+        );
 
-    AppStore.patient = profile;
-    AppStore.appointments = buildAppointments(preRequests, doctorsById);
-    AppStore.visits = buildVisits(bundles, bedsById, preRequests);
-    AppStore.bills = bills;
-    AppStore.documents = documents;
-    AppStore.billingSections = billingSections;
-    AppStore.notifications = buildNotifications(preRequests);
-    AppStore._docIndex = docIndex;
-    AppStore._raw = { bundles, preRequests, doctorsById, bedsById, servicesById, insurance };
+        const doctorsById = indexBy(doctors, "doctor_id");
+        const bedsById = indexBy(beds, "bed_id");
+        const servicesById = indexBy(services, "service_id");
+        const insurance = insuranceList && insuranceList[0];
+
+        const profile = buildProfile(me.patient || {}, me.user || {}, insurance);
+        const { bills, documents, billingSections, docIndex } = buildBillsAndDocuments(
+            bundles,
+            servicesById,
+            receipts,
+            dischargeSummaries,
+            insurance,
+        );
+
+        AppStore.patient = profile;
+        AppStore.appointments = buildAppointments(preRequests, doctorsById);
+        AppStore.visits = buildVisits(bundles, bedsById, preRequests);
+        AppStore.bills = bills;
+        AppStore.documents = documents;
+        AppStore.billingSections = billingSections;
+        AppStore.notifications = buildNotifications(preRequests);
+        AppStore._docIndex = docIndex;
+        AppStore._raw = { bundles, preRequests, doctorsById, bedsById, servicesById, insurance };
+    }
 }
 
 async function initPatientStore() {
@@ -550,7 +583,11 @@ async function payBill(bill, paymentMode) {
 }
 
 window.addEventListener("federicoSessionChanged", () => {
-    if (AppStore.loaded) refreshStore().then(notifyPatientStoreUpdated);
+    if (AppStore.loaded) {
+        refreshStore()
+            .then(notifyPatientStoreUpdated)
+            .catch((err) => console.warn("[PatientStore] Sync error on session change:", err));
+    }
 });
 
 initPatientStore();

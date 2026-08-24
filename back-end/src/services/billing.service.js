@@ -1,144 +1,149 @@
 'use strict';
 
-const dataStore = require('../store/dataStore');
+const {
+  billingRepository,
+  admissionRepository,
+} = require('../repositories');
 const activityService = require('./activity.service');
+const { NotFoundError, ValidationError } = require('../errors');
 
-// SERVICE
+// Services
 function findAllServices() {
-  return dataStore.services;
+  return billingRepository.findAllServices();
 }
 
 function createService(service) {
-  const newSvc = {
-    service_id:
-      dataStore.services.length > 0
-        ? Math.max(...dataStore.services.map((s) => s.service_id)) + 1
-        : 1,
-    ...service,
-  };
-  dataStore.services.push(newSvc);
-  return newSvc;
+  return billingRepository.createService({
+    service_name: service.service_name,
+    category: service.category || 'General',
+    base_cost: Number(service.base_cost) || 0,
+    organization_id: service.organization_id ? Number(service.organization_id) : null,
+    hospital_id: service.hospital_id ? Number(service.hospital_id) : null,
+  });
 }
 
-// LEDGER
+// Ledgers
 function findAllLedgers() {
-  return dataStore.ledgers;
+  return billingRepository.findAll();
 }
 
 function findLedgerByAdmission(admission_id) {
-  return dataStore.ledgers.find((l) => l.admission_id === admission_id) || null;
+  return billingRepository.findLedgerByAdmission(admission_id);
 }
 
 function findLedgerById(ledger_id) {
-  return dataStore.ledgers.find((l) => l.ledger_id === ledger_id) || null;
+  return billingRepository.findById(ledger_id);
 }
 
 function createLedger(ledger) {
-  const newLedger = {
-    ledger_id:
-      dataStore.ledgers.length > 0
-        ? Math.max(...dataStore.ledgers.map((l) => l.ledger_id)) + 1
-        : 801,
-    created_at: new Date().toISOString(),
-    ...ledger,
-  };
-  dataStore.ledgers.push(newLedger);
-  return newLedger;
+  const admissionId = Number(ledger.admission_id);
+  const admission = admissionRepository.findById(admissionId);
+  if (!admission) {
+    throw new NotFoundError(`Admission #${ledger.admission_id} not found`);
+  }
+
+  return billingRepository.create({
+    admission_id: admissionId,
+    status: ledger.status || 'OPEN',
+    organization_id: ledger.organization_id || admission.organization_id || null,
+    hospital_id: ledger.hospital_id || admission.hospital_id || null,
+  });
 }
 
-// LEDGER_ENTRY — entry_id is a PER-LEDGER sequence (count of that ledger's
-// existing entries + 1), NOT a global max. This is intentional original
-// behavior, preserved as-is.
+// Ledger Entries (per-ledger entry_id sequence)
 function findLedgerEntries(ledger_id) {
-  return dataStore.ledgerEntries.filter((e) => e.ledger_id === ledger_id);
+  return billingRepository.findEntriesByLedger(ledger_id);
 }
 
 function addLedgerEntry(entry) {
-  const newEntry = {
-    entry_id:
-      dataStore.ledgerEntries.filter((e) => e.ledger_id === entry.ledger_id)
-        .length + 1,
+  const ledger = billingRepository.findById(entry.ledger_id);
+  if (!ledger) {
+    throw new NotFoundError(`Ledger #${entry.ledger_id} not found`);
+  }
+
+  const existing = billingRepository.findEntriesByLedger(entry.ledger_id);
+  const entry_id = existing.length + 1;
+
+  const record = {
+    entry_id,
+    ledger_id: Number(entry.ledger_id),
+    service_id: Number(entry.service_id),
+    quantity: Number(entry.quantity) || 1,
+    unit_price: Number(entry.unit_price) || 0,
+    amount: Number(entry.amount) || (Number(entry.unit_price) || 0) * (Number(entry.quantity) || 1),
     entry_time: new Date().toISOString(),
-    ...entry,
+    organization_id: entry.organization_id || ledger.organization_id || null,
+    hospital_id: entry.hospital_id || ledger.hospital_id || null,
   };
-  dataStore.ledgerEntries.push(newEntry);
-  return newEntry;
+
+  billingRepository.entriesRepo._collection.push(record);
+  require('../store/persist').save();
+  return { ...record };
 }
 
-// PAYMENT
+// Payments
 function findAllPayments() {
-  return dataStore.payments;
+  return billingRepository.findAllPayments();
 }
 
 function createPayment(payment) {
-  const newPayment = {
-    payment_id:
-      dataStore.payments.length > 0
-        ? Math.max(...dataStore.payments.map((p) => p.payment_id)) + 1
-        : 901,
+  const ledger = billingRepository.findById(payment.ledger_id);
+  if (!ledger) {
+    throw new NotFoundError(`Ledger #${payment.ledger_id} not found`);
+  }
+
+  const newPayment = billingRepository.createPayment({
+    ledger_id: Number(payment.ledger_id),
+    amount_paid: Number(payment.amount_paid),
+    payment_mode: payment.payment_mode || 'CASH',
     payment_time: new Date().toISOString(),
-    ...payment,
-  };
-  dataStore.payments.push(newPayment);
+    organization_id: payment.organization_id || ledger.organization_id || null,
+    hospital_id: payment.hospital_id || ledger.hospital_id || null,
+  });
 
-  // Automatically confirm payment and notify HOM
-  const ledger = dataStore.ledgers.find(
-    (l) => l.ledger_id === payment.ledger_id,
-  );
-  if (ledger) {
-    ledger.status = 'PAID';
+  billingRepository.update(ledger.ledger_id, { status: 'PAID' });
 
-    const admission = dataStore.admissions.find(
-      (a) => a.admission_id === ledger.admission_id,
+  const admission = admissionRepository.findById(ledger.admission_id);
+  if (admission) {
+    admissionRepository.update(admission.admission_id, {
+      receipt_sent_to_hom: true,
+      status: 'PAYMENT_CONFIRMED',
+    });
+
+    const newReceipt = billingRepository.createReceipt({
+      payment_id: newPayment.payment_id,
+      ledger_id: ledger.ledger_id,
+      admission_id: admission.admission_id,
+      patient_id: admission.patient_id,
+      amount: newPayment.amount_paid,
+      payment_mode: newPayment.payment_mode,
+      organization_id: newPayment.organization_id,
+      hospital_id: newPayment.hospital_id,
+      generated_at: new Date().toISOString(),
+    });
+
+    activityService.log(
+      'success',
+      `Payment of ${newPayment.amount_paid} received for admission #${admission.admission_id}`,
+      { paymentId: newPayment.payment_id, receiptId: newReceipt.receipt_id },
+      newPayment.organization_id,
     );
-    if (admission) {
-      admission.receipt_sent_to_hom = true;
-      admission.status = 'PAYMENT_CONFIRMED';
-
-      // Phase 2: auto-generate a receipt for the patient, and log it.
-      const newReceipt = {
-        receipt_id:
-          dataStore.receipts.length > 0
-            ? Math.max(...dataStore.receipts.map((r) => r.receipt_id)) + 1
-            : 1,
-        payment_id: newPayment.payment_id,
-        ledger_id: ledger.ledger_id,
-        admission_id: admission.admission_id,
-        patient_id: admission.patient_id,
-        amount: newPayment.amount_paid,
-        payment_mode: newPayment.payment_mode,
-        organization_id: newPayment.organization_id || null,
-        hospital_id: newPayment.hospital_id || null,
-        generated_at: new Date().toISOString(),
-      };
-      dataStore.receipts.push(newReceipt);
-
-      activityService.log(
-        'success',
-        `Payment of ${newPayment.amount_paid} received for admission #${admission.admission_id}`,
-        { paymentId: newPayment.payment_id },
-        newPayment.organization_id,
-      );
-    }
   }
 
   return newPayment;
 }
 
-// --- Phase 2: dispatch (FA marks a ledger ready for the patient to
-// review/pay), receipts, and a combined patient-facing bill view — all
-// built on the existing ledger/ledgerEntry/payment/dischargeSummary
-// tables above rather than new parallel billing structures. ---
-
+// Dispatch
 function dispatchLedger(ledger_id) {
-  const ledger = dataStore.ledgers.find((l) => l.ledger_id === ledger_id);
+  const ledger = billingRepository.findById(ledger_id);
   if (!ledger) return null;
-  ledger.status = 'DISPATCHED';
-  ledger.dispatched_at = new Date().toISOString();
 
-  const admission = dataStore.admissions.find(
-    (a) => a.admission_id === ledger.admission_id,
-  );
+  const updated = billingRepository.update(ledger_id, {
+    status: 'DISPATCHED',
+    dispatched_at: new Date().toISOString(),
+  });
+
+  const admission = admissionRepository.findById(ledger.admission_id);
   activityService.log(
     'info',
     `Bill dispatched to patient for admission #${ledger.admission_id}`,
@@ -146,13 +151,12 @@ function dispatchLedger(ledger_id) {
     ledger.organization_id,
   );
 
-  return ledger;
+  return updated;
 }
 
 function findPatientBills(patient_id) {
-  const admissions = dataStore.admissions.filter(
-    (a) => a.patient_id === patient_id,
-  );
+  const pid = Number(patient_id);
+  const admissions = admissionRepository.findByPatient(pid);
   return admissions.map((admission) => {
     const ledger = findLedgerByAdmission(admission.admission_id);
     const entries = ledger ? findLedgerEntries(ledger.ledger_id) : [];
@@ -161,80 +165,74 @@ function findPatientBills(patient_id) {
 }
 
 function findAllReceipts() {
-  return dataStore.receipts;
+  return billingRepository.findAllReceipts();
 }
 
 function findReceiptsByPatient(patient_id) {
-  return dataStore.receipts.filter((r) => r.patient_id === patient_id);
+  const pid = Number(patient_id);
+  return billingRepository.findAllReceipts((r) => r.patient_id === pid);
 }
 
 function findDischargeSummaryByAdmission(admission_id) {
-  return (
-    dataStore.dischargeSummaries.find((s) => s.admission_id === admission_id) ||
-    null
-  );
+  return billingRepository.findSummaryByAdmission(admission_id);
 }
 
-// DISCHARGE_SUMMARY
 function createDischargeSummary(summary) {
-  const newSummary = {
-    summary_id:
-      dataStore.dischargeSummaries.length > 0
-        ? Math.max(...dataStore.dischargeSummaries.map((s) => s.summary_id)) + 1
-        : 1,
+  const admissionId = Number(summary.admission_id);
+  const admission = admissionRepository.findById(admissionId);
+  if (!admission) {
+    throw new NotFoundError(`Admission #${summary.admission_id} not found`);
+  }
+
+  return billingRepository.createSummary({
+    admission_id: admissionId,
+    patient_id: Number(summary.patient_id) || admission.patient_id,
+    discharge_notes: summary.discharge_notes || 'Fit for discharge',
+    final_amount: Number(summary.final_amount) || 0,
     generated_at: new Date().toISOString(),
-    ...summary,
-  };
-  dataStore.dischargeSummaries.push(newSummary);
-  return newSummary;
+    organization_id: summary.organization_id || admission.organization_id || null,
+    hospital_id: summary.hospital_id || admission.hospital_id || null,
+  });
 }
 
-// LEADERS (HOM -> FA -> Ledger Workflow)
+// Leaders (HOM -> FA Service Charge Logging)
 function findAllLeaders() {
-  if (!dataStore.leaders) dataStore.leaders = [];
-  return dataStore.leaders;
+  return billingRepository.findAllLeaders();
 }
 
 function findLeaderById(leader_id) {
-  if (!dataStore.leaders) dataStore.leaders = [];
-  return dataStore.leaders.find((l) => l.leader_id === leader_id) || null;
+  return billingRepository.findLeaderById(leader_id);
 }
 
 function createLeader(payload) {
-  if (!dataStore.leaders) dataStore.leaders = [];
-  const admission = dataStore.admissions.find(
-    (a) => a.admission_id === Number(payload.admission_id),
-  );
-  const service = dataStore.services.find(
-    (s) => s.service_id === Number(payload.service_id),
-  );
+  const admissionId = Number(payload.admission_id);
+  const admission = admissionRepository.findById(admissionId);
+  if (!admission) {
+    throw new NotFoundError(`Admission #${payload.admission_id} not found`);
+  }
+
+  const serviceId = Number(payload.service_id);
+  const service = billingRepository.findServiceById(serviceId);
+  if (!service) {
+    throw new NotFoundError(`Service #${payload.service_id} not found`);
+  }
+
   const qty = Number(payload.quantity) || 1;
   const unit_price = service ? Number(service.base_cost) : Number(payload.unit_price || 0);
   const amount = Number(payload.amount) || unit_price * qty;
 
-  const newLeader = {
-    leader_id:
-      dataStore.leaders.length > 0
-        ? Math.max(...dataStore.leaders.map((l) => l.leader_id)) + 1
-        : 1,
-    admission_id: Number(payload.admission_id),
-    patient_id: payload.patient_id
-      ? Number(payload.patient_id)
-      : admission
-        ? admission.patient_id
-        : null,
-    service_id: Number(payload.service_id),
+  const newLeader = billingRepository.createLeader({
+    admission_id: admissionId,
+    patient_id: payload.patient_id ? Number(payload.patient_id) : admission.patient_id,
+    service_id: serviceId,
     quantity: qty,
     unit_price,
     amount,
     status: 'PENDING',
-    created_at: new Date().toISOString(),
     approved_at: null,
-    organization_id: payload.organization_id || (admission ? admission.organization_id : null) || null,
-    hospital_id: payload.hospital_id || (admission ? admission.hospital_id : null) || null,
-  };
-
-  dataStore.leaders.push(newLeader);
+    organization_id: payload.organization_id || admission.organization_id || null,
+    hospital_id: payload.hospital_id || admission.hospital_id || null,
+  });
 
   activityService.log(
     'info',
@@ -247,8 +245,7 @@ function createLeader(payload) {
 }
 
 function approveLeader(leader_id) {
-  if (!dataStore.leaders) dataStore.leaders = [];
-  const leader = dataStore.leaders.find((l) => l.leader_id === Number(leader_id));
+  const leader = billingRepository.findLeaderById(leader_id);
   if (!leader) {
     return { error: 'NOT_FOUND', message: 'Leader not found' };
   }
@@ -256,7 +253,6 @@ function approveLeader(leader_id) {
     return { error: 'ALREADY_APPROVED', message: 'Leader has already been approved', leader };
   }
 
-  // Find or create ledger for this admission
   let ledger = findLedgerByAdmission(leader.admission_id);
   if (!ledger) {
     ledger = createLedger({
@@ -267,9 +263,6 @@ function approveLeader(leader_id) {
     });
   }
 
-  // Check to prevent duplicate entry of the exact same leader into ledger
-  const existingEntries = findLedgerEntries(ledger.ledger_id);
-  // Add entry to ledger
   const ledgerEntry = addLedgerEntry({
     ledger_id: ledger.ledger_id,
     service_id: leader.service_id,
@@ -280,10 +273,12 @@ function approveLeader(leader_id) {
     hospital_id: leader.hospital_id,
   });
 
-  leader.status = 'APPROVED';
-  leader.approved_at = new Date().toISOString();
-  leader.ledger_id = ledger.ledger_id;
-  leader.entry_id = ledgerEntry.entry_id;
+  const updatedLeader = billingRepository.updateLeader(leader_id, {
+    status: 'APPROVED',
+    approved_at: new Date().toISOString(),
+    ledger_id: ledger.ledger_id,
+    entry_id: ledgerEntry.entry_id,
+  });
 
   activityService.log(
     'success',
@@ -292,7 +287,7 @@ function approveLeader(leader_id) {
     leader.organization_id,
   );
 
-  return { success: true, leader, ledger, ledgerEntry };
+  return { success: true, leader: updatedLeader, ledger, ledgerEntry };
 }
 
 module.exports = {

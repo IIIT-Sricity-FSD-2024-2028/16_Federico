@@ -1,21 +1,24 @@
 'use strict';
 
+const { organizationRepository } = require('../repositories');
+const { ForbiddenError } = require('../errors');
+const { sendError } = require('../utils/response');
 
-const dataStore = require('../store/dataStore');
-
-
-const LEGACY_DEFAULT_ORGANIZATION_ID = 1;
-
+/**
+ * Attaches tenant context (organizationId, hospitalId, isPlatformUser) to the request.
+ */
 function attachTenant(req, res, next) {
   if (req.session) {
     req.tenant = {
-      organizationId: req.session.organizationId || null,
-      hospitalId: req.session.hospitalId || null,
+      organizationId: req.session.organizationId ? Number(req.session.organizationId) : null,
+      hospitalId: req.session.hospitalId ? Number(req.session.hospitalId) : null,
       isPlatformUser: Boolean(req.session.isPlatformUser),
     };
   } else {
+    // For unauthenticated or public/marketplace requests, support optional header or default to null
+    const headerOrg = req.headers['x-organization-id'];
     req.tenant = {
-      organizationId: LEGACY_DEFAULT_ORGANIZATION_ID,
+      organizationId: headerOrg ? Number(headerOrg) : null,
       hospitalId: null,
       isPlatformUser: false,
     };
@@ -23,36 +26,44 @@ function attachTenant(req, res, next) {
   next();
 }
 
-
+/**
+ * Ensures request contains a valid organization tenant scope.
+ */
 function requireTenant(req, res, next) {
   if (!req.tenant || !req.tenant.organizationId) {
-    return res.status(403).json({
-      message: 'This resource requires an organization context',
-      error: 'Forbidden',
-      statusCode: 403,
-    });
+    return sendError(
+      res,
+      new ForbiddenError('This resource requires an active organization context'),
+      403,
+    );
   }
   next();
 }
 
-
+/**
+ * Enforces that a specific hospital module (e.g. BILLING, INVENTORY, ANALYTICS) is enabled for the caller's tenant.
+ * @param {string} moduleCode
+ */
 function requireModule(moduleCode) {
   return function (req, res, next) {
     if (!req.tenant || !req.tenant.organizationId) return next();
-    const flag = dataStore.organizationModules.find(
-      (m) =>
-        m.organization_id === req.tenant.organizationId &&
-        m.module_code === moduleCode,
-    );
+
+    const modules = organizationRepository.findModulesByOrg(req.tenant.organizationId);
+    const flag = modules.find((m) => m.module_code === moduleCode.toUpperCase());
+
     if (flag && flag.enabled === false) {
-      return res.status(403).json({
-        message: `The ${moduleCode} module is not enabled for your organization`,
-        error: 'Forbidden',
-        statusCode: 403,
-      });
+      return sendError(
+        res,
+        new ForbiddenError(`The ${moduleCode} module is not enabled for your organization`),
+        403,
+      );
     }
     next();
   };
 }
 
-module.exports = { attachTenant, requireTenant, requireModule };
+module.exports = {
+  attachTenant,
+  requireTenant,
+  requireModule,
+};

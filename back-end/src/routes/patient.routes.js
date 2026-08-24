@@ -18,6 +18,14 @@ router.get(
   authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
   controller.findAll,
 );
+
+// Composite portal summary for patient self-service or staff review
+router.get(
+  '/portal/summary/:id?',
+  authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
+  controller.getPortalSummary,
+);
+
 router.get(
   '/:id',
   authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),

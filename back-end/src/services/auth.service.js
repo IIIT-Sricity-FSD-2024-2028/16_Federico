@@ -1,7 +1,10 @@
 'use strict';
 
-const dataStore = require('../store/dataStore');
-const patientService = require('./patient.service');
+const {
+  userRepository,
+  patientRepository,
+  organizationRepository,
+} = require('../repositories');
 const activityService = require('./activity.service');
 const organizationService = require('./organization.service');
 const { hashPassword, verifyPassword } = require('../utils/password');
@@ -13,18 +16,12 @@ function roleNameFor(user) {
 }
 
 function findUserByEmail(email) {
-  const normalized = String(email || '')
-    .trim()
-    .toLowerCase();
-  return (
-    dataStore.users.find(
-      (u) => u.email && u.email.toLowerCase() === normalized,
-    ) || null
-  );
+  return userRepository.findByEmail(email);
 }
 
 function findPatientForUser(userId) {
-  return dataStore.patients.find((p) => p.user_id === userId) || null;
+  const uid = Number(userId);
+  return patientRepository.findOne((p) => p.user_id === uid);
 }
 
 function toPublicUser(user) {
@@ -36,13 +33,8 @@ function toPublicUser(user) {
   };
 }
 
-/**
- * Tenant Context Service (tasks.md §12) — everything the frontend needs to
- * re-skin itself for this organization, returned alongside every login/
- * signup/me response so no separate round-trip is needed to boot the app.
- */
 function tenantContextFor(user) {
-  const organization = organizationService.findById(user.organization_id);
+  const organization = organizationRepository.findById(user.organization_id);
   if (!organization) return null;
   const enabledModules = organizationService.enabledModulesFor(
     organization.organization_id,
@@ -56,14 +48,6 @@ function tenantContextFor(user) {
   };
 }
 
-/**
- * `requestedOrganizationId`: optional. The marketplace/login flow lets a
- * patient pick an organization before authenticating (tasks.md §11); when
- * present it's cross-checked against the resolved account's actual
- * organization so a patient can't be logged into an org their account
- * doesn't belong to. Staff accounts (who only ever belong to one org)
- * simply have it ignored if omitted.
- */
 function login(email, password, requestedOrganizationId) {
   const user = findUserByEmail(email);
   if (!user || !verifyPassword(password, user.password_hash)) {
@@ -71,11 +55,11 @@ function login(email, password, requestedOrganizationId) {
   }
   if (
     requestedOrganizationId &&
-    user.organization_id !== requestedOrganizationId
+    user.organization_id !== Number(requestedOrganizationId)
   ) {
     return { error: 'WRONG_ORGANIZATION' };
   }
-  const organization = organizationService.findById(user.organization_id);
+  const organization = organizationRepository.findById(user.organization_id);
   if (!organization || organization.status !== 'ACTIVE') {
     return { error: 'ORGANIZATION_INACTIVE' };
   }
@@ -110,7 +94,7 @@ function signup(payload) {
   if (findUserByEmail(payload.email)) {
     return { error: 'EMAIL_TAKEN' };
   }
-  const organization = organizationService.findById(payload.organization_id);
+  const organization = organizationRepository.findById(payload.organization_id);
   if (!organization || organization.status !== 'ACTIVE') {
     return { error: 'INVALID_ORGANIZATION' };
   }
@@ -118,24 +102,18 @@ function signup(payload) {
     organization.organization_id,
   );
 
-  const newUser = {
-    user_id:
-      dataStore.users.length > 0
-        ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1
-        : 101,
+  const newUser = userRepository.create({
     name: payload.name,
     email: payload.email,
     password_hash: hashPassword(payload.password),
     role_id: 2, // Patient
     organization_id: organization.organization_id,
     hospital_id: primaryHospital ? primaryHospital.hospital_id : null,
-    created_at: new Date().toISOString(),
-  };
-  dataStore.users.push(newUser);
+  });
 
-  const patient = patientService.create({
+  const patient = patientRepository.create({
     user_id: newUser.user_id,
-    uhid: patientService.generateUhid(),
+    uhid: patientRepository.generateUhid(),
     name: payload.name,
     phone: payload.phone,
     dob: payload.dob,
@@ -173,8 +151,7 @@ function signup(payload) {
 }
 
 function me(session) {
-  const user =
-    dataStore.users.find((u) => u.user_id === session.userId) || null;
+  const user = userRepository.findById(session.userId);
   if (!user) return null;
   const patient =
     session.role === 'Patient' ? findPatientForUser(user.user_id) : null;

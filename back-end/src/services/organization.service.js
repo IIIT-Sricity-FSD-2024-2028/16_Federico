@@ -1,6 +1,11 @@
 'use strict';
 
-const dataStore = require('../store/dataStore');
+const {
+  organizationRepository,
+  userRepository,
+  patientRepository,
+  wardRepository,
+} = require('../repositories');
 const { MODULE_CODES } = require('../utils/tenant');
 
 function slugify(name) {
@@ -10,26 +15,23 @@ function slugify(name) {
     .replace(/(^-|-$)/g, '');
   let slug = base || 'organization';
   let suffix = 1;
-  while (dataStore.organizations.some((o) => o.slug === slug)) {
+  const existingOrgs = organizationRepository.findAll();
+  while (existingOrgs.some((o) => o.slug === slug)) {
     slug = `${base}-${++suffix}`;
   }
   return slug;
 }
 
 function findAll() {
-  return dataStore.organizations;
+  return organizationRepository.findAll();
 }
 
 function findById(id) {
-  return dataStore.organizations.find((o) => o.organization_id === id) || null;
+  return organizationRepository.findById(id);
 }
 
 function create(payload) {
-  const newOrg = {
-    organization_id:
-      dataStore.organizations.length > 0
-        ? Math.max(...dataStore.organizations.map((o) => o.organization_id)) + 1
-        : 1,
+  return organizationRepository.create({
     name: payload.name,
     slug: slugify(payload.name),
     status: 'ACTIVE',
@@ -40,35 +42,24 @@ function create(payload) {
     contact: payload.contact || { phone: null, email: null, address: null },
     specialties: payload.specialties || [],
     emergency_available: Boolean(payload.emergency_available),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  dataStore.organizations.push(newOrg);
-  return newOrg;
+  });
 }
 
 function update(id, patch) {
-  const org = findById(id);
-  if (!org) return null;
-  Object.assign(org, patch, { updated_at: new Date().toISOString() });
-  return org;
+  return organizationRepository.update(id, patch);
 }
 
 function setStatus(id, status) {
   return update(id, { status });
 }
 
-/** Soft delete — preserves historical business data instead of leaving dangling foreign keys (see organization.service header note). */
 function remove(id) {
   return update(id, { status: 'DELETED' });
 }
 
-// ---- Hospitals (branches) ----
-
+// Hospitals (branches)
 function hospitalsFor(organizationId) {
-  return dataStore.hospitals.filter(
-    (h) => h.organization_id === organizationId,
-  );
+  return organizationRepository.findHospitalsByOrg(organizationId);
 }
 
 function primaryHospitalFor(organizationId) {
@@ -78,110 +69,70 @@ function primaryHospitalFor(organizationId) {
 
 function createHospital(organizationId, payload) {
   const isFirst = hospitalsFor(organizationId).length === 0;
-  const newHospital = {
-    hospital_id:
-      dataStore.hospitals.length > 0
-        ? Math.max(...dataStore.hospitals.map((h) => h.hospital_id)) + 1
-        : 1,
-    organization_id: organizationId,
+  return organizationRepository.createHospital({
+    organization_id: Number(organizationId),
     name: payload.name,
     city: payload.city || null,
     address: payload.address || null,
     phone: payload.phone || null,
     is_primary: isFirst || Boolean(payload.is_primary),
-    created_at: new Date().toISOString(),
-  };
-  dataStore.hospitals.push(newHospital);
-  return newHospital;
+  });
 }
 
-// ---- Feature flags (organizationModules) ----
-
-/** Every module gets an explicit row (true or false) — see requireModule() in middleware/tenant.js, which treats a missing row as "not configured" rather than implicitly enabled. */
+// Feature flags (organizationModules)
 function setModuleFlags(organizationId, enabledCodes) {
+  const oid = Number(organizationId);
   const enabledSet = new Set(enabledCodes || []);
   MODULE_CODES.forEach((code) => {
-    const existing = dataStore.organizationModules.find(
-      (m) => m.organization_id === organizationId && m.module_code === code,
-    );
-    if (existing) {
-      existing.enabled = enabledSet.has(code);
-      existing.updated_at = new Date().toISOString();
-    } else {
-      dataStore.organizationModules.push({
-        organization_id: organizationId,
-        module_code: code,
-        enabled: enabledSet.has(code),
-        updated_at: new Date().toISOString(),
-      });
-    }
+    organizationRepository.setModuleFlag(oid, code, enabledSet.has(code));
   });
-  return enabledModulesFor(organizationId);
+  return enabledModulesFor(oid);
 }
 
 function setModuleFlag(organizationId, moduleCode, enabled) {
-  const existing = dataStore.organizationModules.find(
-    (m) => m.organization_id === organizationId && m.module_code === moduleCode,
-  );
-  if (existing) {
-    existing.enabled = enabled;
-    existing.updated_at = new Date().toISOString();
-    return existing;
-  }
-  const newFlag = {
-    organization_id: organizationId,
-    module_code: moduleCode,
-    enabled,
-    updated_at: new Date().toISOString(),
-  };
-  dataStore.organizationModules.push(newFlag);
-  return newFlag;
+  return organizationRepository.setModuleFlag(organizationId, moduleCode, enabled);
 }
 
 function enabledModulesFor(organizationId) {
-  return dataStore.organizationModules
-    .filter((m) => m.organization_id === organizationId && m.enabled)
+  const oid = Number(organizationId);
+  return organizationRepository
+    .findModulesByOrg(oid)
+    .filter((m) => m.enabled)
     .map((m) => m.module_code);
 }
 
 function allModuleFlagsFor(organizationId) {
+  const oid = Number(organizationId);
+  const orgModules = organizationRepository.findModulesByOrg(oid);
   return MODULE_CODES.map((code) => {
-    const flag = dataStore.organizationModules.find(
-      (m) => m.organization_id === organizationId && m.module_code === code,
-    );
+    const flag = orgModules.find((m) => m.module_code === code);
     return { module_code: code, enabled: flag ? flag.enabled : false };
   });
 }
 
-// ---- Usage / quotas ----
-
+// Usage / Quotas
 function quotasFor(organizationId) {
-  return (
-    dataStore.resourceQuotas.find(
-      (q) => q.organization_id === organizationId,
-    ) || null
-  );
+  return organizationRepository.findQuotaByOrg(organizationId);
 }
 
 function usageFor(organizationId) {
-  const count = (arr) =>
-    arr.filter((r) => r.organization_id === organizationId).length;
-  const sub =
-    dataStore.subscriptions.find((s) => s.organization_id === organizationId) ||
-    null;
-  const plan = sub
-    ? dataStore.subscriptionPlans.find((p) => p.plan_id === sub.plan_id) || null
-    : null;
+  const oid = Number(organizationId);
+  const usersCount = userRepository.findAll((u) => u.organization_id === oid).length;
+  const patientsCount = patientRepository.findAll((p) => p.organization_id === oid).length;
+  const allBeds = wardRepository.findAllBeds((b) => b.organization_id === oid);
+  const bedsCount = allBeds.length;
+  const bedsOccupied = allBeds.filter((b) => b.status === 'OCCUPIED').length;
+
+  const sub = organizationRepository.findSubscriptionByOrg(oid);
+  const plan = sub ? organizationRepository.findPlanById(sub.plan_id) : null;
 
   return {
-    hospitals: hospitalsFor(organizationId).length,
-    users: count(dataStore.users),
-    patients: count(dataStore.patients),
-    beds: count(dataStore.beds),
-    beds_occupied: dataStore.beds.filter(
-      (b) => b.organization_id === organizationId && b.status === 'OCCUPIED',
-    ).length,
-    quotas: quotasFor(organizationId),
+    hospitals: hospitalsFor(oid).length,
+    users: usersCount,
+    patients: patientsCount,
+    beds: bedsCount,
+    beds_occupied: bedsOccupied,
+    quotas: quotasFor(oid),
     subscription: sub
       ? {
           subscription_id: sub.subscription_id,
@@ -193,15 +144,14 @@ function usageFor(organizationId) {
           renews_at: sub.renews_at,
         }
       : null,
-    enabled_modules: enabledModulesFor(organizationId),
+    enabled_modules: enabledModulesFor(oid),
   };
 }
 
-// ---- Marketplace (public) ----
-
+// Marketplace (public)
 function marketplaceListing() {
-  return dataStore.organizations
-    .filter((o) => o.status === 'ACTIVE')
+  return organizationRepository
+    .findAll((o) => o.status === 'ACTIVE')
     .map((o) => ({
       organization_id: o.organization_id,
       name: o.name,

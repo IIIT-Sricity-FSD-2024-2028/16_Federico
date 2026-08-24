@@ -248,7 +248,7 @@
     if (window.ApiClient) {
       window.ApiClient.auth.logout(); // best-effort async server-side invalidation
     } else {
-      sessionStorage.removeItem("FedericoSession");
+      localStorage.removeItem("FedericoSession");
     }
   }
 

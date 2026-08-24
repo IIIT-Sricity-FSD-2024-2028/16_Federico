@@ -1,96 +1,91 @@
 'use strict';
 
-
-const dataStore = require('../store/dataStore');
+const { rbacRepository } = require('../repositories');
+const { ForbiddenError } = require('../errors');
+const { sendError } = require('../utils/response');
 
 const ACTOR_ACCESS = {
   doctor: { read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'], write: ['HOM'] },
-
   patient: {
     read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
     write: ['HOM', 'PRE', 'Patient'],
   },
   ward: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM'] },
   inventory: { read: ['HOM', 'FA', 'Admin'], write: ['HOM'] },
- 
   wardAdmin: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
   inventoryCatalog: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
- 
   billing: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA'] },
-
   leader: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'FA'] },
- 
   payment: { write: ['FA', 'Patient'] },
- 
   ledgerEntry: { write: ['FA', 'HOM'] },
- 
   appointment: { read: ['HOM', 'PRE', 'FA'], write: ['PRE'] },
   admission: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'PRE'] },
- 
   preRequest: {
     read: ['HOM', 'PRE', 'FA', 'Patient'],
     write: ['HOM', 'PRE', 'Patient'],
   },
- 
   rbac: { read: ['Admin'], write: ['Admin'] },
 };
 
-
+/**
+ * Checks if the caller has been granted custom granular permissions through dynamic RBAC assignments.
+ * @param {import('express').Request} req
+ * @param {string} resource
+ * @param {string} mode - 'read', 'write', 'delete'
+ * @returns {boolean}
+ */
 function dynamicRoleGrants(req, resource, mode) {
   if (
     !req.session ||
     !req.session.userId ||
     !req.tenant ||
     !req.tenant.organizationId
-  )
+  ) {
     return false;
+  }
+
   const permissionCode = `${resource}:${mode}`;
-  const permission = dataStore.permissions.find(
-    (p) => p.permission_code === permissionCode,
-  );
+  const permission = rbacRepository.findPermissionByCode(permissionCode);
   if (!permission) return false;
 
-  const assignedRoleIds = dataStore.staffRoleAssignments
-    .filter((a) => a.user_id === req.session.userId)
-    .map((a) => a.custom_role_id);
-  if (assignedRoleIds.length === 0) return false;
-
-  const orgRoleIds = new Set(
-    dataStore.customRoles
-      .filter(
-        (r) =>
-          assignedRoleIds.includes(r.custom_role_id) &&
-          r.organization_id === req.tenant.organizationId,
-      )
-      .map((r) => r.custom_role_id),
+  const staffRoles = rbacRepository.findRolesForStaff(req.session.userId);
+  const orgRoles = staffRoles.filter(
+    (r) => r.organization_id === req.tenant.organizationId,
   );
-  if (orgRoleIds.size === 0) return false;
+  if (orgRoles.length === 0) return false;
 
-  return dataStore.rolePermissions.some(
-    (rp) =>
-      orgRoleIds.has(rp.custom_role_id) &&
-      rp.permission_id === permission.permission_id,
-  );
+  for (const role of orgRoles) {
+    const rolePerms = rbacRepository.findPermissionsForRole(role.custom_role_id);
+    if (rolePerms.some((p) => p.permission_id === permission.permission_id)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
-
-function authorize(legacyRoles, resource, mode) {
+/**
+ * Authorizes request against the static ACTOR_ACCESS permission matrix and dynamic RBAC grants.
+ * @param {string[]} _legacyRoles - Ignored (legacy x-role header deprecated for security)
+ * @param {string} resource - e.g. 'billing', 'patient', 'doctor', 'ward'
+ * @param {string} mode - 'read', 'write', 'delete'
+ */
+function authorize(_legacyRoles, resource, mode) {
   return function (req, res, next) {
-    const legacyOk = legacyRoles.includes(req.headers['x-role']);
     const allowedActors = ACTOR_ACCESS[resource]?.[mode] || [];
     const actorOk = Boolean(
       req.session && allowedActors.includes(req.session.role),
     );
     const dynamicOk = dynamicRoleGrants(req, resource, mode);
 
-    if (legacyOk || actorOk || dynamicOk) return next();
+    if (actorOk || dynamicOk) return next();
 
-    return res.status(403).json({
-      message: 'Forbidden resource',
-      error: 'Forbidden',
-      statusCode: 403,
-    });
+    return sendError(
+      res,
+      new ForbiddenError(`Forbidden: You do not have permission to ${mode} ${resource}`),
+      403,
+    );
   };
 }
 
-module.exports = { authorize, ACTOR_ACCESS };
+module.exports = { authorize, ACTOR_ACCESS, dynamicRoleGrants };

@@ -2,12 +2,13 @@
 
 const { Router } = require('express');
 const controller = require('../controllers/data.controller');
+const { requireSession } = require('../middleware/session');
+const { requirePlatformUser } = require('../middleware/platformAccess');
 
-// Original DataController had no @Roles() on either handler — open access,
-// matching the RolesGuard's "no metadata => allow" default.
 const router = Router();
 
-router.get('/full-state', controller.getFullState);
-router.post('/full-state', controller.updateFullState);
+// Full state dump & restore is strictly restricted to authenticated Platform Super Users
+router.get('/full-state', requireSession, requirePlatformUser, controller.getFullState);
+router.post('/full-state', requireSession, requirePlatformUser, controller.updateFullState);
 
 module.exports = router;

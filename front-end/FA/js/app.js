@@ -10,6 +10,7 @@
 window.currentAdmissionId = window.currentAdmissionId || null;
 
 async function render() {
+    if (typeof parseHashRoute === 'function') parseHashRoute();
     if (typeof updateActiveNav === 'function') updateActiveNav();
     const appDiv = document.getElementById('app');
     const hash = location.hash || (window.Permissions ? Permissions.getDefaultRoute() : '#/dashboard');

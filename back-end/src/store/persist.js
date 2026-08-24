@@ -3,22 +3,26 @@
 const fs = require('fs');
 const path = require('path');
 const dataStore = require('./dataStore');
+const env = require('../config/env');
 
-const DB_PATH = path.resolve(__dirname, '../../data/db.json');
+const DB_PATH = env.DB_PATH || path.resolve(__dirname, '../../data/db.json');
+const TMP_PATH = `${DB_PATH}.tmp`;
+const DEBOUNCE_MS = env.PERSIST_DEBOUNCE_MS || 250;
 
 /**
- * Lightweight durability for the in-memory store: writes the whole store
- * to a local JSON file on mutation, reloads it on boot. Keeps the
- * original "no external database" architecture (still zero DB engine,
- * zero new infra) while surviving a server restart, which matters once
- * the backend is the real source of truth instead of a disposable demo.
+ * Crash-Safe State Durability:
+ * Restores dataStore from local JSON snapshot on startup and saves changes using
+ * atomic filesystem operations (write to .tmp -> atomic rename) to prevent database corruption.
  */
 function load() {
   try {
     if (fs.existsSync(DB_PATH)) {
-      const saved = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-      Object.assign(dataStore, saved);
-      console.log(`[Persist] Restored state from ${DB_PATH}`);
+      const content = fs.readFileSync(DB_PATH, 'utf8');
+      if (content && content.trim()) {
+        const saved = JSON.parse(content);
+        Object.assign(dataStore, saved);
+        console.log(`[Persist] Restored state from ${DB_PATH}`);
+      }
     }
   } catch (err) {
     console.warn(
@@ -30,18 +34,52 @@ function load() {
 
 let saveTimer = null;
 
-/** Debounced so a burst of mutations in one workflow coalesces into one write. */
+/**
+ * Performs a crash-safe atomic write to disk.
+ */
+function writeAtomic() {
+  try {
+    const dir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    
+    // Write full serialized snapshot to temporary file first
+    fs.writeFileSync(TMP_PATH, JSON.stringify(dataStore, null, 2), 'utf8');
+    
+    // Atomic rename replaces target file instantaneously
+    fs.renameSync(TMP_PATH, DB_PATH);
+  } catch (err) {
+    console.warn('[Persist] Could not save state atomically:', err.message);
+    // Cleanup temporary file if it remains
+    try {
+      if (fs.existsSync(TMP_PATH)) fs.unlinkSync(TMP_PATH);
+    } catch (_) {}
+  }
+}
+
+/**
+ * Debounced save to coalesce high-frequency mutations into a single disk write.
+ */
 function save() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try {
-      const dir = path.dirname(DB_PATH);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(DB_PATH, JSON.stringify(dataStore, null, 2));
-    } catch (err) {
-      console.warn('[Persist] Could not save state:', err.message);
-    }
-  }, 250);
+    writeAtomic();
+  }, DEBOUNCE_MS);
 }
 
-module.exports = { load, save, DB_PATH };
+/**
+ * Immediate write without debounce (useful for tests or graceful process shutdown).
+ */
+function saveImmediate() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  writeAtomic();
+}
+
+module.exports = {
+  load,
+  save,
+  saveImmediate,
+  DB_PATH,
+};

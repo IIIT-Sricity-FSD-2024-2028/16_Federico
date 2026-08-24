@@ -1,13 +1,15 @@
 'use strict';
 
+const { ForbiddenError } = require('../errors');
+const { sendError } = require('../utils/response');
 
 function requirePlatformUser(req, res, next) {
   if (!req.session || !req.session.isPlatformUser) {
-    return res.status(403).json({
-      message: 'Forbidden resource',
-      error: 'Forbidden',
-      statusCode: 403,
-    });
+    return sendError(
+      res,
+      new ForbiddenError('Forbidden: Requires platform super-user privileges'),
+      403,
+    );
   }
   next();
 }

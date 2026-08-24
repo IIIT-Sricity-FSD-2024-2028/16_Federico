@@ -1,66 +1,53 @@
 'use strict';
 
-const dataStore = require('../store/dataStore');
+const { inventoryRepository } = require('../repositories');
 
-// INVENTORY_ITEM
+// Inventory Items
 function findAllItems() {
-  return dataStore.inventoryItems;
+  return inventoryRepository.findAll();
 }
 
 function createItem(item) {
-  const newItem = {
-    item_id:
-      dataStore.inventoryItems.length > 0
-        ? Math.max(...dataStore.inventoryItems.map((i) => i.item_id)) + 1
-        : 10,
-    ...item,
-  };
-  dataStore.inventoryItems.push(newItem);
-  return newItem;
+  return inventoryRepository.create({
+    item_name: item.item_name,
+    category: item.category || 'General',
+    stock_quantity: Number(item.stock_quantity) || 0,
+    reorder_level: Number(item.reorder_level) || 10,
+    service_id: item.service_id ? Number(item.service_id) : null,
+    organization_id: item.organization_id ? Number(item.organization_id) : null,
+    hospital_id: item.hospital_id ? Number(item.hospital_id) : null,
+  });
 }
 
 function updateItem(item_id, patch) {
-  const item = dataStore.inventoryItems.find((i) => i.item_id === item_id);
-  if (!item) return null;
-  Object.assign(item, patch);
-  return item;
+  return inventoryRepository.update(item_id, patch);
 }
 
-/** Admin-only catalog removal (see inventoryCatalog in middleware/actorAccess.js). */
 function deleteItem(item_id) {
-  const item = dataStore.inventoryItems.find((i) => i.item_id === item_id);
+  const item = inventoryRepository.findById(item_id);
   if (!item) return null;
-  dataStore.inventoryItems = dataStore.inventoryItems.filter(
-    (i) => i.item_id !== item_id,
-  );
-  return { deleted: true, item_id };
+  const deleted = inventoryRepository.delete(item_id);
+  return { deleted, item_id: Number(item_id) };
 }
 
-// PURCHASE_REQUEST
+// Purchase Requests
 function findAllRequests() {
-  return dataStore.purchaseRequests;
+  return inventoryRepository.findAllRequests();
 }
 
 function createRequest(request) {
-  const newReq = {
-    request_id:
-      dataStore.purchaseRequests.length > 0
-        ? Math.max(...dataStore.purchaseRequests.map((r) => r.request_id)) + 1
-        : 1,
+  return inventoryRepository.createRequest({
+    item_id: Number(request.item_id),
+    quantity: Number(request.quantity) || 1,
+    status: request.status || 'PENDING',
     requested_at: new Date().toISOString(),
-    ...request,
-  };
-  dataStore.purchaseRequests.push(newReq);
-  return newReq;
+    organization_id: request.organization_id ? Number(request.organization_id) : null,
+    hospital_id: request.hospital_id ? Number(request.hospital_id) : null,
+  });
 }
 
 function updateRequest(request_id, patch) {
-  const req = dataStore.purchaseRequests.find(
-    (r) => r.request_id === request_id,
-  );
-  if (!req) return null;
-  Object.assign(req, patch);
-  return req;
+  return inventoryRepository.updateRequest(request_id, patch);
 }
 
 module.exports = {
