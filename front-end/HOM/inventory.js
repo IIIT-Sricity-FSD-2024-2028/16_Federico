@@ -392,12 +392,26 @@ function renderSidebar() {
           <div>
             <p style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 0;">PO #${order.request_id} · ${window.HOMHelpers.escapeHtml(itemsById[order.item_id]?.item_name || 'Item #' + order.item_id)}</p>
             <p style="font-size: 11px; color: var(--text-muted); margin: 2px 0 0 0;">Qty: ${order.quantity_requested} · Requested ${window.HOMHelpers.formatDate(order.requested_at)}</p>
+            ${order.invoice_url ? `<button type="button" class="link-text" style="font-size: 11px; border: none; background: none; padding: 0; margin-top: 2px; color: var(--primary); cursor: pointer;" data-view-invoice="${order.request_id}">View invoice</button>` : ''}
           </div>
           ${window.UI.Badge({ variant: order.status === 'APPROVED' ? 'success' : order.status === 'PENDING' ? 'warning' : 'neutral', children: order.status })}
         </div>
       `,
         )
         .join('');
+
+      ordersList.querySelectorAll('[data-view-invoice]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const order = orders.find((o) => String(o.request_id) === btn.dataset.viewInvoice);
+          if (!order || !order.invoice_url) return;
+          const parts = order.invoice_url.split('/');
+          const filename = parts.pop();
+          const category = parts.pop();
+          window.ApiClient.uploads.open(category, filename).catch((err) => {
+            window.UIFeedback?.toast(err.message || 'Could not open invoice.', 'error');
+          });
+        });
+      });
     }
   }
 }
@@ -639,6 +653,10 @@ window.openRestockModal = function (itemId = '') {
   if (supplierInput && !supplierInput.value) supplierInput.value = 'MediSupply Co.';
   const notesInput = document.getElementById('restock-notes');
   if (notesInput) notesInput.value = '';
+  const invoiceInput = document.getElementById('restock-invoice-input');
+  if (invoiceInput) invoiceInput.value = '';
+  const invoiceStatus = document.getElementById('restock-invoice-status');
+  if (invoiceStatus) invoiceStatus.textContent = '';
 
   setRestockPriority('normal');
   handleRestockItemChange(itemId ? String(itemId) : '');
@@ -717,12 +735,32 @@ window.submitRestock = async function () {
   }
 
   clearFormError('restock-form-error');
+
+  // Upload the supplier invoice/quote first (if attached) so its URL can be
+  // attached to the purchase request itself.
+  let invoiceUrl = null;
+  const invoiceFile = document.getElementById('restock-invoice-input')?.files?.[0];
+  const invoiceStatus = document.getElementById('restock-invoice-status');
+  if (invoiceFile) {
+    if (invoiceStatus) invoiceStatus.textContent = 'Uploading invoice…';
+    try {
+      const uploaded = await window.ApiClient.uploads.inventory(invoiceFile);
+      invoiceUrl = uploaded.url;
+      if (invoiceStatus) invoiceStatus.textContent = `Attached: ${uploaded.originalName}`;
+    } catch (err) {
+      setFormError('restock-form-error', err.message || 'Unable to upload the invoice file.');
+      if (invoiceStatus) invoiceStatus.textContent = '';
+      return;
+    }
+  }
+
   try {
     await window.ApiClient.inventory.requests.create({
       item_id: item.item_id,
       quantity_requested: quantity,
       status: 'PENDING',
       requested_by: session ? session.userId : null,
+      invoice_url: invoiceUrl,
     });
     window.UIFeedback?.toast(`Purchase Order submitted for ${quantity}x ${item.item_name}.`, 'success');
   } catch (err) {

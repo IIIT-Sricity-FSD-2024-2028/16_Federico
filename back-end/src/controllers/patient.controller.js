@@ -122,7 +122,16 @@ function getPortalSummary(req, res) {
   }
 
   const insurances = patientService.findInsuranceByPatient(patientId);
-  const insurance = insurances && insurances.length ? insurances[0] : null;
+  // createInsurance() appends a new record rather than updating in place, so
+  // a patient can have several; the most recently created one (highest
+  // insurance_id) is the current policy — e.g. after re-saving the
+  // Insurance section with a newly uploaded card scan.
+  const insurance =
+    insurances && insurances.length
+      ? insurances.reduce((latest, ins) =>
+          ins.insurance_id > latest.insurance_id ? ins : latest,
+        )
+      : null;
 
   const preRequests = preRequestService.findAll((pr) => pr.patient_id === patientId);
   const appointments = appointmentService.findAll((a) => a.patient_id === patientId);

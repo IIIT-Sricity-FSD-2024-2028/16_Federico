@@ -931,3 +931,117 @@ describe('Session Isolation and HOM Leader Workflow (e2e)', () => {
     expect(hasEntry).toBe(true);
   });
 });
+
+describe('File Upload & Log/Error Management (e2e)', () => {
+  const app = createApp();
+
+  async function login(email, password) {
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(200);
+    return `Bearer ${b(res).token}`;
+  }
+
+  it('rejects an unauthenticated upload with 401', async () => {
+    await request(app)
+      .post('/uploads/document')
+      .attach('document', Buffer.from('%PDF-1.4 fake pdf content'), {
+        filename: 'report.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(401);
+  });
+
+  it('uploads a document, stores it under uploads/documents, and serves it back', async () => {
+    const auth = await login('admin@hosp.com', 'Hom@123');
+
+    const uploaded = await request(app)
+      .post('/uploads/document')
+      .set('Authorization', auth)
+      .attach('document', Buffer.from('%PDF-1.4 fake pdf content'), {
+        filename: 'discharge-summary.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+
+    expect(b(uploaded).category).toBe('documents');
+    expect(b(uploaded).filename).toMatch(/^documents-\d+-[a-f0-9]{16}\.pdf$/);
+    expect(b(uploaded).url).toBe(`/uploads/documents/${b(uploaded).filename}`);
+
+    await request(app)
+      .get(`/uploads/documents/${b(uploaded).filename}`)
+      .set('Authorization', auth)
+      .expect(200)
+      .expect('Content-Type', /application\/pdf/);
+  });
+
+  it('uploads a branding logo image via the branding field', async () => {
+    const auth = await login('admin@hosp.com', 'Hom@123');
+    // Minimal valid 1x1 PNG.
+    const pngBytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+
+    const uploaded = await request(app)
+      .post('/uploads/branding')
+      .set('Authorization', auth)
+      .attach('logo', pngBytes, {
+        filename: 'hospital-logo.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+
+    expect(b(uploaded).category).toBe('branding');
+    expect(b(uploaded).mimetype).toBe('image/png');
+  });
+
+  it('rejects a disallowed MIME type with 400', async () => {
+    const auth = await login('admin@hosp.com', 'Hom@123');
+
+    await request(app)
+      .post('/uploads/document')
+      .set('Authorization', auth)
+      .attach('document', Buffer.from('console.log(1)'), {
+        filename: 'script.js',
+        contentType: 'application/javascript',
+      })
+      .expect(400);
+  });
+
+  it('rejects a file over the 5MB limit with 400', async () => {
+    const auth = await login('admin@hosp.com', 'Hom@123');
+
+    await request(app)
+      .post('/uploads/document')
+      .set('Authorization', auth)
+      .attach('document', Buffer.alloc(6 * 1024 * 1024, 'a'), {
+        filename: 'too-big.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(400);
+  });
+
+  it('returns 404 for a request missing the file field entirely', async () => {
+    const auth = await login('admin@hosp.com', 'Hom@123');
+
+    await request(app)
+      .get('/uploads/documents/does-not-exist.pdf')
+      .set('Authorization', auth)
+      .expect(404);
+  });
+
+  it('exposes log file status for the Log and Error Management endpoint', async () => {
+    const auth = await login('admin@hosp.com', 'Hom@123');
+
+    const status = await request(app)
+      .get('/uploads/system/logs-status')
+      .set('Authorization', auth)
+      .expect(200);
+
+    expect(b(status).accessLog.exists).toBe(true);
+    expect(b(status).errorLog.exists).toBe(true);
+    expect(b(status).combinedLog.exists).toBe(true);
+  });
+});

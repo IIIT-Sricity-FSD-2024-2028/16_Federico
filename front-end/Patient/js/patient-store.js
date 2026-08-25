@@ -116,6 +116,8 @@ function buildProfile(patient, user, insurance) {
               validFrom: insurance.valid_from || "",
               validTo: insurance.valid_to || "",
               coverageType: insurance.coverage_type || "Self",
+              cardFrontUrl: insurance.card_front_url || "",
+              cardBackUrl: insurance.card_back_url || "",
           }
         : {
               verified: false,
@@ -127,6 +129,8 @@ function buildProfile(patient, user, insurance) {
               validFrom: "",
               validTo: "",
               coverageType: "Self",
+              cardFrontUrl: "",
+              cardBackUrl: "",
           };
 
     return {
@@ -504,7 +508,11 @@ async function refreshStore() {
         const doctorsById = indexBy(doctors, "doctor_id");
         const bedsById = indexBy(beds, "bed_id");
         const servicesById = indexBy(services, "service_id");
-        const insurance = insuranceList && insuranceList[0];
+        // createInsurance() appends rather than updates in place, so pick the
+        // most recently created record (mirrors patient.controller.js).
+        const insurance = insuranceList && insuranceList.length
+            ? insuranceList.reduce((latest, ins) => (ins.insurance_id > latest.insurance_id ? ins : latest))
+            : null;
 
         const profile = buildProfile(me.patient || {}, me.user || {}, insurance);
         const { bills, documents, billingSections, docIndex } = buildBillsAndDocuments(
@@ -640,6 +648,7 @@ async function updateProfile(fields) {
 
 async function updateInsurance(fields) {
     if (!AppStore.patient) return false;
+    const existing = AppStore.patient.insurance || {};
     await window.ApiClient.patients.createInsurance({
         patient_id: AppStore.patient.patientId,
         provider_name: fields.provider || "Self Pay",
@@ -649,6 +658,10 @@ async function updateInsurance(fields) {
         valid_from: fields.validFrom || new Date().toISOString().split("T")[0],
         valid_to: fields.validTo || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         coverage_limit: fields.coverage || 0,
+        // Preserve whatever the patient already uploaded unless this save
+        // explicitly replaces one (see setupUploads() in patient-profile.js).
+        card_front_url: fields.cardFrontUrl !== undefined ? fields.cardFrontUrl : existing.cardFrontUrl || null,
+        card_back_url: fields.cardBackUrl !== undefined ? fields.cardBackUrl : existing.cardBackUrl || null,
     });
     await refreshStore();
     notifyPatientStoreUpdated();

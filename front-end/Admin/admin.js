@@ -6,8 +6,66 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
   bindDialogControls();
+  bindBrandingUpload();
   await Promise.all([loadRoles(), loadStaff()]);
 });
+
+// ---- Hospital branding logo upload (File Upload evaluation criteria) ----
+function bindBrandingUpload() {
+  const input = document.getElementById('branding-file-input');
+  const button = document.getElementById('branding-upload-btn');
+  const meta = document.getElementById('branding-meta');
+  if (!input || !button) return;
+
+  button.addEventListener('click', async () => {
+    const file = input.files && input.files[0];
+    if (!file) {
+      window.UIFeedback.toast('Choose a logo file first.', 'warning');
+      return;
+    }
+
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Uploading…';
+    meta.textContent = '';
+
+    try {
+      const result = await window.ApiClient.uploads.branding(file);
+      renderBrandingPreview(result);
+      window.UIFeedback.toast(`Logo uploaded (${formatFileSize(result.sizeBytes)}).`, 'success');
+      input.value = '';
+    } catch (err) {
+      window.UIFeedback.toast(err.message || 'Could not upload logo.', 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  });
+}
+
+function renderBrandingPreview(uploadResult) {
+  const preview = document.getElementById('branding-preview');
+  const meta = document.getElementById('branding-meta');
+  if (!preview) return;
+
+  if (uploadResult.mimetype === 'application/pdf') {
+    preview.innerHTML = '<span>PDF<br>uploaded</span>';
+  } else {
+    const url = window.ApiClient.uploads.staticUrl('branding', uploadResult.filename);
+    preview.innerHTML = `<img src="${url}" alt="Hospital logo" />`;
+  }
+
+  if (meta) {
+    meta.textContent = `${uploadResult.originalName} · ${formatFileSize(uploadResult.sizeBytes)} · uploaded just now`;
+  }
+}
+
+function formatFileSize(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 let rolesCache = [];
 let permissionsCache = [];

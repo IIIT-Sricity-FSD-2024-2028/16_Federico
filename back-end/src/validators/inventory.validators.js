@@ -18,6 +18,9 @@ const createPurchaseRequestRules = [
   { field: 'quantity_requested', checks: ['isNotEmpty', 'isInt'] },
   { field: 'status', checks: ['isNotEmpty', 'isString'] },
   { field: 'requested_by', checks: ['isNotEmpty', 'isInt'] },
+  // Set from POST /uploads/inventory's response URL when a supplier
+  // invoice/quote is attached to the request.
+  { field: 'invoice_url', checks: ['isString'], optional: true },
 ];
 
 const updatePurchaseRequestRules = partial(createPurchaseRequestRules);

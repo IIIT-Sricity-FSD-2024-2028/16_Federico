@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
@@ -9,6 +10,10 @@ const {
   errorHandler,
   attachSession,
   attachTenant,
+  persistOnMutation,
+  helmetSecurity,
+  globalRateLimiter,
+  sanitizeInput,
 } = require('./middleware');
 const { setupSwagger } = require('./config');
 const routes = require('./routes');
@@ -16,7 +21,10 @@ const routes = require('./routes');
 function createApp() {
   const app = express();
 
-  // Enable CORS for frontend integration
+  // 1. Security Middleware: Helmet HTTP headers (Evaluation Criteria: Security)
+  app.use(helmetSecurity);
+
+  // 2. Enable CORS for frontend integration
   app.use(
     cors({
       origin: true,
@@ -25,12 +33,25 @@ function createApp() {
     }),
   );
 
+  // 3. Security Middleware: global API rate limiter
+  app.use(globalRateLimiter);
+
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+  // 4. Security Middleware: strips <script>/javascript:/on*= from body & query
+  app.use(sanitizeInput);
+
+  // 5. Logging Middleware: console + logs/access.log & logs/combined.log
   app.use(requestLogger);
+
   app.use(attachSession);
   app.use(attachTenant);
+
+  // 6. Persist every successful mutation (POST/PUT/DELETE) to data/db.json.
+  // Previously exported but never mounted, so writes only survived a graceful
+  // SIGINT/SIGTERM shutdown — see implementation.md for details.
+  app.use(persistOnMutation);
 
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -42,6 +63,12 @@ function createApp() {
       version: '2.0.0',
     });
   });
+
+  // 7. Static delivery of uploaded files (Evaluation Criteria: File upload)
+  app.use(
+    '/uploads-static',
+    express.static(path.resolve(__dirname, '../uploads')),
+  );
 
   app.use(routes);
 

@@ -155,6 +155,98 @@
     return data;
   }
 
+  /**
+   * Multipart upload wrapper for the /uploads/* endpoints. Deliberately
+   * separate from request() above: this sends a FormData body and must NOT
+   * set a Content-Type header (the browser generates the multipart boundary
+   * itself), whereas request() always JSON-encodes.
+   */
+  async function requestUpload(path, fieldName, file) {
+    if (!file) throw new Error("No file selected.");
+    var session = getSession();
+    var headers = {};
+    if (session && session.token) {
+      headers["Authorization"] = "Bearer " + session.token;
+    }
+
+    var formData = new FormData();
+    formData.append(fieldName, file);
+
+    var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timeoutId = controller ? setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
+
+    var res;
+    try {
+      res = await fetch(API_BASE_URL + path, {
+        method: "POST",
+        headers: headers,
+        credentials: "include",
+        body: formData,
+        signal: controller ? controller.signal : undefined,
+      });
+    } catch (networkErr) {
+      if (networkErr.name === "AbortError") {
+        var timeoutErr = new Error("Upload timed out after " + (REQUEST_TIMEOUT_MS / 1000) + "s. Please try again.");
+        timeoutErr.status = 408;
+        throw timeoutErr;
+      }
+      var offlineErr = new Error("Cannot reach the server. Is the backend running on " + API_BASE_URL + "?");
+      offlineErr.status = 0;
+      throw offlineErr;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+
+    var text = await res.text();
+    var data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        data = null;
+      }
+    }
+
+    if (!res.ok) {
+      if (res.status === 401) clearSession();
+      var err = new Error(extractMessage(res.status, res.statusText, data));
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+
+    if (data && typeof data === "object" && "success" in data && "data" in data) {
+      return data.data;
+    }
+    return data;
+  }
+
+  /**
+   * Fetches a session-gated upload (GET /uploads/:category/:filename) with the
+   * bearer token attached, then opens it in a new tab. Needed because a plain
+   * <a href> / <img src> can't carry an Authorization header for protected files.
+   */
+  async function openUploadedFile(category, filename) {
+    var session = getSession();
+    var headers = {};
+    if (session && session.token) {
+      headers["Authorization"] = "Bearer " + session.token;
+    }
+    var res = await fetch(
+      API_BASE_URL + "/uploads/" + encodeURIComponent(category) + "/" + encodeURIComponent(filename),
+      { headers: headers, credentials: "include" },
+    );
+    if (!res.ok) {
+      var data = null;
+      try { data = await res.json(); } catch (e) {}
+      throw new Error(extractMessage(res.status, res.statusText, data));
+    }
+    var blob = await res.blob();
+    var blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, "_blank");
+    setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
+  }
+
   // ---- Public API Surface ----
   var Api = {
     BASE_URL: API_BASE_URL,
@@ -608,6 +700,30 @@
     activityLog: {
       list: function () {
         return request("GET", "/activity-log");
+      },
+    },
+
+    uploads: {
+      document: function (file) {
+        return requestUpload("/uploads/document", "document", file);
+      },
+      branding: function (file) {
+        return requestUpload("/uploads/branding", "logo", file);
+      },
+      inventory: function (file) {
+        return requestUpload("/uploads/inventory", "invoice", file);
+      },
+      // Public, unauthenticated static URL (served by app.js's /uploads-static
+      // mount) — safe for direct <img src> embedding, e.g. branding logos.
+      staticUrl: function (category, filename) {
+        return API_BASE_URL + "/uploads-static/" + category + "/" + filename;
+      },
+      // Opens a session-gated upload (documents, invoices) in a new tab.
+      open: function (category, filename) {
+        return openUploadedFile(category, filename);
+      },
+      logsStatus: function () {
+        return request("GET", "/uploads/system/logs-status");
       },
     },
   };

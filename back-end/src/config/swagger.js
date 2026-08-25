@@ -99,6 +99,13 @@ const ROUTES = [
   // Activity Log
   ['Activity Log', 'get', '/activity-log', 'Get system audit trail and activity log'],
 
+  // File Upload
+  ['Uploads', 'post', '/uploads/document', 'Upload a patient/admission document (PDF/image, max 5MB)'],
+  ['Uploads', 'post', '/uploads/branding', 'Upload a hospital branding logo (PDF/image, max 5MB)'],
+  ['Uploads', 'post', '/uploads/inventory', 'Upload an inventory purchase invoice (PDF/image, max 5MB)'],
+  ['Uploads', 'get', '/uploads/{category}/{filename}', 'Retrieve a previously uploaded file by category + filename'],
+  ['Uploads', 'get', '/uploads/system/logs-status', 'Log and Error Management status: size/mtime of logs/*.log'],
+
   // Data Sync
   ['Data Sync', 'get', '/data/full-state', 'Get the full in-memory state representing the DB schema'],
   ['Data Sync', 'post', '/data/full-state', 'Update the full in-memory state'],

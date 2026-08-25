@@ -43,6 +43,9 @@ function createRequest(request) {
     requested_at: new Date().toISOString(),
     organization_id: request.organization_id ? Number(request.organization_id) : null,
     hospital_id: request.hospital_id ? Number(request.hospital_id) : null,
+    // Set when the requester attaches a supplier invoice/quote via
+    // POST /uploads/inventory (front-end/HOM/inventory.js's Restock modal).
+    invoice_url: request.invoice_url || null,
   });
 }
 
