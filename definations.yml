@@ -1,3 +1,0 @@
-# Alias pointing to definitions.yml
-# Please see definitions.yml for the full master specification.
-include: "definitions.yml"
