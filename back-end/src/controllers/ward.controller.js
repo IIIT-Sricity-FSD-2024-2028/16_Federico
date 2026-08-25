@@ -5,14 +5,18 @@ const preRequestService = require('../services/preRequest.service');
 const admissionService = require('../services/admission.service');
 const billingService = require('../services/billing.service');
 const { createLogger } = require('../utils/logger');
-const { sendSuccess, sendError } = require('../utils/response');
-const { ForbiddenError, ValidationError } = require('../errors');
+const { sendResult } = require('../utils/sendResult');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
 const logger = createLogger('🏨 Wards');
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 function findAllWards(req, res) {
-  sendSuccess(res, scopeToOrg(wardService.findAllWards(), req), 200);
+  sendResult(res, scopeToOrg(wardService.findAllWards(), req), 200);
 }
 
 function createWard(req, res) {
@@ -20,75 +24,81 @@ function createWard(req, res) {
   logger.log(
     `✅ CREATED WARD  id=${result.ward_id}  name="${result.ward_name}"`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
 function updateWard(req, res) {
   const existing = wardService
     .findAllWards()
     .find((w) => w.ward_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this ward'), 403);
-  }
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
 
   const result = wardService.updateWard(+req.params.id, req.body);
   if (result && result.error) {
-    return sendError(res, new ValidationError(result.message), 400);
+    return res.status(400).json({
+      message: result.message,
+      error: 'Bad Request',
+      statusCode: 400,
+    });
   }
-  sendSuccess(res, result, 200);
+  logger.log(`✏️  WARD UPDATE  ward_id=${req.params.id}`);
+  sendResult(res, result, 200);
 }
 
 function deleteWard(req, res) {
   const existing = wardService
     .findAllWards()
     .find((w) => w.ward_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this ward'), 403);
-  }
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
 
   const result = wardService.deleteWard(+req.params.id);
   if (result && result.error) {
-    return sendError(res, new ValidationError(result.message), 400);
+    return res.status(400).json({
+      message: result.message,
+      error: 'Bad Request',
+      statusCode: 400,
+    });
   }
-  sendSuccess(res, result, 200);
+  logger.log(`🗑️  WARD DELETED  ward_id=${req.params.id}`);
+  sendResult(res, result, 200);
 }
 
 function findAllBeds(req, res) {
-  sendSuccess(res, scopeToOrg(wardService.findAllBeds(), req), 200);
+  sendResult(res, scopeToOrg(wardService.findAllBeds(), req), 200);
 }
 
 function findBedsByWard(req, res) {
   const existing = wardService
     .findAllWards()
     .find((w) => w.ward_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this ward'), 403);
-  }
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
 
-  sendSuccess(res, wardService.findBedsByWard(+req.params.id), 200);
+  sendResult(res, wardService.findBedsByWard(+req.params.id), 200);
 }
 
 function createBed(req, res) {
-  sendSuccess(res, wardService.createBed(withTenant(req, req.body)), 201);
+  const result = wardService.createBed(withTenant(req, req.body));
+  logger.log(
+    `✅ CREATED BED  id=${result.bed_id}  ward_id=${result.ward_id}  number=${result.bed_number}`,
+  );
+  sendResult(res, result, 201);
 }
 
 function updateBedStatus(req, res) {
-  const existing = wardService
-    .findAllBeds()
-    .find((b) => b.bed_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this bed'), 403);
-  }
-
-  sendSuccess(
-    res,
-    wardService.updateBedStatus(+req.params.id, req.body.status),
-    200,
-  );
+  const { bedId } = req.params;
+  const existing = wardService.findAllBeds().find((b) => b.bed_id === +bedId);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+  const result = wardService.updateBedStatus(+bedId, req.body.status);
+  logger.log(`✏️  BED UPDATE  bed_id=${bedId}  status="${req.body.status}"`);
+  sendResult(res, result, 200);
 }
 
 function findAllBedRequests(req, res) {
-  sendSuccess(res, scopeToOrg(wardService.findAllBedRequests(), req), 200);
+  sendResult(res, scopeToOrg(wardService.findAllBedRequests(), req), 200);
 }
 
 function createBedRequest(req, res) {
@@ -100,16 +110,27 @@ function createBedRequest(req, res) {
   logger.log(
     `✅ BED REQUEST  id=${result.bed_request_id}  patient=${result.patient_id}`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
+// Bed allocation is the ONE place that drives a pre-request into
+// ADMITTED (see preRequest.controller.js's PUBLICLY_SETTABLE_STATUSES —
+// that endpoint refuses to set ADMITTED directly). Orchestrated here in
+// the controller rather than inside either service, to avoid a
+// ward.service <-> preRequest.service circular require.
+//
+// This is also the ONE place an `admission` record gets created. Nothing
+// upstream (PRE's bed-request, the pre-request itself) ever produced one,
+// which left billing.service's admission_id-keyed ledger lookups with no
+// admission to attach to — a dead end for FA's billing flow. Bed
+// allocation is the natural anchor: it's the moment patient_id + bed_id
+// are both known for certain.
 function updateBedRequest(req, res) {
   const existing = wardService
     .findAllBedRequests()
     .find((r) => r.bed_request_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this bed request'), 403);
-  }
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
 
   const result = wardService.updateBedRequest(+req.params.id, req.body);
 
@@ -166,15 +187,17 @@ function updateBedRequest(req, res) {
       // Compensating transaction: roll back bed to AVAILABLE
       wardService.updateBedStatus(result.bed_id, 'AVAILABLE');
       wardService.updateBedRequest(result.bed_request_id, { status: 'PENDING', bed_id: null });
-      return sendError(res, err, 500);
+      // Let the global error handler (middleware/errorHandler.js) format the
+      // response — it duck-types statusCode/message off whatever was thrown.
+      throw err;
     }
   }
 
-  sendSuccess(res, result, 200);
+  sendResult(res, result, 200);
 }
 
 function findAllEmergencies(req, res) {
-  sendSuccess(res, scopeToOrg(wardService.findAllEmergencies(), req), 200);
+  sendResult(res, scopeToOrg(wardService.findAllEmergencies(), req), 200);
 }
 
 function createEmergency(req, res) {
@@ -186,22 +209,16 @@ function createEmergency(req, res) {
   logger.log(
     `✅ EMERGENCY LOGGED  id=${result.emergency_id}  type=${result.emergency_type}`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
 function updateEmergency(req, res) {
   const existing = wardService
     .findAllEmergencies()
     .find((e) => e.emergency_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this emergency record'), 403);
-  }
-
-  sendSuccess(
-    res,
-    wardService.updateEmergency(+req.params.id, req.body),
-    200,
-  );
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+  sendResult(res, wardService.updateEmergency(+req.params.id, req.body), 200);
 }
 
 module.exports = {

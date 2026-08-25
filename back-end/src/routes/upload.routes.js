@@ -41,7 +41,7 @@ router.post(
   controller.handleInventoryUpload,
 );
 
-// Authenticated file retrieval (wildcard route stays last).
-router.get('/:category/:filename', requireSession, controller.serveFile);
+// Public file retrieval by randomized filename (wildcard route stays last).
+router.get('/:category/:filename', controller.serveFile);
 
 module.exports = router;

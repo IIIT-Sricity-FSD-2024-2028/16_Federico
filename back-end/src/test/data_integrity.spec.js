@@ -4,14 +4,8 @@ const request = require('supertest');
 const { createApp } = require('../app');
 const provisioningService = require('../services/provisioning.service');
 const authService = require('../services/auth.service');
-const {
-  patientRepository,
-  doctorRepository,
-  admissionRepository,
-  billingRepository,
-  wardRepository,
-  userRepository,
-} = require('../repositories');
+const patientService = require('../services/patient.service');
+const dataStore = require('../store/dataStore');
 const persist = require('../store/persist');
 
 describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', () => {
@@ -43,7 +37,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       .post('/auth/login')
       .send({ email: 'admin@integrity.com', password: 'Password@123' });
 
-    adminToken = adminLoginRes.body.data ? adminLoginRes.body.data.token : adminLoginRes.body.token;
+    adminToken = adminLoginRes.body.token;
 
     // Create HOM and PRE staff users
     const homSignup = authService.signup({
@@ -53,7 +47,8 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       organization_id: tenantOrg.organization_id,
       hospital_id: 1,
     });
-    userRepository.update(homSignup.user.user_id, { role_id: 1, role: 'HOM' });
+    const homUser = dataStore.users.find((u) => u.user_id === homSignup.user.user_id);
+    Object.assign(homUser, { role_id: 1, role: 'HOM' });
 
     const preSignup = authService.signup({
       name: 'PRE Desk',
@@ -62,17 +57,18 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       organization_id: tenantOrg.organization_id,
       hospital_id: 1,
     });
-    userRepository.update(preSignup.user.user_id, { role_id: 4, role: 'PRE' });
+    const preUser = dataStore.users.find((u) => u.user_id === preSignup.user.user_id);
+    Object.assign(preUser, { role_id: 4, role: 'PRE' });
 
     const homLoginRes = await request(app)
       .post('/auth/login')
       .send({ email: 'hom@integrity.com', password: 'Password@123' });
-    homToken = homLoginRes.body.data ? homLoginRes.body.data.token : homLoginRes.body.token;
+    homToken = homLoginRes.body.token;
 
     const preLoginRes = await request(app)
       .post('/auth/login')
       .send({ email: 'pre@integrity.com', password: 'Password@123' });
-    preToken = preLoginRes.body.data ? preLoginRes.body.data.token : preLoginRes.body.token;
+    preToken = preLoginRes.body.token;
   });
 
   afterAll(() => {
@@ -103,13 +99,12 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
         });
 
       expect(res.status).toBe(404);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.message).toContain('Patient #999999 not found');
+      expect(res.body.message).toContain('Patient #999999 not found');
     });
 
     it('rejects appointment creation with non-existent doctor_id', async () => {
       // Create valid patient
-      const patient = patientRepository.create({
+      const patient = patientService.create({
         name: 'FK Test Patient',
         organization_id: tenantOrg.organization_id,
         hospital_id: 1,
@@ -128,8 +123,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
         });
 
       expect(res.status).toBe(404);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.message).toContain('Doctor #888888 not found');
+      expect(res.body.message).toContain('Doctor #888888 not found');
     });
 
     it('rejects billing leader charge creation with non-existent admission_id', async () => {
@@ -143,8 +137,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
         });
 
       expect(res.status).toBe(404);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.message).toContain('Admission #777777 not found');
+      expect(res.body.message).toContain('Admission #777777 not found');
     });
 
     it('rejects doctor availability creation with non-existent doctor_id', async () => {
@@ -159,15 +152,14 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
         });
 
       expect(res.status).toBe(404);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.message).toContain('Doctor #666666 not found');
+      expect(res.body.message).toContain('Doctor #666666 not found');
     });
   });
 
   describe('3. Composite Patient Portal Summary Endpoint', () => {
     it('GET /patient/portal/summary returns consolidated summary in 1 call', async () => {
       // Create patient in the tenant
-      const patient = patientRepository.create({
+      const patient = patientService.create({
         name: 'Portal Test Patient',
         uhid: 'UHID-PORTAL1',
         dob: '1990-01-01',
@@ -181,15 +173,14 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.patient.patient_id).toBe(patient.patient_id);
-      expect(Array.isArray(res.body.data.preRequests)).toBe(true);
-      expect(Array.isArray(res.body.data.appointments)).toBe(true);
-      expect(Array.isArray(res.body.data.bundles)).toBe(true);
-      expect(Array.isArray(res.body.data.receipts)).toBe(true);
-      expect(Array.isArray(res.body.data.doctors)).toBe(true);
-      expect(Array.isArray(res.body.data.beds)).toBe(true);
-      expect(Array.isArray(res.body.data.services)).toBe(true);
+      expect(res.body.patient.patient_id).toBe(patient.patient_id);
+      expect(Array.isArray(res.body.preRequests)).toBe(true);
+      expect(Array.isArray(res.body.appointments)).toBe(true);
+      expect(Array.isArray(res.body.bundles)).toBe(true);
+      expect(Array.isArray(res.body.receipts)).toBe(true);
+      expect(Array.isArray(res.body.doctors)).toBe(true);
+      expect(Array.isArray(res.body.beds)).toBe(true);
+      expect(Array.isArray(res.body.services)).toBe(true);
     });
   });
 });

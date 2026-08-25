@@ -2,26 +2,29 @@
 
 const admissionService = require('../services/admission.service');
 const { createLogger } = require('../utils/logger');
-const { sendSuccess, sendError } = require('../utils/response');
-const { ForbiddenError } = require('../errors');
+const { sendResult } = require('../utils/sendResult');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
 const logger = createLogger('🏥 Admissions');
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 function findAll(req, res) {
   const admissions = scopeToOrg(admissionService.findAll(), req);
   logger.log(`📋 LIST ALL  | total=${admissions.length} admissions`);
-  sendSuccess(res, admissions, 200);
+  sendResult(res, admissions, 200);
 }
 
 function findOne(req, res) {
   const { id } = req.params;
   logger.log(`🔍 GET  admission_id=${id}`);
   const admission = admissionService.findOne(+id);
-  if (admission && !belongsToOrg(admission, req)) {
-    return sendSuccess(res, null, 200);
-  }
-  sendSuccess(res, admission, 200);
+  if (admission && !belongsToOrg(admission, req))
+    return sendResult(res, null, 200);
+  sendResult(res, admission, 200);
 }
 
 function create(req, res) {
@@ -29,19 +32,18 @@ function create(req, res) {
   logger.log(
     `✅ CREATED  admission_id=${result.admission_id}  patient_id=${result.patient_id}  bed_id=${result.bed_id}`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
 function update(req, res) {
   const { id } = req.params;
   const existing = admissionService.findOne(+id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this admission record'), 403);
-  }
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
   const result = admissionService.update(+id, req.body);
   const keys = Object.keys(req.body).join(', ');
   logger.log(`✏️  UPDATED  admission_id=${id}  fields=[${keys}]`);
-  sendSuccess(res, result, 200);
+  sendResult(res, result, 200);
 }
 
 module.exports = { findAll, findOne, create, update };

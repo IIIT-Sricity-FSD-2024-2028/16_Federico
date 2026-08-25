@@ -3,11 +3,6 @@
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-/**
- * Security Middleware Subsystem (Evaluation Criteria: Security)
- * Helmet HTTP headers, tiered rate limiting, and request body/query sanitization.
- */
-
 // 1. Helmet HTTP Security Headers
 const helmetSecurity = helmet({
   contentSecurityPolicy: {
@@ -48,7 +43,7 @@ const globalRateLimiter = rateLimit({
     message:
       'Too many requests from this IP, please try again after 15 minutes',
   },
-  // Skip rate limiting for unit/e2e tests (mirrors the rest of this project's NODE_ENV=test guards)
+  // Skip rate limiting for unit tests
   skip: () => process.env.NODE_ENV === 'test',
 });
 

@@ -7,12 +7,6 @@ const wardService = require('../services/ward.service');
 const admissionService = require('../services/admission.service');
 const billingService = require('../services/billing.service');
 const dataStore = require('../store/dataStore');
-const {
-  wardRepository,
-  admissionRepository,
-  billingRepository,
-  preRequestRepository,
-} = require('../repositories');
 
 describe('E2E Hospital Patient Lifecycle & Multi-Tenancy Pipeline', () => {
   let tenantOrg;
@@ -159,7 +153,7 @@ describe('E2E Hospital Patient Lifecycle & Multi-Tenancy Pipeline', () => {
     expect(allocated.status).toBe('ALLOCATED');
 
     // Verify bed is now marked OCCUPIED
-    const bed = wardRepository.findBedById(allocatedBedId);
+    const bed = dataStore.beds.find((b) => b.bed_id === allocatedBedId);
     expect(bed.status).toBe('OCCUPIED');
 
     // Pre-request transitioned to ADMITTED
@@ -269,7 +263,7 @@ describe('E2E Hospital Patient Lifecycle & Multi-Tenancy Pipeline', () => {
     expect(discharged.status).toBe('DISCHARGED');
 
     // Physical bed MUST now be freed back to AVAILABLE
-    const bed = wardRepository.findBedById(allocatedBedId);
+    const bed = dataStore.beds.find((b) => b.bed_id === allocatedBedId);
     expect(bed.status).toBe('AVAILABLE');
 
     // Admission record MUST be marked DISCHARGED

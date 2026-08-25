@@ -7,8 +7,7 @@ const appointmentService = require('../services/appointment.service');
 const doctorService = require('../services/doctor.service');
 const wardService = require('../services/ward.service');
 const { createLogger } = require('../utils/logger');
-const { sendSuccess, sendError } = require('../utils/response');
-const { ForbiddenError, NotFoundError } = require('../errors');
+const { sendResult } = require('../utils/sendResult');
 const {
   forbidsOtherPatient,
   isPatientSession,
@@ -16,12 +15,19 @@ const {
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
 const logger = createLogger('🧑‍🤝‍🧑 Patients');
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
+// List-all-patients is a staff-only view — 'Patient' is in the resource's
+// coarse read gate only so findOne/findInsuranceByPatient below can serve
+// a patient's OWN record; this endpoint has no single record to scope to,
+// so it must deny Patient outright rather than leak every patient.
 function findAll(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
-  sendSuccess(res, scopeToOrg(patientService.findAll(), req), 200);
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, scopeToOrg(patientService.findAll(), req), 200);
 }
 
 function findOne(req, res) {
@@ -31,20 +37,21 @@ function findOne(req, res) {
     (forbidsOtherPatient(req, patient.patient_id) ||
       !belongsToOrg(patient, req))
   ) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
-  sendSuccess(res, patient, 200);
+  sendResult(res, patient, 200);
 }
 
+// Registering a new patient record is a staff (HOM/PRE) action — a
+// logged-in Patient already has their one record from signup and has no
+// legitimate reason to create another.
 function create(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
   const result = patientService.create(withTenant(req, req.body));
   logger.log(
     `✅ REGISTERED  patient_id=${result.patient_id}  name="${result.name}"`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
 function update(req, res) {
@@ -54,52 +61,53 @@ function update(req, res) {
     (forbidsOtherPatient(req, existing.patient_id) ||
       !belongsToOrg(existing, req))
   ) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
-  sendSuccess(res, patientService.update(req.params.id, req.body), 200);
+  sendResult(res, patientService.update(req.params.id, req.body), 200);
 }
 
+// Deleting a patient record is never a patient self-service action.
 function remove(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
   const existing = patientService.findOne(req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
-  sendSuccess(res, patientService.remove(req.params.id), 200);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+  sendResult(res, patientService.remove(req.params.id), 200);
 }
 
+// Same list-all-across-everyone concern as findAll above.
 function findAllInsurances(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
-  sendSuccess(res, scopeToOrg(patientService.findAllInsurances(), req), 200);
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, scopeToOrg(patientService.findAllInsurances(), req), 200);
 }
 
+// Staff callers aren't ownership-restricted to one patient (they see
+// across patients within their own org), so unlike the Patient session
+// path (already checked by forbidsOtherPatient), a cross-org leak here
+// would come from a staff session simply guessing another org's
+// patientId. Check the target patient's own organization_id too.
 function findInsuranceByPatient(req, res) {
   const patientId = +req.params.id;
   if (forbidsOtherPatient(req, patientId)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
   if (!isPatientSession(req)) {
     const target = patientService.findOne(String(patientId));
-    if (target && !belongsToOrg(target, req)) {
-      return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-    }
+    if (target && !belongsToOrg(target, req))
+      return res.status(403).json(FORBIDDEN);
   }
-  sendSuccess(res, patientService.findInsuranceByPatient(patientId), 200);
+  sendResult(res, patientService.findInsuranceByPatient(patientId), 200);
 }
 
 function createInsurance(req, res) {
   if (forbidsOtherPatient(req, req.body.patient_id)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
   const result = patientService.createInsurance(withTenant(req, req.body));
   logger.log(
     `✅ INSURANCE ADDED  insurance_id=${result.insurance_id}  patient_id=${result.patient_id}`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
 /**
@@ -110,15 +118,19 @@ function createInsurance(req, res) {
 function getPortalSummary(req, res) {
   const patientId = Number(req.params.id || (req.session && req.session.patientId));
   if (!patientId || (isPatientSession(req) && forbidsOtherPatient(req, patientId))) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
 
   const patient = patientService.findOne(String(patientId));
   if (!patient) {
-    return sendError(res, new NotFoundError(`Patient #${patientId} not found`), 404);
+    return res.status(404).json({
+      message: `Patient #${patientId} not found`,
+      error: 'Not Found',
+      statusCode: 404,
+    });
   }
   if (!belongsToOrg(patient, req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
 
   const insurances = patientService.findInsuranceByPatient(patientId);
@@ -148,7 +160,7 @@ function getPortalSummary(req, res) {
   const beds = scopeToOrg(wardService.findAllBeds(), req);
   const services = scopeToOrg(billingService.findAllServices(), req);
 
-  sendSuccess(res, {
+  sendResult(res, {
     patient,
     insurance,
     preRequests,

@@ -1,10 +1,9 @@
 'use strict';
 
 const billingService = require('../services/billing.service');
-const { patientRepository, admissionRepository } = require('../repositories');
+const dataStore = require('../store/dataStore');
 const { createLogger } = require('../utils/logger');
-const { sendSuccess, sendError } = require('../utils/response');
-const { ForbiddenError, NotFoundError, ValidationError } = require('../errors');
+const { sendResult } = require('../utils/sendResult');
 const {
   forbidsOtherPatient,
   isPatientSession,
@@ -12,147 +11,143 @@ const {
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
 const logger = createLogger('💰 Billing');
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 function findAllServices(req, res) {
-  sendSuccess(res, scopeToOrg(billingService.findAllServices(), req), 200);
+  sendResult(res, scopeToOrg(billingService.findAllServices(), req), 200);
 }
 
 function createService(req, res) {
-  sendSuccess(res, billingService.createService(withTenant(req, req.body)), 201);
+  sendResult(res, billingService.createService(withTenant(req, req.body)), 201);
 }
 
+// Raw lookup by admission/ledger id has no per-record ownership check —
+// a Patient must go through GET /billing/patient/:patientId/bills
+// instead, which is scoped to their own patient_id server-side.
 function findLedgerByAdmission(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
   const ledger = billingService.findLedgerByAdmission(+req.params.admissionId);
-  if (ledger && !belongsToOrg(ledger, req)) return sendSuccess(res, null, 200);
-  sendSuccess(res, ledger, 200);
+  if (ledger && !belongsToOrg(ledger, req)) return sendResult(res, null, 200);
+  sendResult(res, ledger, 200);
 }
 
+// HOM's billing-monitoring view (all ledgers, across every patient) —
+// same list-all-must-deny-Patient pattern as findAllPayments/
+// findAllReceipts below, since there's no single patientId to scope this
+// to.
 function findAllLedgers(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
-  sendSuccess(res, scopeToOrg(billingService.findAllLedgers(), req), 200);
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, scopeToOrg(billingService.findAllLedgers(), req), 200);
 }
 
 function createLedger(req, res) {
-  try {
-    const result = billingService.createLedger(withTenant(req, req.body));
-    logger.log(
-      `📔 LEDGER CREATED  id=${result.ledger_id}  admission_id=${result.admission_id}`,
-    );
-    sendSuccess(res, result, 201);
-  } catch (err) {
-    sendError(res, err, err.statusCode || 400);
-  }
+  const result = billingService.createLedger(withTenant(req, req.body));
+  logger.log(
+    `📔 LEDGER CREATED  id=${result.ledger_id}  admission_id=${result.admission_id}`,
+  );
+  sendResult(res, result, 201);
 }
 
 function findLedgerEntries(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
   const ledger = billingService.findLedgerById(+req.params.ledgerId);
-  if (ledger && !belongsToOrg(ledger, req)) return sendSuccess(res, [], 200);
-  sendSuccess(res, billingService.findLedgerEntries(+req.params.ledgerId), 200);
+  if (ledger && !belongsToOrg(ledger, req)) return sendResult(res, [], 200);
+  sendResult(res, billingService.findLedgerEntries(+req.params.ledgerId), 200);
 }
 
 function addLedgerEntry(req, res) {
-  try {
-    const result = billingService.addLedgerEntry(withTenant(req, req.body));
-    logger.log(
-      `➕ LEDGER ENTRY ADDED  ledger_id=${result.ledger_id}  service_id=${result.service_id}  amount=${result.amount}`,
-    );
-    sendSuccess(res, result, 201);
-  } catch (err) {
-    sendError(res, err, err.statusCode || 400);
-  }
+  const result = billingService.addLedgerEntry(withTenant(req, req.body));
+  logger.log(
+    `➕ LEDGER ENTRY ADDED  ledger_id=${result.ledger_id}  service_id=${result.service_id}  amount=${result.amount}`,
+  );
+  sendResult(res, result, 201);
 }
 
 function findAllPayments(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
-  sendSuccess(res, scopeToOrg(billingService.findAllPayments(), req), 200);
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, scopeToOrg(billingService.findAllPayments(), req), 200);
 }
 
+// Phase 2 — a Patient session may only pay off their own ledger (the
+// "Pay Now" button on a dispatched bill). FA can record any payment
+// (e.g. cash/offline collections). No separate verification step: since
+// there's no real payment gateway to confirm asynchronously, the
+// triggering call itself is treated as the confirmed payment.
 function createPayment(req, res) {
   const ledger = billingService.findLedgerById(req.body.ledger_id);
-  const admission = ledger && admissionRepository.findById(ledger.admission_id);
+  const admission =
+    ledger &&
+    dataStore.admissions.find((a) => a.admission_id === ledger.admission_id);
   if (
     isPatientSession(req) &&
     (!admission || forbidsOtherPatient(req, admission.patient_id))
   ) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
-  if (ledger && !belongsToOrg(ledger, req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
+  if (ledger && !belongsToOrg(ledger, req))
+    return res.status(403).json(FORBIDDEN);
 
-  try {
-    const result = billingService.createPayment(withTenant(req, req.body));
-    logger.log(
-      `💳 PAYMENT CREATED  id=${result.payment_id}  ledger_id=${result.ledger_id}  amount=${result.amount_paid}`,
-    );
-    sendSuccess(res, result, 201);
-  } catch (err) {
-    sendError(res, err, err.statusCode || 400);
-  }
+  const result = billingService.createPayment(withTenant(req, req.body));
+  logger.log(
+    `💳 PAYMENT CREATED  id=${result.payment_id}  ledger_id=${result.ledger_id}  amount=${result.amount_paid}`,
+  );
+  sendResult(res, result, 201);
 }
 
 function createSummary(req, res) {
-  try {
-    const result = billingService.createDischargeSummary(
-      withTenant(req, req.body),
-    );
-    logger.log(
-      `📄 DISCHARGE SUMMARY CREATED  id=${result.summary_id}  admission_id=${result.admission_id}`,
-    );
-    sendSuccess(res, result, 201);
-  } catch (err) {
-    sendError(res, err, err.statusCode || 400);
-  }
+  const result = billingService.createDischargeSummary(
+    withTenant(req, req.body),
+  );
+  logger.log(
+    `📄 DISCHARGE SUMMARY CREATED  id=${result.summary_id}  admission_id=${result.admission_id}`,
+  );
+  sendResult(res, result, 201);
 }
 
 function dispatchLedger(req, res) {
   const ledger = billingService.findLedgerById(+req.params.id);
-  if (ledger && !belongsToOrg(ledger, req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
+  if (ledger && !belongsToOrg(ledger, req))
+    return res.status(403).json(FORBIDDEN);
   const result = billingService.dispatchLedger(+req.params.id);
   if (result) logger.log(`📤 LEDGER DISPATCHED  id=${result.ledger_id}`);
-  sendSuccess(res, result, 200);
+  sendResult(res, result, 200);
 }
 
+// Staff callers aren't ownership-restricted to one patient (by design —
+// they see across patients within their own org), so unlike the Patient
+// path above, a cross-org leak here would come from a staff session
+// simply guessing another org's patientId. Check the target patient's own
+// organization_id against the caller's tenant to close that gap.
 function targetPatientForbidden(req, patientId) {
   if (forbidsOtherPatient(req, patientId)) return true;
-  if (isPatientSession(req)) return false;
-  const patient = patientRepository.findById(patientId);
+  if (isPatientSession(req)) return false; // already ownership-checked above
+  const patient = dataStore.patients.find((p) => p.patient_id === patientId);
   return Boolean(patient && !belongsToOrg(patient, req));
 }
 
 function findPatientBills(req, res) {
   const patientId = +req.params.patientId;
   if (targetPatientForbidden(req, patientId)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
-  sendSuccess(res, billingService.findPatientBills(patientId), 200);
+  sendResult(res, billingService.findPatientBills(patientId), 200);
 }
 
 function findAllReceipts(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
-  sendSuccess(res, scopeToOrg(billingService.findAllReceipts(), req), 200);
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, scopeToOrg(billingService.findAllReceipts(), req), 200);
 }
 
 function findReceiptsByPatient(req, res) {
   const patientId = +req.params.patientId;
   if (targetPatientForbidden(req, patientId)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
-  sendSuccess(res, billingService.findReceiptsByPatient(patientId), 200);
+  sendResult(res, billingService.findReceiptsByPatient(patientId), 200);
 }
 
 function findDischargeSummary(req, res) {
@@ -163,45 +158,39 @@ function findDischargeSummary(req, res) {
     result &&
     (forbidsOtherPatient(req, result.patient_id) || !belongsToOrg(result, req))
   ) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
-  sendSuccess(res, result, 200);
+  sendResult(res, result, 200);
 }
 
 function findAllLeaders(req, res) {
-  if (isPatientSession(req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
-  sendSuccess(res, scopeToOrg(billingService.findAllLeaders(), req), 200);
+  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+  sendResult(res, scopeToOrg(billingService.findAllLeaders(), req), 200);
 }
 
 function createLeader(req, res) {
-  try {
-    const result = billingService.createLeader(withTenant(req, req.body));
-    logger.log(
-      `⭐ LEADER CREATED  id=${result.leader_id}  admission_id=${result.admission_id}  service_id=${result.service_id}`,
-    );
-    sendSuccess(res, result, 201);
-  } catch (err) {
-    sendError(res, err, err.statusCode || 400);
-  }
+  const result = billingService.createLeader(withTenant(req, req.body));
+  logger.log(
+    `⭐ LEADER CREATED  id=${result.leader_id}  admission_id=${result.admission_id}  service_id=${result.service_id}`,
+  );
+  sendResult(res, result, 201);
 }
 
 function approveLeader(req, res) {
   const leaderId = +req.params.id;
   const existing = billingService.findLeaderById(leaderId);
   if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
   const result = billingService.approveLeader(leaderId);
   if (result.error === 'NOT_FOUND') {
-    return sendError(res, new NotFoundError(result.message), 404);
+    return res.status(404).json({ message: result.message, error: 'Not Found', statusCode: 404 });
   }
   if (result.error === 'ALREADY_APPROVED') {
-    return sendError(res, new ValidationError(result.message), 400);
+    return res.status(400).json({ message: result.message, error: 'Bad Request', statusCode: 400, leader: result.leader });
   }
   logger.log(`⭐ LEADER APPROVED  id=${result.leader.leader_id}  ledger_id=${result.ledger.ledger_id}`);
-  sendSuccess(res, result, 200);
+  sendResult(res, result, 200);
 }
 
 module.exports = {

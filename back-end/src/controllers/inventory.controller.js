@@ -2,14 +2,18 @@
 
 const inventoryService = require('../services/inventory.service');
 const { createLogger } = require('../utils/logger');
-const { sendSuccess, sendError } = require('../utils/response');
-const { ForbiddenError } = require('../errors');
+const { sendResult } = require('../utils/sendResult');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
 
 const logger = createLogger('📦 Inventory');
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 function findAllItems(req, res) {
-  sendSuccess(res, scopeToOrg(inventoryService.findAllItems(), req), 200);
+  sendResult(res, scopeToOrg(inventoryService.findAllItems(), req), 200);
 }
 
 function createItem(req, res) {
@@ -17,32 +21,30 @@ function createItem(req, res) {
   logger.log(
     `✅ ITEM CREATED  id=${result.item_id}  name="${result.item_name}"`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
 function updateItem(req, res) {
   const existing = inventoryService
     .findAllItems()
     .find((i) => i.item_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this inventory item'), 403);
-  }
-  sendSuccess(res, inventoryService.updateItem(+req.params.id, req.body), 200);
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+  sendResult(res, inventoryService.updateItem(+req.params.id, req.body), 200);
 }
 
 function deleteItem(req, res) {
   const existing = inventoryService
     .findAllItems()
     .find((i) => i.item_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this inventory item'), 403);
-  }
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
   logger.log(`🗑️  ITEM DELETED  id=${req.params.id}`);
-  sendSuccess(res, inventoryService.deleteItem(+req.params.id), 200);
+  sendResult(res, inventoryService.deleteItem(+req.params.id), 200);
 }
 
 function findAllRequests(req, res) {
-  sendSuccess(res, scopeToOrg(inventoryService.findAllRequests(), req), 200);
+  sendResult(res, scopeToOrg(inventoryService.findAllRequests(), req), 200);
 }
 
 function createRequest(req, res) {
@@ -50,17 +52,16 @@ function createRequest(req, res) {
   logger.log(
     `✅ REQUEST CREATED  id=${result.request_id}  item_id=${result.item_id}`,
   );
-  sendSuccess(res, result, 201);
+  sendResult(res, result, 201);
 }
 
 function updateRequest(req, res) {
   const existing = inventoryService
     .findAllRequests()
     .find((r) => r.request_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req)) {
-    return sendError(res, new ForbiddenError('Forbidden: Access denied to this purchase request'), 403);
-  }
-  sendSuccess(
+  if (existing && !belongsToOrg(existing, req))
+    return res.status(403).json(FORBIDDEN);
+  sendResult(
     res,
     inventoryService.updateRequest(+req.params.id, req.body),
     200,

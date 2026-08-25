@@ -1,12 +1,7 @@
 'use strict';
 
-const { organizationRepository } = require('../repositories');
-const { ForbiddenError } = require('../errors');
-const { sendError } = require('../utils/response');
+const dataStore = require('../store/dataStore');
 
-/**
- * Attaches tenant context (organizationId, hospitalId, isPlatformUser) to the request.
- */
 function attachTenant(req, res, next) {
   if (req.session) {
     req.tenant = {
@@ -26,44 +21,35 @@ function attachTenant(req, res, next) {
   next();
 }
 
-/**
- * Ensures request contains a valid organization tenant scope.
- */
 function requireTenant(req, res, next) {
   if (!req.tenant || !req.tenant.organizationId) {
-    return sendError(
-      res,
-      new ForbiddenError('This resource requires an active organization context'),
-      403,
-    );
+    return res.status(403).json({
+      message: 'This resource requires an active organization context',
+      error: 'Forbidden',
+      statusCode: 403,
+    });
   }
   next();
 }
 
-/**
- * Enforces that a specific hospital module (e.g. BILLING, INVENTORY, ANALYTICS) is enabled for the caller's tenant.
- * @param {string} moduleCode
- */
 function requireModule(moduleCode) {
   return function (req, res, next) {
     if (!req.tenant || !req.tenant.organizationId) return next();
 
-    const modules = organizationRepository.findModulesByOrg(req.tenant.organizationId);
-    const flag = modules.find((m) => m.module_code === moduleCode.toUpperCase());
+    const code = moduleCode.toUpperCase();
+    const flag = dataStore.organizationModules.find(
+      (m) => m.organization_id === req.tenant.organizationId && m.module_code === code,
+    );
 
     if (flag && flag.enabled === false) {
-      return sendError(
-        res,
-        new ForbiddenError(`The ${moduleCode} module is not enabled for your organization`),
-        403,
-      );
+      return res.status(403).json({
+        message: `The ${moduleCode} module is not enabled for your organization`,
+        error: 'Forbidden',
+        statusCode: 403,
+      });
     }
     next();
   };
 }
 
-module.exports = {
-  attachTenant,
-  requireTenant,
-  requireModule,
-};
+module.exports = { attachTenant, requireTenant, requireModule };

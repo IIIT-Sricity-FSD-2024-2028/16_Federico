@@ -5,13 +5,6 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 
-/**
- * File Upload Middleware (Evaluation Criteria: File upload)
- * Multer disk storage, scoped to category subdirectories, with MIME whitelisting,
- * a size cap, and cryptographically randomized filenames (prevents path traversal
- * and overwrite-by-guessing-the-name attacks).
- */
-
 const UPLOADS_ROOT = path.resolve(__dirname, '../../uploads');
 
 // Allowed subdirectories
@@ -93,8 +86,6 @@ const inventoryUploader = multer({
 module.exports = {
   UPLOADS_ROOT,
   CATEGORIES,
-  ALLOWED_MIME_TYPES,
-  MAX_FILE_SIZE_BYTES,
   uploadDocument: documentUploader.single('document'),
   uploadBranding: brandingUploader.single('logo'),
   uploadInventory: inventoryUploader.single('invoice'),

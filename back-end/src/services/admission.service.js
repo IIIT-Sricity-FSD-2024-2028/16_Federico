@@ -1,17 +1,21 @@
 'use strict';
 
-const { admissionRepository } = require('../repositories');
+const dataStore = require('../store/dataStore');
 
 function findAll() {
-  return admissionRepository.findAll();
+  return dataStore.admissions;
 }
 
 function findOne(id) {
-  return admissionRepository.findById(id);
+  return dataStore.admissions.find((a) => a.admission_id === id) || null;
 }
 
 function create(admission) {
-  return admissionRepository.create({
+  const newAdmission = {
+    admission_id:
+      dataStore.admissions.length > 0
+        ? Math.max(...dataStore.admissions.map((a) => a.admission_id)) + 1
+        : 701,
     patient_id: Number(admission.patient_id),
     appointment_id: admission.appointment_id ? Number(admission.appointment_id) : null,
     bed_id: admission.bed_id ? Number(admission.bed_id) : null,
@@ -21,16 +25,16 @@ function create(admission) {
     organization_id: admission.organization_id ? Number(admission.organization_id) : null,
     hospital_id: admission.hospital_id ? Number(admission.hospital_id) : null,
     receipt_sent_to_hom: Boolean(admission.receipt_sent_to_hom),
-  });
+  };
+  dataStore.admissions.push(newAdmission);
+  return newAdmission;
 }
 
 function update(id, patch) {
-  return admissionRepository.update(id, patch);
+  const admission = findOne(id);
+  if (!admission) return null;
+  Object.assign(admission, patch);
+  return admission;
 }
 
-module.exports = {
-  findAll,
-  findOne,
-  create,
-  update,
-};
+module.exports = { findAll, findOne, create, update };
