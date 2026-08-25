@@ -13,6 +13,13 @@ const { persistOnMutation } = require('./persistOnMutation');
 const { errorHandler } = require('./errorHandler');
 const { notFoundHandler } = require('./notFoundHandler');
 const { requestLogger } = require('./requestLogger');
+const {
+  helmetSecurity,
+  globalRateLimiter,
+  authRateLimiter,
+  uploadRateLimiter,
+  sanitizeInput,
+} = require('./security');
 
 module.exports = {
   // Session & Authentication
@@ -35,6 +42,13 @@ module.exports = {
   // Persistence & Logging
   persistOnMutation,
   requestLogger,
+
+  // Security
+  helmetSecurity,
+  globalRateLimiter,
+  authRateLimiter,
+  uploadRateLimiter,
+  sanitizeInput,
 
   // Error Handling
   errorHandler,

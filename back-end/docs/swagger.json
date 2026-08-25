@@ -1622,6 +1622,114 @@
         }
       }
     },
+    "/uploads/document": {
+      "post": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Upload a patient/admission document (PDF/image, max 5MB)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/uploads/branding": {
+      "post": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Upload a hospital branding logo (PDF/image, max 5MB)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/uploads/inventory": {
+      "post": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Upload an inventory purchase invoice (PDF/image, max 5MB)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/uploads/{category}/{filename}": {
+      "get": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Retrieve a previously uploaded file by category + filename",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/uploads/system/logs-status": {
+      "get": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Log and Error Management status: size/mtime of logs/*.log",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
     "/data/full-state": {
       "get": {
         "tags": [

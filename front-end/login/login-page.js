@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (activeRole === 'HOM') {
         window.location.href = '../HOM/screen-01-dashboard.html';
       } else if (activeRole === 'FA') {
-        window.location.href = '../FA/index.html';
+        window.location.href = '../FA/fa-dashboard.html';
       } else if (activeRole === 'Admin') {
         window.location.href = '../Admin/screen-01-dashboard.html';
       }

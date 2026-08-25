@@ -44,6 +44,10 @@ const createPatientInsuranceRules = [
   // validates unchanged.
   { field: 'coverage_limit', checks: ['isNumber'], optional: true },
   { field: 'copay_percentage', checks: ['isNumber'], optional: true },
+  // Set from POST /uploads/document's response URL when the patient scans
+  // their insurance card via the profile page's upload boxes.
+  { field: 'card_front_url', checks: ['isString'], optional: true },
+  { field: 'card_back_url', checks: ['isString'], optional: true },
 ];
 
 module.exports = {

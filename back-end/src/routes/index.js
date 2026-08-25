@@ -27,6 +27,9 @@ const platformRoutes = require('./platform.routes');
 const marketplaceRoutes = require('./marketplace.routes');
 const rbacRoutes = require('./rbac.routes');
 
+// File Upload (Evaluation Criteria: File upload middleware).
+const uploadRoutes = require('./upload.routes');
+
 const router = Router();
 
 router.get('/', appController.getHello);
@@ -48,5 +51,6 @@ router.use('/activity-log', activityRoutes);
 router.use('/platform', platformRoutes);
 router.use('/marketplace', marketplaceRoutes);
 router.use('/rbac', rbacRoutes);
+router.use('/uploads', uploadRoutes);
 
 module.exports = router;

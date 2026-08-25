@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:* https://*; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory | Federico Hospital HOM</title>
     <link rel="stylesheet" href="../shared/design-tokens.css">
@@ -237,6 +238,11 @@
                 <div>
                     <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Notes (Optional)</label>
                     <textarea class="input" id="restock-notes" style="height: 80px; padding: 12px; resize: none;" placeholder="Add delivery or batch instructions..."></textarea>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Supplier Invoice / Quote (Optional)</label>
+                    <input type="file" class="input" id="restock-invoice-input" accept="application/pdf,image/png,image/jpeg,image/webp" style="padding: 8px;" />
+                    <div id="restock-invoice-status" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;"></div>
                 </div>
                 <div id="restock-form-error" style="display: none; font-size: 12px; color: var(--error); font-weight: 500;"></div>
             </div>

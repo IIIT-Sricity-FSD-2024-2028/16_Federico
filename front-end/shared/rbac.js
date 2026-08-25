@@ -279,7 +279,7 @@
     var currentModule = fromModule || detectCurrentModule();
 
     // Every other app's pages live one directory level below front-end/
-    // (e.g. HOM/screen-01-dashboard.html, FA/index.html), but PRE's real
+    // (e.g. HOM/screen-01-dashboard.html, FA/fa-dashboard.html), but PRE's real
     // pages live one level deeper still, under PRE/pages/*.html — the
     // only PRE page at the shallow depth is PRE/index.html, which is a
     // static redirect that never loads rbac.js or calls this function.
@@ -298,8 +298,8 @@
     }
 
     if (currentActor === "FA") {
-      if (currentModule === "FA") return "index.html";
-      return crossModulePrefix + "../FA/index.html";
+      if (currentModule === "FA") return "fa-dashboard.html";
+      return crossModulePrefix + "../FA/fa-dashboard.html";
     }
 
     if (currentActor === "PRE") {

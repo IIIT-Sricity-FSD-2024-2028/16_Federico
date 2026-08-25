@@ -66,6 +66,8 @@ function createInsurance(insurance) {
     valid_to: insurance.valid_to || null,
     organization_id: insurance.organization_id ? Number(insurance.organization_id) : null,
     hospital_id: insurance.hospital_id ? Number(insurance.hospital_id) : null,
+    card_front_url: insurance.card_front_url || null,
+    card_back_url: insurance.card_back_url || null,
   });
 }
 

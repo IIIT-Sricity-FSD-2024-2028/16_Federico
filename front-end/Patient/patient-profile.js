@@ -1,5 +1,11 @@
 'use strict';
 
+// Insurance card scan URLs: uploaded via POST /uploads/document, attached to
+// the insurance record when the section's "Save Changes" is clicked. Seeded
+// from the loaded profile so an existing scan isn't dropped by an unrelated
+// save, and updated in place as soon as a new file finishes uploading.
+const uploadedCardUrls = { front: undefined, back: undefined };
+
 document.addEventListener("DOMContentLoaded", () => {
     const sections = ["personal", "contact", "password", "insurance"];
     const navLinks = document.querySelectorAll(".nav-link");
@@ -46,6 +52,30 @@ document.addEventListener("DOMContentLoaded", () => {
         setValue("valid-from", profile.insurance?.validFrom || "");
         setValue("valid-to", profile.insurance?.validTo || "");
         setValue("coverage-amount", Number(profile.insurance?.coverage || 0).toLocaleString("en-IN"));
+
+        if (uploadedCardUrls.front === undefined) uploadedCardUrls.front = profile.insurance?.cardFrontUrl || null;
+        if (uploadedCardUrls.back === undefined) uploadedCardUrls.back = profile.insurance?.cardBackUrl || null;
+        renderUploadLabel("front-name", uploadedCardUrls.front);
+        renderUploadLabel("back-name", uploadedCardUrls.back);
+    }
+
+    function renderUploadLabel(labelId, fileUrl) {
+        const label = document.getElementById(labelId);
+        if (!label) return;
+        if (fileUrl) {
+            label.innerHTML = '<strong class="link-text" data-view-file>View uploaded file</strong> &middot; <span class="link-text" style="font-weight: 400;">replace</span>';
+        } else {
+            label.innerHTML = 'Drop or <span class="link-text">browse</span>';
+        }
+    }
+
+    function openInsuranceCard(fileUrl) {
+        const parts = fileUrl.split("/");
+        const filename = parts.pop();
+        const category = parts.pop();
+        window.ApiClient.uploads.open(category, filename).catch((err) => {
+            UIFeedback.toast(err.message || "Could not open file.", "error");
+        });
     }
 
     function renderProfileShell(profile) {
@@ -98,6 +128,13 @@ document.addEventListener("DOMContentLoaded", () => {
             cancelBtn.addEventListener("click", () => {
                 restoreValues();
                 resetPasswordFeedback();
+                if (section === "insurance") {
+                    const persisted = getProfile()?.insurance || {};
+                    uploadedCardUrls.front = persisted.cardFrontUrl || null;
+                    uploadedCardUrls.back = persisted.cardBackUrl || null;
+                    renderUploadLabel("front-name", uploadedCardUrls.front);
+                    renderUploadLabel("back-name", uploadedCardUrls.back);
+                }
                 disableSection();
             });
             saveBtn.addEventListener("click", async () => {
@@ -201,7 +238,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 memberId: valueOf("member-id"),
                 validFrom: valueOf("valid-from"),
                 validTo: valueOf("valid-to"),
-                coverage: parseCoverage(valueOf("coverage-amount"))
+                coverage: parseCoverage(valueOf("coverage-amount")),
+                cardFrontUrl: uploadedCardUrls.front,
+                cardBackUrl: uploadedCardUrls.back
             });
             setValue("coverage-amount", Number(getProfile()?.insurance?.coverage || 0).toLocaleString("en-IN"));
         }
@@ -251,17 +290,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function setupUploads() {
         const uploadMappings = [
-            ["upload-front", "front-name"],
-            ["upload-back", "back-name"]
+            ["upload-front", "front-name", "upload-front-label", "front"],
+            ["upload-back", "back-name", "upload-back-label", "back"]
         ];
 
-        uploadMappings.forEach(([inputId, labelId]) => {
+        uploadMappings.forEach(([inputId, labelId, wrapperId, side]) => {
             const input = document.getElementById(inputId);
             const label = document.getElementById(labelId);
-            if (!input || !label) return;
-            input.addEventListener("change", (event) => {
+            const wrapper = document.getElementById(wrapperId);
+            if (!input || !label || !wrapper) return;
+
+            // The label's native `for="upload-*"` behavior opens the file
+            // picker on any click. Intercept only clicks on the "View
+            // uploaded file" text so those open the file instead of
+            // re-prompting for a new one.
+            wrapper.addEventListener("click", (event) => {
+                if (event.target.closest("[data-view-file]")) {
+                    event.preventDefault();
+                    if (uploadedCardUrls[side]) openInsuranceCard(uploadedCardUrls[side]);
+                }
+            });
+
+            input.addEventListener("change", async (event) => {
                 const file = event.target.files?.[0];
-                if (file) label.innerHTML = `<strong>${file.name}</strong>`;
+                if (!file) return;
+
+                const previousUrl = uploadedCardUrls[side];
+                label.innerHTML = `<strong>Uploading ${window.Formatters.escapeHtml(file.name)}&hellip;</strong>`;
+
+                try {
+                    const result = await window.ApiClient.uploads.document(file);
+                    uploadedCardUrls[side] = result.url;
+                    renderUploadLabel(labelId, result.url);
+                    UIFeedback.toast(`${side === "front" ? "Front" : "Back"} card image uploaded. Click "Save Changes" to attach it.`, "success");
+                } catch (err) {
+                    uploadedCardUrls[side] = previousUrl;
+                    renderUploadLabel(labelId, previousUrl);
+                    UIFeedback.toast(err.message || "Could not upload file.", "error");
+                } finally {
+                    input.value = "";
+                }
             });
         });
     }
