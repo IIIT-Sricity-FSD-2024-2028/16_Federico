@@ -87,8 +87,7 @@ function sanitizeValue(value) {
     return value
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/javascript:/gi, '')
-      .replace(/onload=/gi, '')
-      .replace(/onerror=/gi, '');
+      .replace(/\bon\w+\s*=/gi, '');
   }
   if (Array.isArray(value)) {
     return value.map(sanitizeValue);

@@ -34,6 +34,12 @@ describe('Security Middleware', () => {
       );
     });
 
+    it('strips inline event handler attributes beyond onload/onerror', () => {
+      expect(
+        sanitizeValue('onclick=alert(1) onmouseover=alert(2) onfocus=alert(3)'),
+      ).toBe('alert(1) alert(2) alert(3)');
+    });
+
     it('recurses into arrays', () => {
       expect(sanitizeValue(['<script>bad</script>ok', 'fine'])).toEqual([
         'ok',
