@@ -1,10 +1,15 @@
 'use strict';
 
 const preRequestService = require('../services/preRequest.service');
-const { sendSuccess, sendError } = require('../utils/response');
-const { ForbiddenError } = require('../errors');
+const { sendResult } = require('../utils/sendResult');
 const { forbidsOtherPatient } = require('../utils/patientOwnership');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
+
+const FORBIDDEN = {
+  message: 'Forbidden resource',
+  error: 'Forbidden',
+  statusCode: 403,
+};
 
 // A Patient session sees/touches only their own pre-requests; HOM/PRE/FA
 // see everything (within their own organization).
@@ -14,7 +19,7 @@ function findAll(req, res) {
     req.session && req.session.role === 'Patient'
       ? all.filter((p) => p.patient_id === req.session.patientId)
       : all;
-  sendSuccess(res, visible, 200);
+  sendResult(res, visible, 200);
 }
 
 function findOne(req, res) {
@@ -24,23 +29,28 @@ function findOne(req, res) {
     (forbidsOtherPatient(req, request.patient_id) ||
       !belongsToOrg(request, req))
   ) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
-  sendSuccess(res, request, 200);
+  sendResult(res, request, 200);
 }
 
 function create(req, res) {
   if (forbidsOtherPatient(req, req.body.patient_id)) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
   const createdBy = req.session ? req.session.userId : null;
-  sendSuccess(
+  sendResult(
     res,
     preRequestService.create(withTenant(req, req.body), createdBy),
     201,
   );
 }
 
+// ADMITTED is reachable ONLY through the ward bed-allocation cascade
+// (ward.service.js#updateBedRequest calling preRequestService.transition
+// internally) — never directly via this endpoint, so there is exactly
+// one code path that assigns a bed and flips this status, not the three
+// different uncoordinated ones the original frontend had.
 const PUBLICLY_SETTABLE_STATUSES = new Set([
   'APPROVED',
   'REJECTED',
@@ -51,38 +61,44 @@ const PUBLICLY_SETTABLE_STATUSES = new Set([
   'DISCHARGED',
 ]);
 
+/**
+ * PUT /pre-requests/:id — two distinct kinds of update, split by whether
+ * `status` is present in the body:
+ *  - status present -> a state transition. Validated against the actor's
+ *    permitted moves in preRequestService.TRANSITIONS. A session-less
+ *    legacy x-role SUPER_USER call skips the actor check (same "admin can
+ *    do anything" bypass every other resource already has).
+ *  - status absent -> a field update (doctor/date/time/department), PRE
+ *    only (rescheduling), never Patient.
+ */
 function update(req, res) {
   const existing = preRequestService.findOne(+req.params.id);
-  if (!existing) return sendSuccess(res, null, 200);
+  if (!existing) return sendResult(res, null, 200);
 
   if (
     forbidsOtherPatient(req, existing.patient_id) ||
     !belongsToOrg(existing, req)
-  ) {
-    return sendError(res, new ForbiddenError('Forbidden resource'), 403);
-  }
+  )
+    return res.status(403).json(FORBIDDEN);
 
   const requestedStatus = req.body.status;
 
   if (requestedStatus !== undefined) {
-    if (requestedStatus === 'ADMITTED') {
-      return sendError(res, new ForbiddenError('ADMITTED status must be reached via bed allocation cascade'), 403);
-    }
+    if (requestedStatus === 'ADMITTED') return res.status(403).json(FORBIDDEN);
 
     if (req.session && req.session.role === 'Patient') {
       const requestedFields = Object.keys(req.body);
       const onlyAllowedFields = requestedFields.every((field) =>
         ['status', 'reject_reason'].includes(field),
       );
-      if (!onlyAllowedFields) {
-        return sendError(res, new ForbiddenError('Patients may only update status or reject_reason'), 403);
-      }
+      if (!onlyAllowedFields) return res.status(403).json(FORBIDDEN);
     }
 
-    if (!PUBLICLY_SETTABLE_STATUSES.has(requestedStatus)) {
-      return sendError(res, new ForbiddenError(`Status ${requestedStatus} cannot be set directly`), 403);
-    }
+    if (!PUBLICLY_SETTABLE_STATUSES.has(requestedStatus))
+      return res.status(403).json(FORBIDDEN);
 
+    // Legacy x-role-only callers (no real session) bypass the per-actor
+    // transition check, matching every other resource's SUPER_USER bypass.
     if (
       req.session &&
       !preRequestService.canTransition(
@@ -91,10 +107,10 @@ function update(req, res) {
         req.session.role,
       )
     ) {
-      return sendError(res, new ForbiddenError(`Actor ${req.session.role} cannot transition from ${existing.status} to ${requestedStatus}`), 403);
+      return res.status(403).json(FORBIDDEN);
     }
 
-    return sendSuccess(
+    return sendResult(
       res,
       preRequestService.transition(
         existing.pre_request_id,
@@ -107,10 +123,10 @@ function update(req, res) {
   }
 
   if (req.session && req.session.role !== 'PRE' && req.session.role !== 'HOM') {
-    return sendError(res, new ForbiddenError('Forbidden: Only PRE/HOM staff can reschedule requests'), 403);
+    return res.status(403).json(FORBIDDEN);
   }
 
-  sendSuccess(
+  sendResult(
     res,
     preRequestService.updateFields(existing.pre_request_id, req.body),
     200,

@@ -1,7 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { organizationRepository, userRepository } = require('../repositories');
+const dataStore = require('../store/dataStore');
 const organizationService = require('./organization.service');
 const subscriptionService = require('./subscription.service');
 const planService = require('./subscriptionPlan.service');
@@ -13,17 +13,41 @@ const {
   DEFAULT_INVENTORY_ITEMS,
 } = require('../config/defaultClinicalCatalog');
 
+/**
+ * Provisioning Engine (tasks.md §6) — the one place a new tenant gets
+ * fully stood up. Every step is logged to `provisioningLog` individually
+ * so a Platform Super User can see exactly what was configured (and, if a
+ * step fails, exactly where it stopped) — this is the audit trail tasks.md
+ * §6 implies by listing "Generate Organization Configuration" as its own
+ * responsibility, not just an implementation detail of "Create Organization".
+ */
 function logStep(organizationId, step, status, message) {
-  return organizationRepository.logProvisioning({
+  dataStore.provisioningLog.push({
+    id:
+      dataStore.provisioningLog.length > 0
+        ? Math.max(...dataStore.provisioningLog.map((l) => l.id)) + 1
+        : 1,
     organization_id: Number(organizationId),
     step,
     status,
     message,
+    created_at: new Date().toISOString(),
   });
 }
 
+/**
+ * Every newly provisioned hospital used to start with zero wards, zero
+ * departments and zero inventory — nothing forced a standard baseline, so
+ * each org's data shape was whatever got typed in by hand later (and
+ * nothing ever got typed in for a demo/test org, since there was no UI to
+ * do it). Seeds the standard 6 department/ward pairs + starter inventory
+ * from config/defaultClinicalCatalog.js; Admin can add/remove from here
+ * afterwards via the wardAdmin/inventoryCatalog endpoints.
+ */
 function seedDefaultClinicalBaseline(organizationId, hospitalId) {
   DEFAULT_DEPARTMENTS.forEach(({ wardName, defaultBeds }) => {
+    // createWard() creates the matching bed records itself when
+    // total_beds is set — no need to also loop-create them here.
     wardService.createWard({
       ward_name: wardName,
       total_beds: defaultBeds,
@@ -44,14 +68,26 @@ function seedDefaultClinicalBaseline(organizationId, hospitalId) {
 }
 
 function generateApiKey(organizationId, label) {
-  return organizationRepository.createApiKey({
+  const newKey = {
+    api_key_id:
+      dataStore.apiKeys.length > 0
+        ? Math.max(...dataStore.apiKeys.map((k) => k.api_key_id)) + 1
+        : 1,
     organization_id: Number(organizationId),
     label: label || 'Default',
     key: `fed_live_${crypto.randomBytes(18).toString('hex')}`,
+    created_at: new Date().toISOString(),
     revoked_at: null,
-  });
+  };
+  dataStore.apiKeys.push(newKey);
+  return newKey;
 }
 
+/**
+ * payload: { name, contact, specialties, emergency_available, admin_name,
+ *            admin_email, admin_password, plan_id, modules? }
+ * `modules`, if omitted, defaults to the plan's included_modules.
+ */
 function provision(payload) {
   const plan = planService.findById(payload.plan_id);
   if (!plan) return { error: 'PLAN_NOT_FOUND' };
@@ -108,14 +144,20 @@ function provision(payload) {
     `Enabled modules: ${enabledModules.join(', ') || 'none'}`,
   );
 
-  const adminUser = userRepository.create({
+  const adminUser = {
+    user_id:
+      dataStore.users.length > 0
+        ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1
+        : 101,
     name: payload.admin_name,
     email: payload.admin_email,
     password_hash: hashPassword(payload.admin_password),
-    role_id: 5, // Admin
+    role_id: 5, // Admin — the organization's owner/super user, above HOM (see utils/roles.js ROLE_ID_TO_NAME)
     organization_id: organization.organization_id,
     hospital_id: hospital.hospital_id,
-  });
+    created_at: new Date().toISOString(),
+  };
+  dataStore.users.push(adminUser);
   logStep(
     organization.organization_id,
     'CREATE_DEFAULT_ADMIN',

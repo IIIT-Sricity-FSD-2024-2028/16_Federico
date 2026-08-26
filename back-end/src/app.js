@@ -4,17 +4,13 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
-const {
-  requestLogger,
-  notFoundHandler,
-  errorHandler,
-  attachSession,
-  attachTenant,
-  persistOnMutation,
-  helmetSecurity,
-  globalRateLimiter,
-  sanitizeInput,
-} = require('./middleware');
+const { requestLogger } = require('./middleware/requestLogger');
+const { notFoundHandler } = require('./middleware/notFoundHandler');
+const { errorHandler } = require('./middleware/errorHandler');
+const { attachSession } = require('./middleware/session');
+const { attachTenant } = require('./middleware/tenant');
+const { persistOnMutation } = require('./middleware/persistOnMutation');
+const { helmetSecurity, globalRateLimiter, sanitizeInput } = require('./middleware/security');
 const { setupSwagger } = require('./config');
 const routes = require('./routes');
 
