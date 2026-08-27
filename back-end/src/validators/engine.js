@@ -30,6 +30,7 @@ const CHECKS = {
   isInt: (v) => typeof v === 'number' && Number.isInteger(v),
   isNumber: (v) => typeof v === 'number' && Number.isFinite(v),
   isBoolean: (v) => typeof v === 'boolean',
+  isArray: (v) => Array.isArray(v),
   isEmail: (v) => typeof v === 'string' && validator.isEmail(v),
   isISO8601: (v) => typeof v === 'string' && validator.isISO8601(v),
   isPhoneNumber: (v) => {
@@ -50,6 +51,7 @@ const MESSAGES = {
   isNumber: (field) =>
     `${field} must be a number conforming to the specified constraints`,
   isBoolean: (field) => `${field} must be a boolean value`,
+  isArray: (field) => `${field} must be an array`,
   isEmail: (field) => `${field} must be an email`,
   isISO8601: (field) => `${field} must be a valid ISO 8601 date string`,
   isPhoneNumber: (field) => `${field} must be a valid phone number`,

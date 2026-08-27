@@ -102,6 +102,7 @@ function create(payload, createdBy) {
     requested_date: payload.requested_date || payload.appointment_date || null,
     requested_time: payload.requested_time || payload.appointment_time || null,
     note: payload.note || null,
+    document_urls: Array.isArray(payload.document_urls) ? payload.document_urls : [],
     status: initialStatus,
     hom_status: HOM_STATUS_BY_STATUS[initialStatus] || 'Awaiting PRE review',
     bed_id: null,

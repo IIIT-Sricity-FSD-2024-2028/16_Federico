@@ -14,10 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedDept = null;
     let selectedDoctorId = null;
     let selectedDoctorName = "Any Specialist";
-    let attachedFileName = null;
+    let attachedFiles = [];
 
     // ── CONFIGURATION ──
     const MAX_PATIENTS_PER_SLOT = 3;
+    // Mirror the backend caps (fileUpload.js): 5 MB, pdf/jpg/jpeg/png only.
+    const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+    const ALLOWED_UPLOAD_EXT = [".pdf", ".jpg", ".jpeg", ".png"];
 
     function syncView() {
         populatePatientSidebar();
@@ -286,6 +289,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 const noteInput = document.getElementById("short-note");
                 const noteText = noteInput ? noteInput.value.trim() : "";
 
+                // Upload any attached medical documents first; abort the booking
+                // if an upload fails so we never create a request that references
+                // files that aren't actually stored.
+                let documentUrls = [];
+                if (attachedFiles.length > 0) {
+                    btn.textContent = `Uploading ${attachedFiles.length} document${attachedFiles.length > 1 ? "s" : ""}…`;
+                    for (const file of attachedFiles) {
+                        const uploaded = await window.ApiClient.uploads.document(file);
+                        // handleDocumentUpload responds { statusCode, message, file: { url, ... } }
+                        const url = (uploaded && uploaded.file && uploaded.file.url) || (uploaded && uploaded.url);
+                        if (!url) throw new Error(`Upload of "${file.name}" did not return a file URL.`);
+                        documentUrls.push(url);
+                    }
+                    btn.textContent = "Submitting Request…";
+                }
+
+                const attachedNames = attachedFiles.map((f) => f.name).join(", ");
                 const newRequestId = await addAppointment({
                     date: selectedDate,
                     displayDate: formatDate(selectedDate),
@@ -293,7 +313,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     department: selectedDept,
                     doctorId: selectedDoctorId,
                     type: "Consultation",
-                    note: noteText || (attachedFileName ? `Attached: ${attachedFileName}` : undefined),
+                    note: noteText || (attachedNames ? `Attached: ${attachedNames}` : undefined),
+                    documents: documentUrls,
                 });
 
                 refreshSlotAvailability();
@@ -332,13 +353,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
         fileInput.addEventListener("change", (e) => {
             const files = Array.from(e.target.files || []);
-            if (files.length === 0) return;
-            attachedFileName = files[0].name;
             const labelText = document.getElementById("upload-label-text");
-            if (labelText) {
-                labelText.innerHTML = `Attached: <span style="color:var(--primary)">${escapeHtml(attachedFileName)}</span> (${(files[0].size / 1024).toFixed(0)} KB)`;
+
+            if (files.length === 0) {
+                attachedFiles = [];
+                if (labelText) labelText.textContent = "Choose files or drag & drop here";
+                return;
             }
-            UIFeedback.toast(`File "${attachedFileName}" attached to appointment.`, "success");
+
+            const rejected = [];
+            const accepted = files.filter((file) => {
+                const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+                if (!ALLOWED_UPLOAD_EXT.includes(ext)) {
+                    rejected.push(`"${file.name}" — unsupported type (PDF, JPG, PNG only)`);
+                    return false;
+                }
+                if (file.size > MAX_UPLOAD_BYTES) {
+                    rejected.push(`"${file.name}" — larger than 5 MB`);
+                    return false;
+                }
+                return true;
+            });
+
+            rejected.forEach((msg) => UIFeedback.toast(msg, "warning"));
+
+            attachedFiles = accepted;
+
+            if (accepted.length === 0) {
+                if (labelText) labelText.textContent = "Choose files or drag & drop here";
+                return;
+            }
+
+            const names = accepted.map((f) => f.name).join(", ");
+            if (labelText) {
+                labelText.innerHTML = accepted.length === 1
+                    ? `Attached: <span style="color:var(--primary)">${escapeHtml(names)}</span> (${(accepted[0].size / 1024).toFixed(0)} KB)`
+                    : `Attached ${accepted.length} files: <span style="color:var(--primary)">${escapeHtml(names)}</span>`;
+            }
+            UIFeedback.toast(
+                accepted.length === 1
+                    ? `File "${names}" attached to appointment.`
+                    : `${accepted.length} files attached to appointment.`,
+                "success",
+            );
         });
     }
 

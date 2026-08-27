@@ -9,6 +9,7 @@ const createPreRequestRules = [
   { field: 'ward_type', checks: ['isString'], optional: true },
   { field: 'requested_date', checks: ['isISO8601'], optional: true },
   { field: 'requested_time', checks: ['isString'], optional: true },
+  { field: 'document_urls', checks: ['isArray'], optional: true },
 ];
 
 // Covers both kinds of PUT body (see preRequest.controller.js#update):
