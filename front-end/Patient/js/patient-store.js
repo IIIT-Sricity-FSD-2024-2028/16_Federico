@@ -615,6 +615,7 @@ async function addAppointment(data) {
     };
     if (data.doctorId) payload.doctor_id = Number(data.doctorId);
     if (data.note) payload.note = data.note;
+    if (Array.isArray(data.documents) && data.documents.length) payload.document_urls = data.documents;
 
     const result = await window.ApiClient.preRequests.create(payload);
     await refreshStore();
