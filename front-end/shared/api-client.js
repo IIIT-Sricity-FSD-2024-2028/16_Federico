@@ -1,11 +1,13 @@
 'use strict';
 
 /**
- * shared/api-client.js — Modern REST Client with Reactive Cross-Tab Session Management.
+ * shared/api-client.js — Modern REST Client with Per-Tab Session Isolation.
  *
  * Provides a standardized REST interface against the Federico Express backend.
- * Session token is stored in localStorage under 'FedericoSession' and synchronized
- * across all open browser tabs via storage event listeners.
+ * Session token is stored in sessionStorage under 'FedericoSession' to ensure
+ * multi-tab isolation (allowing multiple roles to operate simultaneously).
+ * Sibling tabs sharing the exact same token are synchronized for logout
+ * via BroadcastChannel.
  */
 (function () {
   var API_BASE_URL = window.__FEDERICO_API_URL__ || (
@@ -15,37 +17,78 @@
   );
   var SESSION_KEY = "FedericoSession";
   var REQUEST_TIMEOUT_MS = 15000;
+  var AUTH_CHANNEL_NAME = "federico_auth_channel";
 
-  // ---- Reactive Cross-Tab Session Storage ----
+  // ---- Token-Scoped Multi-Tab Coordination ----
+  var authChannel = typeof BroadcastChannel !== "undefined"
+    ? new BroadcastChannel(AUTH_CHANNEL_NAME)
+    : null;
+
+  if (authChannel) {
+    authChannel.onmessage = function (ev) {
+      if (ev.data && ev.data.type === "FEDERICO_LOGOUT" && ev.data.token) {
+        var current = getSession();
+        if (current && current.token === ev.data.token) {
+          try {
+            sessionStorage.removeItem(SESSION_KEY);
+          } catch (err) {
+            console.warn("[ApiClient] Failed to remove session on broadcast logout:", err);
+          }
+          window.dispatchEvent(new Event("federicoSessionChanged"));
+          if (window.RoleAccess && typeof window.RoleAccess.detectCurrentModule === "function") {
+            var currentMod = window.RoleAccess.detectCurrentModule();
+            if (currentMod) {
+              window.location.href = window.RoleAccess.getActorHome("", currentMod);
+            }
+          }
+        }
+      }
+    };
+  }
+
+  // ---- Isolated Per-Tab Session Storage ----
   function getSession() {
     try {
-      var raw = localStorage.getItem(SESSION_KEY);
+      var raw = sessionStorage.getItem(SESSION_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (err) {
+      console.warn("[ApiClient] Failed to read session from sessionStorage:", err);
       return null;
     }
   }
 
   function setSession(session) {
+    if (!session || typeof session !== "object") {
+      console.warn("[ApiClient] Invalid session object passed to setSession");
+      return;
+    }
     try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    } catch (_) {}
-    window.dispatchEvent(new Event("federicoSessionChanged"));
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      window.dispatchEvent(new Event("federicoSessionChanged"));
+    } catch (err) {
+      console.warn("[ApiClient] Failed to persist session to sessionStorage:", err);
+    }
   }
 
   function clearSession() {
+    var existing = getSession();
+    var sessionToken = existing ? existing.token : null;
     try {
-      localStorage.removeItem(SESSION_KEY);
-    } catch (_) {}
-    window.dispatchEvent(new Event("federicoSessionChanged"));
-  }
-
-  // Synchronize auth state reactively when modified in another browser tab/window
-  window.addEventListener("storage", function (e) {
-    if (e.key === SESSION_KEY) {
-      window.dispatchEvent(new Event("federicoSessionChanged"));
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch (err) {
+      console.warn("[ApiClient] Failed to remove session from sessionStorage:", err);
     }
-  });
+    window.dispatchEvent(new Event("federicoSessionChanged"));
+
+    // Notify other open tabs sharing this exact session token to log out
+    if (authChannel && sessionToken) {
+      try {
+        authChannel.postMessage({ type: "FEDERICO_LOGOUT", token: sessionToken });
+      } catch (err) {
+        console.warn("[ApiClient] Failed to post logout message to BroadcastChannel:", err);
+      }
+    }
+  }
 
   // ---- Helpers ----
   function normalizePhone(phone) {
@@ -253,7 +296,7 @@
     withAsyncLock: withAsyncLock,
 
     // Session accessors — exposed so rbac.js and auth-guard.js can read/write
-    // the session object without duplicating localStorage logic here.
+    // the session object without duplicating sessionStorage logic here.
     getSession: getSession,
     setSession: setSession,
     clearSession: clearSession,
@@ -268,6 +311,7 @@
         if (payload && payload.token) {
           setSession({
             token: payload.token,
+            actor: payload.role || (payload.user ? payload.user.role : null),
             userId: payload.user ? payload.user.user_id : null,
             email: payload.user ? payload.user.email : email,
             name: payload.user ? payload.user.name : null,
@@ -287,6 +331,7 @@
         if (payload && payload.token) {
           setSession({
             token: payload.token,
+            actor: "Patient",
             userId: payload.user ? payload.user.user_id : null,
             email: payload.user ? payload.user.email : userData.email,
             name: payload.user ? payload.user.name : userData.name,

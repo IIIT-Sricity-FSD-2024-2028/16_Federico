@@ -338,8 +338,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const logout = () => {
             UIFeedback.toast("Logging out...", "success");
             setTimeout(() => {
-                if (window.RoleAccess) window.RoleAccess.logout();
-                else sessionStorage.removeItem("userRole");
+                if (window.RoleAccess && typeof window.RoleAccess.logout === "function") {
+                    window.RoleAccess.logout();
+                } else if (window.ApiClient && window.ApiClient.auth && typeof window.ApiClient.auth.logout === "function") {
+                    window.ApiClient.auth.logout();
+                } else {
+                    try { sessionStorage.removeItem("FedericoSession"); } catch (_) {}
+                }
                 window.location.href = "../landing/landing-page.html";
             }, 900);
         };
