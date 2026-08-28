@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+back-end/node_modules/
+
+# Build & Test outputs
+dist/
+coverage/
+back-end/coverage/
+
+# Runtime Database & Persistence Snapshots
+data/db.json
+data/db.json.tmp
+data/*.corrupt.*
+back-end/data/db.json
+back-end/data/db.json.tmp
+back-end/data/db.json.corrupt.*
+
+# Log files
+logs/*.log
+back-end/logs/*.log
+!logs/.gitkeep
+!back-end/logs/.gitkeep
+
+# Uploaded Files (preserve directory structure via .gitkeep)
+uploads/documents/*
+uploads/branding/*
+uploads/inventory/*
+back-end/uploads/documents/*
+back-end/uploads/branding/*
+back-end/uploads/inventory/*
+!uploads/documents/.gitkeep
+!uploads/branding/.gitkeep
+!uploads/inventory/.gitkeep
+!back-end/uploads/documents/.gitkeep
+!back-end/uploads/branding/.gitkeep
+!back-end/uploads/inventory/.gitkeep
+
+# Local environment variables & secrets
+.env
+.env.local
+.env.*.local
+back-end/.env
+back-end/.env.local
+
+# Private analysis & local agent notes (shared directly with team)
+PROJECT_ANALYSIS.md
+RECOMMENDED_CHANGES.md
+GEMINI.md
+.agents/
+
+# OS & Editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
