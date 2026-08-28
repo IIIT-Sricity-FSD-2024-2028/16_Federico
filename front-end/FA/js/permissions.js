@@ -11,11 +11,11 @@ const Permissions = {
   },
 
   getActor() {
-    return window.RoleAccess?.getCurrentActor() || sessionStorage.getItem('userRole') || 'FA';
+    return window.RoleAccess?.getCurrentActor() || 'FA';
   },
 
   getAccessRole() {
-    return window.RoleAccess?.getAccessRole() || sessionStorage.getItem('accessRole') || 'ADMIN';
+    return window.RoleAccess?.getAccessRole() || 'ADMIN';
   },
 
   canAccess(route) {

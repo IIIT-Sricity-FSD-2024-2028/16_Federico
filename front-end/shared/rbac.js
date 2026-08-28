@@ -1,18 +1,14 @@
 /**
  * shared/rbac.js — Phase 3 rewrite.
  *
- * The original version authenticated entirely client-side against a
- * hardcoded JS array — no server call at all, and login/session lived in
- * `sessionStorage` (invisible across tabs). This version calls the real
- * `POST /auth/login` (bcrypt-verified on the backend) and persists the
- * session in `localStorage` via `ApiClient.setSession()` so a logged-in
- * actor stays logged in across every tab/window of the browser.
+ * Calls POST /auth/login (bcrypt-verified on the backend) and persists the
+ * session in `sessionStorage` via `ApiClient.setSession()` for per-tab session
+ * isolation (allowing multiple roles/actors to operate simultaneously across tabs).
+ * Sibling tabs sharing the exact same token synchronize logout via BroadcastChannel.
  *
- * Public interface (`window.RoleAccess.*`) is kept as close to the
- * original as possible so the per-app `auth-guard.js` files — which call
- * `getCurrentActor()`, `hasModuleAccess()`, `getActorHome()` synchronously
- * — did not need to change at all. Only `authenticate()` had to become
- * async (it now makes a network call), which only touches login-page.js.
+ * Public interface (`window.RoleAccess.*`) is kept backward-compatible so
+ * the per-app `auth-guard.js` files — which call `getCurrentActor()`,
+ * `hasModuleAccess()`, `getActorHome()` synchronously — work seamlessly.
  */
 (function () {
   'use strict';
@@ -247,10 +243,14 @@
   }
 
   function logout() {
-    if (window.ApiClient) {
+    if (window.ApiClient && window.ApiClient.auth && typeof window.ApiClient.auth.logout === "function") {
       window.ApiClient.auth.logout(); // best-effort async server-side invalidation
     } else {
-      localStorage.removeItem("FedericoSession");
+      try {
+        sessionStorage.removeItem("FedericoSession");
+      } catch (err) {
+        console.warn("[RoleAccess] Failed to remove session from sessionStorage:", err);
+      }
     }
   }
 
