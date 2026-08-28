@@ -19,7 +19,7 @@
   // ---- Reactive Cross-Tab Session Storage ----
   function getSession() {
     try {
-      var raw = localStorage.getItem(SESSION_KEY);
+      var raw = sessionStorage.getItem(SESSION_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (err) {
       return null;
@@ -28,14 +28,14 @@
 
   function setSession(session) {
     try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
     } catch (_) {}
     window.dispatchEvent(new Event("federicoSessionChanged"));
   }
 
   function clearSession() {
     try {
-      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
     } catch (_) {}
     window.dispatchEvent(new Event("federicoSessionChanged"));
   }
