@@ -100,7 +100,46 @@
             </div>
         </div>
 
-        <h2 class="h2" style="margin: 40px 0 16px;">Staff &amp; Roles</h2>
+        <h2 class="h2" style="margin: 40px 0 16px;">Team Members</h2>
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Add a person to this organization</h2>
+                <p class="card-description">Creates a login for a staff member. Share the email and temporary password with them so they can sign in to their portal.</p>
+            </div>
+            <div class="card-content">
+                <form id="add-member-form" style="display:grid; grid-template-columns: 1fr 1fr 160px 1fr auto; gap: 12px; align-items:end;">
+                    <div class="md-field"><label for="member-name">Full name</label><input id="member-name" class="input" required placeholder="e.g. Priya Menon" /></div>
+                    <div class="md-field"><label for="member-email">Login email</label><input id="member-email" class="input" type="email" required placeholder="priya@hospital.com" /></div>
+                    <div class="md-field"><label for="member-role">Portal / role</label>
+                        <select id="member-role" class="input" required>
+                            <option value="HOM">Hospital Operations (HOM)</option>
+                            <option value="PRE">Patient Registration (PRE)</option>
+                            <option value="FA">Finance Associate (FA)</option>
+                            <option value="Admin">Hospital Admin</option>
+                        </select>
+                    </div>
+                    <div class="md-field"><label for="member-password">Temporary password</label><input id="member-password" class="input" required minlength="6" placeholder="min 6 characters" /></div>
+                    <button type="submit" class="btn btn-primary btn-default" id="add-member-btn">+ Add Member</button>
+                </form>
+                <div id="add-member-result" style="margin-top:12px;"></div>
+            </div>
+        </div>
+
+        <div class="table-container" style="background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); margin-top:16px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Login Email</th>
+                        <th>Portal / Role</th>
+                        <th>Added</th>
+                    </tr>
+                </thead>
+                <tbody id="members-tbody"></tbody>
+            </table>
+        </div>
+
+        <h2 class="h2" style="margin: 40px 0 16px;">Staff &amp; Custom Roles</h2>
         <div class="table-container" style="background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg);">
             <table class="data-table">
                 <thead>
@@ -136,6 +175,8 @@
 <script src="../shared/ui-feedback.js"></script>
 <script src="../shared/auth-guard.js"></script>
 <script src="../shared/formatters.js"></script>
+
+<script src="../shared/shared-nav.js"></script>
 
 <script src="shared-nav.js"></script>
 <script src="admin.js"></script>

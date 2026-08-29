@@ -72,6 +72,8 @@
         .profile-item { padding: 10px 16px; font-size: 13px; color: var(--color-muted-fg); cursor: pointer; display: flex; align-items: center; gap: 8px; background: var(--color-bg); border: none; width: 100%; text-align: left; transition: background var(--duration-base) var(--ease-luxury); }
         .profile-item:hover { background: var(--color-muted-bg); color: var(--color-fg); }
         .profile-item.danger { color: var(--status-error); border-top: 1px solid var(--color-border); }
+        .nav-logout-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-full, 9999px); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--status-error, #b3261e); background: transparent; border: 1px solid var(--status-error, #b3261e); cursor: pointer; transition: background var(--duration-fast) var(--ease-standard); }
+        .nav-logout-btn:hover { background: color-mix(in srgb, var(--status-error, #b3261e) 10%, transparent); }
       </style>
       <div class="top-nav">
         <div class="nav-logo-group">
@@ -90,6 +92,7 @@
             <div class="nav-avatar">${roleInitial}</div>
             <span class="nav-profile-text">${safeRole}</span>
           </div>
+          <button type="button" class="nav-logout-btn" id="nav-logout-btn">Log out</button>
           <div class="nav-overlay" id="nav-profile-menu" role="menu">
             <div style="padding: 12px 16px; border-bottom: 1px solid var(--color-border); font-size: 11px; color: var(--color-muted-fg);">Signed in as <strong>${safeRole}</strong></div>
             <button class="profile-item danger" id="nav-signout-btn" role="menuitem">Sign Out</button>
@@ -103,6 +106,18 @@
     var profileBtn = document.getElementById('nav-profile-btn');
     var profileMenu = document.getElementById('nav-profile-menu');
     var signoutBtn = document.getElementById('nav-signout-btn');
+    var logoutBtn = document.getElementById('nav-logout-btn');
+
+    async function doLogout() {
+      try {
+        var api = window.API || window.ApiClient;
+        if (api && api.auth && typeof api.auth.logout === 'function') {
+          await api.auth.logout();
+        }
+      } catch (_) {}
+      window.location.href = '../login/login-page.html';
+    }
+    if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
 
     if (profileBtn && profileMenu) {
       profileBtn.addEventListener('click', function (e) {

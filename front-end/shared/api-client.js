@@ -496,6 +496,12 @@
       staff: function () {
         return request("GET", "/rbac/staff");
       },
+      members: function () {
+        return request("GET", "/rbac/members");
+      },
+      createStaff: function (payload) {
+        return request("POST", "/rbac/staff", payload);
+      },
     },
 
     doctors: {

@@ -21,11 +21,12 @@
     <nav id="main-nav"></nav>
 
     <main class="dashboard-container">
-        <div class="header-section">
+        <div class="header-section" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
             <div>
                 <h1 class="h1" style="margin-bottom: 8px;">Hospital-Wide Analytics</h1>
                 <p class="body-text" id="subtitle">Live overview across every department</p>
             </div>
+            <a class="btn btn-primary btn-default" href="screen-04-admin.html" style="white-space:nowrap;">+ Add / manage team members</a>
         </div>
 
         <div data-requires-module="ANALYTICS">
@@ -92,6 +93,8 @@
 <script src="../shared/ui-feedback.js"></script>
 <script src="../shared/auth-guard.js"></script>
 <script src="../shared/formatters.js"></script>
+
+<script src="../shared/shared-nav.js"></script>
 
 <script src="shared-nav.js"></script>
 <script src="dashboard.js"></script>

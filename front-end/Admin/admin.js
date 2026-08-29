@@ -7,8 +7,102 @@
 document.addEventListener('DOMContentLoaded', async () => {
   bindDialogControls();
   bindBrandingUpload();
-  await Promise.all([loadRoles(), loadStaff()]);
+  bindAddMemberForm();
+  await Promise.all([loadRoles(), loadStaff(), loadMembers()]);
 });
+
+// ---- Team Members: add a person to the organization ----
+const MEMBER_PORTAL = {
+  HOM: '../HOM/screen-01-dashboard.html',
+  PRE: '../PRE/pages/PRE.html',
+  FA: '../FA/fa-dashboard.html',
+  Admin: '../Admin/screen-01-dashboard.html',
+};
+const MEMBER_ROLE_LABEL = {
+  HOM: 'Hospital Operations (HOM)',
+  PRE: 'Patient Registration (PRE)',
+  FA: 'Finance Associate (FA)',
+  Admin: 'Hospital Admin',
+  Patient: 'Patient',
+};
+
+async function loadMembers() {
+  const tbody = document.getElementById('members-tbody');
+  if (!tbody) return;
+  try {
+    const members = await window.ApiClient.rbac.members();
+    if (!members.length) {
+      tbody.innerHTML = '<tr><td colspan="4">No team members yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = members
+      .map(
+        (m) => `
+        <tr>
+          <td>${window.Formatters.escapeHtml(m.name)}</td>
+          <td><code>${window.Formatters.escapeHtml(m.email || '—')}</code></td>
+          <td><span class="badge badge-neutral">${window.Formatters.escapeHtml(MEMBER_ROLE_LABEL[m.actor_role] || m.actor_role || '—')}</span></td>
+          <td style="color: var(--text-secondary); font-size: 12px;">${m.created_at ? window.Formatters.formatDate(m.created_at) : '—'}</td>
+        </tr>
+      `,
+      )
+      .join('');
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="4">Could not load team members.</td></tr>';
+    window.UIFeedback.toast(err.message || 'Could not load team members.', 'error');
+  }
+}
+
+function bindAddMemberForm() {
+  const form = document.getElementById('add-member-form');
+  if (!form) return;
+  const btn = document.getElementById('add-member-btn');
+  const resultEl = document.getElementById('add-member-result');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const name = document.getElementById('member-name').value.trim();
+    const email = document.getElementById('member-email').value.trim();
+    const actor_role = document.getElementById('member-role').value;
+    const password = document.getElementById('member-password').value;
+
+    if (!name || !email || !password) {
+      window.UIFeedback.toast('Fill in name, email, role and a temporary password.', 'warning');
+      return;
+    }
+    if (password.length < 6) {
+      window.UIFeedback.toast('Temporary password must be at least 6 characters.', 'warning');
+      return;
+    }
+
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = 'Adding…';
+    try {
+      const created = await window.ApiClient.rbac.createStaff({ name, email, password, actor_role });
+      const portal = MEMBER_PORTAL[created.actor_role] || '../login/login-page.html';
+      resultEl.innerHTML = `
+        <div style="border:1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; background: var(--md-secondary-container, #f1f5f9);">
+          <strong>${window.Formatters.escapeHtml(created.name)}</strong> added as
+          <strong>${window.Formatters.escapeHtml(MEMBER_ROLE_LABEL[created.actor_role] || created.actor_role)}</strong>.
+          Share these credentials:
+          <div style="margin-top:6px; font-size: 13px;">
+            Email: <code>${window.Formatters.escapeHtml(created.email)}</code><br/>
+            Temporary password: <code>${window.Formatters.escapeHtml(created.password)}</code><br/>
+            Portal: <a href="${portal}">${window.Formatters.escapeHtml(portal)}</a>
+          </div>
+        </div>`;
+      window.UIFeedback.toast(`${created.name} can now sign in as ${created.actor_role}.`, 'success');
+      form.reset();
+      await Promise.all([loadMembers(), loadStaff()]);
+    } catch (err) {
+      window.UIFeedback.toast(err.message || 'Could not add team member.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
+}
 
 // ---- Hospital branding logo upload (File Upload evaluation criteria) ----
 function bindBrandingUpload() {

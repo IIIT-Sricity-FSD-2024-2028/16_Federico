@@ -1,7 +1,12 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
-const { ROLE_ID_TO_NAME } = require('../utils/roles');
+const { ROLE_ID_TO_NAME, ROLE_NAME_TO_ID } = require('../utils/roles');
+const { hashPassword } = require('../utils/password');
+
+// Roles an Admin can create staff accounts for. Patient (role 2) is
+// excluded — patients self-register through the marketplace.
+const CREATABLE_STAFF_ROLES = ['HOM', 'PRE', 'FA', 'Admin'];
 
 /**
  * Fixed permission catalog — the `resource:mode` pairs `actorAccess.js`'s
@@ -183,6 +188,75 @@ function staffFor(organizationId) {
     }));
 }
 
+/**
+ * Every non-patient account in the organization (HOM/PRE/FA/Admin) — the
+ * "Team Members" roster the Admin manages. Includes other admins and
+ * whoever is signed in.
+ */
+function membersFor(organizationId) {
+  const oid = Number(organizationId);
+  return dataStore.users
+    .filter((u) => u.organization_id === oid && u.role_id !== 2)
+    .map((u) => ({
+      user_id: u.user_id,
+      name: u.name,
+      email: u.email,
+      actor_role: ROLE_ID_TO_NAME[u.role_id] || null,
+      created_at: u.created_at || null,
+    }));
+}
+
+/**
+ * Admin creates a staff login for their organization. The returned object
+ * carries the email + the plain password the Admin just set, so the Admin
+ * UI can hand the new person their credentials to sign in to their portal.
+ */
+function createStaff(organizationId, hospitalId, payload) {
+  const oid = Number(organizationId);
+  const name = String(payload.name || '').trim();
+  const email = String(payload.email || '').trim();
+  const password = String(payload.password || '');
+  const actorRole = String(payload.actor_role || '').trim();
+
+  if (!CREATABLE_STAFF_ROLES.includes(actorRole)) {
+    return { error: 'INVALID_ROLE' };
+  }
+  if (password.length < 6) {
+    return { error: 'WEAK_PASSWORD' };
+  }
+  const normalizedEmail = email.toLowerCase();
+  if (
+    dataStore.users.some(
+      (u) => String(u.email || '').toLowerCase() === normalizedEmail,
+    )
+  ) {
+    return { error: 'EMAIL_TAKEN' };
+  }
+
+  const newUser = {
+    user_id:
+      dataStore.users.length > 0
+        ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1
+        : 101,
+    name,
+    email,
+    password_hash: hashPassword(password),
+    role_id: ROLE_NAME_TO_ID[actorRole],
+    organization_id: oid,
+    hospital_id: hospitalId || null,
+    created_at: new Date().toISOString(),
+  };
+  dataStore.users.push(newUser);
+
+  return {
+    user_id: newUser.user_id,
+    name: newUser.name,
+    email: newUser.email,
+    actor_role: actorRole,
+    password,
+  };
+}
+
 module.exports = {
   ensurePermissionCatalog,
   listPermissions,
@@ -196,4 +270,7 @@ module.exports = {
   unassignStaffRole,
   rolesForUser,
   staffFor,
+  membersFor,
+  createStaff,
+  CREATABLE_STAFF_ROLES,
 };

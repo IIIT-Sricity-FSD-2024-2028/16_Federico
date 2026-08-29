@@ -124,6 +124,47 @@ function listStaff(req, res) {
   sendResult(res, rbacService.staffFor(req.tenant.organizationId), 200);
 }
 
+function listMembers(req, res) {
+  sendResult(res, rbacService.membersFor(req.tenant.organizationId), 200);
+}
+
+// Admin adds a person to the organization and gets back their login
+// email + password to pass on. Org-scoped; new user lands in the caller's
+// organization and primary hospital.
+function createStaff(req, res) {
+  const hospitalId = req.session ? req.session.hospitalId : null;
+  const result = rbacService.createStaff(
+    req.tenant.organizationId,
+    hospitalId,
+    req.body,
+  );
+  if (result.error === 'EMAIL_TAKEN') {
+    return res.status(409).json({
+      message: 'That email is already registered',
+      error: 'Conflict',
+      statusCode: 409,
+    });
+  }
+  if (result.error === 'INVALID_ROLE') {
+    return res.status(400).json({
+      message: `Role must be one of: ${rbacService.CREATABLE_STAFF_ROLES.join(', ')}`,
+      error: 'Bad Request',
+      statusCode: 400,
+    });
+  }
+  if (result.error === 'WEAK_PASSWORD') {
+    return res.status(400).json({
+      message: 'Temporary password must be at least 6 characters',
+      error: 'Bad Request',
+      statusCode: 400,
+    });
+  }
+  logger.log(
+    `✅ STAFF CREATED  user_id=${result.user_id}  role=${result.actor_role}  email=${result.email}  org=${req.tenant.organizationId}`,
+  );
+  sendResult(res, result, 201);
+}
+
 module.exports = {
   listRoles,
   createRole,
@@ -134,4 +175,6 @@ module.exports = {
   assignStaffRole,
   unassignStaffRole,
   listStaff,
+  listMembers,
+  createStaff,
 };
