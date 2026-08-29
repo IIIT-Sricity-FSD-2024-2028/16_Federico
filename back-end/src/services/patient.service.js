@@ -97,12 +97,14 @@ function createInsurance(insurance) {
     patient_id: Number(insurance.patient_id),
     provider_name: insurance.provider_name,
     policy_number: insurance.policy_number,
-    member_id: insurance.member_id,
+    member_id: insurance.member_id || `MEM-${Number(insurance.patient_id)}`,
     coverage_type: insurance.coverage_type || 'Self',
     coverage_limit: Number(insurance.coverage_limit) || 0,
     copay_percentage: Number(insurance.copay_percentage) || 0,
-    valid_from: insurance.valid_from || null,
-    valid_to: insurance.valid_to || null,
+    valid_from: insurance.valid_from || new Date().toISOString().slice(0, 10),
+    valid_to:
+      insurance.valid_to ||
+      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     organization_id: insurance.organization_id ? Number(insurance.organization_id) : null,
     hospital_id: insurance.hospital_id ? Number(insurance.hospital_id) : null,
     card_front_url: insurance.card_front_url || null,

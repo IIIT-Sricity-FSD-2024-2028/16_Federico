@@ -16,6 +16,14 @@
     return;
   }
 
+  // Click the demo-credentials hint to autofill the form.
+  document.getElementById('platform-demo-cred')?.addEventListener('click', function () {
+    var e = document.getElementById('email');
+    var p = document.getElementById('password');
+    if (e) e.value = 'platform@federico.com';
+    if (p) p.value = 'Federico@Platform123';
+  });
+
   form?.addEventListener('submit', async function (event) {
     event.preventDefault();
     var email = document.getElementById('email')?.value?.trim();

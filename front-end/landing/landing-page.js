@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const signupBtn = document.getElementById('signup-btn');
   const orgSignupBtn = document.getElementById('org-signup-btn');
   const marketplaceBtn = document.getElementById('marketplace-btn');
+  const platformBtn = document.getElementById('platform-btn');
 
   if (loginBtn) {
     loginBtn.addEventListener('click', () => {
@@ -31,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (marketplaceBtn) {
     marketplaceBtn.addEventListener('click', () => {
       window.location.href = '../marketplace/marketplace-page.html';
+    });
+  }
+
+  if (platformBtn) {
+    platformBtn.addEventListener('click', () => {
+      window.location.href = '../platform/platform-login.html';
     });
   }
 });

@@ -21,7 +21,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
     // 1. Provision an organization with an Admin user
     const provisionResult = provisioningService.provision({
       name: 'Integrity Hospital',
-      plan_id: 2,
+      plan_id: 1,
       contact: { phone: '+919876543210', email: 'contact@integrity.com', address: 'Bangalore' },
       specialties: ['Cardiology', 'General Medicine'],
       emergency_available: true,

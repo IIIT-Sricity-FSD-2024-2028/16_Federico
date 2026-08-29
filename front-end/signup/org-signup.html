@@ -153,8 +153,8 @@
 
         <!-- STEP 3: Customize Modules -->
         <div class="step-panel" id="panel-step-3">
-          <h2 class="step-heading">Configure Operational Modules</h2>
-          <p class="step-description">Select the administrative services you want enabled in your tenant gateway.</p>
+          <h2 class="step-heading">Choose Services &amp; Instances</h2>
+          <p class="step-description">You are billed per service, per instance. Tick a service and set how many instances you need — the running total updates below.</p>
 
           <div class="modules-interactive-grid">
             <label class="module-checkbox-card">
@@ -206,6 +206,8 @@
             </label>
           </div>
 
+          <div id="step3-estimate" style="margin-top:18px; padding:14px 16px; border:1px solid var(--md-outline-variant); border-radius:12px; background:var(--md-surface-container-low, rgba(0,0,0,0.03));"></div>
+
           <div class="stepper-actions">
             <button type="button" class="md-btn md-btn-text" id="btn-back-3">← Back</button>
             <button type="button" class="md-btn md-btn-filled" id="btn-next-3">Continue to Admin Setup →</button>
@@ -250,12 +252,13 @@
               <strong id="summary-org-name">—</strong>
             </div>
             <div class="summary-row">
-              <span>Selected Plan:</span>
-              <strong id="summary-plan-name">Professional Tier</strong>
+              <span>Billing model:</span>
+              <strong id="summary-plan-name">Usage-based</strong>
             </div>
+            <div id="summary-service-lines" style="padding:8px 0; border-top:1px dashed var(--md-outline-variant); border-bottom:1px dashed var(--md-outline-variant); margin:4px 0;"></div>
             <div class="summary-row">
-              <span>Monthly Subscription Fee:</span>
-              <span id="summary-plan-price">₹14,999</span>
+              <span>Monthly Service Charge:</span>
+              <span id="summary-plan-price">₹0</span>
             </div>
             <div class="summary-row">
               <span>Platform Setup & Provisioning:</span>

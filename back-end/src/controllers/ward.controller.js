@@ -3,7 +3,6 @@
 const wardService = require('../services/ward.service');
 const preRequestService = require('../services/preRequest.service');
 const admissionService = require('../services/admission.service');
-const billingService = require('../services/billing.service');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
@@ -159,7 +158,7 @@ function updateBedRequest(req, res) {
         }
       }
 
-      const admission = admissionService.create(
+      admissionService.create(
         withTenant(req, {
           appointment_id: appointmentId,
           patient_id: result.patient_id,
@@ -170,18 +169,11 @@ function updateBedRequest(req, res) {
         }),
       );
 
-      // Auto-create OPEN billing ledger for the new admission
-      if (admission && admission.admission_id) {
-        const existingLedger = billingService.findLedgerByAdmission(admission.admission_id);
-        if (!existingLedger) {
-          billingService.createLedger({
-            admission_id: admission.admission_id,
-            status: 'OPEN',
-            organization_id: result.organization_id,
-            hospital_id: result.hospital_id,
-          });
-        }
-      }
+      // NOTE: the billing ledger is deliberately NOT created here. On
+      // admission the new record simply surfaces in FA's "New Admissions
+      // Awaiting Ledger Setup" queue — that IS the request to Finance to
+      // open a ledger. FA creates it explicitly (POST /billing/ledger),
+      // and only then can charges be approved into it.
     } catch (err) {
       logger.error('Failed to complete admission/ledger cascade on bed allocation. Rolling back bed status.', err);
       // Compensating transaction: roll back bed to AVAILABLE

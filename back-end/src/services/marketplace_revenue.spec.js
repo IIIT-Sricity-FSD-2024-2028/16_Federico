@@ -5,6 +5,7 @@ const { createApp } = require('../app');
 const dataStore = require('../store/dataStore');
 const subscriptionService = require('./subscription.service');
 const organizationService = require('./organization.service');
+const serviceCatalog = require('../config/serviceCatalog');
 
 describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () => {
   let app;
@@ -13,14 +14,15 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     app = createApp();
   });
 
-  it('should list public subscription plans without auth', async () => {
+  it('should expose the single usage-based service plan (no fixed tiers)', async () => {
     const res = await request(app).get('/marketplace/plans');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThanOrEqual(3);
-    const starter = res.body.find((p) => p.name === 'Starter');
-    expect(starter).toBeDefined();
-    expect(starter.price_monthly).toBe(4999);
+    // The three fixed Basic/Pro/Enterprise tiers were removed in favour of
+    // usage-based, per-service billing — there is exactly one anchor plan.
+    expect(res.body.length).toBe(1);
+    expect(res.body[0].name).toBe('Usage-based');
+    expect(res.body[0].price_monthly).toBe(0);
   });
 
   it('should allow a new hospital chain to self-register, pay, and automatically provision tenant', async () => {
@@ -31,7 +33,7 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
       address: 'HITEC City, Hyderabad',
       specialties: ['Cardiology', 'Neurology', 'Orthopedics'],
       emergency_available: true,
-      plan_id: 2, // Professional
+      plan_id: 1,
       modules: ['APPOINTMENTS', 'ADMISSIONS', 'INVENTORY', 'BILLING', 'INSURANCE'],
       admin_name: 'Dr. Vikram Rao',
       admin_email: 'vikram.admin@globalhealth.com',
@@ -55,8 +57,7 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(res.body.session.token).toBeDefined();
   });
 
-  it('should calculate live platform MRR and ARR for Platform Super User', async () => {
-    // 1. Authenticate as Platform Super User
+  it('should calculate live platform MRR/ARR from per-service usage for Platform Super User', async () => {
     const loginRes = await request(app)
       .post('/platform/auth/login')
       .send({ email: 'platform@federico.com', password: 'Federico@Platform123' });
@@ -64,7 +65,6 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(loginRes.status).toBe(200);
     const token = loginRes.body.token;
 
-    // 2. Fetch platform usage & financials
     const usageRes = await request(app)
       .get('/platform/usage')
       .set('Authorization', `Bearer ${token}`);
@@ -72,15 +72,26 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(usageRes.status).toBe(200);
     expect(usageRes.body.total_mrr).toBeGreaterThan(0);
     expect(usageRes.body.total_arr).toBe(usageRes.body.total_mrr * 12);
-    expect(usageRes.body.revenue_by_plan).toBeDefined();
-    expect(usageRes.body.revenue_by_plan.Starter).toBeDefined();
-    expect(usageRes.body.revenue_by_plan.Professional).toBeDefined();
 
-    // Verify organization details include subscription pricing & modules
-    const org = usageRes.body.organizations.find((o) => o.name === 'Global Health Network');
+    // Revenue is broken down per service, not per plan tier.
+    expect(usageRes.body.revenue_by_plan).toBeDefined();
+    expect(usageRes.body.revenue_by_service).toBeDefined();
+    expect(usageRes.body.revenue_by_plan.Billing).toBeDefined();
+    expect(usageRes.body.revenue_by_plan.Appointments).toBeDefined();
+
+    const org = usageRes.body.organizations.find(
+      (o) => o.name === 'Global Health Network',
+    );
     expect(org).toBeDefined();
-    expect(org.subscription.plan_name).toBe('Professional');
-    expect(org.subscription.price_monthly).toBe(14999);
+    expect(org.subscription.plan_name).toBe('Usage-based');
+    expect(org.subscription.billing_model).toBe('USAGE');
+    // 5 chosen services × 1 branch instance.
+    const expectedCost = serviceCatalog.computeCost(
+      ['APPOINTMENTS', 'ADMISSIONS', 'INVENTORY', 'BILLING', 'INSURANCE'],
+      1,
+    ).total;
+    expect(org.subscription.price_monthly).toBe(expectedCost);
+    expect(org.subscription.service_lines).toHaveLength(5);
     expect(org.enabled_modules).toContain('APPOINTMENTS');
     expect(org.enabled_modules).toContain('BILLING');
   });

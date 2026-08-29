@@ -77,9 +77,12 @@
       document.getElementById("platform-stats").innerHTML =
         stat(mrrFormatted, "Total MRR (Monthly Income)", "revenue-card") +
         stat(arrFormatted, "Annual Run Rate (ARR)", "revenue-card") +
+        stat("₹" + (usage.total_payments_collected || 0).toLocaleString("en-IN"), "Payments Collected (All Tenants)", "revenue-card") +
         stat(usage.total_organizations, "Total Organizations") +
         stat(usage.active_organizations, "Active Tenants") +
         stat(usage.total_hospitals, "Hospital Branches") +
+        stat(usage.total_patients, "Registered Patients") +
+        stat(usage.total_active_admissions, "Active Inpatients (Platform-wide)") +
         stat(usage.total_users, "Staff & Users");
 
       // Render Revenue Breakdown by Plan
@@ -89,9 +92,9 @@
           var pData = usage.revenue_by_plan[pName];
           return (
             '<div class="plan-rev-card">' +
-            '<div class="plan-rev-title"><span>' + pName + ' Tier</span><span class="md-chip md-chip-tonal">₹' + (pData.price_monthly || 0).toLocaleString("en-IN") + '/mo</span></div>' +
+            '<div class="plan-rev-title"><span>' + pName + '</span><span class="md-chip md-chip-tonal">₹' + (pData.price_monthly || 0).toLocaleString("en-IN") + '/mo</span></div>' +
             '<div class="plan-rev-amount">₹' + (pData.total_income || 0).toLocaleString("en-IN") + '<span style="font-size:0.8rem;font-weight:400;color:var(--md-on-surface-variant);"> /mo</span></div>' +
-            '<div class="plan-rev-sub">' + pData.active_subscriptions + ' active hospital subscription(s)</div>' +
+            '<div class="plan-rev-sub">' + pData.active_subscriptions + ' organization(s) using this service</div>' +
             '</div>'
           );
         }).join("");
@@ -105,13 +108,17 @@
           var modulesHtml = (org.enabled_modules || []).map(function (m) {
             return '<span class="module-pill active">' + m + '</span>';
           }).join("");
+          var pf = org.patient_flow || {};
+          var rev = org.revenue || {};
 
           return (
             '<div class="org-mini-card" data-org-id="' + org.organization_id + '">' +
             '<div class="org-mini-head"><span class="org-mini-mark">' + org.name.charAt(0).toUpperCase() + '</span>' +
             '<div><div class="org-mini-name">' + org.name + '</div><span class="md-chip ' + statusChipClass(org.status) + '">' + org.status + '</span></div></div>' +
             '<div class="org-mini-meta">Plan: <strong>' + planName + '</strong> (' + monthlyFee + ')</div>' +
-            '<div class="org-mini-meta" style="margin-top:4px;">' + org.hospitals + ' branch(es) · ' + org.users + ' users · ' + org.beds_occupied + '/' + org.beds + ' beds</div>' +
+            '<div class="org-mini-meta" style="margin-top:4px;">' + org.hospitals + ' branch(es) · ' + org.users + ' users · ' + org.patients + ' patients · ' + org.beds_occupied + '/' + org.beds + ' beds</div>' +
+            '<div class="org-mini-meta" style="margin-top:4px;">Flow: ' + (pf.admitted || 0) + ' admitted · ' + (pf.discharge_in_progress || 0) + ' in discharge · ' + (pf.pre_requests_pending || 0) + ' intake pending</div>' +
+            '<div class="org-mini-meta" style="margin-top:4px;">Collected: <strong>₹' + Number(rev.payments_collected || 0).toLocaleString("en-IN") + '</strong> · ' + (rev.open_ledgers || 0) + ' open / ' + (rev.paid_ledgers || 0) + ' paid ledgers</div>' +
             '<div class="module-pill-list" style="margin-top:8px;">' + (modulesHtml || '<span class="module-pill">No modules</span>') + '</div>' +
             '</div>'
           );
@@ -190,24 +197,28 @@
         organizations.map(async function (org) {
           var usage = await window.ApiClient.platform.organizations.usage(org.organization_id).catch(function () { return {}; });
           var subscription = await window.ApiClient.platform.organizations.getSubscription(org.organization_id).catch(function () { return null; });
-          var plan = subscription && subscription.plan;
-          var planPrice = plan ? "₹" + Number(plan.price_monthly || 0).toLocaleString("en-IN") + "/mo" : "—";
+          var subPrice = (usage.subscription && usage.subscription.price_monthly)
+            || (subscription && subscription.subscription && subscription.subscription.price_monthly)
+            || 0;
+          var billingLabel = usage.subscription && usage.subscription.billing_model === 'USAGE' ? 'Usage-based' : ((subscription && subscription.plan && subscription.plan.name) || '—');
           var modules = usage.enabled_modules || [];
           var modulesHtml = modules.map(function (m) {
             return '<span class="module-pill active">' + m + '</span>';
           }).join(" ");
+          var pf = usage.patient_flow || {};
 
           return (
             '<tr data-org-id="' + org.organization_id + '">' +
             '<td class="org-name-cell"><span class="org-mini-mark" style="width:28px;height:28px;font-size:0.8rem;">' + org.name.charAt(0).toUpperCase() + '</span>' + org.name + '</td>' +
             '<td><code>tenant_' + org.organization_id + '</code></td>' +
             '<td><span class="md-chip ' + statusChipClass(org.status) + '">' + org.status + '</span></td>' +
-            '<td><strong>' + (plan ? plan.name : "—") + '</strong></td>' +
-            '<td><span style="color:var(--md-primary);font-weight:600;">' + planPrice + '</span></td>' +
+            '<td><strong>' + billingLabel + '</strong></td>' +
+            '<td><span style="color:var(--md-primary);font-weight:600;">₹' + Number(subPrice).toLocaleString("en-IN") + '/mo</span></td>' +
             '<td><div class="module-pill-list">' + (modulesHtml || '<span class="module-pill">None</span>') + '</div></td>' +
             '<td>' + (usage.hospitals ?? "—") + '</td>' +
             '<td>' + (usage.users ?? "—") + '</td>' +
             '<td>' + (usage.beds_occupied ?? 0) + '/' + (usage.beds ?? 0) + '</td>' +
+            '<td style="font-size:0.8rem; white-space:nowrap;">' + (pf.admitted || 0) + ' adm · ' + (pf.discharge_in_progress || 0) + ' disch · ' + (pf.pre_requests_pending || 0) + ' intake</td>' +
             '<td class="row-actions"></td>' +
             '</tr>'
           );
@@ -330,8 +341,13 @@
         kv("Users", usage.users) +
         kv("Patients", usage.patients) +
         kv("Beds occupied", usage.beds_occupied + " / " + usage.beds) +
+        kv("Patient flow", (usage.patient_flow ? (usage.patient_flow.admitted + " admitted · " + usage.patient_flow.discharge_in_progress + " in discharge · " + usage.patient_flow.pre_requests_pending + " intake pending · " + usage.patient_flow.discharged + " discharged") : "—")) +
+        kv("Appointments booked", usage.patient_flow ? usage.patient_flow.appointments : "—") +
+        kv("Payments collected", "₹" + Number(usage.revenue ? usage.revenue.payments_collected : 0).toLocaleString("en-IN") + " (" + (usage.revenue ? usage.revenue.paid_ledgers : 0) + " paid / " + (usage.revenue ? usage.revenue.open_ledgers : 0) + " open ledgers)") +
+        kv("Monthly service charge", "₹" + Number(subscription && subscription.subscription ? subscription.subscription.price_monthly || 0 : (usage.subscription ? usage.subscription.price_monthly : 0)).toLocaleString("en-IN")) +
         kv("Emergency 24×7", org.emergency_available ? "Yes" : "No") +
         kv("Specialties", (org.specialties || []).join(", ") || "—") +
+        kv("Enabled services", (usage.enabled_modules || []).join(", ") || "—") +
         kv("Current plan", subscription && subscription.plan ? subscription.plan.name + " (renews " + new Date(subscription.subscription.renews_at).toLocaleDateString() + ")" : "No active subscription") +
         (usage.quotas ? kv("Quota — max beds", usage.quotas.max_beds) + kv("Quota — max users", usage.quotas.max_users) + kv("Quota — storage", usage.quotas.storage_gb + " GB") + kv("Quota — API rate limit", usage.quotas.api_rate_limit + " req/min") : "") +
         '<div style="display:flex; gap:8px; margin-top:16px; align-items:center;">' +

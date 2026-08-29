@@ -147,6 +147,19 @@
         const { row, summary } = await ensureDischargeSummary(admissionId);
         if (!row) return;
 
+        // Sending the discharge summary to the patient also releases the
+        // End-of-Day bill + payment link to them (dispatch the ledger if it
+        // is still open). Keeps summary + bill + pay link together in one
+        // step, matching the intended discharge flow.
+        if (row.ledger && row.ledger.status === 'OPEN') {
+            try {
+                await window.ApiClient.billing.ledger.dispatch(row.ledger.ledger_id);
+                window.UIFeedback.toast('Discharge summary and EOD bill (with payment link) sent to the patient.', 'success');
+            } catch (err) {
+                window.UIFeedback.toast(err.message || 'Discharge summary created, but the bill could not be dispatched.', 'warning');
+            }
+        }
+
         const entries = row.ledger ? await H().loadLedgerEntries(row.ledger.ledger_id) : [];
         const { servicesById } = await H().loadBillingOverview();
         const grossTotal = H().ledgerTotal(entries);
@@ -308,10 +321,10 @@
         if (!leaderId) return;
         try {
             await window.ApiClient.billing.leaders.approve(leaderId);
-            window.UIFeedback.toast('Leader approved and added to patient ledger successfully.', 'success');
+            window.UIFeedback.toast('Charge approved and posted to the patient ledger. Send the EOD bill from the EOD Billing tab when ready.', 'success');
             await window.render();
         } catch (err) {
-            window.UIFeedback.toast(err.message || 'Unable to approve leader.', 'error');
+            window.UIFeedback.toast(err.message || 'Unable to approve this charge.', 'error');
             await window.render();
         }
     }

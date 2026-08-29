@@ -1,19 +1,36 @@
 'use strict';
 
 async function loadJoined() {
-  const [preRequests, patients, doctors, beds] = await Promise.all([
+  const [preRequests, patients, doctors, beds, admissions, ledgers] = await Promise.all([
     window.ApiClient.preRequests.list(),
     window.ApiClient.patients.list(),
     window.ApiClient.doctors.list(),
     window.ApiClient.wards.beds(),
+    window.ApiClient.admissions.list().catch(() => []),
+    window.ApiClient.billing.ledger.listAll().catch(() => []),
   ]);
   const doctorsById = {};
   doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
   const bedsById = {};
   beds.forEach((b) => (bedsById[b.bed_id] = b));
+
+  // "Bills cleared" = the patient's active admission has a PAID ledger.
+  // PRE cannot finalise discharge (release the bed) until Finance confirms
+  // this — the backend enforces it too (preRequest.controller.js).
+  const ledgerByAdmission = {};
+  (Array.isArray(ledgers) ? ledgers : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
+  const billsClearedByPatient = {};
+  (Array.isArray(admissions) ? admissions : []).forEach((a) => {
+    const ledger = ledgerByAdmission[a.admission_id];
+    if (a.bills_cleared || (ledger && ledger.status === 'PAID')) {
+      billsClearedByPatient[a.patient_id] = true;
+    }
+  });
+
   return PREHelpers.joinPreRequestsWithPatients(preRequests, patients, doctorsById).map((r) => ({
     ...r,
     bedNumber: bedsById[r.bed_id]?.bed_number || '-',
+    billsCleared: Boolean(billsClearedByPatient[r.patient_id]),
   }));
 }
 
@@ -65,12 +82,15 @@ async function renderApproved() {
   }
 
   table.innerHTML = approved
-    .map((r) =>
-      rowHtml(
-        r,
-        `<td style="color:green;">Ready for PRE</td><td><button class="btn approve" onclick="finalApprove(${r.pre_request_id})">Approve</button></td>`,
-      ),
-    )
+    .map((r) => {
+      const statusCell = r.billsCleared
+        ? `<td style="color:green;">Bills cleared by Finance</td>`
+        : `<td style="color:#b45309;">Awaiting Finance payment</td>`;
+      const actionCell = r.billsCleared
+        ? `<td><button class="btn approve" onclick="finalApprove(${r.pre_request_id})">Discharge &amp; release bed</button></td>`
+        : `<td><button class="btn approve" disabled title="Patient bill not cleared yet" style="opacity:.5; cursor:not-allowed;">Discharge &amp; release bed</button></td>`;
+      return rowHtml(r, statusCell + actionCell);
+    })
     .join('');
 }
 

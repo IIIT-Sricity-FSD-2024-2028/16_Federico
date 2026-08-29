@@ -69,16 +69,31 @@ function setDischargeError(message) {
 const FLOW_STATUSES = ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED', 'DISCHARGED'];
 
 async function loadAndRender() {
-  const [preRequests, patients, doctors, beds] = await Promise.all([
+  const [preRequests, patients, doctors, beds, admissions, ledgers] = await Promise.all([
     window.ApiClient.preRequests.list().catch(() => []),
     window.ApiClient.patients.list().catch(() => []),
     window.ApiClient.doctors.list().catch(() => []),
     window.ApiClient.wards.beds().catch(() => []),
+    window.ApiClient.admissions.list().catch(() => []),
+    window.ApiClient.billing.ledger.listAll().catch(() => []),
   ]);
   const doctorsById = {};
   (Array.isArray(doctors) ? doctors : []).forEach((d) => (doctorsById[d.doctor_id] = d));
   const bedsById = {};
   (Array.isArray(beds) ? beds : []).forEach((b) => (bedsById[b.bed_id] = b));
+
+  // "Bills cleared" signal from Finance: the patient's active admission has
+  // a PAID ledger. HOM watches this so it knows the patient is financially
+  // clear and PRE can safely release the bed.
+  const ledgerByAdmission = {};
+  (Array.isArray(ledgers) ? ledgers : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
+  const billsClearedByPatient = {};
+  (Array.isArray(admissions) ? admissions : []).forEach((a) => {
+    const ledger = ledgerByAdmission[a.admission_id];
+    if (a.bills_cleared || (ledger && ledger.status === 'PAID')) {
+      billsClearedByPatient[a.patient_id] = true;
+    }
+  });
 
   const validPreRequests = Array.isArray(preRequests) ? preRequests : [];
   const validPatients = Array.isArray(patients) ? patients : [];
@@ -87,7 +102,11 @@ async function loadAndRender() {
     validPreRequests.filter((r) => FLOW_STATUSES.includes(r.status)),
     validPatients,
     doctorsById,
-  ).map((r) => ({ ...r, bedNumber: bedsById[r.bed_id]?.bed_number || '-' }));
+  ).map((r) => ({
+    ...r,
+    bedNumber: bedsById[r.bed_id]?.bed_number || '-',
+    billsCleared: Boolean(billsClearedByPatient[r.patient_id]),
+  }));
 
   flowData = { rows: joined, bedsById };
   renderDischargeQueue();
@@ -144,7 +163,7 @@ function renderDischargeQueue() {
           <td>${window.HOMHelpers.escapeHtml(row.doctorName)}</td>
           <td>${window.HOMHelpers.formatDate(row.decided_at || row.created_at)}</td>
           <td>${window.HOMHelpers.daysSince(row.decided_at || row.created_at)} days</td>
-          <td><span style="font-size: 12px; color: var(--status-success-fg, #1b5e20); font-weight: 500;">Cleared · Awaiting PRE</span></td>
+          <td><span style="font-size: 12px; font-weight: 500; color: ${row.billsCleared ? 'var(--status-success-fg, #1b5e20)' : 'var(--status-warning-fg, #7a5300)'};">${row.billsCleared ? 'Bills cleared · PRE can release bed' : 'Awaiting Finance payment'}</span></td>
         </tr>
       `)
       .join('');

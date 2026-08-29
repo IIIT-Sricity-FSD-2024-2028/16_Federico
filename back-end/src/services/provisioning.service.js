@@ -133,15 +133,20 @@ function provision(payload) {
     `Subscribed to "${plan.name}" — quotas allocated`,
   );
 
+  const chosenModules = payload.modules || plan.included_modules;
   const enabledModules = organizationService.setModuleFlags(
     organization.organization_id,
-    payload.modules || plan.included_modules,
+    chosenModules,
+    payload.module_instances || {},
   );
+  const instanceSummary = enabledModules
+    .map((code) => `${code}×${(payload.module_instances || {})[code] || 1}`)
+    .join(', ');
   logStep(
     organization.organization_id,
     'ENABLE_MODULES',
     'DONE',
-    `Enabled modules: ${enabledModules.join(', ') || 'none'}`,
+    `Enabled services: ${instanceSummary || 'none'}`,
   );
 
   const adminUser = {

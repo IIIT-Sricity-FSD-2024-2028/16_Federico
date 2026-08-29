@@ -24,7 +24,7 @@ describe('E2E Hospital Patient Lifecycle & Multi-Tenancy Pipeline', () => {
     // 1. Provision new multi-tenant organization
     const provisionResult = provisioningService.provision({
       name: 'City Care Hospital',
-      plan_id: 2, // Growth plan
+      plan_id: 1, // usage-based
       contact: { phone: '+919876543210', email: 'contact@citycare.com', address: 'MG Road, Bangalore' },
       specialties: ['Cardiology', 'Orthopedics', 'General Medicine'],
       emergency_available: true,
@@ -162,7 +162,10 @@ describe('E2E Hospital Patient Lifecycle & Multi-Tenancy Pipeline', () => {
     });
     expect(updatedPre.status).toBe('ADMITTED');
 
-    // Admission record and billing ledger auto-created
+    // Admission record is created on bed allocation. The billing ledger is
+    // NOT auto-created any more — on admission the case simply appears in
+    // FA's "awaiting ledger setup" queue, and FA opens the ledger
+    // explicitly (as done just below), which is the request-to-Finance step.
     const admission = admissionService.create({
       patient_id: patientSession.patient.patient_id,
       bed_id: allocatedBedId,
@@ -171,7 +174,9 @@ describe('E2E Hospital Patient Lifecycle & Multi-Tenancy Pipeline', () => {
     });
     expect(admission.admission_id).toBeDefined();
     admissionId = admission.admission_id;
+    expect(billingService.findLedgerByAdmission(admissionId)).toBeNull();
 
+    // FA opens the ledger for the new admission.
     const ledger = billingService.createLedger({
       admission_id: admissionId,
       status: 'OPEN',

@@ -13,13 +13,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadAndRender() {
-  const [wards, beds, patients, rawLedgers, items, staff] = await Promise.all([
+  const [wards, beds, patients, rawLedgers, items, staff, payments, admissions, preRequests, appointments] = await Promise.all([
     window.ApiClient.wards.list(),
     window.ApiClient.wards.beds(),
     window.ApiClient.patients.list(),
     window.ApiClient.billing.ledger.listAll().catch(() => []),
     window.ApiClient.inventory.items.list().catch(() => []),
     window.ApiClient.rbac.staff().catch(() => []),
+    window.ApiClient.billing.payments.list().catch(() => []),
+    window.ApiClient.admissions.list().catch(() => []),
+    window.ApiClient.preRequests.list().catch(() => []),
+    window.ApiClient.appointments.list().catch(() => []),
   ]);
 
   // Ledgers carry no precomputed total — sum each one's entries, same as
@@ -32,17 +36,26 @@ async function loadAndRender() {
     }),
   );
 
-  renderMetrics(wards, beds, patients, ledgers);
+  renderMetrics(wards, beds, patients, ledgers, payments, admissions, preRequests, appointments);
   renderWardOccupancy(wards, beds);
   renderBillingSummary(ledgers);
   renderLowStock(items);
   renderStaffBreakdown(staff);
 }
 
-function renderMetrics(wards, beds, patients, ledgers) {
+function renderMetrics(wards, beds, patients, ledgers, payments = [], admissions = [], preRequests = [], appointments = []) {
   const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;
   const occupancyPct = beds.length ? Math.round((occupied / beds.length) * 100) : 0;
   const totalRevenue = ledgers.reduce((sum, l) => sum + Number(l.total || 0), 0);
+  const collected = (payments || []).reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
+  const outstanding = Math.max(0, totalRevenue - collected);
+  const activeInpatients = (admissions || []).filter((a) => a.status !== 'DISCHARGED').length;
+  const dischargeQueue = (preRequests || []).filter(
+    (p) => p.status === 'DISCHARGE_REQUESTED' || p.status === 'DISCHARGE_APPROVED',
+  ).length;
+  const intakePending = (preRequests || []).filter((p) => p.status === 'PENDING').length;
+  const paidLedgers = ledgers.filter((l) => l.status === 'PAID').length;
+  const avgBill = paidLedgers ? Math.round(collected / paidLedgers) : 0;
 
   document.getElementById('metrics-container').innerHTML = `
     <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
@@ -60,6 +73,26 @@ function renderMetrics(wards, beds, patients, ledgers) {
     <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
       <div class="metric-card-icon" style="background: #FEF3C7;">💰</div>
       <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(totalRevenue)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Total Billed (Live)</div></div>
+    </div>
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #DCFCE7;">✅</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(collected)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Payments Collected</div></div>
+    </div>
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #FEE2E2;">⏳</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(outstanding)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Outstanding Bills</div></div>
+    </div>
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #EDE9FE;">🧑‍⚕️</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${activeInpatients}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Active Inpatients · ${dischargeQueue} in discharge</div></div>
+    </div>
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #DBEAFE;">📅</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${appointments.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Appointments · ${intakePending} intake pending</div></div>
+    </div>
+    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
+      <div class="metric-card-icon" style="background: #FEF9C3;">🧾</div>
+      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(avgBill)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Avg Paid Bill (${paidLedgers} paid)</div></div>
     </div>
   `;
 }

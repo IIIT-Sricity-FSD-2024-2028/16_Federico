@@ -315,6 +315,12 @@ function openRegisterPatientModal() {
   document.getElementById('regInsProvider').value = '';
   document.getElementById('regInsPolicyNo').value = '';
   document.getElementById('regInsLimit').value = '';
+  ['regInsCardFront', 'regInsCardBack'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const st = document.getElementById('regInsUploadStatus');
+  if (st) st.textContent = '';
 
   modal.classList.add('active');
   modal.style.display = 'flex';
@@ -330,17 +336,54 @@ function closeRegisterPatientModal() {
   }
 }
 
-async function submitRegisterPatient() {
-  const name = document.getElementById('regName')?.value.trim();
-  const dob = document.getElementById('regDob')?.value;
-  const gender = document.getElementById('regGender')?.value || 'Male';
-  const bloodGroup = document.getElementById('regBloodGroup')?.value || 'O+';
-  const phone = document.getElementById('regPhone')?.value.trim();
-  const altPhone = document.getElementById('regAltPhone')?.value.trim();
-  const address = document.getElementById('regAddress')?.value.trim();
+// Client-side validation for the walk-in registration form. Returns an
+// error string, or '' when the input is valid. Kept in JS (no markup
+// changes) so the existing modal is unchanged.
+function validateRegisterPatient({ name, dob, gender, phone, altPhone, insProvider, insPolicyNo, insLimit }) {
+  if (!name || name.length < 2) return 'Enter the patient\'s full name (at least 2 characters).';
+  if (!/^[A-Za-z][A-Za-z .'-]*$/.test(name)) return 'Name may only contain letters, spaces, apostrophes and hyphens.';
+  if (!gender) return 'Select the patient\'s gender.';
 
-  if (!name || !dob || !phone) {
-    return UIFeedback.toast('Please enter patient Full Name, Date of Birth, and Primary Phone.', 'error');
+  if (!dob) return 'Select the patient\'s date of birth.';
+  const dobDate = new Date(dob);
+  if (Number.isNaN(dobDate.getTime())) return 'Enter a valid date of birth.';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (dobDate > today) return 'Date of birth cannot be in the future.';
+  const age = (today - dobDate) / (365.25 * 24 * 60 * 60 * 1000);
+  if (age > 120) return 'Date of birth is not realistic (age over 120).';
+
+  if (!/^\d{10}$/.test(phone)) return 'Primary phone must be exactly 10 digits.';
+  if (altPhone && !/^\d{10}$/.test(altPhone)) return 'Alternate phone must be exactly 10 digits.';
+
+  if ((insProvider && !insPolicyNo) || (!insProvider && insPolicyNo)) {
+    return 'Enter both the insurance provider and policy/card number, or leave both blank.';
+  }
+  if (insLimit && !(Number(insLimit) >= 0)) {
+    return 'Insurance coverage limit must be a non-negative number.';
+  }
+  return '';
+}
+
+async function submitRegisterPatient() {
+  const name = document.getElementById('regName')?.value.trim() || '';
+  const dob = document.getElementById('regDob')?.value || '';
+  const gender = document.getElementById('regGender')?.value || '';
+  const bloodGroup = document.getElementById('regBloodGroup')?.value || 'O+';
+  const phone = document.getElementById('regPhone')?.value.trim() || '';
+  const altPhone = document.getElementById('regAltPhone')?.value.trim() || '';
+  const address = document.getElementById('regAddress')?.value.trim() || '';
+
+  const insProvider = document.getElementById('regInsProvider')?.value.trim() || '';
+  const insPolicyNo = document.getElementById('regInsPolicyNo')?.value.trim() || '';
+  const insLimit = document.getElementById('regInsLimit')?.value.trim() || '';
+  const insType = document.getElementById('regInsType')?.value || 'Self';
+
+  const validationError = validateRegisterPatient({
+    name, dob, gender, phone, altPhone, insProvider, insPolicyNo, insLimit,
+  });
+  if (validationError) {
+    return UIFeedback.toast(validationError, 'error');
   }
 
   try {
@@ -351,23 +394,52 @@ async function submitRegisterPatient() {
       blood_group: bloodGroup,
       phone,
       emergency_contact_phone: altPhone || null,
-      address: address || 'Hyderabad, Telangana',
+      // No fabricated fallback address — leave blank if not entered.
+      address: address || null,
     });
 
-    // If insurance fields provided, create policy
-    const insProvider = document.getElementById('regInsProvider')?.value.trim();
-    const insPolicyNo = document.getElementById('regInsPolicyNo')?.value.trim();
-    const insLimit = document.getElementById('regInsLimit')?.value.trim();
-    const insType = document.getElementById('regInsType')?.value || 'Self';
-
+    // Attach an insurance policy only if the PRE operator actually
+    // entered one. No mock coverage limit is injected.
     if (insProvider && insPolicyNo) {
-      await window.ApiClient.patients.createInsurance({
-        patient_id: newPatient.patient_id,
-        provider_name: insProvider,
-        policy_number: insPolicyNo,
-        coverage_limit: Number(insLimit) || 100000,
-        coverage_type: insType,
-      }).catch((err) => console.warn('Could not attach insurance policy:', err));
+      // Upload the insurance card scans first (if provided), then attach
+      // their URLs to the policy record.
+      const frontFile = document.getElementById('regInsCardFront')?.files?.[0] || null;
+      const backFile = document.getElementById('regInsCardBack')?.files?.[0] || null;
+      const statusEl = document.getElementById('regInsUploadStatus');
+      let cardFrontUrl = null;
+      let cardBackUrl = null;
+      try {
+        if (frontFile) {
+          if (statusEl) statusEl.textContent = 'Uploading front card image…';
+          cardFrontUrl = (await window.ApiClient.uploads.document(frontFile)).url;
+        }
+        if (backFile) {
+          if (statusEl) statusEl.textContent = 'Uploading back card image…';
+          cardBackUrl = (await window.ApiClient.uploads.document(backFile)).url;
+        }
+        if (statusEl) statusEl.textContent = '';
+      } catch (upErr) {
+        if (statusEl) statusEl.textContent = '';
+        UIFeedback.toast(`Insurance card image upload failed: ${upErr.message || 'unknown error'}`, 'warning');
+      }
+
+      try {
+        const insPayload = {
+          patient_id: newPatient.patient_id,
+          provider_name: insProvider,
+          policy_number: insPolicyNo,
+          coverage_limit: insLimit ? Number(insLimit) : 0,
+          coverage_type: insType,
+        };
+        if (cardFrontUrl) insPayload.card_front_url = cardFrontUrl;
+        if (cardBackUrl) insPayload.card_back_url = cardBackUrl;
+        await window.ApiClient.patients.createInsurance(insPayload);
+      } catch (insErr) {
+        UIFeedback.toast(
+          `Patient registered, but the insurance policy could not be saved: ${insErr.message || 'unknown error'}`,
+          'warning',
+        );
+      }
     }
 
     UIFeedback.toast(`Patient ${newPatient.name} (${newPatient.uhid}) registered successfully!`, 'success');

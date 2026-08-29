@@ -281,7 +281,12 @@ function buildBillsAndDocuments(bundles, servicesById, receipts, dischargeSummar
 
     bundles.forEach(({ admission, ledger, entries }) => {
         if (!ledger) return;
-        if (!["OPEN", "DISPATCHED", "PAID"].includes(ledger.status)) return;
+        // The patient must never see the live/running ledger (an OPEN
+        // ledger the ward is still adding charges to). Only once Finance
+        // dispatches the End-of-Day bill (DISPATCHED) or it is PAID does it
+        // become visible — alongside the Discharge Summary and receipts,
+        // which are handled by their own loops below.
+        if (!["DISPATCHED", "PAID"].includes(ledger.status)) return;
 
         const total = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
         const serviceNames = entries.map((e) => (servicesById[e.service_id] || {}).service_name).filter(Boolean);

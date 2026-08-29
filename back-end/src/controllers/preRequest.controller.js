@@ -1,9 +1,34 @@
 'use strict';
 
 const preRequestService = require('../services/preRequest.service');
+const billingService = require('../services/billing.service');
+const dataStore = require('../store/dataStore');
 const { sendResult } = require('../utils/sendResult');
 const { forbidsOtherPatient } = require('../utils/patientOwnership');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
+
+// PRE's final discharge sign-off (DISCHARGE_APPROVED -> DISCHARGED) is the
+// step that physically releases the bed. It must not happen until Finance
+// has confirmed the patient's bill is fully paid. Returns a human-readable
+// reason string when discharge should be blocked, or null when it may
+// proceed.
+function dischargeBlockReason(patientId) {
+  const pid = Number(patientId);
+  const patientAdmissions = dataStore.admissions.filter((a) => a.patient_id === pid);
+  if (patientAdmissions.length === 0) return null;
+  const admission =
+    patientAdmissions.find((a) => a.status !== 'DISCHARGED') ||
+    patientAdmissions[patientAdmissions.length - 1];
+
+  const ledger = billingService.findLedgerByAdmission(admission.admission_id);
+  if (!ledger) {
+    return 'Cannot finalize discharge — Finance has not opened a billing ledger for this admission yet.';
+  }
+  if (ledger.status !== 'PAID') {
+    return 'Cannot finalize discharge — the patient bill has not been cleared by Finance yet.';
+  }
+  return null;
+}
 
 const FORBIDDEN = {
   message: 'Forbidden resource',
@@ -96,6 +121,15 @@ function update(req, res) {
 
     if (!PUBLICLY_SETTABLE_STATUSES.has(requestedStatus))
       return res.status(403).json(FORBIDDEN);
+
+    if (requestedStatus === 'DISCHARGED') {
+      const blockReason = dischargeBlockReason(existing.patient_id);
+      if (blockReason) {
+        return res
+          .status(409)
+          .json({ message: blockReason, error: 'Conflict', statusCode: 409 });
+      }
+    }
 
     // Legacy x-role-only callers (no real session) bypass the per-actor
     // transition check, matching every other resource's SUPER_USER bypass.

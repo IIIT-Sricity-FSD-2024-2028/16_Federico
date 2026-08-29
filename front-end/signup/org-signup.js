@@ -21,11 +21,99 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/'/g, '&#39;');
   }
 
+  // Federico is billed per service used, not on a fixed tier. `selectedPlan`
+  // is just the technical anchor plan the backend provisioning still keys
+  // off; the real cost is estimated from the services picked in step 3.
   var selectedPlan = {
-    plan_id: 2,
-    name: 'Professional',
-    price: 14999,
+    plan_id: 1,
+    name: 'Usage-based',
+    price: 0,
   };
+
+  // Monthly price per service instance — mirrors
+  // back-end/src/config/serviceCatalog.js.
+  var SERVICE_PRICES = {
+    APPOINTMENTS: 1500,
+    ADMISSIONS: 2500,
+    INVENTORY: 2000,
+    BILLING: 2500,
+    INSURANCE: 1800,
+    ANALYTICS: 3000,
+  };
+  var SERVICE_LABELS = {
+    APPOINTMENTS: 'Appointments Management',
+    ADMISSIONS: 'Admissions & Bed Management',
+    INVENTORY: 'Non-Clinical Inventory & Supplies',
+    BILLING: 'Dynamic Billing & Invoicing',
+    INSURANCE: 'Insurance Verification',
+    ANALYTICS: 'Administrative Analytics',
+  };
+  var inr = function (n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); };
+
+  function selectedModuleCodes() {
+    return Array.from(document.querySelectorAll('input[name="module-code"]:checked')).map(function (el) { return el.value; });
+  }
+
+  // How many instances the operator wants of a given service (min 1).
+  function instanceCountFor(code) {
+    var input = document.querySelector('.module-instances[data-code="' + code + '"]');
+    return Math.max(1, parseInt(input && input.value, 10) || 1);
+  }
+
+  // { CODE: count } for the currently checked services.
+  function selectedModuleInstances() {
+    var out = {};
+    selectedModuleCodes().forEach(function (code) { out[code] = instanceCountFor(code); });
+    return out;
+  }
+
+  function serviceLines() {
+    return selectedModuleCodes().map(function (code) {
+      var qty = instanceCountFor(code);
+      var unit = SERVICE_PRICES[code] || 0;
+      return { code: code, label: SERVICE_LABELS[code] || code, qty: qty, unit: unit, amount: unit * qty };
+    });
+  }
+
+  function estimatedMonthly() {
+    return serviceLines().reduce(function (sum, l) { return sum + l.amount; }, 0);
+  }
+
+  // Inject a price line + an "Instances" number input into each service card
+  // in step 3, so the operator sees exactly what each service costs and picks
+  // how many instances of it to provision.
+  function decorateModuleCards() {
+    document.querySelectorAll('input[name="module-code"]').forEach(function (cb) {
+      var code = cb.value;
+      var card = cb.closest('.module-checkbox-card');
+      if (!card || card.querySelector('.module-price-row')) return;
+      var price = SERVICE_PRICES[code] || 0;
+
+      var row = document.createElement('div');
+      row.className = 'module-price-row';
+      row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; font-size:13px;';
+      row.innerHTML =
+        '<span style="font-weight:600; color:var(--md-primary);">' + inr(price) + ' / month <span style="font-weight:400; color:var(--md-on-surface-variant);">per instance</span></span>' +
+        '<span style="display:flex; align-items:center; gap:6px;">Instances' +
+        '<input type="number" class="module-instances" data-code="' + code + '" min="1" value="1" ' +
+        (cb.checked ? '' : 'disabled ') +
+        'style="width:64px; padding:4px 6px; border:1px solid var(--md-outline-variant); border-radius:6px; font:inherit;" /></span>';
+      // Sits next to the description, inside the card's text column.
+      (card.querySelector('div') || card).appendChild(row);
+
+      var qtyInput = row.querySelector('.module-instances');
+      cb.addEventListener('change', function () {
+        qtyInput.disabled = !cb.checked;
+        updateCheckoutSummary();
+      });
+      qtyInput.addEventListener('input', updateCheckoutSummary);
+      // The input lives inside the card's <label>, so a bare click would
+      // also toggle the checkbox — keep clicks/keys on the number field local.
+      ['click', 'mousedown', 'keydown'].forEach(function (evt) {
+        qtyInput.addEventListener(evt, function (e) { e.stopPropagation(); });
+      });
+    });
+  }
 
   var stepsNodes = document.querySelectorAll('.step-node');
   var progressFill = document.getElementById('progress-fill');
@@ -36,6 +124,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var api = window.API || window.ApiClient;
       var plans = await api.marketplace.plans();
       if (Array.isArray(plans) && plans.length > 0) {
+        // Usage-based billing: there is a single anchor plan. Point the
+        // provisioning payload at whatever the backend actually offers.
+        selectedPlan.plan_id = Number(plans[0].plan_id);
+        selectedPlan.name = plans[0].name;
         var container = document.getElementById('plan-selection-container');
         if (container) {
           container.innerHTML = plans.map(function (p) {
@@ -106,6 +198,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function renderServiceBreakdown(container) {
+    if (!container) return;
+    var lines = serviceLines();
+    if (!lines.length) {
+      container.innerHTML = '<div style="color:var(--md-error, #b3261e); font-size:13px;">No services selected — pick at least one above.</div>';
+      return;
+    }
+    container.innerHTML =
+      lines.map(function (l) {
+        return '<div style="display:flex; justify-content:space-between; gap:12px; padding:4px 0; font-size:13px;">' +
+          '<span>' + l.label + ' <span style="color:var(--md-on-surface-variant);">(' + inr(l.unit) + ' × ' + l.qty + ')</span></span>' +
+          '<strong>' + inr(l.amount) + '/mo</strong></div>';
+      }).join('') +
+      '<div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0 0; margin-top:6px; border-top:1px solid var(--md-outline-variant); font-weight:700;">' +
+      '<span>Service subtotal</span><span>' + inr(estimatedMonthly()) + '/mo</span></div>';
+  }
+
   function updateCheckoutSummary() {
     var orgName = document.getElementById('org-name')?.value.trim() || 'Your Hospital Chain';
     var summaryOrg = document.getElementById('summary-org-name');
@@ -114,15 +223,23 @@ document.addEventListener('DOMContentLoaded', function () {
     var summaryTax = document.getElementById('summary-tax');
     var summaryTotal = document.getElementById('summary-total');
 
-    var price = selectedPlan.price || 14999;
+    // Cost is the sum of (service price × instances) picked in step 3.
+    var price = estimatedMonthly();
     var tax = price * 0.18;
     var total = price + tax;
+    var lines = serviceLines();
+    var totalInstances = lines.reduce(function (s, l) { return s + l.qty; }, 0);
 
     if (summaryOrg) summaryOrg.textContent = orgName;
-    if (summaryPlan) summaryPlan.textContent = selectedPlan.name + ' Tier';
+    if (summaryPlan) {
+      summaryPlan.textContent = 'Usage-based · ' + lines.length + ' service' + (lines.length === 1 ? '' : 's') + ' · ' + totalInstances + ' instance' + (totalInstances === 1 ? '' : 's');
+    }
     if (summaryPrice) summaryPrice.textContent = '₹' + price.toLocaleString('en-IN');
     if (summaryTax) summaryTax.textContent = '₹' + tax.toLocaleString('en-IN', { minimumFractionDigits: 2 });
     if (summaryTotal) summaryTotal.textContent = '₹' + total.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+    renderServiceBreakdown(document.getElementById('step3-estimate'));
+    renderServiceBreakdown(document.getElementById('summary-service-lines'));
   }
 
   // ---- Navigation Handlers ----
@@ -141,13 +258,24 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('btn-back-2')?.addEventListener('click', function () { updateStepUI(1); });
   document.getElementById('btn-next-2')?.addEventListener('click', function () { updateStepUI(3); });
 
+  // Step 3: render per-service price + instance inputs, then keep the
+  // running estimate in sync as services / counts change.
+  decorateModuleCards();
+  updateCheckoutSummary();
+
   document.getElementById('btn-back-3')?.addEventListener('click', function () { updateStepUI(2); });
   document.getElementById('btn-next-3')?.addEventListener('click', function () {
     var checked = Array.from(document.querySelectorAll('input[name="module-code"]:checked'));
     if (checked.length === 0) {
-      window.UIFeedback?.toast('Please select at least one module to enable.', 'warn');
+      window.UIFeedback?.toast('Select at least one service to enable.', 'warn');
       return;
     }
+    var badQty = checked.some(function (cb) { return instanceCountFor(cb.value) < 1; });
+    if (badQty) {
+      window.UIFeedback?.toast('Each selected service needs at least 1 instance.', 'warn');
+      return;
+    }
+    updateCheckoutSummary();
     updateStepUI(4);
   });
 
@@ -202,7 +330,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var specialties = specialtiesStr ? specialtiesStr.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : ['General Medicine'];
     var emergency_available = document.getElementById('org-emergency').checked;
 
-    var modules = Array.from(document.querySelectorAll('input[name="module-code"]:checked')).map(function (el) { return el.value; });
+    var modules = selectedModuleCodes();
+    var moduleInstances = selectedModuleInstances();
 
     var adminName = document.getElementById('admin-name').value.trim();
     var adminEmail = document.getElementById('admin-email').value.trim();
@@ -217,6 +346,7 @@ document.addEventListener('DOMContentLoaded', function () {
       emergency_available: emergency_available,
       plan_id: selectedPlan.plan_id,
       modules: modules,
+      module_instances: moduleInstances,
       admin_name: adminName,
       admin_email: adminEmail,
       admin_password: adminPassword,
@@ -227,6 +357,23 @@ document.addEventListener('DOMContentLoaded', function () {
       var api = window.API || window.ApiClient;
       var response = await api.marketplace.registerOrganization(payload);
       var provisioned = response.provisioned;
+
+      // The backend already authenticated the new org admin and returned a
+      // session — persist it so the new organization is logged straight in
+      // (previously it dropped the session and the admin bounced back to
+      // the login screen and "couldn't log in themselves").
+      var sess = response.session;
+      if (sess && sess.token && api && typeof api.setSession === 'function') {
+        api.setSession({
+          token: sess.token,
+          actor: 'Admin',
+          role: 'ORG_ADMIN',
+          userId: sess.user ? sess.user.user_id : null,
+          displayName: sess.user ? sess.user.name : adminName,
+          email: sess.user ? sess.user.email : adminEmail,
+          tenant: sess.tenant || null,
+        });
+      }
 
       // Show Success View
       document.querySelectorAll('.step-panel').forEach(function (p) { p.classList.remove('active'); });
@@ -239,12 +386,12 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div><strong>Organization Name:</strong> ' + escape(provisioned.organization.name) + '</div>' +
         '<div><strong>Tenant Identifier:</strong> <code style="background:var(--md-surface-container);padding:2px 6px;border-radius:4px;">tenant_' + escape(provisioned.organization.organization_id) + '</code></div>' +
         '<div><strong>Primary Campus Branch:</strong> ' + escape(provisioned.hospital.name) + '</div>' +
-        '<div><strong>Active Plan:</strong> ' + escape(selectedPlan.name) + ' Tier (₹' + Number(selectedPlan.price).toLocaleString('en-IN') + '/mo)</div>' +
+        '<div><strong>Billing:</strong> Usage-based · ' + inr(estimatedMonthly()) + '/mo</div>' +
         '<div><strong>Admin Account:</strong> ' + escape(provisioned.admin.email) + '</div>' +
         '<div><strong>Live API Gateway Key:</strong> <code style="background:var(--md-surface-container);padding:2px 6px;border-radius:4px;">' + escape(provisioned.apiKey ? provisioned.apiKey.key : 'fed_live_...') + '</code></div>' +
         '</div>' +
         '<div style="margin-top:14px; padding-top:10px; border-top:1px solid var(--md-outline-variant); font-size:0.85rem; color:var(--md-on-surface-variant);">' +
-        'Enabled Services: ' + modules.map(function(m){ return '<strong>' + escape(m) + '</strong>'; }).join(', ') +
+        'Provisioned services: ' + serviceLines().map(function(l){ return '<strong>' + escape(l.label) + '</strong> ×' + l.qty + ' (' + inr(l.amount) + '/mo)'; }).join(' &nbsp;·&nbsp; ') +
         '</div>';
 
       window.UIFeedback?.toast('Organization successfully created and provisioned!', 'success');

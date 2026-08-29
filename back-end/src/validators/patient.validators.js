@@ -34,10 +34,14 @@ const createPatientInsuranceRules = [
   { field: 'patient_id', checks: ['isNotEmpty', 'isInt'] },
   { field: 'provider_name', checks: ['isNotEmpty', 'isString'] },
   { field: 'policy_number', checks: ['isNotEmpty', 'isString'] },
-  { field: 'member_id', checks: ['isNotEmpty', 'isString'] },
+  // member_id / validity dates are optional: the PRE walk-in registration
+  // form only captures provider + policy number + coverage limit, and the
+  // patient can fill the rest later from their profile page. The service
+  // layer supplies safe defaults (patient.service.js#createInsurance).
+  { field: 'member_id', checks: ['isString'], optional: true },
   { field: 'coverage_type', checks: ['isNotEmpty', 'isString'] },
-  { field: 'valid_from', checks: ['isISO8601'] },
-  { field: 'valid_to', checks: ['isISO8601'] },
+  { field: 'valid_from', checks: ['isISO8601'], optional: true },
+  { field: 'valid_to', checks: ['isISO8601'], optional: true },
   // Phase 2 additions: the amount InsuranceCalc.computePatientShare()
   // (front-end/shared/insurance.js) needs to split a bill between
   // insurer and patient. Optional so the Phase-1 contract shape still

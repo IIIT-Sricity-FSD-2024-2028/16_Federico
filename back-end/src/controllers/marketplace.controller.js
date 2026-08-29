@@ -31,6 +31,7 @@ function registerOrganization(req, res) {
     emergency_available,
     plan_id,
     modules,
+    module_instances,
     admin_name,
     admin_email,
     admin_password,
@@ -57,6 +58,10 @@ function registerOrganization(req, res) {
     emergency_available: Boolean(emergency_available),
     plan_id: Number(plan_id),
     modules: Array.isArray(modules) ? modules : undefined,
+    module_instances:
+      module_instances && typeof module_instances === 'object'
+        ? module_instances
+        : undefined,
     admin_name,
     admin_email,
     admin_password,
