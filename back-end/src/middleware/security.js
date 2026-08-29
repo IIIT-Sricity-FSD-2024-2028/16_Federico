@@ -34,7 +34,7 @@ const helmetSecurity = helmet({
 // 2. Global Rate Limiter (Protects API against flooding)
 const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per window
+  max: 10000, // Limit each IP to 1000 requests per window
   standardHeaders: true, // Return standard RateLimit-* headers
   legacyHeaders: false,
   message: {
@@ -50,7 +50,7 @@ const globalRateLimiter = rateLimit({
 // 3. Auth Rate Limiter (Protects login endpoints against brute-force attacks)
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 attempts per 15 min
+  max: 500, // 50 attempts per 15 min
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -64,7 +64,7 @@ const authRateLimiter = rateLimit({
 // 4. File Upload Rate Limiter (Protects upload endpoints against disk filling)
 const uploadRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 60,
+  max: 600,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

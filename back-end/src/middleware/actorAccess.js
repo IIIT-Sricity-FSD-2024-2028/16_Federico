@@ -11,7 +11,17 @@ const ACTOR_ACCESS = {
   ward: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM'] },
   inventory: { read: ['HOM', 'FA', 'Admin'], write: ['HOM'] },
   wardAdmin: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
-  inventoryCatalog: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
+  // Admin (org owner) owns the inventory catalog (add/edit/remove item types);
+  // HOM also edits items (stock/reorder) from its operational screen.
+  inventoryCatalog: { read: ['Admin'], write: ['Admin', 'HOM'], delete: ['Admin'] },
+  // Admin (org owner) manages the doctor directory for its org, the same way
+  // it manages wards (wardAdmin) and the inventory catalog (inventoryCatalog).
+  // HOM keeps its existing operational access.
+  doctorDirectory: {
+    read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
+    write: ['HOM', 'Admin'],
+    delete: ['HOM', 'Admin'],
+  },
   billing: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA'] },
   leader: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'FA'] },
   payment: { write: ['FA', 'Patient'] },

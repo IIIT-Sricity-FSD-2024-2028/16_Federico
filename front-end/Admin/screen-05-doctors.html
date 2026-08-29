@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:* https://*; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Catalog | Federico Hospital Admin</title>
+    <title>Doctors | Federico Hospital Admin</title>
     <link rel="stylesheet" href="../shared/design-tokens.css">
     <link rel="stylesheet" href="../shared/material-components.css">
     <link rel="stylesheet" href="../shared/ui-feedback.css">
@@ -21,55 +21,60 @@
     <main class="dashboard-container">
         <div class="header-section">
             <div>
-                <h1 class="h1" style="margin-bottom: 8px;">Inventory Catalog</h1>
-                <p class="body-text">Add or remove the item types HOM can track stock and log usage against. Every hospital starts with a standard supply catalog.</p>
+                <h1 class="h1" style="margin-bottom: 8px;">Doctors</h1>
+                <p class="body-text">Add or remove the doctors in your organisation and assign each to a department. Doctors here are bookable for appointments and admissions.</p>
             </div>
-            <button class="btn btn-primary btn-default" id="new-item-btn">+ Add Item</button>
+            <button class="btn btn-primary btn-default" id="new-doctor-btn">+ Add Doctor</button>
         </div>
 
         <div class="metrics-grid" id="metrics-container"></div>
 
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">Catalog Items</h2>
-                <p class="card-description">Deleting an item here removes it from HOM's inventory screen entirely.</p>
+                <h2 class="card-title">Doctor Directory</h2>
+                <p class="card-description">Removing a doctor deactivates them and hides them from appointment booking.</p>
             </div>
             <div class="card-content" style="padding: 0;">
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Item Name</th>
-                                <th>Category</th>
-                                <th>Starting Stock</th>
-                                <th>Reorder Level</th>
+                                <th>Name</th>
+                                <th>Specialization</th>
+                                <th>Department</th>
+                                <th>Contact</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="items-tbody"></tbody>
+                        <tbody id="doctors-tbody"></tbody>
                     </table>
                 </div>
             </div>
         </div>
     </main>
 
-    <dialog id="item-dialog" class="md-native-dialog">
-        <form id="item-form" class="dialog-form">
-            <h2 class="md-dialog-title" id="item-dialog-title">Add a Catalog Item</h2>
-            <div class="md-field"><label for="item-name">Item name</label><input id="item-name" required placeholder="e.g. Digital Thermometer" /></div>
+    <dialog id="doctor-dialog" class="md-native-dialog">
+        <form id="doctor-form" class="dialog-form">
+            <h2 class="md-dialog-title" id="doctor-dialog-title">Add a Doctor</h2>
+            <div class="md-field"><label for="doctor-name">Full name</label><input id="doctor-name" required placeholder="e.g. Dr. Arjun Mehta" /></div>
+            <div class="md-field"><label for="doctor-specialization">Specialization</label><input id="doctor-specialization" required placeholder="e.g. Cardiology" /></div>
             <div class="md-field">
-                <label for="item-category">Category</label>
-                <select id="item-category">
-                    <option value="Medicine">Medicine</option>
-                    <option value="Consumable">Consumable</option>
-                    <option value="Equipment">Equipment</option>
-                    <option value="Linen">Linen</option>
-                </select>
+                <label for="doctor-department">Department</label>
+                <select id="doctor-department"></select>
             </div>
-            <div class="md-field"><label for="item-stock">Starting stock</label><input id="item-stock" type="number" min="0" required placeholder="e.g. 50" /></div>
-            <div class="md-field"><label for="item-reorder">Reorder level</label><input id="item-reorder" type="number" min="0" required placeholder="e.g. 10" /></div>
+            <div class="md-field" id="doctor-department-other-field" style="display:none;">
+                <label for="doctor-department-other">Department name</label>
+                <input id="doctor-department-other" placeholder="Enter department" />
+            </div>
+            <div class="md-field"><label for="doctor-phone">Phone</label><input id="doctor-phone" placeholder="Optional" /></div>
+            <div class="md-field"><label for="doctor-email">Email</label><input id="doctor-email" type="email" placeholder="Optional" /></div>
+            <label class="md-field" id="doctor-active-field" style="flex-direction:row; align-items:center; gap:8px; display:none;">
+                <input id="doctor-active" type="checkbox" checked style="width:auto;" />
+                <span>Active (bookable for appointments)</span>
+            </label>
             <div class="md-dialog-actions">
-                <button type="button" class="btn btn-outline btn-default" id="item-cancel">Cancel</button>
+                <button type="button" class="btn btn-outline btn-default" id="doctor-cancel">Cancel</button>
                 <button type="submit" class="btn btn-primary btn-default">Save</button>
             </div>
         </form>
@@ -88,6 +93,6 @@
 <script src="../shared/shared-nav.js"></script>
 
 <script src="shared-nav.js"></script>
-<script src="inventory-catalog.js"></script>
+<script src="doctors.js"></script>
 </body>
 </html>

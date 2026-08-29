@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
       links: [
         { href: 'screen-01-dashboard.html', label: 'Dashboard' },
         { href: 'screen-02-departments.html', label: 'Departments' },
+        { href: 'screen-05-doctors.html', label: 'Doctors' },
         { href: 'screen-03-inventory.html', label: 'Inventory Catalog' },
         { href: 'screen-04-admin.html', label: 'Roles & Staff' },
       ],

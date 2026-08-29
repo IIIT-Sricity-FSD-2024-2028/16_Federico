@@ -5,6 +5,7 @@ const { partial } = require('./engine');
 const createDoctorRules = [
   { field: 'name', checks: ['isNotEmpty', 'isString'] },
   { field: 'specialization', checks: ['isNotEmpty', 'isString'] },
+  { field: 'department', checks: ['isString'], optional: true },
   { field: 'phone', checks: ['isPhoneNumber'], optional: true },
   { field: 'email', checks: ['isEmail'], optional: true },
 ];

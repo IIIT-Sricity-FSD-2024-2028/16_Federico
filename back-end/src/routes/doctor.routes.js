@@ -24,19 +24,19 @@ router.get(
 );
 router.post(
   '/',
-  authorize(['SUPER_USER'], 'doctor', 'write'),
+  authorize(['SUPER_USER'], 'doctorDirectory', 'write'),
   validateBody(createDoctorRules),
   controller.createDoctor,
 );
 router.put(
   '/:id',
-  authorize(['SUPER_USER'], 'doctor', 'write'),
+  authorize(['SUPER_USER'], 'doctorDirectory', 'write'),
   validateBody(updateDoctorRules),
   controller.updateDoctor,
 );
 router.delete(
   '/:id',
-  authorize(['SUPER_USER'], 'doctor', 'write'),
+  authorize(['SUPER_USER'], 'doctorDirectory', 'delete'),
   controller.deleteDoctor,
 );
 

@@ -28,7 +28,7 @@ router.post(
 );
 router.put(
   '/items/:id',
-  authorize(['SUPER_USER'], 'inventory', 'write'),
+  authorize(['SUPER_USER'], 'inventoryCatalog', 'write'),
   validateBody(updateInventoryItemRules),
   controller.updateItem,
 );
