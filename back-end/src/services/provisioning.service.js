@@ -7,9 +7,11 @@ const subscriptionService = require('./subscription.service');
 const planService = require('./subscriptionPlan.service');
 const wardService = require('./ward.service');
 const inventoryService = require('./inventory.service');
+const billingService = require('./billing.service');
 const { hashPassword } = require('../utils/password');
 const {
   DEFAULT_DEPARTMENTS,
+  DEFAULT_SERVICES,
   DEFAULT_INVENTORY_ITEMS,
 } = require('../config/defaultClinicalCatalog');
 
@@ -57,10 +59,27 @@ function seedDefaultClinicalBaseline(organizationId, hospitalId) {
     });
   });
 
+  // Seed the billable services catalog first, then link each consumable
+  // inventory item to the service it should be charged under (by name), so
+  // "log supply usage" posts a charge with the right service — not a
+  // catch-all "Consultation Fee".
+  const serviceIdByName = {};
+  DEFAULT_SERVICES.forEach((svc) => {
+    const created = billingService.createService({
+      service_name: svc.service_name,
+      category: svc.category,
+      base_cost: svc.base_cost,
+      organization_id: organizationId,
+      hospital_id: hospitalId,
+    });
+    serviceIdByName[svc.service_name] = created.service_id;
+  });
+
   DEFAULT_INVENTORY_ITEMS.forEach((item) => {
+    const { billable_service, ...rest } = item;
     inventoryService.createItem({
-      ...item,
-      service_id: null,
+      ...rest,
+      service_id: billable_service ? serviceIdByName[billable_service] || null : null,
       organization_id: organizationId,
       hospital_id: hospitalId,
     });
@@ -179,9 +198,15 @@ function provision(payload) {
   );
   logStep(
     organization.organization_id,
+    'SEED_DEFAULT_SERVICES',
+    'DONE',
+    `Seeded ${DEFAULT_SERVICES.length} billable clinical services`,
+  );
+  logStep(
+    organization.organization_id,
     'SEED_DEFAULT_INVENTORY',
     'DONE',
-    `Seeded ${DEFAULT_INVENTORY_ITEMS.length} default inventory items`,
+    `Seeded ${DEFAULT_INVENTORY_ITEMS.length} default inventory items (consumables linked to services)`,
   );
 
   const apiKey = generateApiKey(
