@@ -65,11 +65,14 @@ async function loadPatientDirectoryData() {
     const activeBed = activeBedId ? bedsById[activeBedId] : null;
 
     const totalEncounters = pApts.length + pAdms.length + pPres.length;
+    // Only derive a department from the patient's OWN encounters — a
+    // freshly registered patient with no visits has no department, so it
+    // stays null rather than a hard-coded "General Medicine".
     const latestDept =
       (pPres[0] && pPres[0].department) ||
       (pApts[0] && pApts[0].department) ||
       (pAdms[0] && pAdms[0].department) ||
-      'General Medicine';
+      null;
 
     return {
       ...p,
@@ -170,8 +173,8 @@ async function renderPatientDirectory() {
           <td style="text-align:center; padding:12px 12px;">${bloodBadge}</td>
           <td style="text-align:center; padding:12px 14px;">${insuranceBadge}</td>
           <td style="text-align:left; padding:12px 16px;">
-            <div>${PREHelpers.escapeHtml(p.latestDept)}</div>
-            <small style="color:var(--color-muted-fg); font-size:11px;">${p.totalEncounters} Care Encounter(s)</small>
+            <div>${p.latestDept ? PREHelpers.escapeHtml(p.latestDept) : '<span style="color:var(--color-muted-fg);">—</span>'}</div>
+            <small style="color:var(--color-muted-fg); font-size:11px;">${p.totalEncounters > 0 ? `${p.totalEncounters} Care Encounter(s)` : 'No visits yet'}</small>
           </td>
           <td style="text-align:center; padding:12px 14px;">${statusBadge}</td>
           <td style="text-align:center; padding:12px 16px;">

@@ -69,6 +69,7 @@ describe('services/provisioning.service', () => {
       'ENABLE_MODULES',
       'CREATE_DEFAULT_ADMIN',
       'SEED_DEFAULT_WARDS',
+      'SEED_DEFAULT_SERVICES',
       'SEED_DEFAULT_INVENTORY',
       'GENERATE_API_KEY',
     ]);

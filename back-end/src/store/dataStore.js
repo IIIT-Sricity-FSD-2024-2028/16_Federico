@@ -2522,6 +2522,69 @@ const dataStore = {
       "base_cost": 900,
       "organization_id": 2,
       "hospital_id": 2
+    },
+    {
+      "service_id": 17,
+      "service_name": "Pharmacy / Medicines",
+      "base_cost": 300,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "service_id": 18,
+      "service_name": "Surgical Consumables",
+      "base_cost": 400,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "service_id": 19,
+      "service_name": "IV Fluids & Infusion",
+      "base_cost": 300,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "service_id": 20,
+      "service_name": "Oxygen Supply (per hour)",
+      "base_cost": 250,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "service_id": 21,
+      "service_name": "Dressing / Wound Care",
+      "base_cost": 350,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "service_id": 22,
+      "service_name": "Ambulance Service",
+      "base_cost": 2000,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "service_id": 23,
+      "service_name": "MRI Scan",
+      "base_cost": 12000,
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "service_id": 24,
+      "service_name": "Pharmacy / Medicines",
+      "base_cost": 300,
+      "organization_id": 2,
+      "hospital_id": 2
+    },
+    {
+      "service_id": 25,
+      "service_name": "Surgical Consumables",
+      "base_cost": 400,
+      "organization_id": 2,
+      "hospital_id": 2
     }
   ],
   "ledgers": [
@@ -3535,7 +3598,7 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 500,
       "reorder_level": 100,
-      "service_id": null,
+      "service_id": 18,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3545,7 +3608,7 @@ const dataStore = {
       "category": "Medicine",
       "stock_quantity": 1200,
       "reorder_level": 200,
-      "service_id": 1,
+      "service_id": 17,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3555,7 +3618,7 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 340,
       "reorder_level": 150,
-      "service_id": null,
+      "service_id": 21,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3565,7 +3628,7 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 60,
       "reorder_level": 80,
-      "service_id": null,
+      "service_id": 18,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3575,7 +3638,7 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 210,
       "reorder_level": 100,
-      "service_id": null,
+      "service_id": 19,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3585,7 +3648,7 @@ const dataStore = {
       "category": "Equipment",
       "stock_quantity": 45,
       "reorder_level": 40,
-      "service_id": null,
+      "service_id": 20,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3645,7 +3708,7 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 90,
       "reorder_level": 100,
-      "service_id": null,
+      "service_id": 18,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3655,7 +3718,7 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 55,
       "reorder_level": 50,
-      "service_id": null,
+      "service_id": 18,
       "organization_id": 1,
       "hospital_id": 1
     },
@@ -3665,7 +3728,37 @@ const dataStore = {
       "category": "Consumable",
       "stock_quantity": 400,
       "reorder_level": 150,
-      "service_id": null,
+      "service_id": 19,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "item_id": 33,
+      "item_name": "Amoxicillin 500mg",
+      "category": "Medicine",
+      "stock_quantity": 500,
+      "reorder_level": 120,
+      "service_id": 17,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "item_id": 34,
+      "item_name": "Insulin Vial",
+      "category": "Medicine",
+      "stock_quantity": 150,
+      "reorder_level": 40,
+      "service_id": 17,
+      "organization_id": 1,
+      "hospital_id": 1
+    },
+    {
+      "item_id": 35,
+      "item_name": "Ambulance Trip",
+      "category": "Service",
+      "stock_quantity": 999,
+      "reorder_level": 0,
+      "service_id": 22,
       "organization_id": 1,
       "hospital_id": 1
     }
