@@ -175,6 +175,15 @@
           <option value="Corporate">Corporate / Group</option>
         </select>
       </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
+        <label style="font-size:11px; color:var(--color-muted-fg);">Insurance card — front
+          <input type="file" id="regInsCardFront" accept="image/*,.pdf" class="emergency-form-control" style="padding:6px;">
+        </label>
+        <label style="font-size:11px; color:var(--color-muted-fg);">Insurance card — back
+          <input type="file" id="regInsCardBack" accept="image/*,.pdf" class="emergency-form-control" style="padding:6px;">
+        </label>
+      </div>
+      <div id="regInsUploadStatus" style="font-size:11px; color:var(--color-muted-fg); margin-top:6px;"></div>
     </div>
 
     <div class="emergency-modal-actions">

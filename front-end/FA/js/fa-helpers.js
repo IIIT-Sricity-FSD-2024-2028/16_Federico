@@ -41,6 +41,8 @@
     (ledgers || []).forEach((l) => (ledgersByAdmission[l.admission_id] = l));
     const servicesById = {};
     (services || []).forEach((s) => (servicesById[s.service_id] = s));
+    const admissionsById = {};
+    (admissions || []).forEach((a) => (admissionsById[a.admission_id] = a));
 
     const rows = (admissions || []).map((admission) => {
       const patient = patientsById[admission.patient_id] || {};
@@ -63,7 +65,7 @@
       };
     });
 
-    return { rows, patientsById, bedsById, doctorsById, servicesById, admissions, patients };
+    return { rows, patientsById, bedsById, doctorsById, servicesById, admissionsById, admissions, patients };
   }
 
   async function loadLedgerEntries(ledgerId) {

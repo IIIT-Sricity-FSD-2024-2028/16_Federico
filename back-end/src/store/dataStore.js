@@ -6599,44 +6599,10 @@ const dataStore = {
   "subscriptionPlans": [
     {
       "plan_id": 1,
-      "name": "Starter",
-      "max_beds": 25,
-      "max_users": 15,
-      "max_hospitals": 1,
-      "storage_gb": 10,
-      "api_rate_limit": 60,
-      "included_modules": [
-        "APPOINTMENTS",
-        "ADMISSIONS",
-        "BILLING"
-      ],
-      "price_monthly": 4999,
-      "created_at": "2026-08-18T11:39:52.249Z"
-    },
-    {
-      "plan_id": 2,
-      "name": "Professional",
-      "max_beds": 100,
-      "max_users": 60,
-      "max_hospitals": 3,
-      "storage_gb": 100,
-      "api_rate_limit": 300,
-      "included_modules": [
-        "APPOINTMENTS",
-        "ADMISSIONS",
-        "INVENTORY",
-        "BILLING",
-        "INSURANCE"
-      ],
-      "price_monthly": 14999,
-      "created_at": "2026-08-18T11:39:52.250Z"
-    },
-    {
-      "plan_id": 3,
-      "name": "Enterprise",
+      "name": "Usage-based",
       "max_beds": 100000,
       "max_users": 100000,
-      "max_hospitals": 100,
+      "max_hospitals": 1000,
       "storage_gb": 5000,
       "api_rate_limit": 2000,
       "included_modules": [
@@ -6647,15 +6613,15 @@ const dataStore = {
         "INSURANCE",
         "ANALYTICS"
       ],
-      "price_monthly": 49999,
-      "created_at": "2026-08-18T11:39:52.250Z"
+      "price_monthly": 0,
+      "created_at": "2026-08-18T11:39:52.249Z"
     }
   ],
   "subscriptions": [
     {
       "subscription_id": 1,
       "organization_id": 1,
-      "plan_id": 2,
+      "plan_id": 1,
       "status": "ACTIVE",
       "started_at": "2026-08-18T11:39:52.250Z",
       "renews_at": "2026-09-18T11:39:52.250Z",
@@ -6682,18 +6648,21 @@ const dataStore = {
       "organization_id": 1,
       "module_code": "ADMISSIONS",
       "enabled": true,
+      "instances": 3,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
       "organization_id": 1,
       "module_code": "INVENTORY",
       "enabled": true,
+      "instances": 1,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
       "organization_id": 1,
       "module_code": "BILLING",
       "enabled": true,
+      "instances": 2,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
@@ -6712,12 +6681,14 @@ const dataStore = {
       "organization_id": 2,
       "module_code": "APPOINTMENTS",
       "enabled": true,
+      "instances": 2,
       "updated_at": "2026-08-18T11:39:52.322Z"
     },
     {
       "organization_id": 2,
       "module_code": "ADMISSIONS",
       "enabled": true,
+      "instances": 2,
       "updated_at": "2026-08-18T11:39:52.322Z"
     },
     {

@@ -264,6 +264,15 @@
     return data;
   }
 
+  // Merges the nested `file` object of an upload response up to the top
+  // level so `.url` etc. are reachable directly, without losing `.file`.
+  function flattenUpload(res) {
+    if (res && typeof res === "object" && res.file && typeof res.file === "object") {
+      return Object.assign({}, res, res.file);
+    }
+    return res;
+  }
+
   /**
    * Fetches a session-gated upload (GET /uploads/:category/:filename) with the
    * bearer token attached, then opens it in a new tab. Needed because a plain
@@ -749,14 +758,19 @@
     },
 
     uploads: {
+      // The upload endpoints wrap the file details under `file` —
+      // { statusCode, message, file: { url, filename, originalName, ... } }.
+      // Flatten so callers can read `.url` / `.originalName` / `.sizeBytes`
+      // directly (the historical contract several portals rely on), while
+      // still exposing the nested `.file` object.
       document: function (file) {
-        return requestUpload("/uploads/document", "document", file);
+        return requestUpload("/uploads/document", "document", file).then(flattenUpload);
       },
       branding: function (file) {
-        return requestUpload("/uploads/branding", "logo", file);
+        return requestUpload("/uploads/branding", "logo", file).then(flattenUpload);
       },
       inventory: function (file) {
-        return requestUpload("/uploads/inventory", "invoice", file);
+        return requestUpload("/uploads/inventory", "invoice", file).then(flattenUpload);
       },
       // Public, unauthenticated static URL (served by app.js's /uploads-static
       // mount) — safe for direct <img src> embedding, e.g. branding logos.

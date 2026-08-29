@@ -6,6 +6,7 @@ const subscriptionPlanService = require('../services/subscriptionPlan.service');
 const subscriptionService = require('../services/subscription.service');
 const provisioningService = require('../services/provisioning.service');
 const platformActivityService = require('../services/platformActivity.service');
+const serviceCatalog = require('../config/serviceCatalog');
 const dataStore = require('../store/dataStore');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
@@ -153,14 +154,16 @@ function platformUsage(req, res) {
     };
   });
 
-  // Calculate platform financial analytics (MRR / ARR)
+  // Platform financial analytics (MRR / ARR) — revenue is usage-based, so
+  // it is broken down per SERVICE, not per fixed plan tier. Each active
+  // org contributes: Σ (service unit price × instances) for the services
+  // it has enabled.
   let totalMrr = 0;
-  const revenueByPlan = {};
-
-  dataStore.subscriptionPlans.forEach((plan) => {
-    revenueByPlan[plan.name] = {
-      plan_id: plan.plan_id,
-      price_monthly: plan.price_monthly,
+  const revenueByService = {};
+  Object.keys(serviceCatalog.SERVICE_NAMES).forEach((code) => {
+    revenueByService[serviceCatalog.SERVICE_NAMES[code]] = {
+      code,
+      price_monthly: serviceCatalog.priceFor(code),
       active_subscriptions: 0,
       total_income: 0,
     };
@@ -168,13 +171,14 @@ function platformUsage(req, res) {
 
   orgDetails.forEach((org) => {
     if (org.status === 'ACTIVE' && org.subscription) {
-      const price = Number(org.subscription.price_monthly) || 0;
-      totalMrr += price;
-      const planName = org.subscription.plan_name;
-      if (revenueByPlan[planName]) {
-        revenueByPlan[planName].active_subscriptions += 1;
-        revenueByPlan[planName].total_income += price;
-      }
+      totalMrr += Number(org.subscription.price_monthly) || 0;
+      (org.subscription.service_lines || []).forEach((line) => {
+        const bucket = revenueByService[line.name];
+        if (bucket) {
+          bucket.active_subscriptions += 1;
+          bucket.total_income += Number(line.amount) || 0;
+        }
+      });
     }
   });
 
@@ -192,9 +196,19 @@ function platformUsage(req, res) {
       total_users: dataStore.users.length,
       total_patients: dataStore.patients.length,
       total_hospitals: dataStore.hospitals.length,
+      total_active_admissions: dataStore.admissions.filter(
+        (a) => a.status !== 'DISCHARGED',
+      ).length,
+      total_payments_collected: dataStore.payments.reduce(
+        (s, p) => s + Number(p.amount_paid || 0),
+        0,
+      ),
       total_mrr: totalMrr,
       total_arr: totalArr,
-      revenue_by_plan: revenueByPlan,
+      // Key kept as `revenue_by_plan` for dashboard back-compat; content is
+      // now a per-service breakdown.
+      revenue_by_plan: revenueByService,
+      revenue_by_service: revenueByService,
       organizations: orgDetails,
     },
     200,
@@ -226,9 +240,10 @@ function setModuleFlag(req, res) {
     +req.params.id,
     req.params.moduleCode,
     Boolean(req.body.enabled),
+    req.body.instances,
   );
   logger.log(
-    `🚩 MODULE FLAG  organization_id=${req.params.id}  module=${req.params.moduleCode}  enabled=${req.body.enabled}`,
+    `🚩 MODULE FLAG  organization_id=${req.params.id}  module=${req.params.moduleCode}  enabled=${req.body.enabled}  instances=${req.body.instances ?? '(unchanged)'}`,
   );
   platformActivityService.log(
     req.session.userId,

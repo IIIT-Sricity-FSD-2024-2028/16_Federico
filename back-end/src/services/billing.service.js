@@ -127,14 +127,19 @@ function createPayment(payment) {
   };
   dataStore.payments.push(newPayment);
 
-  // Automatically confirm payment and notify HOM
+  // Automatically confirm payment. This is the "bills cleared" signal that
+  // HOM and PRE watch for: the ledger goes PAID, the admission is flagged
+  // bills_cleared, and an activity-log entry is written. PRE's final
+  // discharge sign-off (which releases the bed) is gated on this state.
   ledger.status = 'PAID';
+  ledger.cleared_at = new Date().toISOString();
 
   const admission = dataStore.admissions.find(
     (a) => a.admission_id === ledger.admission_id,
   );
   if (admission) {
     admission.receipt_sent_to_hom = true;
+    admission.bills_cleared = true;
     admission.status = 'PAYMENT_CONFIRMED';
 
     // Phase 2: auto-generate a receipt for the patient, and log it.
@@ -157,8 +162,13 @@ function createPayment(payment) {
 
     activityService.log(
       'success',
-      `Payment of ${newPayment.amount_paid} received for admission #${admission.admission_id}`,
-      { paymentId: newPayment.payment_id, receiptId: newReceipt.receipt_id },
+      `Bill cleared for admission #${admission.admission_id} — payment of ${newPayment.amount_paid} received. Bed may now be released by PRE.`,
+      {
+        paymentId: newPayment.payment_id,
+        receiptId: newReceipt.receipt_id,
+        admissionId: admission.admission_id,
+        billsCleared: true,
+      },
       newPayment.organization_id,
     );
   }

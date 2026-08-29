@@ -15,11 +15,17 @@ const ACTOR_ACCESS = {
   billing: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA'] },
   leader: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'FA'] },
   payment: { write: ['FA', 'Patient'] },
-  ledgerEntry: { write: ['FA', 'HOM'] },
-  appointment: { read: ['HOM', 'PRE', 'FA'], write: ['PRE'] },
+  // Only FA writes ledger lines directly. HOM-originated charges must go
+  // through the `leader` queue (POST /billing/leaders) and be approved by
+  // FA before they land in a patient's ledger.
+  ledgerEntry: { write: ['FA'] },
+  // 'Admin' (org owner) gets read-only visibility into appointments and
+  // pre-registration flow for its own organization — used by the Admin
+  // analytics dashboard. Still org-scoped by scopeToOrg in the controller.
+  appointment: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['PRE'] },
   admission: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'PRE'] },
   preRequest: {
-    read: ['HOM', 'PRE', 'FA', 'Patient'],
+    read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
     write: ['HOM', 'PRE', 'Patient'],
   },
   rbac: { read: ['Admin'], write: ['Admin'] },

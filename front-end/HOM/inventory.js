@@ -504,25 +504,28 @@ async function postUsage(uhid, itemId, qty) {
     stock_quantity: Math.max(0, item.stock_quantity - qty),
   });
 
-  // 2. If item is linked to a billing service and patient has an open ledger, post charge
+  // 2. If the item is linked to a billing service, forward the charge to
+  //    Finance as a pending "leader" — HOM never writes a patient's ledger
+  //    directly; FA must approve every charge from the Charges page first.
   const service = serviceForItem(item);
   if (service && patient) {
     const bills = await window.ApiClient.billing.patient.bills(patient.patient_id).catch(() => []);
-    const openBill = (Array.isArray(bills) ? bills : []).find((b) => b.ledger && b.ledger.status !== 'PAID');
-    if (openBill) {
-      await window.ApiClient.billing.ledger.addEntry({
-        ledger_id: openBill.ledger.ledger_id,
+    const activeBundle = (Array.isArray(bills) ? bills : []).find(
+      (b) => b.admission && b.admission.status !== 'DISCHARGED',
+    );
+    if (activeBundle && activeBundle.admission) {
+      await window.ApiClient.billing.leaders.create({
+        admission_id: activeBundle.admission.admission_id,
         service_id: service.service_id,
         quantity: qty,
-        unit_price: service.base_cost,
-        amount: service.base_cost * qty,
       }).catch((err) => {
-        console.warn('Could not post to billing ledger:', err.message);
+        console.warn('Could not forward supply charge to Finance:', err.message);
       });
     }
   }
 
-  window.UIFeedback?.toast(`Logged usage: ${qty}x ${item.item_name} for ${patient.name}.`, 'success');
+  const billedNote = service && patient ? ' — charge sent to Finance for approval' : '';
+  window.UIFeedback?.toast(`Logged usage: ${qty}x ${item.item_name} for ${patient.name}${billedNote}.`, 'success');
   await loadAndRender();
 }
 

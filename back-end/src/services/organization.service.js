@@ -2,6 +2,7 @@
 
 const dataStore = require('../store/dataStore');
 const { MODULE_CODES } = require('../utils/tenant');
+const serviceCatalog = require('../config/serviceCatalog');
 
 function slugify(name) {
   const base = String(name || '')
@@ -96,24 +97,37 @@ function createHospital(organizationId, payload) {
 
 // ---- Feature flags (organizationModules) ----
 
-/** Every module gets an explicit row (true or false) — see requireModule() in middleware/tenant.js, which treats a missing row as "not configured" rather than implicitly enabled. */
-function setModuleFlags(organizationId, enabledCodes) {
+/**
+ * Every module gets an explicit row (true or false) — see requireModule() in
+ * middleware/tenant.js, which treats a missing row as "not configured" rather
+ * than implicitly enabled.
+ *
+ * `instancesMap` (optional) is { CODE: count } — how many billable instances
+ * of that service the org provisioned. Usage-based billing multiplies each
+ * enabled service's unit price by its instance count. Missing / <1 -> 1.
+ */
+function setModuleFlags(organizationId, enabledCodes, instancesMap) {
   const oid = Number(organizationId);
   const enabledSet = new Set(enabledCodes || []);
+  const instances = instancesMap || {};
   MODULE_CODES.forEach((code) => {
-    setModuleFlag(oid, code, enabledSet.has(code));
+    setModuleFlag(oid, code, enabledSet.has(code), instances[code]);
   });
   return enabledModulesFor(oid);
 }
 
-function setModuleFlag(organizationId, moduleCode, enabled) {
+function setModuleFlag(organizationId, moduleCode, enabled, instanceCount) {
   const oid = Number(organizationId);
   const code = String(moduleCode).toUpperCase();
   const existing = dataStore.organizationModules.find(
     (m) => m.organization_id === oid && m.module_code === code,
   );
+  const normalizedInstances =
+    instanceCount === undefined ? undefined : Math.max(1, Number(instanceCount) || 1);
   if (existing) {
     existing.enabled = enabled;
+    if (normalizedInstances !== undefined) existing.instances = normalizedInstances;
+    if (existing.instances === undefined) existing.instances = 1;
     existing.updated_at = new Date().toISOString();
     return existing;
   }
@@ -121,6 +135,7 @@ function setModuleFlag(organizationId, moduleCode, enabled) {
     organization_id: oid,
     module_code: code,
     enabled,
+    instances: normalizedInstances === undefined ? 1 : normalizedInstances,
     updated_at: new Date().toISOString(),
   };
   dataStore.organizationModules.push(newFlag);
@@ -134,13 +149,29 @@ function enabledModulesFor(organizationId) {
     .map((m) => m.module_code);
 }
 
+/** { CODE: instanceCount } for the org's ENABLED services only. */
+function moduleInstancesFor(organizationId) {
+  const oid = Number(organizationId);
+  const out = {};
+  dataStore.organizationModules
+    .filter((m) => m.organization_id === oid && m.enabled)
+    .forEach((m) => {
+      out[m.module_code] = Math.max(1, Number(m.instances) || 1);
+    });
+  return out;
+}
+
 function allModuleFlagsFor(organizationId) {
   const oid = Number(organizationId);
   return MODULE_CODES.map((code) => {
     const flag = dataStore.organizationModules.find(
       (m) => m.organization_id === oid && m.module_code === code,
     );
-    return { module_code: code, enabled: flag ? flag.enabled : false };
+    return {
+      module_code: code,
+      enabled: flag ? flag.enabled : false,
+      instances: flag && flag.instances ? Math.max(1, Number(flag.instances) || 1) : 1,
+    };
   });
 }
 
@@ -158,9 +189,36 @@ function usageFor(organizationId) {
   const count = (arr) => arr.filter((r) => r.organization_id === oid).length;
   const sub =
     dataStore.subscriptions.find((s) => s.organization_id === oid) || null;
-  const plan = sub
-    ? dataStore.subscriptionPlans.find((p) => p.plan_id === sub.plan_id) || null
-    : null;
+
+  const enabledModules = enabledModulesFor(oid);
+  // Usage-based billing: pay per enabled service × the number of instances
+  // of that service the org provisioned at onboarding.
+  const cost = serviceCatalog.computeCost(moduleInstancesFor(oid));
+
+  // Patient-flow snapshot for this organization — lets the Platform Super
+  // User see how actively each tenant is using the system, not just how
+  // many records it holds.
+  const orgPre = dataStore.preRequests.filter((p) => p.organization_id === oid);
+  const orgAdm = dataStore.admissions.filter((a) => a.organization_id === oid);
+  const byStatus = (arr, s) => arr.filter((r) => r.status === s).length;
+  const patientFlow = {
+    appointments: count(dataStore.appointments),
+    pre_requests_total: orgPre.length,
+    pre_requests_pending: byStatus(orgPre, 'PENDING'),
+    admitted: byStatus(orgPre, 'ADMITTED'),
+    discharge_in_progress:
+      byStatus(orgPre, 'DISCHARGE_REQUESTED') + byStatus(orgPre, 'DISCHARGE_APPROVED'),
+    discharged: byStatus(orgPre, 'DISCHARGED'),
+    admissions_active: orgAdm.filter((a) => a.status !== 'DISCHARGED').length,
+    admissions_total: orgAdm.length,
+  };
+  const orgLedgers = dataStore.ledgers.filter((l) => l.organization_id === oid);
+  const orgPayments = dataStore.payments.filter((p) => p.organization_id === oid);
+  const revenue = {
+    payments_collected: orgPayments.reduce((s, p) => s + Number(p.amount_paid || 0), 0),
+    open_ledgers: orgLedgers.filter((l) => l.status !== 'PAID').length,
+    paid_ledgers: orgLedgers.filter((l) => l.status === 'PAID').length,
+  };
 
   return {
     hospitals: hospitalsFor(oid).length,
@@ -170,19 +228,27 @@ function usageFor(organizationId) {
     beds_occupied: dataStore.beds.filter(
       (b) => b.organization_id === oid && b.status === 'OCCUPIED',
     ).length,
+    patient_flow: patientFlow,
+    revenue,
     quotas: quotasFor(oid),
     subscription: sub
       ? {
           subscription_id: sub.subscription_id,
           plan_id: sub.plan_id,
-          plan_name: plan ? plan.name : 'Unknown',
-          price_monthly: plan ? Number(plan.price_monthly) || 0 : 0,
+          // Retained keys (plan_name / price_monthly) so existing platform
+          // dashboard rendering keeps working — but the value is now the
+          // computed usage charge, not a fixed tier price.
+          plan_name: 'Usage-based',
+          price_monthly: cost.total,
+          billing_model: 'USAGE',
+          service_lines: cost.lines,
+          instances: cost.instances,
           status: sub.status,
           started_at: sub.started_at,
           renews_at: sub.renews_at,
         }
       : null,
-    enabled_modules: enabledModulesFor(oid),
+    enabled_modules: enabledModules,
   };
 }
 
@@ -220,6 +286,7 @@ module.exports = {
   setModuleFlags,
   setModuleFlag,
   enabledModulesFor,
+  moduleInstancesFor,
   allModuleFlagsFor,
   quotasFor,
   usageFor,
