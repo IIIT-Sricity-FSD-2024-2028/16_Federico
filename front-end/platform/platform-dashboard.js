@@ -70,13 +70,22 @@
     try {
       var usage = await window.ApiClient.platform.usage();
       orgsCache = usage.organizations;
-      
+
+      var metered = null;
+      try {
+        metered = await window.ApiClient.platform.usageMetered();
+      } catch (e) {
+        metered = null;
+      }
+
       var mrrFormatted = "₹" + (usage.total_mrr || 0).toLocaleString("en-IN");
       var arrFormatted = "₹" + (usage.total_arr || 0).toLocaleString("en-IN");
 
       document.getElementById("platform-stats").innerHTML =
-        stat(mrrFormatted, "Total MRR (Monthly Income)", "revenue-card") +
+        stat(mrrFormatted, "Total MRR (base + usage + flat)", "revenue-card") +
         stat(arrFormatted, "Annual Run Rate (ARR)", "revenue-card") +
+        stat("₹" + ((metered && metered.total_usage_fee) || 0).toLocaleString("en-IN"), "Metered Usage Fees (this period)", "revenue-card") +
+        stat(((metered && metered.total_billable_hits) || 0).toLocaleString("en-IN"), "Billable Events (this period)") +
         stat("₹" + (usage.total_payments_collected || 0).toLocaleString("en-IN"), "Payments Collected (All Tenants)", "revenue-card") +
         stat(usage.total_organizations, "Total Organizations") +
         stat(usage.active_organizations, "Active Tenants") +
@@ -84,6 +93,8 @@
         stat(usage.total_patients, "Registered Patients") +
         stat(usage.total_active_admissions, "Active Inpatients (Platform-wide)") +
         stat(usage.total_users, "Staff & Users");
+
+      renderUsageRevenueGrid(usage.billing_period, metered);
 
       // Render Revenue Breakdown by Plan
       var planRevEl = document.getElementById("plan-revenue-grid");
@@ -110,12 +121,17 @@
           }).join("");
           var pf = org.patient_flow || {};
           var rev = org.revenue || {};
+          var mu = org.metered_usage || {};
+          var meteredLine = "Metered: ₹" + Number(mu.usage_fee_total || 0).toLocaleString("en-IN") +
+            " · " + Number(mu.total_billable_hits || 0).toLocaleString("en-IN") + " billable events" +
+            " · base ₹" + Number(mu.base_fee || 0).toLocaleString("en-IN");
 
           return (
             '<div class="org-mini-card" data-org-id="' + org.organization_id + '">' +
             '<div class="org-mini-head"><span class="org-mini-mark">' + org.name.charAt(0).toUpperCase() + '</span>' +
             '<div><div class="org-mini-name">' + org.name + '</div><span class="md-chip ' + statusChipClass(org.status) + '">' + org.status + '</span></div></div>' +
             '<div class="org-mini-meta">Plan: <strong>' + planName + '</strong> (' + monthlyFee + ')</div>' +
+            '<div class="org-mini-meta" style="margin-top:4px;">' + meteredLine + '</div>' +
             '<div class="org-mini-meta" style="margin-top:4px;">' + org.hospitals + ' branch(es) · ' + org.users + ' users · ' + org.patients + ' patients · ' + org.beds_occupied + '/' + org.beds + ' beds</div>' +
             '<div class="org-mini-meta" style="margin-top:4px;">Flow: ' + (pf.admitted || 0) + ' admitted · ' + (pf.discharge_in_progress || 0) + ' in discharge · ' + (pf.pre_requests_pending || 0) + ' intake pending</div>' +
             '<div class="org-mini-meta" style="margin-top:4px;">Collected: <strong>₹' + Number(rev.payments_collected || 0).toLocaleString("en-IN") + '</strong> · ' + (rev.open_ledgers || 0) + ' open / ' + (rev.paid_ledgers || 0) + ' paid ledgers</div>' +
@@ -139,6 +155,49 @@
   function stat(value, label, extraClass) {
     var cls = "stat-card" + (extraClass ? " " + extraClass : "");
     return '<div class="' + cls + '"><div class="stat-value">' + value + '</div><div class="stat-label">' + label + '</div></div>';
+  }
+
+  // Per-module billable-hit + usage-fee breakdown for the current period.
+  function renderUsageRevenueGrid(period, metered) {
+    var el = document.getElementById("usage-revenue-grid");
+    if (!el) return;
+    var periodEl = document.getElementById("metered-period");
+    if (periodEl && (period || (metered && metered.billing_period))) {
+      periodEl.textContent = period || metered.billing_period;
+    }
+    var byModule = (metered && metered.usage_by_module) || {};
+    var codes = Object.keys(byModule);
+    if (!codes.length) {
+      el.innerHTML = '<div class="md-empty-state"><span>No billable events recorded this period yet.</span></div>';
+      return;
+    }
+    el.innerHTML = codes.map(function (code) {
+      var d = byModule[code];
+      return (
+        '<div class="plan-rev-card">' +
+        '<div class="plan-rev-title"><span>' + (d.name || code) + '</span>' +
+        '<span class="md-chip md-chip-tonal">' + Number(d.billable_hits || 0).toLocaleString("en-IN") + ' hits</span></div>' +
+        '<div class="plan-rev-amount">₹' + Number(d.usage_fee || 0).toLocaleString("en-IN") +
+        '<span style="font-size:0.8rem;font-weight:400;color:var(--md-on-surface-variant);"> /mo</span></div>' +
+        '<div class="plan-rev-sub">per-hit platform fee</div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  async function closeBillingPeriod(btn) {
+    try {
+      var result = await window.ApiClient.withAsyncLock(btn, function () {
+        return window.ApiClient.platform.billing.closePeriod();
+      });
+      window.UIFeedback.toast(
+        "Closed " + result.period + " — " + result.invoices.length + " invoice(s) generated.",
+        "success",
+      );
+      refreshAll();
+    } catch (err) {
+      window.UIFeedback.toast(err.message || "Could not close the billing period.", "error");
+    }
   }
   function statusChipClass(status) {
     if (status === "ACTIVE") return "md-chip-success";
@@ -334,6 +393,17 @@
 
       var usage = await window.ApiClient.platform.organizations.usage(orgId);
       var subscription = await window.ApiClient.platform.organizations.getSubscription(orgId).catch(function () { return null; });
+      var metered = await window.ApiClient.platform.organizations.usageMetered(orgId).catch(function () { return null; });
+      var sub = usage.subscription || {};
+      var meteredRows = metered
+        ? kv("Billing period", metered.period) +
+          kv("Base fee", "₹" + Number(metered.base_fee || 0).toLocaleString("en-IN") + " (" + metered.branches + " branch/es)") +
+          kv("Billable events", Number(metered.total_billable_hits || 0).toLocaleString("en-IN")) +
+          kv("Metered usage fee", "₹" + Number(metered.usage_fee_total || 0).toLocaleString("en-IN")) +
+          kv("Insurance flat fee", "₹" + Number(metered.insurance_flat_fee || 0).toLocaleString("en-IN")) +
+          kv("Per-module hits", (metered.fee_lines || []).map(function (l) { return l.name + ": " + l.billable_hits + " (₹" + Number(l.amount || 0).toLocaleString("en-IN") + ")"; }).join(" · ") || "—") +
+          kv("Estimated total this month", "₹" + Number(metered.total_monthly || 0).toLocaleString("en-IN"))
+        : "";
       document.getElementById("detail-summary").innerHTML =
         kv("Status", org.status) +
         kv("Slug", org.slug) +
@@ -344,7 +414,9 @@
         kv("Patient flow", (usage.patient_flow ? (usage.patient_flow.admitted + " admitted · " + usage.patient_flow.discharge_in_progress + " in discharge · " + usage.patient_flow.pre_requests_pending + " intake pending · " + usage.patient_flow.discharged + " discharged") : "—")) +
         kv("Appointments booked", usage.patient_flow ? usage.patient_flow.appointments : "—") +
         kv("Payments collected", "₹" + Number(usage.revenue ? usage.revenue.payments_collected : 0).toLocaleString("en-IN") + " (" + (usage.revenue ? usage.revenue.paid_ledgers : 0) + " paid / " + (usage.revenue ? usage.revenue.open_ledgers : 0) + " open ledgers)") +
-        kv("Monthly service charge", "₹" + Number(subscription && subscription.subscription ? subscription.subscription.price_monthly || 0 : (usage.subscription ? usage.subscription.price_monthly : 0)).toLocaleString("en-IN")) +
+        kv("Monthly charge (base + usage + flat)", "₹" + Number(usage.subscription ? usage.subscription.price_monthly || 0 : 0).toLocaleString("en-IN") +
+          (sub.base_fee_monthly !== undefined ? "  (base ₹" + Number(sub.base_fee_monthly || 0).toLocaleString("en-IN") + " + usage ₹" + Number(sub.usage_fee_monthly || 0).toLocaleString("en-IN") + " + flat ₹" + Number(sub.insurance_flat_monthly || 0).toLocaleString("en-IN") + ")" : "")) +
+        meteredRows +
         kv("Emergency 24×7", org.emergency_available ? "Yes" : "No") +
         kv("Specialties", (org.specialties || []).join(", ") || "—") +
         kv("Enabled services", (usage.enabled_modules || []).join(", ") || "—") +
@@ -508,6 +580,13 @@
       window.UIFeedback.toast(err.message || "Could not create plan.", "error");
     }
   });
+
+  var closePeriodBtn = document.getElementById("btn-close-period");
+  if (closePeriodBtn) {
+    closePeriodBtn.addEventListener("click", function () {
+      closeBillingPeriod(closePeriodBtn);
+    });
+  }
 
   // ---- Boot ----
   async function refreshAll() {

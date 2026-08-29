@@ -29,6 +29,16 @@
             <a class="btn btn-primary btn-default" href="screen-04-admin.html" style="white-space:nowrap;">+ Add / manage team members</a>
         </div>
 
+        <div class="card" style="margin-bottom:24px;">
+            <div class="card-header">
+                <h2 class="card-title">Platform Usage — <span id="platform-usage-period">this month</span></h2>
+                <p class="card-description">Platform fees accruing this billing period. Metered fees are charged per successful action; updated live.</p>
+            </div>
+            <div class="card-content">
+                <div id="platform-usage-body"><div class="md-empty-state"><span>Loading…</span></div></div>
+            </div>
+        </div>
+
         <div data-requires-module="ANALYTICS">
             <div class="metrics-grid" id="metrics-container"></div>
 

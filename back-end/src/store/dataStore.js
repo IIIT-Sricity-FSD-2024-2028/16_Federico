@@ -7043,7 +7043,16 @@ const dataStore = {
     }
   ],
   "platformActivityLog": [],
-  "leaders": []
+  "leaders": [],
+
+  // Usage-based platform billing — per organization -> per module -> per
+  // UTC YYYY-MM: count of successfully handled state-changing HTTP requests
+  // ("billable hits"). Populated lazily by src/metering/metrics.service.js.
+  "moduleUsage": {},
+
+  // Closed billing-period snapshots produced by
+  // src/services/usageInvoice.service.js (POST /platform/billing/close-period).
+  "usageInvoices": []
 };
 
 module.exports = dataStore;

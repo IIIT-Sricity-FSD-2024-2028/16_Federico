@@ -5,12 +5,48 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Platform-usage widget is independent of the ANALYTICS gate — the hospital
+  // owner should always be able to see the platform fees they're accruing.
+  loadPlatformUsage();
+
   const locked = !window.RoleAccess.hasModule('ANALYTICS');
   document.getElementById('analytics-locked-message').style.display = locked ? 'block' : 'none';
   if (locked) return;
 
   await loadAndRender();
 });
+
+async function loadPlatformUsage() {
+  const body = document.getElementById('platform-usage-body');
+  if (!body) return;
+  try {
+    const u = await window.ApiClient.account.usage();
+    const periodEl = document.getElementById('platform-usage-period');
+    if (periodEl && u.period) periodEl.textContent = u.period;
+
+    const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+    const moduleLines = (u.fee_lines || [])
+      .map((l) => `<tr><td>${l.name}</td><td>${Number(l.billable_hits || 0).toLocaleString('en-IN')}</td><td>${inr(l.amount)}</td></tr>`)
+      .join('');
+
+    body.innerHTML = `
+      <div class="metrics-grid" style="margin-bottom:16px;">
+        <div class="metric-card"><div class="metric-value">${inr(u.base_fee)}</div><div class="metric-label">Base platform fee</div></div>
+        <div class="metric-card"><div class="metric-value">${Number(u.total_billable_hits || 0).toLocaleString('en-IN')}</div><div class="metric-label">Billable events this month</div></div>
+        <div class="metric-card"><div class="metric-value">${inr(u.usage_fee_total)}</div><div class="metric-label">Metered usage fees</div></div>
+        <div class="metric-card"><div class="metric-value">${inr(u.insurance_flat_fee)}</div><div class="metric-label">Insurance (flat)</div></div>
+        <div class="metric-card"><div class="metric-value">${inr(u.total_monthly)}</div><div class="metric-label">Estimated total this month</div></div>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr><th>Module</th><th>Billable events</th><th>Fee</th></tr></thead>
+          <tbody>${moduleLines || '<tr><td colspan="3">No billable events yet this month.</td></tr>'}</tbody>
+        </table>
+      </div>`;
+  } catch (err) {
+    body.innerHTML = `<div class="md-empty-state"><span>Could not load platform usage.</span></div>`;
+  }
+}
 
 async function loadAndRender() {
   const [wards, beds, patients, rawLedgers, items, staff, payments, admissions, preRequests, appointments] = await Promise.all([

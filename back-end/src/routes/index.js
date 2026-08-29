@@ -30,23 +30,30 @@ const rbacRoutes = require('./rbac.routes');
 // File Upload (Evaluation Criteria: File upload middleware).
 const uploadRoutes = require('./upload.routes');
 
+// Usage-based billing — per-hit metering hook (route wiring, NOT middleware)
+// and the tenant-facing "my usage" view.
+const { meter } = require('../metering/meter');
+const usageRoutes = require('./usage.routes');
+
 const router = Router();
 
 router.get('/', appController.getHello);
 
 router.use('/data', dataRoutes);
-router.use('/doctor', doctorRoutes);
-router.use('/patient', patientRoutes);
-router.use('/ward', wardRoutes);
-router.use('/inventory', inventoryRoutes);
-router.use('/billing', billingRoutes);
-router.use('/appointment', appointmentRoutes);
-router.use('/request', requestRoutes);
-router.use('/admission', admissionRoutes);
+router.use('/doctor', doctorRoutes); // core directory CRUD — not metered
+router.use('/patient', patientRoutes); // core CRUD + INSURANCE (billed flat) — not metered
+router.use('/ward', meter('ADMISSIONS'), wardRoutes);
+router.use('/inventory', meter('INVENTORY'), inventoryRoutes);
+router.use('/billing', meter('BILLING'), billingRoutes);
+router.use('/appointment', meter('APPOINTMENTS'), appointmentRoutes);
+router.use('/request', meter('APPOINTMENTS'), requestRoutes); // alias of /appointment — same router, same code -> one request = one hit
+router.use('/admission', meter('ADMISSIONS'), admissionRoutes);
 
 router.use('/auth', authRoutes);
-router.use('/pre-requests', preRequestRoutes);
+router.use('/pre-requests', meter('ADMISSIONS'), preRequestRoutes);
 router.use('/activity-log', activityRoutes);
+
+router.use('/account', usageRoutes);
 
 router.use('/platform', platformRoutes);
 router.use('/marketplace', marketplaceRoutes);

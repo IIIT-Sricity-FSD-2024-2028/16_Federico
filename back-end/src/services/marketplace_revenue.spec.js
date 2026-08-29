@@ -57,7 +57,7 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(res.body.session.token).toBeDefined();
   });
 
-  it('should calculate live platform MRR/ARR from per-service usage for Platform Super User', async () => {
+  it('should calculate live platform MRR/ARR from base + metered usage + flat lines for Platform Super User', async () => {
     const loginRes = await request(app)
       .post('/platform/auth/login')
       .send({ email: 'platform@federico.com', password: 'Federico@Platform123' });
@@ -73,6 +73,12 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(usageRes.body.total_mrr).toBeGreaterThan(0);
     expect(usageRes.body.total_arr).toBe(usageRes.body.total_mrr * 12);
 
+    // Usage-based ("per-hit platform fee") rollup keys.
+    expect(usageRes.body.billing_period).toMatch(/^\d{4}-\d{2}$/);
+    expect(typeof usageRes.body.total_usage_fee).toBe('number');
+    expect(typeof usageRes.body.total_billable_hits).toBe('number');
+    expect(usageRes.body.usage_by_module).toBeDefined();
+
     // Revenue is broken down per service, not per plan tier.
     expect(usageRes.body.revenue_by_plan).toBeDefined();
     expect(usageRes.body.revenue_by_service).toBeDefined();
@@ -85,13 +91,25 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(org).toBeDefined();
     expect(org.subscription.plan_name).toBe('Usage-based');
     expect(org.subscription.billing_model).toBe('USAGE');
-    // 5 chosen services × 1 branch instance.
-    const expectedCost = serviceCatalog.computeCost(
-      ['APPOINTMENTS', 'ADMISSIONS', 'INVENTORY', 'BILLING', 'INSURANCE'],
-      1,
-    ).total;
-    expect(org.subscription.price_monthly).toBe(expectedCost);
+
+    // Bill = base fee per branch + metered hits + INSURANCE flat per branch.
+    // A freshly provisioned org has recorded no billable hits yet, so the
+    // metered component is 0 and the bill is base + INSURANCE flat.
+    const branches = 1;
+    const expectedBase = serviceCatalog.computeBaseFee(branches);
+    const expectedInsuranceFlat = serviceCatalog.computeCost({
+      INSURANCE: branches,
+    }).total;
+    expect(org.subscription.base_fee_monthly).toBe(expectedBase);
+    expect(org.subscription.usage_fee_monthly).toBe(0);
+    expect(org.subscription.insurance_flat_monthly).toBe(expectedInsuranceFlat);
+    expect(org.subscription.price_monthly).toBe(
+      expectedBase + expectedInsuranceFlat,
+    );
+    // 1 flat line (INSURANCE) + 4 metered lines (APPOINTMENTS/ADMISSIONS/INVENTORY/BILLING).
     expect(org.subscription.service_lines).toHaveLength(5);
+    expect(org.metered_usage).toBeDefined();
+    expect(org.metered_usage.total_billable_hits).toBe(0);
     expect(org.enabled_modules).toContain('APPOINTMENTS');
     expect(org.enabled_modules).toContain('BILLING');
   });

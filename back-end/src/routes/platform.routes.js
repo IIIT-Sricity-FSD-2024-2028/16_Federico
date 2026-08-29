@@ -2,6 +2,7 @@
 
 const { Router } = require('express');
 const controller = require('../controllers/platform.controller');
+const meteringController = require('../controllers/usageMetering.controller');
 const { requireSession } = require('../middleware/session');
 const { requirePlatformUser } = require('../middleware/platformAccess');
 const { validateBody } = require('../validators/engine');
@@ -56,6 +57,20 @@ router.get(
 router.get('/organizations/:id/usage', ...gate, controller.usage);
 router.get('/usage', ...gate, controller.platformUsage);
 router.get('/activity-log', ...gate, controller.activityLog);
+
+// Usage-based ("per-hit platform fee") billing
+router.get('/usage/metered', ...gate, meteringController.platformMeteredUsage);
+router.get(
+  '/organizations/:id/usage/metered',
+  ...gate,
+  meteringController.orgMeteredUsage,
+);
+router.post(
+  '/billing/close-period',
+  ...gate,
+  meteringController.closeBillingPeriod,
+);
+router.get('/billing/invoices', ...gate, meteringController.listInvoices);
 
 // Hospitals (branches)
 router.get('/organizations/:id/hospitals', ...gate, controller.findHospitals);

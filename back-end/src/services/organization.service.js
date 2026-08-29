@@ -3,6 +3,7 @@
 const dataStore = require('../store/dataStore');
 const { MODULE_CODES } = require('../utils/tenant');
 const serviceCatalog = require('../config/serviceCatalog');
+const metrics = require('../metering/metrics.service');
 
 function slugify(name) {
   const base = String(name || '')
@@ -191,9 +192,35 @@ function usageFor(organizationId) {
     dataStore.subscriptions.find((s) => s.organization_id === oid) || null;
 
   const enabledModules = enabledModulesFor(oid);
-  // Usage-based billing: pay per enabled service × the number of instances
-  // of that service the org provisioned at onboarding.
-  const cost = serviceCatalog.computeCost(moduleInstancesFor(oid));
+
+  // ---- Usage-based ("per-hit platform fee") billing ----
+  //   monthly bill = PLATFORM_BASE_FEE_PER_BRANCH × branches
+  //                + Σ billable_hits[m] × HIT_RATES[m]   (metered modules, enabled)
+  //                + Σ SERVICE_PRICES[m] × branches       (flat modules, enabled — INSURANCE)
+  // ANALYTICS is entitlement-only and never billed.
+  const billingPeriod = metrics.period();
+  const branchCount = hospitalsFor(oid).length;
+  const moduleInstances = moduleInstancesFor(oid);
+
+  const usageHitMap = metrics.hitMap(oid, enabledModules, billingPeriod);
+  const usageFee = serviceCatalog.computeUsageFee(usageHitMap);
+  const baseFee = serviceCatalog.computeBaseFee(branchCount);
+
+  const flatModules = enabledModules.filter((c) =>
+    serviceCatalog.FLAT_MODULES.includes(c),
+  );
+  const flatCost = serviceCatalog.computeCost(
+    Object.fromEntries(
+      flatModules.map((c) => [c, moduleInstances[c] || branchCount || 1]),
+    ),
+  );
+
+  const meteredRollup = metrics.usageForOrg(oid, billingPeriod);
+  const billTotal = baseFee + flatCost.total + usageFee.total;
+  const totalInstances = Object.values(moduleInstances).reduce(
+    (s, n) => s + (Number(n) || 0),
+    0,
+  );
 
   // Patient-flow snapshot for this organization — lets the Platform Super
   // User see how actively each tenant is using the system, not just how
@@ -236,19 +263,31 @@ function usageFor(organizationId) {
           subscription_id: sub.subscription_id,
           plan_id: sub.plan_id,
           // Retained keys (plan_name / price_monthly) so existing platform
-          // dashboard rendering keeps working — but the value is now the
-          // computed usage charge, not a fixed tier price.
+          // dashboard rendering keeps working — price_monthly is now the
+          // composite usage bill: base fee + metered hits + INSURANCE flat.
           plan_name: 'Usage-based',
-          price_monthly: cost.total,
+          price_monthly: billTotal,
           billing_model: 'USAGE',
-          service_lines: cost.lines,
-          instances: cost.instances,
+          base_fee_monthly: baseFee,
+          usage_fee_monthly: usageFee.total,
+          insurance_flat_monthly: flatCost.total,
+          service_lines: [...flatCost.lines, ...usageFee.lines],
+          instances: totalInstances,
           status: sub.status,
           started_at: sub.started_at,
           renews_at: sub.renews_at,
         }
       : null,
     enabled_modules: enabledModules,
+    metered_usage: {
+      period: billingPeriod,
+      total_billable_hits: meteredRollup.total_hits,
+      modules: meteredRollup.modules,
+      fee_lines: usageFee.lines,
+      usage_fee_total: usageFee.total,
+      base_fee: baseFee,
+      insurance_flat_fee: flatCost.total,
+    },
   };
 }
 

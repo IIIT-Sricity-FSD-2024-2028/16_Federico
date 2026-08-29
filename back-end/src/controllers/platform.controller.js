@@ -7,6 +7,7 @@ const subscriptionService = require('../services/subscription.service');
 const provisioningService = require('../services/provisioning.service');
 const platformActivityService = require('../services/platformActivity.service');
 const serviceCatalog = require('../config/serviceCatalog');
+const metrics = require('../metering/metrics.service');
 const dataStore = require('../store/dataStore');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
@@ -169,6 +170,12 @@ function platformUsage(req, res) {
     };
   });
 
+  // Usage-based ("per-hit platform fee") rollup — see serviceCatalog.js.
+  const billingPeriod = metrics.period();
+  let totalUsageFee = 0;
+  let totalBillableHits = 0;
+  const usageByModule = {};
+
   orgDetails.forEach((org) => {
     if (org.status === 'ACTIVE' && org.subscription) {
       totalMrr += Number(org.subscription.price_monthly) || 0;
@@ -178,6 +185,23 @@ function platformUsage(req, res) {
           bucket.active_subscriptions += 1;
           bucket.total_income += Number(line.amount) || 0;
         }
+      });
+    }
+    const mu = org.metered_usage;
+    if (org.status === 'ACTIVE' && mu) {
+      totalUsageFee += Number(mu.usage_fee_total) || 0;
+      totalBillableHits += Number(mu.total_billable_hits) || 0;
+      (mu.fee_lines || []).forEach((l) => {
+        const b =
+          usageByModule[l.code] ||
+          (usageByModule[l.code] = {
+            code: l.code,
+            name: l.name,
+            billable_hits: 0,
+            usage_fee: 0,
+          });
+        b.billable_hits += Number(l.billable_hits) || 0;
+        b.usage_fee += Number(l.amount) || 0;
       });
     }
   });
@@ -205,6 +229,11 @@ function platformUsage(req, res) {
       ),
       total_mrr: totalMrr,
       total_arr: totalArr,
+      // Usage-based billing rollup for the current period.
+      billing_period: billingPeriod,
+      total_billable_hits: totalBillableHits,
+      total_usage_fee: totalUsageFee,
+      usage_by_module: usageByModule,
       // Key kept as `revenue_by_plan` for dashboard back-compat; content is
       // now a per-service breakdown.
       revenue_by_plan: revenueByService,

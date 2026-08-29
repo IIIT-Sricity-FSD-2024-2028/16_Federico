@@ -416,6 +416,12 @@
         usage: function (id) {
           return request("GET", "/platform/organizations/" + id + "/usage");
         },
+        usageMetered: function (id, period) {
+          return request(
+            "GET",
+            "/platform/organizations/" + id + "/usage/metered" + (period ? "?period=" + encodeURIComponent(period) : ""),
+          );
+        },
         hospitals: function (id) {
           return request("GET", "/platform/organizations/" + id + "/hospitals");
         },
@@ -463,8 +469,32 @@
       usage: function () {
         return request("GET", "/platform/usage");
       },
+      usageMetered: function (period) {
+        return request("GET", "/platform/usage/metered" + (period ? "?period=" + encodeURIComponent(period) : ""));
+      },
+      billing: {
+        closePeriod: function (period, finalize) {
+          var body = {};
+          if (period) body.period = period;
+          if (finalize === false) body.finalize = false;
+          return request("POST", "/platform/billing/close-period", body);
+        },
+        invoices: function (orgId, period) {
+          var qs = [];
+          if (orgId) qs.push("org=" + encodeURIComponent(orgId));
+          if (period) qs.push("period=" + encodeURIComponent(period));
+          return request("GET", "/platform/billing/invoices" + (qs.length ? "?" + qs.join("&") : ""));
+        },
+      },
       activityLog: function () {
         return request("GET", "/platform/activity-log");
+      },
+    },
+
+    // Tenant-facing platform-usage view ("what will I be billed this month").
+    account: {
+      usage: function (period) {
+        return request("GET", "/account/usage" + (period ? "?period=" + encodeURIComponent(period) : ""));
       },
     },
 
