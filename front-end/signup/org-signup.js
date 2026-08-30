@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
     price: 0,
   };
 
-  // Monthly price per service instance — mirrors
+  // Monthly BASE price per service instance — mirrors
   // back-end/src/config/serviceCatalog.js.
   var SERVICE_PRICES = {
     APPOINTMENTS: 1500,
@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', function () {
     BILLING: 2500,
     INSURANCE: 1800,
     ANALYTICS: 3000,
+    DOCTOR: 1200,
+    PATIENT: 1500,
+    LEADERSHIP: 1000,
   };
   var SERVICE_LABELS = {
     APPOINTMENTS: 'Appointments Management',
@@ -47,7 +50,71 @@ document.addEventListener('DOMContentLoaded', function () {
     BILLING: 'Dynamic Billing & Invoicing',
     INSURANCE: 'Insurance Verification',
     ANALYTICS: 'Administrative Analytics',
+    DOCTOR: 'Doctor Management',
+    PATIENT: 'Patient Management',
+    LEADERSHIP: 'Service Charge Approvals',
   };
+
+  // Resource types per module — mirrors
+  // back-end/src/config/resourceCatalog.js. { MODULE: [{ code, name, unit_price }] }.
+  var RESOURCE_CATALOG = {
+    ADMISSIONS: [
+      { code: 'GENERAL_BEDS', name: 'General Ward Beds', unit_price: 150 },
+      { code: 'ICU_BEDS', name: 'ICU Beds', unit_price: 600 },
+      { code: 'PRIVATE_BEDS', name: 'Private Beds', unit_price: 400 },
+      { code: 'SEMI_PRIVATE_BEDS', name: 'Semi-Private Beds', unit_price: 250 },
+    ],
+    INVENTORY: [
+      { code: 'STORAGE_UNITS', name: 'Storage Units', unit_price: 200 },
+      { code: 'WAREHOUSES', name: 'Warehouses', unit_price: 1200 },
+      { code: 'INVENTORY_USERS', name: 'Inventory Users', unit_price: 300 },
+    ],
+    BILLING: [
+      { code: 'BILLING_USERS', name: 'Billing Users', unit_price: 350 },
+      { code: 'BILLING_TERMINALS', name: 'Billing Terminals', unit_price: 500 },
+    ],
+    DOCTOR: [
+      { code: 'DOCTOR_SEATS', name: 'Doctor Directory Seats', unit_price: 120 },
+    ],
+    APPOINTMENTS: [
+      { code: 'BOOKING_CHANNELS', name: 'Online Booking Channels', unit_price: 400 },
+    ],
+  };
+
+  function resourceQtyFor(moduleCode, resourceCode) {
+    var input = document.querySelector(
+      '.module-resource-qty[data-module="' + moduleCode + '"][data-resource="' + resourceCode + '"]',
+    );
+    return Math.max(0, parseInt(input && input.value, 10) || 0);
+  }
+
+  // { MODULE: { RESOURCE: qty } } for the currently checked services.
+  function selectedModuleResources() {
+    var out = {};
+    selectedModuleCodes().forEach(function (code) {
+      var defs = RESOURCE_CATALOG[code];
+      if (!defs) return;
+      defs.forEach(function (def) {
+        var qty = resourceQtyFor(code, def.code);
+        if (qty > 0) {
+          if (!out[code]) out[code] = {};
+          out[code][def.code] = qty;
+        }
+      });
+    });
+    return out;
+  }
+
+  function resourceLinesFor(code) {
+    var defs = RESOURCE_CATALOG[code];
+    if (!defs) return [];
+    return defs
+      .map(function (def) {
+        var qty = resourceQtyFor(code, def.code);
+        return { code: def.code, label: def.name, qty: qty, unit: def.unit_price, amount: qty * def.unit_price };
+      })
+      .filter(function (l) { return l.qty > 0; });
+  }
   var inr = function (n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); };
 
   function selectedModuleCodes() {
@@ -71,7 +138,19 @@ document.addEventListener('DOMContentLoaded', function () {
     return selectedModuleCodes().map(function (code) {
       var qty = instanceCountFor(code);
       var unit = SERVICE_PRICES[code] || 0;
-      return { code: code, label: SERVICE_LABELS[code] || code, qty: qty, unit: unit, amount: unit * qty };
+      var base = unit * qty;
+      var resLines = resourceLinesFor(code);
+      var resTotal = resLines.reduce(function (s, l) { return s + l.amount; }, 0);
+      return {
+        code: code,
+        label: SERVICE_LABELS[code] || code,
+        qty: qty,
+        unit: unit,
+        base: base,
+        resourceLines: resLines,
+        resourceTotal: resTotal,
+        amount: base + resTotal,
+      };
     });
   }
 
@@ -102,8 +181,36 @@ document.addEventListener('DOMContentLoaded', function () {
       (card.querySelector('div') || card).appendChild(row);
 
       var qtyInput = row.querySelector('.module-instances');
+
+      // Resource-type rows (beds / seats / terminals) for modules that
+      // declare them — tasks.md §6/§7. Each is its own qty × unit price line.
+      var defs = RESOURCE_CATALOG[code] || [];
+      var resWrap = null;
+      if (defs.length) {
+        resWrap = document.createElement('div');
+        resWrap.className = 'module-resource-rows';
+        resWrap.style.cssText = 'margin-top:8px; padding-left:10px; border-left:2px solid var(--md-outline-variant); display:flex; flex-direction:column; gap:6px;';
+        resWrap.innerHTML = defs.map(function (def) {
+          return '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px;">' +
+            '<span>' + def.name + ' <span style="color:var(--md-on-surface-variant);">(' + inr(def.unit_price) + '/mo each)</span></span>' +
+            '<input type="number" class="module-resource-qty" data-module="' + code + '" data-resource="' + def.code + '" min="0" value="0" ' +
+            (cb.checked ? '' : 'disabled ') +
+            'style="width:64px; padding:4px 6px; border:1px solid var(--md-outline-variant); border-radius:6px; font:inherit;" /></div>';
+        }).join('');
+        (card.querySelector('div') || card).appendChild(resWrap);
+        resWrap.querySelectorAll('.module-resource-qty').forEach(function (inp) {
+          inp.addEventListener('input', updateCheckoutSummary);
+          ['click', 'mousedown', 'keydown'].forEach(function (evt) {
+            inp.addEventListener(evt, function (e) { e.stopPropagation(); });
+          });
+        });
+      }
+
       cb.addEventListener('change', function () {
         qtyInput.disabled = !cb.checked;
+        if (resWrap) {
+          resWrap.querySelectorAll('.module-resource-qty').forEach(function (inp) { inp.disabled = !cb.checked; });
+        }
         updateCheckoutSummary();
       });
       qtyInput.addEventListener('input', updateCheckoutSummary);
@@ -207,9 +314,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     container.innerHTML =
       lines.map(function (l) {
-        return '<div style="display:flex; justify-content:space-between; gap:12px; padding:4px 0; font-size:13px;">' +
+        var head = '<div style="display:flex; justify-content:space-between; gap:12px; padding:4px 0; font-size:13px;">' +
           '<span>' + l.label + ' <span style="color:var(--md-on-surface-variant);">(' + inr(l.unit) + ' × ' + l.qty + ')</span></span>' +
-          '<strong>' + inr(l.amount) + '/mo</strong></div>';
+          '<strong>' + inr(l.base) + '/mo</strong></div>';
+        var res = (l.resourceLines || []).map(function (r) {
+          return '<div style="display:flex; justify-content:space-between; gap:12px; padding:2px 0 2px 14px; font-size:12px; color:var(--md-on-surface-variant);">' +
+            '<span>' + r.label + ' (' + inr(r.unit) + ' × ' + r.qty + ')</span>' +
+            '<span>' + inr(r.amount) + '/mo</span></div>';
+        }).join('');
+        return head + res;
       }).join('') +
       '<div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0 0; margin-top:6px; border-top:1px solid var(--md-outline-variant); font-weight:700;">' +
       '<span>Service subtotal</span><span>' + inr(estimatedMonthly()) + '/mo</span></div>';
@@ -332,6 +445,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var modules = selectedModuleCodes();
     var moduleInstances = selectedModuleInstances();
+    var moduleResources = selectedModuleResources();
 
     var adminName = document.getElementById('admin-name').value.trim();
     var adminEmail = document.getElementById('admin-email').value.trim();
@@ -347,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function () {
       plan_id: selectedPlan.plan_id,
       modules: modules,
       module_instances: moduleInstances,
+      module_resources: moduleResources,
       admin_name: adminName,
       admin_email: adminEmail,
       admin_password: adminPassword,

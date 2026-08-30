@@ -356,6 +356,9 @@
       me: function () {
         return request("GET", "/auth/me");
       },
+      entitlements: function () {
+        return request("GET", "/auth/entitlements");
+      },
       logout: async function () {
         try {
           await request("POST", "/auth/logout");
@@ -425,8 +428,16 @@
         modules: function (id) {
           return request("GET", "/platform/organizations/" + id + "/modules");
         },
-        setModule: function (id, moduleCode, enabled) {
-          return request("PUT", "/platform/organizations/" + id + "/modules/" + moduleCode, { enabled: enabled });
+        setModule: function (id, moduleCode, enabled, instances) {
+          var body = { enabled: enabled };
+          if (instances !== undefined && instances !== null) body.instances = instances;
+          return request("PUT", "/platform/organizations/" + id + "/modules/" + moduleCode, body);
+        },
+        resources: function (id) {
+          return request("GET", "/platform/organizations/" + id + "/resources");
+        },
+        setResources: function (id, resources) {
+          return request("PUT", "/platform/organizations/" + id + "/resources", { resources: resources });
         },
         apiKeys: function (id) {
           return request("GET", "/platform/organizations/" + id + "/api-keys");
@@ -459,6 +470,9 @@
         update: function (id, patch) {
           return request("PUT", "/platform/plans/" + id, patch);
         },
+      },
+      moduleResourceCatalog: function () {
+        return request("GET", "/platform/module-resource-catalog");
       },
       usage: function () {
         return request("GET", "/platform/usage");
@@ -495,6 +509,12 @@
       },
       staff: function () {
         return request("GET", "/rbac/staff");
+      },
+      createStaff: function (payload) {
+        return request("POST", "/rbac/staff", payload);
+      },
+      setStaffActive: function (userId, isActive) {
+        return request("PUT", "/rbac/staff/" + userId + "/active", { is_active: isActive });
       },
     },
 

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:* https://*; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>People | Federico Hospital Admin</title>
+    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/material-components.css">
+    <link rel="stylesheet" href="../shared/ui-feedback.css">
+    <link rel="stylesheet" href="../HOM/global.css">
+    <style>
+        /* .dashboard-container / .header-section / .table-container /
+           .data-table live once in ../HOM/global.css. */
+        .header-section { margin-bottom: 24px; }
+        .people-actions { display: flex; gap: 12px; }
+        .status-pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; }
+        .status-pill.active { background: var(--md-secondary-container, #E8F5E9); color: #1B5E20; }
+        .status-pill.inactive { background: #FDECEA; color: #B71C1C; }
+        .cred-hint { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav"></nav>
+
+    <main class="dashboard-container">
+        <div class="header-section">
+            <div>
+                <h1 class="h1" style="margin-bottom: 8px;">People</h1>
+                <p class="body-text">Add staff logins for your organization and manage doctors by department. Staff sign in to their own portal with the email and password you set here.</p>
+            </div>
+        </div>
+
+        <!-- Staff accounts -->
+        <div class="card">
+            <div class="card-header" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                <div>
+                    <h2 class="card-title">Staff Accounts</h2>
+                    <p class="card-description">HOM (operations), PRE (registration) and FA (finance) logins for this organization.</p>
+                </div>
+                <button class="btn btn-primary btn-default" id="new-staff-btn">+ Add Person</button>
+            </div>
+            <div class="card-content" style="padding: 0;">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Name</th><th>Email</th><th>Portal Role</th><th>Status</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="staff-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctors by department -->
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-header" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                <div>
+                    <h2 class="card-title">Doctors &amp; Departments</h2>
+                    <p class="card-description">Assign doctors to a department/ward. Locked when the Doctor Management module isn't in your subscription.</p>
+                </div>
+                <button class="btn btn-primary btn-default" id="new-doctor-btn" data-requires-module="DOCTOR">+ Add Doctor</button>
+            </div>
+            <div class="card-content" style="padding: 0;">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Name</th><th>Specialization</th><th>Department</th><th>Contact</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="doctors-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <dialog id="staff-dialog" class="md-native-dialog">
+        <form id="staff-form" class="dialog-form">
+            <h2 class="md-dialog-title">Add a Person</h2>
+            <div class="md-field"><label for="staff-name">Full name</label><input id="staff-name" required placeholder="e.g. Rekha Nair" /></div>
+            <div class="md-field"><label for="staff-email">Login email</label><input id="staff-email" type="email" required placeholder="name@yourhospital.com" /></div>
+            <div class="md-field"><label for="staff-password">Temporary password</label><input id="staff-password" required minlength="6" placeholder="At least 6 characters" /></div>
+            <div class="md-field"><label for="staff-role">Portal role</label>
+                <select id="staff-role" class="input" required>
+                    <option value="HOM">HOM — Hospital Operations</option>
+                    <option value="PRE">PRE — Patient Registration</option>
+                    <option value="FA">FA — Finance Associate</option>
+                </select>
+            </div>
+            <p class="cred-hint">Share the email + temporary password with the person. They sign in at the login page and pick their portal role.</p>
+            <div class="md-dialog-actions">
+                <button type="button" class="btn btn-outline btn-default" id="staff-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-default">Create Login</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="doctor-dialog" class="md-native-dialog">
+        <form id="doctor-form" class="dialog-form">
+            <h2 class="md-dialog-title" id="doctor-dialog-title">Add a Doctor</h2>
+            <div class="md-field"><label for="doctor-name">Name</label><input id="doctor-name" required placeholder="Dr. …" /></div>
+            <div class="md-field"><label for="doctor-spec">Specialization</label><input id="doctor-spec" placeholder="e.g. Cardiology" /></div>
+            <div class="md-field"><label for="doctor-dept">Department</label><select id="doctor-dept" class="input"></select></div>
+            <div class="md-field"><label for="doctor-phone">Phone</label><input id="doctor-phone" placeholder="Optional" /></div>
+            <div class="md-field"><label for="doctor-email">Email</label><input id="doctor-email" type="email" placeholder="Optional" /></div>
+            <div class="md-dialog-actions">
+                <button type="button" class="btn btn-outline btn-default" id="doctor-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-default">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>window.APP_MODULE = "ADMIN";</script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/api-client.js"></script>
+<script src="../shared/rbac.js"></script>
+<script src="../shared/ui-feedback.js"></script>
+<script src="../shared/auth-guard.js"></script>
+<script src="../shared/formatters.js"></script>
+<script src="../shared/dom-table.js"></script>
+<script src="../HOM/ui-template.js"></script>
+
+<script src="../shared/shared-nav.js"></script>
+<script src="shared-nav.js"></script>
+<script src="people.js"></script>
+</body>
+</html>

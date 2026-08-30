@@ -180,9 +180,142 @@
     return (session && session.tenant) || null;
   }
 
+  // Human labels for the "Module Not Available" dialog + locked chips.
+  var MODULE_LABELS = {
+    APPOINTMENTS: "Appointments",
+    ADMISSIONS: "Admissions & Bed Management",
+    INVENTORY: "Inventory & Procurement",
+    BILLING: "Billing",
+    INSURANCE: "Insurance",
+    ANALYTICS: "Administrative Analytics",
+    DOCTOR: "Doctor Management",
+    PATIENT: "Patient Management",
+    LEADERSHIP: "Service Charge Approvals",
+  };
+
+  function moduleLabel(code) {
+    return MODULE_LABELS[String(code || "").toUpperCase()] || code;
+  }
+
+  /**
+   * Module Entitlement check — "has this ORGANIZATION purchased/enabled the
+   * module?". Separate from RBAC (hasModuleAccess, which is actor→portal).
+   * Reads the richer `tenant.modules` map when the backend supplies it,
+   * falling back to the legacy `enabled_modules` array.
+   */
   function hasModule(moduleCode) {
     var tenant = getTenantContext();
-    return Boolean(tenant && tenant.enabled_modules && tenant.enabled_modules.includes(moduleCode));
+    if (!tenant) return false;
+    var code = String(moduleCode || "").toUpperCase();
+    if (tenant.modules && typeof tenant.modules === "object" && code in tenant.modules) {
+      return Boolean(tenant.modules[code]);
+    }
+    return Boolean(tenant.enabled_modules && tenant.enabled_modules.indexOf(code) !== -1);
+  }
+
+  /** Resource Entitlement — units of a resource type the org bought (0 if none). */
+  function resourceQty(moduleCode, resourceCode) {
+    var tenant = getTenantContext();
+    var mod = String(moduleCode || "").toUpperCase();
+    var res = String(resourceCode || "").toUpperCase();
+    if (!tenant || !tenant.resources || !tenant.resources[mod]) return 0;
+    return Number(tenant.resources[mod][res]) || 0;
+  }
+
+  function getEntitlements() {
+    var tenant = getTenantContext();
+    return {
+      modules: (tenant && tenant.modules) || {},
+      resources: (tenant && tenant.resources) || {},
+    };
+  }
+
+  /** The standard "Module Not Available" message (tasks.md wording). */
+  function showModuleUnavailable(moduleCode) {
+    var label = moduleLabel(moduleCode);
+    var body =
+      "This module is not enabled for your organization. " +
+      "Please purchase or enable this module to access this feature.";
+    if (window.UIFeedback && typeof window.UIFeedback.alert === "function") {
+      window.UIFeedback.alert({ title: "Module Not Available", body: body });
+    } else {
+      window.alert("Module Not Available\n\n" + body);
+    }
+    return false;
+  }
+
+  // Injects the locked-state styles once. Deliberately subtle — greys the
+  // element, adds a small 🔒, and blocks pointer interaction on the element
+  // itself (a capturing click handler shows the dialog).
+  function ensureLockStyles() {
+    if (document.getElementById("federico-module-lock-styles")) return;
+    var style = document.createElement("style");
+    style.id = "federico-module-lock-styles";
+    style.textContent =
+      ".module-locked{opacity:.5;filter:grayscale(.6);cursor:not-allowed !important;position:relative;}" +
+      ".module-locked::after{content:'\\1F512';font-size:.85em;margin-left:6px;opacity:.8;}" +
+      ".module-locked *{pointer-events:none !important;}" +
+      "a.module-locked,button.module-locked{text-decoration:none;}";
+    document.head.appendChild(style);
+  }
+
+  /**
+   * Applies the locked treatment to one element for a disabled module:
+   * keeps it visible (so the user sees the feature exists) but greys it and
+   * routes clicks to the "Module Not Available" dialog instead of navigating.
+   * `data-lock-mode="hide"` opts an element into being hidden instead.
+   */
+  function lockElement(el, moduleCode) {
+    if (!el || el.dataset.moduleLockBound === "1") return;
+    if (el.getAttribute("data-lock-mode") === "hide") {
+      el.style.display = "none";
+      return;
+    }
+    ensureLockStyles();
+    el.classList.add("module-locked");
+    el.setAttribute("aria-disabled", "true");
+    el.dataset.moduleLockBound = "1";
+    el.addEventListener(
+      "click",
+      function (e) {
+        e.preventDefault();
+        // stopImmediatePropagation so an inline onclick="navigate(...)" on
+        // the same element (FA/PRE SPA nav) doesn't still fire.
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        e.stopPropagation();
+        showModuleUnavailable(moduleCode);
+      },
+      true,
+    );
+    // Also neutralise a same-element inline handler outright.
+    if (el.hasAttribute("onclick")) el.setAttribute("onclick", "return false;");
+  }
+
+  function unlockElement(el) {
+    if (!el) return;
+    el.classList.remove("module-locked");
+    el.removeAttribute("aria-disabled");
+    el.style.display = "";
+  }
+
+  /**
+   * Scans the page for [data-requires-module] elements and, for any whose
+   * module is disabled for this org, applies the locked treatment (or hides
+   * it when data-lock-mode="hide"). Safe to call repeatedly — navs built
+   * after auth-guard runs call this again themselves.
+   */
+  function applyModuleLocks(root) {
+    var scope = root || document;
+    var els = scope.querySelectorAll("[data-requires-module]");
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var code = el.getAttribute("data-requires-module");
+      if (hasModule(code)) {
+        unlockElement(el);
+      } else {
+        lockElement(el, code);
+      }
+    }
   }
 
   /**
@@ -199,16 +332,12 @@
   function applyTenantBranding() {
     var tenant = getTenantContext();
 
-    // Feature-flag nav hiding — any element, in any app, tagged
-    // data-requires-module="CODE" is hidden when that module is off for
-    // the signed-in session's organization. Runs regardless of whether a
-    // brand subtitle element was found below.
-    var moduleGatedEls = document.querySelectorAll("[data-requires-module]");
-    for (var i = 0; i < moduleGatedEls.length; i++) {
-      var el = moduleGatedEls[i];
-      var code = el.getAttribute("data-requires-module");
-      el.style.display = hasModule(code) ? "" : "none";
-    }
+    // Feature-flag treatment — any element, in any app, tagged
+    // data-requires-module="CODE" is shown LOCKED (greyed + 🔒, click opens
+    // the "Module Not Available" dialog) when that module is off for the
+    // signed-in org, so the user sees the feature exists but isn't in their
+    // subscription. Add data-lock-mode="hide" to hide instead of lock.
+    applyModuleLocks(document);
 
     if (!tenant || !tenant.organization_name) return;
 
@@ -374,6 +503,12 @@
     getTenantContext: getTenantContext,
     applyTenantBranding: applyTenantBranding,
     hasModule: hasModule,
+    resourceQty: resourceQty,
+    getEntitlements: getEntitlements,
+    moduleLabel: moduleLabel,
+    showModuleUnavailable: showModuleUnavailable,
+    applyModuleLocks: applyModuleLocks,
+    lockElement: lockElement,
     get lastAuthError() { return lastAuthError; },
   };
 })();

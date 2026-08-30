@@ -32,6 +32,7 @@ function registerOrganization(req, res) {
     plan_id,
     modules,
     module_instances,
+    module_resources,
     admin_name,
     admin_email,
     admin_password,
@@ -61,6 +62,10 @@ function registerOrganization(req, res) {
     module_instances:
       module_instances && typeof module_instances === 'object'
         ? module_instances
+        : undefined,
+    module_resources:
+      module_resources && typeof module_resources === 'object'
+        ? module_resources
         : undefined,
     admin_name,
     admin_email,

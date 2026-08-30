@@ -1,6 +1,7 @@
 'use strict';
 
 const authService = require('../services/auth.service');
+const entitlementService = require('../services/entitlement.service');
 const { createLogger } = require('../utils/logger');
 
 const logger = createLogger('🔐 Auth');
@@ -94,4 +95,22 @@ function logout(req, res) {
   res.status(200).json({ success: true });
 }
 
-module.exports = { login, signup, me, logout };
+/**
+ * Explicit entitlement snapshot for the signed-in org — same data the
+ * login/me `tenant` object carries, exposed on its own so the frontend can
+ * refresh module/resource state without a full re-login. Backend stays the
+ * source of truth (middleware/tenant.js#requireModule reads the same rows).
+ */
+function entitlements(req, res) {
+  const organizationId = req.tenant && req.tenant.organizationId;
+  if (!organizationId) {
+    return res.status(403).json({
+      message: 'This resource requires an active organization context',
+      error: 'Forbidden',
+      statusCode: 403,
+    });
+  }
+  res.status(200).json(entitlementService.entitlementsFor(organizationId));
+}
+
+module.exports = { login, signup, me, logout, entitlements };

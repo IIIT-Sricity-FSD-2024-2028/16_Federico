@@ -7,6 +7,7 @@ const subscriptionService = require('../services/subscription.service');
 const provisioningService = require('../services/provisioning.service');
 const platformActivityService = require('../services/platformActivity.service');
 const serviceCatalog = require('../config/serviceCatalog');
+const resourceCatalog = require('../config/resourceCatalog');
 const dataStore = require('../store/dataStore');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
@@ -254,6 +255,42 @@ function setModuleFlag(req, res) {
   sendResult(res, result, 200);
 }
 
+// ---- Resource-level entitlements ----
+
+function moduleResourceCatalog(req, res) {
+  sendResult(res, resourceCatalog.RESOURCE_CATALOG, 200);
+}
+
+function findResources(req, res) {
+  sendResult(res, organizationService.resourceCatalogFor(+req.params.id), 200);
+}
+
+/**
+ * Body: { resources: { MODULE_CODE: { RESOURCE_CODE: quantity } } }.
+ * Merges into whatever the org already has (only the resource types present
+ * in the body are touched).
+ */
+function setResources(req, res) {
+  const resources =
+    req.body && typeof req.body.resources === 'object'
+      ? req.body.resources
+      : req.body;
+  const result = organizationService.setResourceQuantities(
+    +req.params.id,
+    resources,
+  );
+  logger.log(
+    `📦 RESOURCES SET  organization_id=${req.params.id}  ${JSON.stringify(result)}`,
+  );
+  platformActivityService.log(
+    req.session.userId,
+    'SET_RESOURCES',
+    +req.params.id,
+    'Resource entitlements updated',
+  );
+  sendResult(res, result, 200);
+}
+
 // ---- API keys ----
 
 function findApiKeys(req, res) {
@@ -366,6 +403,9 @@ module.exports = {
   createHospital,
   findModuleFlags,
   setModuleFlag,
+  moduleResourceCatalog,
+  findResources,
+  setResources,
   findApiKeys,
   createApiKey,
   revokeApiKey,

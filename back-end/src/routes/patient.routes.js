@@ -13,6 +13,10 @@ const {
 
 const router = Router();
 
+// Patient Management is its own purchasable module (utils/tenant.js#MODULES).
+// Insurance sub-routes below add a second requireModule('INSURANCE') gate.
+router.use(requireModule('PATIENT'));
+
 router.get(
   '/',
   authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),

@@ -22,6 +22,7 @@ router.post(
   controller.signup,
 );
 router.get('/me', requireSession, controller.me);
+router.get('/entitlements', requireSession, controller.entitlements);
 router.post('/logout', requireSession, controller.logout);
 
 module.exports = router;

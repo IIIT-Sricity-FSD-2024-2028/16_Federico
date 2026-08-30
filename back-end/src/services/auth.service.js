@@ -4,6 +4,7 @@ const dataStore = require('../store/dataStore');
 const patientService = require('./patient.service');
 const activityService = require('./activity.service');
 const organizationService = require('./organization.service');
+const entitlementService = require('./entitlement.service');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { createSession, destroySession } = require('../store/sessionStore');
 const { ROLE_ID_TO_NAME } = require('../utils/roles');
@@ -47,12 +48,20 @@ function tenantContextFor(user) {
   const enabledModules = organizationService.enabledModulesFor(
     organization.organization_id,
   );
+  const entitlements = entitlementService.entitlementsFor(
+    organization.organization_id,
+  );
   return {
     organization_id: organization.organization_id,
     hospital_id: user.hospital_id || null,
     organization_name: organization.name,
     branding: organization.branding,
+    // Back-compat: the array of enabled codes the frontend already reads.
     enabled_modules: enabledModules,
+    // tasks.md §9 — full entitlement snapshot so the existing UI can make
+    // itself dynamic (lock/hide) with no extra round-trip.
+    modules: entitlements.modules, // { CODE: true|false } for every module
+    resources: entitlements.resources, // { MODULE: { RESOURCE: qty } }
   };
 }
 

@@ -3,11 +3,16 @@
 const { env } = require('./src/config');
 const persist = require('./src/store/persist');
 const { createApp } = require('./src/app');
+const { runBootReconciliation } = require('./src/bootstrap');
 
 // Restore any previously persisted state before the app starts serving
 // requests. Deliberately NOT called from createApp() so tests that import
 // createApp() directly always see fresh seed data.
 persist.load();
+
+// Reconcile permission catalog + per-org module flags against the current
+// module catalog (see src/bootstrap.js).
+runBootReconciliation();
 
 const app = createApp();
 
