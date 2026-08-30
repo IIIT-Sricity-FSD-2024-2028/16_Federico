@@ -16,7 +16,7 @@
 
 const dataStore = require('../store/dataStore');
 const { MODULE_CODES } = require('../utils/tenant');
-const resourceCatalog = require('../config/resourceCatalog');
+const { resourceCatalog } = dataStore;
 
 function orgModuleRows(organizationId) {
   const oid = Number(organizationId);

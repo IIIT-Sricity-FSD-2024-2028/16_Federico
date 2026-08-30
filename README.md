@@ -33,7 +33,7 @@ Domain Services (Business Logic & State Transitions)
 Data Access Layer (12 Typed Repositories)
     │
     ▼
-In-Memory Store with Atomic Disk Persistence (db.json)
+In-Memory Data Store (dataStore.js)
 ```
 
 ---
@@ -134,10 +134,10 @@ All 17 test suites (90 tests) cover unit tests, security middleware, data integr
     │   ├── repositories/        # Data Access Layer (DAL)
     │   ├── routes/              # Express route definitions
     │   ├── services/            # Domain business logic
-    │   ├── store/               # In-memory store and atomic persistence
+    │   ├── store/               # In-memory data store (dataStore.js)
     │   ├── utils/               # Response envelopes and helpers
     │   └── test/                # Automated test suites
-    └── data/                    # Local JSON persistence snapshot (db.json)
+    └── uploads/                 # Local uploads storage
 ```
 
 ---

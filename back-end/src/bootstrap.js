@@ -1,10 +1,9 @@
 'use strict';
 
 /**
- * One-time boot reconciliation, run AFTER persist.load() restores any saved
- * db.json and BEFORE the HTTP server starts serving. Deliberately not called
- * from createApp() so unit tests that import createApp() keep seeing raw
- * seed data.
+ * One-time boot reconciliation, run on server startup BEFORE the HTTP server
+ * starts serving. Deliberately not called from createApp() so unit tests that
+ * import createApp() keep seeing raw seed data.
  *
  *  - ensurePermissionCatalog(): the fixed resource:mode permission rows the
  *    dynamic-RBAC layer needs (idempotent).

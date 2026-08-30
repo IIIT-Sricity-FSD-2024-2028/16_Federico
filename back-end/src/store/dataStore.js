@@ -1,5 +1,245 @@
 'use strict';
 
+/**
+ * ==============================================================================
+ * Federico Hospital Administrative Operations Platform — In-Memory Data Store
+ * ==============================================================================
+ *
+ * Master single source of truth for all database tables, seed mock records,
+ * SaaS pricing catalogs, and new hospital blueprint templates.
+ *
+ * Structure:
+ *  1. Blueprint Templates (Standard Clinical Wards, Services, Starter Pharmacy)
+ *  2. SaaS Pricing & Quotas (Module Prices, Resource Catalogs, & Cost Calculators)
+ *  3. In-Memory Database Tables (Dynamic Arrays: Users, Patients, Wards, Ledgers...)
+ *  4. Attached Catalogs & Module Exports
+ */
+
+// ==============================================================================
+// 1. Blueprint Templates (Default Clinical Catalog for New Hospital Provisioning)
+// ==============================================================================
+
+/** Standard departments and default bed counts assigned during hospital onboarding */
+const DEFAULT_DEPARTMENTS = Object.freeze([
+  Object.freeze({ department: 'Critical Care', wardName: 'ICU', defaultBeds: 8 }),
+  Object.freeze({ department: 'General Medicine', wardName: 'General Ward', defaultBeds: 20 }),
+  Object.freeze({ department: 'Surgery', wardName: 'Surgical Ward', defaultBeds: 12 }),
+  Object.freeze({ department: 'Pediatrics', wardName: 'Pediatric Ward', defaultBeds: 10 }),
+  Object.freeze({ department: 'Emergency', wardName: 'Emergency Ward', defaultBeds: 8 }),
+  Object.freeze({ department: 'Obstetrics', wardName: 'Maternity Ward', defaultBeds: 10 }),
+]);
+
+/** Standard clinical billable services assigned during hospital onboarding */
+const DEFAULT_SERVICES = Object.freeze([
+  Object.freeze({ service_name: 'Consultation Fee', category: 'Consultation', base_cost: 500 }),
+  Object.freeze({ service_name: 'Room Rent (per day)', category: 'Accommodation', base_cost: 3000 }),
+  Object.freeze({ service_name: 'ICU Charges (per day)', category: 'Accommodation', base_cost: 9500 }),
+  Object.freeze({ service_name: 'Nursing Care (per day)', category: 'Nursing', base_cost: 1200 }),
+  Object.freeze({ service_name: 'Pharmacy / Medicines', category: 'Pharmacy', base_cost: 300 }),
+  Object.freeze({ service_name: 'IV Fluids & Infusion', category: 'Pharmacy', base_cost: 300 }),
+  Object.freeze({ service_name: 'Surgical Consumables', category: 'Consumables', base_cost: 400 }),
+  Object.freeze({ service_name: 'Oxygen Supply (per hour)', category: 'Consumables', base_cost: 250 }),
+  Object.freeze({ service_name: 'Dressing / Wound Care', category: 'Procedure', base_cost: 350 }),
+  Object.freeze({ service_name: 'Minor Procedure', category: 'Procedure', base_cost: 1500 }),
+  Object.freeze({ service_name: 'Blood Test / Pathology', category: 'Diagnostics', base_cost: 400 }),
+  Object.freeze({ service_name: 'X-Ray', category: 'Diagnostics', base_cost: 1500 }),
+  Object.freeze({ service_name: 'CT Scan', category: 'Diagnostics', base_cost: 6000 }),
+  Object.freeze({ service_name: 'MRI Scan', category: 'Diagnostics', base_cost: 12000 }),
+  Object.freeze({ service_name: 'ECG', category: 'Diagnostics', base_cost: 900 }),
+  Object.freeze({ service_name: 'Ultrasound', category: 'Diagnostics', base_cost: 1800 }),
+  Object.freeze({ service_name: 'Physiotherapy Session', category: 'Therapy', base_cost: 900 }),
+  Object.freeze({ service_name: 'Dialysis Session', category: 'Therapy', base_cost: 8000 }),
+  Object.freeze({ service_name: 'Ambulance Service', category: 'Transport', base_cost: 2000 }),
+]);
+
+/** Standard starter pharmacy stock and consumable inventory */
+const DEFAULT_INVENTORY_ITEMS = Object.freeze([
+  Object.freeze({ item_name: 'Paracetamol 500mg', category: 'Medicine', stock_quantity: 1000, reorder_level: 200, billable_service: 'Pharmacy / Medicines' }),
+  Object.freeze({ item_name: 'Amoxicillin 500mg', category: 'Medicine', stock_quantity: 500, reorder_level: 100, billable_service: 'Pharmacy / Medicines' }),
+  Object.freeze({ item_name: 'Insulin Vial', category: 'Medicine', stock_quantity: 150, reorder_level: 40, billable_service: 'Pharmacy / Medicines' }),
+  Object.freeze({ item_name: 'IV Normal Saline 500ml', category: 'Consumable', stock_quantity: 300, reorder_level: 60, billable_service: 'IV Fluids & Infusion' }),
+  Object.freeze({ item_name: 'IV Cannula Set', category: 'Consumable', stock_quantity: 250, reorder_level: 60, billable_service: 'IV Fluids & Infusion' }),
+  Object.freeze({ item_name: 'Surgical Gloves (Box of 100)', category: 'Consumable', stock_quantity: 200, reorder_level: 50, billable_service: 'Surgical Consumables' }),
+  Object.freeze({ item_name: 'Syringe 5ml', category: 'Consumable', stock_quantity: 500, reorder_level: 100, billable_service: 'Surgical Consumables' }),
+  Object.freeze({ item_name: 'Catheter Set', category: 'Consumable', stock_quantity: 120, reorder_level: 40, billable_service: 'Surgical Consumables' }),
+  Object.freeze({ item_name: 'Gauze Roll', category: 'Consumable', stock_quantity: 300, reorder_level: 75, billable_service: 'Dressing / Wound Care' }),
+  Object.freeze({ item_name: 'N95 Mask', category: 'Consumable', stock_quantity: 1000, reorder_level: 200, billable_service: 'Surgical Consumables' }),
+  Object.freeze({ item_name: 'Oxygen Mask', category: 'Consumable', stock_quantity: 200, reorder_level: 50, billable_service: 'Oxygen Supply (per hour)' }),
+  Object.freeze({ item_name: 'Digital Thermometer', category: 'Equipment', stock_quantity: 30, reorder_level: 10 }),
+  Object.freeze({ item_name: 'Blood Pressure Monitor', category: 'Equipment', stock_quantity: 20, reorder_level: 5 }),
+  Object.freeze({ item_name: 'Oxygen Cylinder', category: 'Equipment', stock_quantity: 15, reorder_level: 5 }),
+]);
+
+// ==============================================================================
+// 2. SaaS Pricing Catalogs & Quotas (Platform Subscription Engine)
+// ==============================================================================
+
+/** Monthly base price per enabled SaaS module (per branch) */
+const SERVICE_PRICES = {
+  APPOINTMENTS: 1500,
+  ADMISSIONS: 2500,
+  INVENTORY: 2000,
+  BILLING: 2500,
+  INSURANCE: 1800,
+  ANALYTICS: 3000,
+  DOCTOR: 1200,
+  PATIENT: 1500,
+  LEADERSHIP: 1000,
+};
+
+const SERVICE_NAMES = {
+  APPOINTMENTS: 'Appointments',
+  ADMISSIONS: 'Admissions & Bed Management',
+  INVENTORY: 'Inventory & Procurement',
+  BILLING: 'Billing',
+  INSURANCE: 'Insurance',
+  ANALYTICS: 'Administrative Analytics',
+  DOCTOR: 'Doctor Management',
+  PATIENT: 'Patient Management',
+  LEADERSHIP: 'Service Charge Approvals (Leaders)',
+};
+
+/** Granular resource unit pricing (Beds, Storage Units, Seats, Terminals) */
+const RESOURCE_CATALOG = {
+  ADMISSIONS: [
+    { code: 'GENERAL_BEDS', name: 'General Ward Beds', unit: 'bed', unit_price: 150, default_qty: 0 },
+    { code: 'ICU_BEDS', name: 'ICU Beds', unit: 'bed', unit_price: 600, default_qty: 0 },
+    { code: 'PRIVATE_BEDS', name: 'Private Beds', unit: 'bed', unit_price: 400, default_qty: 0 },
+    { code: 'SEMI_PRIVATE_BEDS', name: 'Semi-Private Beds', unit: 'bed', unit_price: 250, default_qty: 0 },
+  ],
+  INVENTORY: [
+    { code: 'STORAGE_UNITS', name: 'Storage Units', unit: 'unit', unit_price: 200, default_qty: 0 },
+    { code: 'WAREHOUSES', name: 'Warehouses', unit: 'warehouse', unit_price: 1200, default_qty: 0 },
+    { code: 'INVENTORY_USERS', name: 'Inventory Users', unit: 'seat', unit_price: 300, default_qty: 0 },
+  ],
+  BILLING: [
+    { code: 'BILLING_USERS', name: 'Billing Users', unit: 'seat', unit_price: 350, default_qty: 0 },
+    { code: 'BILLING_TERMINALS', name: 'Billing Terminals', unit: 'terminal', unit_price: 500, default_qty: 0 },
+  ],
+  DOCTOR: [
+    { code: 'DOCTOR_SEATS', name: 'Doctor Directory Seats', unit: 'seat', unit_price: 120, default_qty: 0 },
+  ],
+  APPOINTMENTS: [
+    { code: 'BOOKING_CHANNELS', name: 'Online Booking Channels', unit: 'channel', unit_price: 400, default_qty: 0 },
+  ],
+};
+
+function priceFor(moduleCode) {
+  return Number(SERVICE_PRICES[String(moduleCode).toUpperCase()]) || 0;
+}
+
+function modulesWithResources() {
+  return Object.keys(RESOURCE_CATALOG);
+}
+
+function resourceTypesFor(moduleCode) {
+  return RESOURCE_CATALOG[String(moduleCode).toUpperCase()] || [];
+}
+
+function resourceTypeDef(moduleCode, resourceCode) {
+  return (
+    resourceTypesFor(moduleCode).find(
+      (r) => r.code === String(resourceCode).toUpperCase(),
+    ) || null
+  );
+}
+
+function unitPriceFor(moduleCode, resourceCode) {
+  const def = resourceTypeDef(moduleCode, resourceCode);
+  return def ? Number(def.unit_price) || 0 : 0;
+}
+
+function computeResourceCost(moduleCode, resources) {
+  const defs = resourceTypesFor(moduleCode);
+  const lines = [];
+  defs.forEach((def) => {
+    const raw = resources ? resources[def.code] : undefined;
+    if (raw === undefined || raw === null) return;
+    const quantity =
+      typeof raw === 'object' ? Math.max(0, Number(raw.quantity) || 0) : Math.max(0, Number(raw) || 0);
+    if (quantity <= 0) return;
+    const unit_price =
+      typeof raw === 'object' && raw.unit_price_at_purchase !== undefined
+        ? Number(raw.unit_price_at_purchase) || 0
+        : def.unit_price;
+    lines.push({
+      module_code: String(moduleCode).toUpperCase(),
+      resource_code: def.code,
+      name: def.name,
+      unit_price,
+      quantity,
+      amount: unit_price * quantity,
+    });
+  });
+  const total = lines.reduce((sum, l) => sum + l.amount, 0);
+  return { lines, total };
+}
+
+function computeCost(modules, defaultCount = 1, resourcesByModule = {}) {
+  const fallback = Math.max(1, Number(defaultCount) || 1);
+
+  let entries;
+  if (Array.isArray(modules)) {
+    entries = modules.map((code) => [String(code).toUpperCase(), fallback]);
+  } else {
+    entries = Object.keys(modules || {}).map((code) => [
+      String(code).toUpperCase(),
+      Math.max(1, Number(modules[code]) || fallback),
+    ]);
+  }
+
+  const lines = entries.map(([code, instances]) => {
+    const unit_price = priceFor(code);
+    return {
+      code,
+      name: SERVICE_NAMES[code] || code,
+      unit_price,
+      instances,
+      amount: unit_price * instances,
+    };
+  });
+
+  const enabledCodes = new Set(entries.map(([code]) => code));
+  const resource_lines = [];
+  Object.keys(resourcesByModule || {}).forEach((rawCode) => {
+    const code = String(rawCode).toUpperCase();
+    if (!enabledCodes.has(code)) return;
+    const { lines: rl } = computeResourceCost(code, resourcesByModule[rawCode]);
+    resource_lines.push(...rl);
+  });
+
+  const base_total = lines.reduce((sum, l) => sum + l.amount, 0);
+  const resource_total = resource_lines.reduce((sum, l) => sum + l.amount, 0);
+  const total = base_total + resource_total;
+  const instances = lines.reduce((sum, l) => sum + l.instances, 0);
+  return { lines, resource_lines, total, instances, base_total, resource_total };
+}
+
+const serviceCatalog = {
+  SERVICE_PRICES,
+  SERVICE_NAMES,
+  priceFor,
+  computeCost,
+};
+
+const resourceCatalog = {
+  RESOURCE_CATALOG,
+  modulesWithResources,
+  resourceTypesFor,
+  resourceTypeDef,
+  unitPriceFor,
+  computeResourceCost,
+};
+
+const defaultClinicalCatalog = {
+  DEFAULT_DEPARTMENTS,
+  DEFAULT_SERVICES,
+  DEFAULT_INVENTORY_ITEMS,
+};
+
+// ==============================================================================
+// 3. Dynamic In-Memory Database Tables (Initial Baseline Seed Data)
+// ==============================================================================
 const dataStore = {
   "roles": [
     {
@@ -7099,5 +7339,27 @@ const dataStore = {
     { "organization_id": 2, "module_code": "ADMISSIONS", "resource_code": "ICU_BEDS", "quantity": 4, "unit_price_at_purchase": 600, "updated_at": "2026-08-18T11:39:52.322Z" }
   ]
 };
+
+// ==============================================================================
+// 4. Attached Catalogs & Module Exports
+// ==============================================================================
+Object.assign(dataStore, {
+  DEFAULT_DEPARTMENTS,
+  DEFAULT_SERVICES,
+  DEFAULT_INVENTORY_ITEMS,
+  SERVICE_PRICES,
+  SERVICE_NAMES,
+  RESOURCE_CATALOG,
+  priceFor,
+  computeCost,
+  modulesWithResources,
+  resourceTypesFor,
+  resourceTypeDef,
+  unitPriceFor,
+  computeResourceCost,
+  serviceCatalog,
+  resourceCatalog,
+  defaultClinicalCatalog,
+});
 
 module.exports = dataStore;

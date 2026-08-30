@@ -6,7 +6,6 @@ const provisioningService = require('../services/provisioning.service');
 const authService = require('../services/auth.service');
 const patientService = require('../services/patient.service');
 const dataStore = require('../store/dataStore');
-const persist = require('../store/persist');
 
 describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', () => {
   let app;
@@ -69,10 +68,6 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       .post('/auth/login')
       .send({ email: 'pre@integrity.com', password: 'Password@123' });
     preToken = preLoginRes.body.token;
-  });
-
-  afterAll(() => {
-    persist.saveImmediate();
   });
 
   describe('1. Health Check Endpoint', () => {

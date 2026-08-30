@@ -119,6 +119,41 @@
 .md-field-hint { font-size: 0.75rem; color: var(--md-on-surface-variant); }
 .md-field-error-text { font-size: 0.75rem; color: var(--md-error); }
 
+/* File input styling */
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  height: 36px;
+  padding: 0 18px;
+  margin-right: 14px;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--md-primary);
+  color: var(--md-on-primary, #ffffff);
+  font: var(--type-label-medium);
+  letter-spacing: var(--tracking-button, 0.04em);
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(0, 0, 0, 0.06));
+  transition: background-color var(--duration-fast, 150ms) var(--ease-standard),
+              box-shadow var(--duration-base, 200ms) var(--ease-standard),
+              transform var(--duration-fast, 150ms) var(--ease-standard);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+input[type="file"]::file-selector-button:hover,
+input[type="file"]::-webkit-file-upload-button:hover {
+  background: color-mix(in srgb, var(--md-primary) 90%, black);
+  box-shadow: var(--shadow-2, 0 4px 12px rgba(0, 0, 0, 0.08));
+  transform: translateY(-1px);
+}
+
+input[type="file"]::file-selector-button:active,
+input[type="file"]::-webkit-file-upload-button:active {
+  transform: scale(0.97);
+}
+
 /* =========================================================
    Chips / status badges — desaturated tonal, not decorative
    ========================================================= */

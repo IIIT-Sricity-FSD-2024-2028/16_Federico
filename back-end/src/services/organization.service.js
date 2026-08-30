@@ -2,8 +2,7 @@
 
 const dataStore = require('../store/dataStore');
 const { MODULE_CODES, BACKFILL_GRANT_MODULES } = require('../utils/tenant');
-const serviceCatalog = require('../config/serviceCatalog');
-const resourceCatalog = require('../config/resourceCatalog');
+const { serviceCatalog, resourceCatalog } = dataStore;
 
 function slugify(name) {
   const base = String(name || '')

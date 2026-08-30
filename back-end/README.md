@@ -45,7 +45,7 @@ src/
 ├── middleware/        # Security (CSP, sanitization), request logging, session auth, tenant scoping, RBAC
 ├── routes/            # REST route definitions and validation wiring
 ├── services/          # Pure domain business logic and state machine orchestration
-├── store/             # In-memory store (dataStore) and crash-safe atomic disk persistence (persist)
+├── store/             # In-memory data store (dataStore) and session store (sessionStore)
 ├── utils/             # Log manager, password hashing (bcrypt), token generators, response formatters
 ├── validators/        # Declarative schema validators with NestJS-style error shapes
 └── test/              # Unit, service, middleware, and lifecycle test suites
@@ -101,14 +101,14 @@ src/
 ## Testing & Quality Assurance
 
 ```bash
-# Run unit, service, middleware, and integration test suites (17 suites, 87 tests)
+# Run unit, service, middleware, and integration test suites
 npm test
 
 # Run ESLint validation across backend codebase
 npm run lint
 ```
 
-All 17 test suites verify:
+All test suites verify:
 - Data Access Layer & In-Memory Store integrity
 - Security middleware (CSP, sanitization, rate-limiting, session auth)
 - Multi-tenant boundary isolation
@@ -117,7 +117,7 @@ All 17 test suites verify:
 
 ---
 
-## Data Durability & Persistence
+## In-Memory Architecture
 
-Runtime state is maintained in-memory for microsecond-latency reads and safely snapshotted to `data/db.json`. Disk writes use an atomic temporary-file-and-rename strategy (`db.json.tmp` → `db.json`) with automated retry logic to prevent file corruption.
+Runtime state is maintained purely in-memory for microsecond-latency reads and writes. On each server restart, the database resets cleanly to the baseline seed dataset in `src/store/dataStore.js`, providing an isolated, fresh state every time.
 

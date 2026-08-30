@@ -6,9 +6,8 @@ const subscriptionPlanService = require('../services/subscriptionPlan.service');
 const subscriptionService = require('../services/subscription.service');
 const provisioningService = require('../services/provisioning.service');
 const platformActivityService = require('../services/platformActivity.service');
-const serviceCatalog = require('../config/serviceCatalog');
-const resourceCatalog = require('../config/resourceCatalog');
 const dataStore = require('../store/dataStore');
+const { serviceCatalog, resourceCatalog } = dataStore;
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
 

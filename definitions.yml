@@ -8,7 +8,7 @@ project:
   version: "2.0.0"
   description: "Enterprise Multi-Tenant SaaS Hospital Management System providing unified non-clinical operations: patient intake, bed allocation, inventory management, dynamic RBAC, and transparent billing workflows."
   type: "Full-Stack Web Application (SaaS Multi-Tenant HMS)"
-  architecture: "Layered Clean Architecture (Routes -> Thin Controllers -> Domain Services -> DAL Repositories -> Crash-Safe Atomic Persistence)"
+  architecture: "Layered Clean Architecture (Routes -> Thin Controllers -> Domain Services -> DAL Repositories -> In-Memory Store)"
 
 # ------------------------------------------------------------------------------
 # Technology Stack
@@ -19,8 +19,8 @@ tech_stack:
     framework: "Express.js 4.x"
     architecture: "Layered Clean Architecture + Repository Pattern (DAL)"
     security: "OWASP Top 10, Bearer JWT Auth, Fail-Closed Multi-Tenancy, Dynamic RBAC"
-    durability: "ACID Crash-Safe Atomic Disk Persistence (.tmp write + atomic swap)"
-    testing: "Jest + Supertest (17 Test Suites, 90 Automated Tests)"
+    storage: "High-Performance In-Memory Data Store (dataStore.js)"
+    testing: "Jest + Supertest (Automated Unit & Integration Tests)"
     api_docs: "OpenAPI 3.0 (Swagger UI at /api)"
   frontend:
     architecture: "Vanilla ES6+ Modules + Material Design 3 (Material You Tokens)"

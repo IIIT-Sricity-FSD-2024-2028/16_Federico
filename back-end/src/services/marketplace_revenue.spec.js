@@ -5,7 +5,7 @@ const { createApp } = require('../app');
 const dataStore = require('../store/dataStore');
 const subscriptionService = require('./subscription.service');
 const organizationService = require('./organization.service');
-const serviceCatalog = require('../config/serviceCatalog');
+const { serviceCatalog } = dataStore;
 
 describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () => {
   let app;

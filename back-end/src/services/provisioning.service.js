@@ -13,7 +13,7 @@ const {
   DEFAULT_DEPARTMENTS,
   DEFAULT_SERVICES,
   DEFAULT_INVENTORY_ITEMS,
-} = require('../config/defaultClinicalCatalog');
+} = dataStore;
 
 /**
  * Provisioning Engine (tasks.md §6) — the one place a new tenant gets

@@ -9,9 +9,8 @@ const { notFoundHandler } = require('./middleware/notFoundHandler');
 const { errorHandler } = require('./middleware/errorHandler');
 const { attachSession } = require('./middleware/session');
 const { attachTenant } = require('./middleware/tenant');
-const { persistOnMutation } = require('./middleware/persistOnMutation');
 const { helmetSecurity, globalRateLimiter, sanitizeInput } = require('./middleware/security');
-const { setupSwagger } = require('./config');
+const { setupSwagger } = require('./docs/swagger');
 const routes = require('./routes');
 
 function createApp() {
@@ -43,11 +42,6 @@ function createApp() {
 
   app.use(attachSession);
   app.use(attachTenant);
-
-  // 6. Persist every successful mutation (POST/PUT/DELETE) to data/db.json.
-  // Previously exported but never mounted, so writes only survived a graceful
-  // SIGINT/SIGTERM shutdown — see implementation.md for details.
-  app.use(persistOnMutation);
 
   // Health check endpoint
   app.get('/health', (req, res) => {
