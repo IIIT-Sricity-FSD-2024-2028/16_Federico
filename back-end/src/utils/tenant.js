@@ -22,6 +22,12 @@
 
 // Fixed module catalog (tasks.md §10 "Feature Flags" example set, extended
 // to cover every module this app actually has a resource for).
+//
+// A module is a *commercially purchasable* unit. Each maps to one or more
+// of the `resource:mode` areas in middleware/actorAccess.js#ACTOR_ACCESS
+// (see MODULE_RESOURCE_AREAS below). RBAC still decides which role may act
+// within a module; the module flag decides whether the organization bought
+// the module at all. Both must pass — see middleware/tenant.js#requireModule.
 const MODULES = [
   { code: 'APPOINTMENTS', name: 'Appointments' },
   { code: 'ADMISSIONS', name: 'Admissions & Bed Management' },
@@ -29,8 +35,32 @@ const MODULES = [
   { code: 'BILLING', name: 'Billing' },
   { code: 'INSURANCE', name: 'Insurance' },
   { code: 'ANALYTICS', name: 'Administrative Analytics' },
+  { code: 'DOCTOR', name: 'Doctor Management' },
+  { code: 'PATIENT', name: 'Patient Management' },
+  { code: 'LEADERSHIP', name: 'Service Charge Approvals (Leaders)' },
 ];
 const MODULE_CODES = MODULES.map((m) => m.code);
+
+// Which ACTOR_ACCESS `resource` keys sit under each purchasable module.
+// Used by documentation / tooling — the actual route gating is one
+// requireModule('CODE') per feature router.
+const MODULE_RESOURCE_AREAS = {
+  APPOINTMENTS: ['appointment'],
+  ADMISSIONS: ['ward', 'wardAdmin', 'admission', 'preRequest'],
+  INVENTORY: ['inventory', 'inventoryCatalog'],
+  BILLING: ['billing', 'payment', 'ledgerEntry'],
+  INSURANCE: [],
+  ANALYTICS: [],
+  DOCTOR: ['doctor'],
+  PATIENT: ['patient'],
+  LEADERSHIP: ['leader'],
+};
+
+// Modules that a *pre-existing* organization (one created before a given
+// module code existed) should be granted automatically by the boot-time
+// backfill, so adding a new module code never silently 403s orgs that were
+// working yesterday. New orgs still only get what they select at signup.
+const BACKFILL_GRANT_MODULES = ['DOCTOR', 'PATIENT', 'LEADERSHIP'];
 
 /** Stamps organization_id/hospital_id from the request's tenant context onto a create payload. */
 function withTenant(req, payload) {
@@ -62,6 +92,8 @@ function belongsToOrg(record, req) {
 module.exports = {
   MODULES,
   MODULE_CODES,
+  MODULE_RESOURCE_AREAS,
+  BACKFILL_GRANT_MODULES,
   withTenant,
   scopeToOrg,
   belongsToOrg,

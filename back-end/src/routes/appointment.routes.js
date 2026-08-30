@@ -3,6 +3,7 @@
 const { Router } = require('express');
 const controller = require('../controllers/appointment.controller');
 const { authorize } = require('../middleware/actorAccess');
+const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createAppointmentRules,
@@ -10,6 +11,9 @@ const {
 } = require('../validators/appointment.validators');
 
 const router = Router();
+
+// Appointment Management is its own purchasable module (utils/tenant.js#MODULES).
+router.use(requireModule('APPOINTMENTS'));
 
 router.get(
   '/',

@@ -3,7 +3,7 @@
 const dataStore = require('../store/dataStore');
 
 const ACTOR_ACCESS = {
-  doctor: { read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'], write: ['HOM'] },
+  doctor: { read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'], write: ['HOM', 'Admin'] },
   patient: {
     read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
     write: ['HOM', 'PRE', 'Patient'],

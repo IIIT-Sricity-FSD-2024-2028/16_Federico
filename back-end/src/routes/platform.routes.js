@@ -75,6 +75,11 @@ router.put(
   controller.setModuleFlag,
 );
 
+// Resource-level entitlements
+router.get('/module-resource-catalog', ...gate, controller.moduleResourceCatalog);
+router.get('/organizations/:id/resources', ...gate, controller.findResources);
+router.put('/organizations/:id/resources', ...gate, controller.setResources);
+
 // API keys
 router.get('/organizations/:id/api-keys', ...gate, controller.findApiKeys);
 router.post(

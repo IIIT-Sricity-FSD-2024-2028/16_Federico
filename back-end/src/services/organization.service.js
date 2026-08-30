@@ -1,8 +1,9 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
-const { MODULE_CODES } = require('../utils/tenant');
+const { MODULE_CODES, BACKFILL_GRANT_MODULES } = require('../utils/tenant');
 const serviceCatalog = require('../config/serviceCatalog');
+const resourceCatalog = require('../config/resourceCatalog');
 
 function slugify(name) {
   const base = String(name || '')
@@ -175,6 +176,123 @@ function allModuleFlagsFor(organizationId) {
   });
 }
 
+// ---- Resource-level entitlements (organizationResources) ----
+
+/**
+ * Writes per-resource-type quantities for an org.
+ * `resourcesMap` shape: { MODULE_CODE: { RESOURCE_CODE: quantity } }.
+ * Only resource types that exist in config/resourceCatalog.js are stored;
+ * unknown codes are ignored. The unit price in effect at write time is
+ * snapshotted onto the row so later catalog price changes don't re-bill.
+ */
+function setResourceQuantities(organizationId, resourcesMap) {
+  const oid = Number(organizationId);
+  if (!Array.isArray(dataStore.organizationResources)) {
+    dataStore.organizationResources = [];
+  }
+  const map = resourcesMap || {};
+  Object.keys(map).forEach((rawModule) => {
+    const moduleCode = String(rawModule).toUpperCase();
+    const defs = resourceCatalog.resourceTypesFor(moduleCode);
+    if (!defs.length) return;
+    const perModule = map[rawModule] || {};
+    defs.forEach((def) => {
+      if (!(def.code in perModule)) return;
+      const quantity = Math.max(0, Number(perModule[def.code]) || 0);
+      const existing = dataStore.organizationResources.find(
+        (r) =>
+          r.organization_id === oid &&
+          r.module_code === moduleCode &&
+          r.resource_code === def.code,
+      );
+      if (existing) {
+        existing.quantity = quantity;
+        existing.unit_price_at_purchase = def.unit_price;
+        existing.updated_at = new Date().toISOString();
+      } else {
+        dataStore.organizationResources.push({
+          organization_id: oid,
+          module_code: moduleCode,
+          resource_code: def.code,
+          quantity,
+          unit_price_at_purchase: def.unit_price,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    });
+  });
+  return resourceQuantitiesFor(oid);
+}
+
+/** { MODULE_CODE: { RESOURCE_CODE: quantity } } for ALL stored rows (enabled or not). */
+function resourceQuantitiesFor(organizationId) {
+  const oid = Number(organizationId);
+  const out = {};
+  (dataStore.organizationResources || [])
+    .filter((r) => r.organization_id === oid)
+    .forEach((r) => {
+      if (!out[r.module_code]) out[r.module_code] = {};
+      out[r.module_code][r.resource_code] = Math.max(0, Number(r.quantity) || 0);
+    });
+  return out;
+}
+
+/**
+ * Full resource picture for a platform/admin editor: every catalog resource
+ * type for every module, with the org's configured quantity (default 0)
+ * and current unit price. Shape:
+ *   [{ module_code, resource_code, name, unit, unit_price, quantity }]
+ */
+function resourceCatalogFor(organizationId) {
+  const stored = resourceQuantitiesFor(organizationId);
+  const out = [];
+  resourceCatalog.modulesWithResources().forEach((moduleCode) => {
+    resourceCatalog.resourceTypesFor(moduleCode).forEach((def) => {
+      out.push({
+        module_code: moduleCode,
+        resource_code: def.code,
+        name: def.name,
+        unit: def.unit,
+        unit_price: def.unit_price,
+        quantity: (stored[moduleCode] && stored[moduleCode][def.code]) || 0,
+      });
+    });
+  });
+  return out;
+}
+
+/**
+ * Boot-time reconciliation. Guarantees every organization has an explicit
+ * organizationModules row for every module code in the catalog, so
+ * requireModule() (fail-closed) never 403s an org just because a newly
+ * added module code has no row yet. Pre-existing orgs are GRANTED the
+ * modules listed in BACKFILL_GRANT_MODULES (so yesterday's working orgs
+ * keep working); any other newly added code defaults to disabled.
+ */
+function syncOrganizationConfig() {
+  if (!Array.isArray(dataStore.organizationResources)) {
+    dataStore.organizationResources = [];
+  }
+  const grant = new Set(BACKFILL_GRANT_MODULES);
+  dataStore.organizations.forEach((org) => {
+    const oid = org.organization_id;
+    MODULE_CODES.forEach((code) => {
+      const existing = dataStore.organizationModules.find(
+        (m) => m.organization_id === oid && m.module_code === code,
+      );
+      if (!existing) {
+        dataStore.organizationModules.push({
+          organization_id: oid,
+          module_code: code,
+          enabled: grant.has(code),
+          instances: 1,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    });
+  });
+}
+
 // ---- Usage / quotas ----
 
 function quotasFor(organizationId) {
@@ -192,8 +310,13 @@ function usageFor(organizationId) {
 
   const enabledModules = enabledModulesFor(oid);
   // Usage-based billing: pay per enabled service × the number of instances
-  // of that service the org provisioned at onboarding.
-  const cost = serviceCatalog.computeCost(moduleInstancesFor(oid));
+  // of that service the org provisioned at onboarding, PLUS resource-level
+  // line items (beds, seats, terminals — config/resourceCatalog.js).
+  const cost = serviceCatalog.computeCost(
+    moduleInstancesFor(oid),
+    1,
+    resourceQuantitiesFor(oid),
+  );
 
   // Patient-flow snapshot for this organization — lets the Platform Super
   // User see how actively each tenant is using the system, not just how
@@ -242,6 +365,9 @@ function usageFor(organizationId) {
           price_monthly: cost.total,
           billing_model: 'USAGE',
           service_lines: cost.lines,
+          resource_lines: cost.resource_lines || [],
+          base_total: cost.base_total,
+          resource_total: cost.resource_total,
           instances: cost.instances,
           status: sub.status,
           started_at: sub.started_at,
@@ -288,6 +414,10 @@ module.exports = {
   enabledModulesFor,
   moduleInstancesFor,
   allModuleFlagsFor,
+  setResourceQuantities,
+  resourceQuantitiesFor,
+  resourceCatalogFor,
+  syncOrganizationConfig,
   quotasFor,
   usageFor,
   marketplaceListing,

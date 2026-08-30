@@ -30,12 +30,18 @@
     var linksHtml = links
       .map(function (item) {
         var isActive = item.href === currentPath || (item.activeRoutes && item.activeRoutes.includes(currentPath));
+        // A link tagged with `module` is gated by organization entitlement:
+        // shared/rbac.js#applyModuleLocks greys it + routes clicks to the
+        // "Module Not Available" dialog when that module is disabled.
+        var moduleAttr = item.module ? ' data-requires-module="' + escape(item.module) + '"' : '';
         return (
           '<a class="nav-link' +
           (isActive ? ' active' : '') +
           '" href="' +
           escape(item.href) +
-          '">' +
+          '"' +
+          moduleAttr +
+          '>' +
           escape(item.label) +
           '</a>'
         );
@@ -127,6 +133,17 @@
         } catch (_) {}
         window.location.href = '../login/login-page.html';
       });
+    }
+
+    // Nav is injected after auth-guard.js already ran once — re-apply module
+    // locks (and org branding) now that the links exist in the DOM.
+    if (window.RoleAccess) {
+      if (typeof window.RoleAccess.applyModuleLocks === 'function') {
+        window.RoleAccess.applyModuleLocks(container);
+      }
+      if (typeof window.RoleAccess.applyTenantBranding === 'function') {
+        window.RoleAccess.applyTenantBranding();
+      }
     }
   }
 

@@ -168,6 +168,31 @@ function provision(payload) {
     `Enabled services: ${instanceSummary || 'none'}`,
   );
 
+  // Resource-level entitlements (beds / seats / terminals — tasks.md §6/§7).
+  // `module_resources` shape: { MODULE_CODE: { RESOURCE_CODE: quantity } }.
+  if (payload.module_resources && typeof payload.module_resources === 'object') {
+    const stored = organizationService.setResourceQuantities(
+      organization.organization_id,
+      payload.module_resources,
+    );
+    const resourceSummary = Object.keys(stored)
+      .map(
+        (mod) =>
+          `${mod}[` +
+          Object.keys(stored[mod])
+            .map((res) => `${res}:${stored[mod][res]}`)
+            .join(', ') +
+          ']',
+      )
+      .join('  ');
+    logStep(
+      organization.organization_id,
+      'ALLOCATE_RESOURCES',
+      'DONE',
+      `Resource entitlements: ${resourceSummary || 'none'}`,
+    );
+  }
+
   const adminUser = {
     user_id:
       dataStore.users.length > 0

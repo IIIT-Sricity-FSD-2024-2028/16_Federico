@@ -16,6 +16,9 @@
     { code: "BILLING", name: "Billing" },
     { code: "INSURANCE", name: "Insurance" },
     { code: "ANALYTICS", name: "Administrative Analytics" },
+    { code: "DOCTOR", name: "Doctor Management" },
+    { code: "PATIENT", name: "Patient Management" },
+    { code: "LEADERSHIP", name: "Service Charge Approvals" },
   ];
 
   // ---- Auth guard (platform sessions are a separate domain — see platform-login.js) ----
@@ -384,24 +387,73 @@
   }
 
   async function renderModulesTab(orgId) {
-    var flags = await window.ApiClient.platform.organizations.modules(orgId);
     var container = document.getElementById("detail-modules");
+    var flags = await window.ApiClient.platform.organizations.modules(orgId);
+    var resourceRows = [];
+    try {
+      resourceRows = await window.ApiClient.platform.organizations.resources(orgId);
+    } catch (e) {
+      resourceRows = [];
+    }
+    var resByModule = {};
+    resourceRows.forEach(function (r) {
+      if (!resByModule[r.module_code]) resByModule[r.module_code] = [];
+      resByModule[r.module_code].push(r);
+    });
+
     container.innerHTML = flags
       .map(function (f) {
         var moduleName = (MODULE_CATALOG.find(function (m) { return m.code === f.module_code; }) || {}).name || f.module_code;
+        var resRows = (resByModule[f.module_code] || [])
+          .map(function (r) {
+            return (
+              '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:2px 0 2px 12px; font-size:12px; color:var(--md-on-surface-variant, #555);">' +
+              '<span>' + r.name + ' <span style="opacity:.7;">(₹' + r.unit_price + '/mo each)</span></span>' +
+              '<input type="number" min="0" value="' + (r.quantity || 0) + '" data-res-module="' + r.module_code + '" data-res-code="' + r.resource_code + '" ' +
+              (f.enabled ? "" : "disabled ") +
+              'style="width:64px; padding:3px 6px; border:1px solid var(--md-outline-variant,#ccc); border-radius:6px;" />' +
+              '</div>'
+            );
+          })
+          .join("");
         return (
-          '<label class="module-check" style="display:flex; justify-content:space-between; width:100%; margin-bottom:8px;">' +
+          '<div style="width:100%; margin-bottom:10px;">' +
+          '<label class="module-check" style="display:flex; justify-content:space-between; width:100%;">' +
           '<span>' + moduleName + '</span>' +
           '<input type="checkbox" data-module="' + f.module_code + '" ' + (f.enabled ? "checked" : "") + ' />' +
-          '</label>'
+          '</label>' +
+          resRows +
+          '</div>'
         );
       })
       .join("");
+
+    if (resourceRows.length) {
+      container.innerHTML +=
+        '<button type="button" class="md-btn md-btn-tonal md-btn-sm" id="save-resources-btn" style="margin-top:8px;">Save resource quantities</button>';
+      document.getElementById("save-resources-btn").addEventListener("click", async function () {
+        var payload = {};
+        container.querySelectorAll("input[data-res-code]").forEach(function (inp) {
+          var mod = inp.dataset.resModule;
+          if (!payload[mod]) payload[mod] = {};
+          payload[mod][inp.dataset.resCode] = Math.max(0, parseInt(inp.value, 10) || 0);
+        });
+        try {
+          await window.ApiClient.platform.organizations.setResources(orgId, payload);
+          window.UIFeedback.toast("Resource quantities saved.", "success");
+          refreshAll();
+        } catch (err) {
+          window.UIFeedback.toast(err.message || "Could not save resources.", "error");
+        }
+      });
+    }
+
     container.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
       checkbox.addEventListener("change", async function () {
         try {
           await window.ApiClient.platform.organizations.setModule(orgId, checkbox.dataset.module, checkbox.checked);
           window.UIFeedback.toast(checkbox.dataset.module + " " + (checkbox.checked ? "enabled" : "disabled") + ".", "success");
+          renderModulesTab(orgId);
           refreshAll();
         } catch (err) {
           checkbox.checked = !checkbox.checked;

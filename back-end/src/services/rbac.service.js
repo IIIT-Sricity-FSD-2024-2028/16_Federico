@@ -1,7 +1,8 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
-const { ROLE_ID_TO_NAME } = require('../utils/roles');
+const { ROLE_ID_TO_NAME, ROLE_NAME_TO_ID } = require('../utils/roles');
+const { hashPassword } = require('../utils/password');
 
 /**
  * Fixed permission catalog — the `resource:mode` pairs `actorAccess.js`'s
@@ -179,8 +180,74 @@ function staffFor(organizationId) {
       name: u.name,
       email: u.email,
       actor_role: ROLE_ID_TO_NAME[u.role_id] || null,
+      is_active: u.is_active !== false,
       custom_roles: rolesForUser(u.user_id),
     }));
+}
+
+// Fixed staff actor roles an Admin may create accounts for. Deliberately
+// excludes Admin (role 5 — the org owner, provisioned once) and Patient
+// (role 2 — self-registers, not staff).
+const CREATABLE_STAFF_ROLES = ['HOM', 'PRE', 'FA'];
+
+/**
+ * Creates a staff login for the caller's organization. The account can then
+ * sign in to its portal (HOM / PRE / FA) with the email + password given
+ * here. Returns { error } for a bad role or a duplicate email.
+ */
+function createStaffUser(organizationId, payload) {
+  const oid = Number(organizationId);
+  const role = String(payload.actor_role || '').toUpperCase();
+  if (!CREATABLE_STAFF_ROLES.includes(role)) {
+    return { error: 'INVALID_ROLE' };
+  }
+  const email = String(payload.email || '').trim().toLowerCase();
+  if (!email) return { error: 'INVALID_EMAIL' };
+  if (dataStore.users.some((u) => u.email && u.email.toLowerCase() === email)) {
+    return { error: 'EMAIL_TAKEN' };
+  }
+  const primaryHospital =
+    dataStore.hospitals.find((h) => h.organization_id === oid && h.is_primary) ||
+    dataStore.hospitals.find((h) => h.organization_id === oid) ||
+    null;
+
+  const newUser = {
+    user_id:
+      dataStore.users.length > 0
+        ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1
+        : 101,
+    name: payload.name,
+    email: payload.email,
+    password_hash: hashPassword(payload.password),
+    role_id: ROLE_NAME_TO_ID[role],
+    organization_id: oid,
+    hospital_id: primaryHospital ? primaryHospital.hospital_id : null,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  };
+  dataStore.users.push(newUser);
+  return {
+    user_id: newUser.user_id,
+    name: newUser.name,
+    email: newUser.email,
+    actor_role: role,
+    custom_roles: [],
+    is_active: true,
+  };
+}
+
+/** Soft enable/disable a staff account (org-scoped, non-Patient/Admin — checked by controller). */
+function setStaffActive(userId, active) {
+  const user = dataStore.users.find((u) => u.user_id === Number(userId));
+  if (!user) return null;
+  user.is_active = Boolean(active);
+  return {
+    user_id: user.user_id,
+    name: user.name,
+    email: user.email,
+    actor_role: ROLE_ID_TO_NAME[user.role_id] || null,
+    is_active: user.is_active,
+  };
 }
 
 module.exports = {
@@ -196,4 +263,7 @@ module.exports = {
   unassignStaffRole,
   rolesForUser,
   staffFor,
+  createStaffUser,
+  setStaffActive,
+  CREATABLE_STAFF_ROLES,
 };

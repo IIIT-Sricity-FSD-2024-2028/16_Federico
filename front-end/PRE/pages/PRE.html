@@ -27,11 +27,11 @@
 
   <ul class="nav-links">
     <li class="active"><a href="PRE.html">Dashboard</a></li>
-    <li><a href="emergency.html">Emergency cases</a></li>
-    <li><a href="patient-records.html">Patient record</a></li>
-    <li><a href="doctor.html">Doctor availability</a></li>
-    <li><a href="appointment.html">Create Appointment</a></li>
-    <li><a href="hom.html">HOM</a></li>
+    <li><a href="emergency.html" data-requires-module="ADMISSIONS">Emergency cases</a></li>
+    <li><a href="patient-records.html" data-requires-module="PATIENT">Patient record</a></li>
+    <li><a href="doctor.html" data-requires-module="DOCTOR">Doctor availability</a></li>
+    <li><a href="appointment.html" data-requires-module="APPOINTMENTS">Create Appointment</a></li>
+    <li><a href="hom.html" data-requires-module="ADMISSIONS">HOM</a></li>
   </ul>
 
   <button class="logout">LOG OUT</button>
@@ -40,22 +40,22 @@
 <!-- Cards -->
 <div class="cards">
 
-  <a href="request.html" class="card">
+  <a href="request.html" class="card" data-requires-module="ADMISSIONS">
     <h3>Pending Requests</h3>
     <p id="pending"></p> 
   </a>
 
-  <a href="rejected.html" class="card">
+  <a href="rejected.html" class="card" data-requires-module="ADMISSIONS">
     <h3>Rejected Requests</h3>
     <p id="rejected"></p>
   </a>
 
-  <a href="admitted.html" class="card">
+  <a href="admitted.html" class="card" data-requires-module="ADMISSIONS">
     <h3>Admitted Patients</h3>
     <p id="admitted"></p>
   </a>
 
-  <a href="discharge.html" class="card">
+  <a href="discharge.html" class="card" data-requires-module="ADMISSIONS">
     <h3>Discharge Approvals</h3>
     <p id="discharge-count"></p>
   </a>

@@ -124,6 +124,46 @@ function listStaff(req, res) {
   sendResult(res, rbacService.staffFor(req.tenant.organizationId), 200);
 }
 
+// Admin creates a staff login (HOM/PRE/FA) for its own organization. The
+// person then signs in to their portal with the email + password set here.
+const STAFF_CREATE_ERRORS = {
+  INVALID_ROLE: [400, 'Role must be one of HOM, PRE, FA', 'Bad Request'],
+  INVALID_EMAIL: [400, 'A valid email is required', 'Bad Request'],
+  EMAIL_TAKEN: [409, 'That email is already registered', 'Conflict'],
+};
+
+function createStaff(req, res) {
+  const result = rbacService.createStaffUser(req.tenant.organizationId, req.body);
+  if (result && result.error) {
+    const [status, message, error] =
+      STAFF_CREATE_ERRORS[result.error] || STAFF_CREATE_ERRORS.INVALID_ROLE;
+    return res.status(status).json({ message, error, statusCode: status });
+  }
+  logger.log(
+    `✅ STAFF CREATED  user_id=${result.user_id}  role=${result.actor_role}  org=${req.tenant.organizationId}`,
+  );
+  sendResult(res, result, 201);
+}
+
+function setStaffActive(req, res) {
+  const targetUser = dataStore.users.find(
+    (u) => u.user_id === +req.params.userId,
+  );
+  if (
+    !targetUser ||
+    targetUser.organization_id !== req.tenant.organizationId ||
+    targetUser.role_id === 2 ||
+    targetUser.role_id === 5
+  ) {
+    return res.status(403).json(FORBIDDEN);
+  }
+  const result = rbacService.setStaffActive(
+    targetUser.user_id,
+    Boolean(req.body.is_active),
+  );
+  sendResult(res, result, 200);
+}
+
 module.exports = {
   listRoles,
   createRole,
@@ -134,4 +174,6 @@ module.exports = {
   assignStaffRole,
   unassignStaffRole,
   listStaff,
+  createStaff,
+  setStaffActive,
 };

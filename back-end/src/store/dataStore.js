@@ -6704,7 +6704,10 @@ const dataStore = {
         "INVENTORY",
         "BILLING",
         "INSURANCE",
-        "ANALYTICS"
+        "ANALYTICS",
+        "DOCTOR",
+        "PATIENT",
+        "LEADERSHIP"
       ],
       "price_monthly": 0,
       "created_at": "2026-08-18T11:39:52.249Z"
@@ -6771,6 +6774,27 @@ const dataStore = {
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
+      "organization_id": 1,
+      "module_code": "DOCTOR",
+      "enabled": true,
+      "instances": 1,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "PATIENT",
+      "enabled": true,
+      "instances": 1,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "LEADERSHIP",
+      "enabled": true,
+      "instances": 1,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
       "organization_id": 2,
       "module_code": "APPOINTMENTS",
       "enabled": true,
@@ -6806,6 +6830,27 @@ const dataStore = {
       "organization_id": 2,
       "module_code": "ANALYTICS",
       "enabled": false,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "DOCTOR",
+      "enabled": true,
+      "instances": 1,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "PATIENT",
+      "enabled": true,
+      "instances": 1,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "LEADERSHIP",
+      "enabled": false,
+      "instances": 1,
       "updated_at": "2026-08-18T11:39:52.322Z"
     }
   ],
@@ -7043,7 +7088,16 @@ const dataStore = {
     }
   ],
   "platformActivityLog": [],
-  "leaders": []
+  "leaders": [],
+  "organizationResources": [
+    { "organization_id": 1, "module_code": "ADMISSIONS", "resource_code": "GENERAL_BEDS", "quantity": 50, "unit_price_at_purchase": 150, "updated_at": "2026-08-18T11:39:52.251Z" },
+    { "organization_id": 1, "module_code": "ADMISSIONS", "resource_code": "ICU_BEDS", "quantity": 10, "unit_price_at_purchase": 600, "updated_at": "2026-08-18T11:39:52.251Z" },
+    { "organization_id": 1, "module_code": "ADMISSIONS", "resource_code": "PRIVATE_BEDS", "quantity": 20, "unit_price_at_purchase": 400, "updated_at": "2026-08-18T11:39:52.251Z" },
+    { "organization_id": 1, "module_code": "BILLING", "resource_code": "BILLING_USERS", "quantity": 5, "unit_price_at_purchase": 350, "updated_at": "2026-08-18T11:39:52.251Z" },
+    { "organization_id": 1, "module_code": "INVENTORY", "resource_code": "STORAGE_UNITS", "quantity": 3, "unit_price_at_purchase": 200, "updated_at": "2026-08-18T11:39:52.251Z" },
+    { "organization_id": 2, "module_code": "ADMISSIONS", "resource_code": "GENERAL_BEDS", "quantity": 20, "unit_price_at_purchase": 150, "updated_at": "2026-08-18T11:39:52.322Z" },
+    { "organization_id": 2, "module_code": "ADMISSIONS", "resource_code": "ICU_BEDS", "quantity": 4, "unit_price_at_purchase": 600, "updated_at": "2026-08-18T11:39:52.322Z" }
+  ]
 };
 
 module.exports = dataStore;

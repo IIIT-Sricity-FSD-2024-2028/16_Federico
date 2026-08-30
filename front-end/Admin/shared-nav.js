@@ -15,8 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
       brandName: brandName,
       links: [
         { href: 'screen-01-dashboard.html', label: 'Dashboard' },
-        { href: 'screen-02-departments.html', label: 'Departments' },
-        { href: 'screen-03-inventory.html', label: 'Inventory Catalog' },
+        { href: 'screen-02-departments.html', label: 'Departments', module: 'ADMISSIONS' },
+        { href: 'screen-03-inventory.html', label: 'Inventory Catalog', module: 'INVENTORY' },
+        { href: 'screen-05-people.html', label: 'People' },
         { href: 'screen-04-admin.html', label: 'Roles & Staff' },
       ],
     });
