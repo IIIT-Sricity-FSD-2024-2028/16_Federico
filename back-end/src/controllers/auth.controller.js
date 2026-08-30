@@ -18,6 +18,11 @@ const LOGIN_ERROR_RESPONSES = {
     'This organization is not currently active',
     'Forbidden',
   ],
+  ACCOUNT_INACTIVE: [
+    403,
+    'This account has been deactivated by your administrator',
+    'Forbidden',
+  ],
 };
 
 const { extractToken } = require('../middleware/session');

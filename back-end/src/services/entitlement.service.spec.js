@@ -97,4 +97,47 @@ describe('Entitlement enforcement (module + resource)', () => {
       usage.subscription.base_total + usage.subscription.resource_total,
     );
   });
+
+  it('allows Admin role to create, update, and delete doctors', async () => {
+    const adminToken = sessionFor(1, 'Admin');
+
+    const createRes = await request(app)
+      .post('/doctor')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Dr. Test Admin Created', specialization: 'Neurology', department: 'General' });
+
+    expect(createRes.status).toBe(201);
+    const docId = createRes.body.doctor_id;
+    expect(docId).toBeDefined();
+
+    const updateRes = await request(app)
+      .put(`/doctor/${docId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Dr. Test Admin Renamed' });
+
+    expect(updateRes.status).toBe(200);
+
+    const deleteRes = await request(app)
+      .delete(`/doctor/${docId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(deleteRes.status).toBe(200);
+  });
+
+  it('rejects login for deactivated staff accounts with 403 ACCOUNT_INACTIVE', async () => {
+    const user = dataStore.users.find((u) => u.email === 'rekha.pre@hosp.com');
+    expect(user).toBeDefined();
+    const originalState = user.is_active;
+
+    user.is_active = false;
+
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email: 'rekha.pre@hosp.com', password: 'Pre@123', organization_id: 1 });
+
+    user.is_active = originalState;
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/deactivated/i);
+  });
 });

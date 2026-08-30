@@ -180,6 +180,12 @@ function platformUsage(req, res) {
           bucket.total_income += Number(line.amount) || 0;
         }
       });
+      (org.subscription.resource_lines || []).forEach((rLine) => {
+        const bucket = revenueByService[serviceCatalog.SERVICE_NAMES[rLine.module_code]];
+        if (bucket) {
+          bucket.total_income += Number(rLine.amount) || 0;
+        }
+      });
     }
   });
 

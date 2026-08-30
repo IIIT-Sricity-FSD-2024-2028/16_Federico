@@ -84,6 +84,9 @@ function login(email, password, requestedOrganizationId) {
   ) {
     return { error: 'WRONG_ORGANIZATION' };
   }
+  if (user.is_active === false) {
+    return { error: 'ACCOUNT_INACTIVE' };
+  }
   const organization = organizationService.findById(user.organization_id);
   if (!organization || organization.status !== 'ACTIVE') {
     return { error: 'ORGANIZATION_INACTIVE' };
