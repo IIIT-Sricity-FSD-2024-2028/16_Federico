@@ -297,6 +297,7 @@ function buildBillsAndDocuments(bundles, servicesById, receipts, dischargeSummar
         const createdAt = new Date(ledger.dispatched_at || ledger.created_at).getTime();
         const dueAt = createdAt + 7 * 24 * 60 * 60 * 1000;
         const isPaid = ledger.status === "PAID";
+        const hasDischarge = dischargeSummaries.some((s) => s && s.admission_id === admission.admission_id);
 
         bills.push({
             id: `LEDGER-${ledger.ledger_id}`,
@@ -313,6 +314,7 @@ function buildBillsAndDocuments(bundles, servicesById, receipts, dischargeSummar
             disputed: false,
             ledgerId: ledger.ledger_id,
             admissionId: admission.admission_id,
+            hasDischargeSummary: hasDischarge,
             items: entries.map((e) => ({
                 name: (servicesById[e.service_id] || {}).service_name || "Service",
                 qty: e.quantity,
@@ -334,28 +336,13 @@ function buildBillsAndDocuments(bundles, servicesById, receipts, dischargeSummar
             id: `EOD-${ledger.ledger_id}`,
             section: "EOD Bills",
             type: "EOD_BILL",
-            title: `Bill #${ledger.ledger_id}`,
+            title: `EOD Statement #${ledger.ledger_id}`,
             reference: "patient-billing.html",
             createdAt,
             amount: share.patientShare,
             sourceType: "EOD_BILL",
             sourceId: ledger.ledger_id,
         });
-
-        if (!isPaid) {
-            receiptDocs.push({
-                id: `PAYLINK-${ledger.ledger_id}`,
-                section: "Receipts",
-                type: "PAYMENT_LINK",
-                title: `Bill #${ledger.ledger_id}`,
-                createdAt,
-                amount: share.patientShare,
-                dispatchId: ledger.ledger_id,
-                admissionId: admission.admission_id,
-                sourceType: "PAYMENT_LINK",
-                sourceId: ledger.ledger_id,
-            });
-        }
     });
 
     receipts.forEach((r) => {

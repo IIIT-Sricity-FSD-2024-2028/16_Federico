@@ -391,6 +391,66 @@ function renewSubscription(req, res) {
   sendResult(res, result, 200);
 }
 
+function getGlobalRates(req, res) {
+  if (!dataStore.platformRates) {
+    dataStore.platformRates = {
+      base_platform_fee: 3000,
+      rates: {
+        GENERAL_BEDS: 150,
+        ICU_BEDS: 600,
+        PRIVATE_BEDS: 350,
+        SEMI_PRIVATE_BEDS: 350,
+        DOCTOR_SEATS: 150,
+        STAFF_SEATS: 200,
+        BILLING_TERMINALS: 500,
+        WAREHOUSES: 1000,
+        PATIENT_ADMISSIONS: 10,
+      },
+      updated_at: new Date().toISOString(),
+    };
+  }
+  sendResult(res, dataStore.platformRates, 200);
+}
+
+function updateGlobalRates(req, res) {
+  const { base_platform_fee, rates } = req.body;
+  if (!dataStore.platformRates) {
+    dataStore.platformRates = {
+      base_platform_fee: 3000,
+      rates: {
+        GENERAL_BEDS: 150,
+        ICU_BEDS: 600,
+        PRIVATE_BEDS: 350,
+        SEMI_PRIVATE_BEDS: 350,
+        DOCTOR_SEATS: 150,
+        STAFF_SEATS: 200,
+        BILLING_TERMINALS: 500,
+        WAREHOUSES: 1000,
+        PATIENT_ADMISSIONS: 10,
+      },
+      updated_at: new Date().toISOString(),
+    };
+  }
+  if (base_platform_fee !== undefined) {
+    dataStore.platformRates.base_platform_fee = Math.max(0, Number(base_platform_fee) || 0);
+  }
+  if (rates && typeof rates === 'object') {
+    Object.keys(rates).forEach((k) => {
+      dataStore.platformRates.rates[k] = Math.max(0, Number(rates[k]) || 0);
+    });
+  }
+  dataStore.platformRates.updated_at = new Date().toISOString();
+
+  platformActivityService.log(
+    req.session && req.session.userId ? req.session.userId : 1,
+    'UPDATE_GLOBAL_RATES',
+    null,
+    'Updated global SaaS platform pricing rates',
+  );
+
+  sendResult(res, dataStore.platformRates, 200);
+}
+
 module.exports = {
   login,
   me,
@@ -421,4 +481,6 @@ module.exports = {
   getSubscription,
   setSubscription,
   renewSubscription,
+  getGlobalRates,
+  updateGlobalRates,
 };

@@ -14,6 +14,7 @@ const {
   DEFAULT_SERVICES,
   DEFAULT_INVENTORY_ITEMS,
 } = require('../config/defaultClinicalCatalog');
+const { MODULE_CODES } = require('../utils/tenant');
 
 /**
  * Provisioning Engine (tasks.md §6) — the one place a new tenant gets
@@ -152,7 +153,7 @@ function provision(payload) {
     `Subscribed to "${plan.name}" — quotas allocated`,
   );
 
-  const chosenModules = payload.modules || plan.included_modules;
+  const chosenModules = (payload.modules && payload.modules.length) ? payload.modules : (plan && plan.included_modules && plan.included_modules.length ? plan.included_modules : MODULE_CODES);
   const enabledModules = organizationService.setModuleFlags(
     organization.organization_id,
     chosenModules,

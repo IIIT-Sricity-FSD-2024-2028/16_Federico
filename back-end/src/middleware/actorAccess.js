@@ -6,27 +6,21 @@ const ACTOR_ACCESS = {
   doctor: { read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'], write: ['HOM', 'Admin'] },
   patient: {
     read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
-    write: ['HOM', 'PRE', 'Patient'],
+    write: ['HOM', 'PRE', 'Patient', 'Admin'],
   },
-  ward: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM'] },
-  inventory: { read: ['HOM', 'FA', 'Admin'], write: ['HOM'] },
-  wardAdmin: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
-  inventoryCatalog: { read: ['Admin'], write: ['Admin'], delete: ['Admin'] },
-  billing: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA'] },
-  leader: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'FA'] },
-  payment: { write: ['FA', 'Patient'] },
-  // Only FA writes ledger lines directly. HOM-originated charges must go
-  // through the `leader` queue (POST /billing/leaders) and be approved by
-  // FA before they land in a patient's ledger.
-  ledgerEntry: { write: ['FA'] },
-  // 'Admin' (org owner) gets read-only visibility into appointments and
-  // pre-registration flow for its own organization — used by the Admin
-  // analytics dashboard. Still org-scoped by scopeToOrg in the controller.
-  appointment: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['PRE'] },
-  admission: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'PRE'] },
+  ward: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'Admin'] },
+  inventory: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'Admin'] },
+  wardAdmin: { read: ['Admin', 'HOM'], write: ['Admin', 'HOM'], delete: ['Admin', 'HOM'] },
+  inventoryCatalog: { read: ['Admin', 'HOM'], write: ['Admin', 'HOM'], delete: ['Admin', 'HOM'] },
+  billing: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA', 'Admin'] },
+  leader: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'FA', 'Admin'] },
+  payment: { read: ['FA', 'Patient', 'Admin'], write: ['FA', 'Patient', 'Admin'] },
+  ledgerEntry: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA', 'Admin'] },
+  appointment: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['PRE', 'Admin'] },
+  admission: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'PRE', 'Admin'] },
   preRequest: {
     read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
-    write: ['HOM', 'PRE', 'Patient'],
+    write: ['HOM', 'PRE', 'Patient', 'Admin'],
   },
   rbac: { read: ['Admin'], write: ['Admin'] },
 };

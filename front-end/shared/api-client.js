@@ -474,6 +474,14 @@
       moduleResourceCatalog: function () {
         return request("GET", "/platform/module-resource-catalog");
       },
+      rates: {
+        get: function () {
+          return request("GET", "/platform/rates");
+        },
+        update: function (payload) {
+          return request("PUT", "/platform/rates", payload);
+        },
+      },
       usage: function () {
         return request("GET", "/platform/usage");
       },

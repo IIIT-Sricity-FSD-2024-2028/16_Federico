@@ -4,23 +4,23 @@
 window.currentAdmissionId = window.currentAdmissionId || null;
 
 async function render() {
-    if (typeof parseHashRoute === 'function') parseHashRoute();
+    const routeInfo = typeof parseHashRoute === 'function' ? parseHashRoute() : { mainRoute: (location.hash || '#/dashboard').split('/')[1] ? '#/' + (location.hash || '#/dashboard').split('/')[1] : '#/dashboard' };
+    const mainRoute = routeInfo.mainRoute || '#/dashboard';
     if (typeof updateActiveNav === 'function') updateActiveNav();
     const appDiv = document.getElementById('app');
-    const hash = location.hash || (window.Permissions ? Permissions.getDefaultRoute() : '#/dashboard');
 
-    if (window.Permissions && !Permissions.enforceRoute(hash)) return;
+    if (window.Permissions && !Permissions.enforceRoute(location.hash || mainRoute)) return;
 
     appDiv.innerHTML = '<div class="card" style="padding: 60px; text-align: center; color: var(--text-muted);">Loading…</div>';
 
     try {
-        if (hash === '#/dashboard') appDiv.innerHTML = await renderDashboard();
-        else if (hash === '#/charges') appDiv.innerHTML = await renderCharges();
-        else if (hash.startsWith('#/ledger')) appDiv.innerHTML = await renderLedger();
-        else if (hash === '#/eod') appDiv.innerHTML = await renderEodBilling();
-        else if (hash === '#/discharge') appDiv.innerHTML = await renderDischarge();
-        else if (hash === '#/receipts') appDiv.innerHTML = await renderReceipts();
-        else appDiv.innerHTML = `<div class="card" style="padding: 50px; text-align: center;"><h2>Page Under Construction</h2></div>`;
+        if (mainRoute === '#/dashboard') appDiv.innerHTML = await renderDashboard();
+        else if (mainRoute === '#/charges') appDiv.innerHTML = await renderCharges();
+        else if (mainRoute === '#/ledger') appDiv.innerHTML = await renderLedger();
+        else if (mainRoute === '#/eod') appDiv.innerHTML = await renderEodBilling();
+        else if (mainRoute === '#/discharge') appDiv.innerHTML = await renderDischarge();
+        else if (mainRoute === '#/receipts') appDiv.innerHTML = await renderReceipts();
+        else appDiv.innerHTML = `<div class="card" style="padding: 50px; text-align: center;"><h2>Page Not Found</h2></div>`;
     } catch (err) {
         console.error('FA render failed:', err);
         appDiv.innerHTML = `<div class="card" style="padding: 50px; text-align: center;"><h2>Something went wrong</h2><p style="color: var(--text-muted);">${window.FAHelpers.escapeHtml(err.message || String(err))}</p></div>`;

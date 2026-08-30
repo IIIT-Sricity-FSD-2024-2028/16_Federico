@@ -36,19 +36,15 @@
       </div>
       <div class="step-node" data-step="2">
         <div class="step-bubble">2</div>
-        <span class="step-label">Choose Plan</span>
+        <span class="step-label">Capacity & Scale</span>
       </div>
       <div class="step-node" data-step="3">
         <div class="step-bubble">3</div>
-        <span class="step-label">Services</span>
+        <span class="step-label">Admin Account</span>
       </div>
       <div class="step-node" data-step="4">
         <div class="step-bubble">4</div>
-        <span class="step-label">Admin Account</span>
-      </div>
-      <div class="step-node" data-step="5">
-        <div class="step-bubble">5</div>
-        <span class="step-label">Payment & Launch</span>
+        <span class="step-label">Review & Launch</span>
       </div>
     </div>
 
@@ -96,152 +92,133 @@
 
           <div class="stepper-actions">
             <div></div>
-            <button type="button" class="md-btn md-btn-filled" id="btn-next-1">Continue to Plan Selection →</button>
+            <button type="button" class="md-btn md-btn-filled" id="btn-next-1">Continue to Capacity Setup →</button>
           </div>
         </div>
 
-        <!-- STEP 2: Subscription Plan -->
+        <!-- STEP 2: Capacity & Resource Scale (Pay As You Scale) -->
         <div class="step-panel" id="panel-step-2">
-          <h2 class="step-heading">Select Your Subscription Plan</h2>
-          <p class="step-description">Choose a tier based on your hospital size and administrative requirements.</p>
+          <h2 class="step-heading">Hospital Capacity &amp; Resource Scale</h2>
+          <p class="step-description">Federico includes all 8 core hospital modules with no artificial quota limits. Configure your initial beds, staff, and hardware capacity—pricing automatically scales with your usage.</p>
 
-          <div class="plan-cards-grid" id="plan-selection-container">
-            <!-- Dynamically populated or fallback -->
-            <div class="plan-select-card" data-plan-id="1" data-price="4999" data-name="Starter">
-              <div class="plan-card-name">Starter</div>
-              <div class="plan-card-price">₹4,999 <small>/ month</small></div>
-              <ul class="plan-card-features">
-                <li>Up to 25 Beds Quota</li>
-                <li>15 Staff Users</li>
-                <li>1 Hospital Campus</li>
-                <li>Appointments & Bed Mgmt</li>
-                <li>Standard Billing</li>
-              </ul>
-            </div>
-
-            <div class="plan-select-card selected" data-plan-id="2" data-price="14999" data-name="Professional">
-              <div class="plan-badge-popular">Most Popular</div>
-              <div class="plan-card-name">Professional</div>
-              <div class="plan-card-price">₹14,999 <small>/ month</small></div>
-              <ul class="plan-card-features">
-                <li>Up to 100 Beds Quota</li>
-                <li>60 Staff Users</li>
-                <li>Up to 3 Hospital Branches</li>
-                <li>Non-Clinical Inventory & Procurement</li>
-                <li>Dynamic Billing & Insurance</li>
-              </ul>
-            </div>
-
-            <div class="plan-select-card" data-plan-id="3" data-price="49999" data-name="Enterprise">
-              <div class="plan-card-name">Enterprise</div>
-              <div class="plan-card-price">₹49,999 <small>/ month</small></div>
-              <ul class="plan-card-features">
-                <li>Unlimited Beds & Quotas</li>
-                <li>Unlimited Hospital Branches</li>
-                <li>All Modules & Custom RBAC</li>
-                <li>Administrative Analytics Engine</li>
-                <li>Dedicated 24x7 Enterprise Support</li>
-              </ul>
+          <div style="background:var(--md-surface-container-low, #f4eff4); border-radius:12px; padding:16px 20px; margin-bottom:20px; border:1px solid var(--md-outline-variant, #cac4d0);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="color:var(--md-primary, #6750A4); font-size:1.05rem;">Base Platform License</strong>
+                <p style="margin:2px 0 0 0; font-size:0.85rem; color:var(--md-on-surface-variant, #49454f);">All 8 Core Modules Unlocked: Appointments, Admissions, Doctors, Ward Mgmt, Billing, Inventory, Insurance &amp; Analytics</p>
+              </div>
+              <div style="font-size:1.25rem; font-weight:800; color:var(--md-primary, #6750A4);">₹3,000 <span style="font-size:0.8rem; font-weight:500; color:var(--md-on-surface-variant);">/ mo</span></div>
             </div>
           </div>
 
-          <div class="stepper-actions">
+          <div class="resource-config-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <!-- Bed Management -->
+            <div class="card" style="padding:20px; border:1px solid var(--md-outline-variant, #cac4d0); border-radius:12px; background:var(--md-surface, #fff);">
+              <h3 style="margin:0 0 14px 0; font-size:1rem; color:var(--md-on-surface, #1d1b20);">
+                Inpatient Beds Capacity
+              </h3>
+              <div class="form-group" style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">General Ward Beds (₹150 / bed / mo)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-general-beds">₹4,500</span>
+                </div>
+                <input type="number" id="res-general-beds" class="resource-input" min="0" value="30" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">ICU Beds (₹600 / bed / mo)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-icu-beds">₹3,000</span>
+                </div>
+                <input type="number" id="res-icu-beds" class="resource-input" min="0" value="5" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+              <div class="form-group">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">Private / Semi-Private (₹350 / bed / mo)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-private-beds">₹3,500</span>
+                </div>
+                <input type="number" id="res-private-beds" class="resource-input" min="0" value="10" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+            </div>
+
+            <!-- Staff & Doctors -->
+            <div class="card" style="padding:20px; border:1px solid var(--md-outline-variant, #cac4d0); border-radius:12px; background:var(--md-surface, #fff);">
+              <h3 style="margin:0 0 14px 0; font-size:1rem; color:var(--md-on-surface, #1d1b20);">
+                Staff &amp; Doctors
+              </h3>
+              <div class="form-group" style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">Doctor Directory Seats (₹150 / doc / mo)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-doctor-seats">₹1,500</span>
+                </div>
+                <input type="number" id="res-doctor-seats" class="resource-input" min="0" value="10" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+              <div class="form-group">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">Staff Accounts (HOM/PRE/FA) (₹200 / seat / mo)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-staff-seats">₹1,200</span>
+                </div>
+                <input type="number" id="res-staff-seats" class="resource-input" min="0" value="6" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+            </div>
+
+            <!-- Hardware & Facilities -->
+            <div class="card" style="padding:20px; border:1px solid var(--md-outline-variant, #cac4d0); border-radius:12px; background:var(--md-surface, #fff);">
+              <h3 style="margin:0 0 14px 0; font-size:1rem; color:var(--md-on-surface, #1d1b20);">
+                Hardware &amp; Facilities
+              </h3>
+              <div class="form-group" style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">Billing Terminals (₹500 / terminal / mo)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-terminals">₹1,000</span>
+                </div>
+                <input type="number" id="res-terminals" class="resource-input" min="0" value="2" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+              <div class="form-group">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">Central Warehouses (₹1,000 / warehouse / mo)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-warehouses">₹1,000</span>
+                </div>
+                <input type="number" id="res-warehouses" class="resource-input" min="0" value="1" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+            </div>
+
+            <!-- Patient Volume -->
+            <div class="card" style="padding:20px; border:1px solid var(--md-outline-variant, #cac4d0); border-radius:12px; background:var(--md-surface, #fff);">
+              <h3 style="margin:0 0 14px 0; font-size:1rem; color:var(--md-on-surface, #1d1b20);">
+                Patient Admissions (Usage Volume)
+              </h3>
+              <div class="form-group">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <label style="font-size:0.85rem; font-weight:600;">Estimated Admissions / Month (₹10 / admission)</label>
+                  <span style="font-weight:700; color:var(--md-primary);" id="cost-patient-admissions">₹500</span>
+                </div>
+                <input type="number" id="res-patient-admissions" class="resource-input" min="0" value="50" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--md-outline-variant);" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Dynamic Price Calculator Summary -->
+          <div style="margin-top:20px; padding:18px 24px; border:1px solid var(--md-primary, #6750A4); border-radius:12px; background:var(--md-surface-container-lowest, #fff); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:0.85rem; font-weight:600; color:var(--md-on-surface-variant, #49454f);">Estimated Monthly Subscription (Pay As You Scale)</div>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Includes Base License + Selected Capacities + 18% GST (No Artificial Quota Blocks)</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:1.6rem; font-weight:800; color:var(--md-primary, #6750A4);" id="live-total-price">₹19,116</div>
+              <div style="font-size:0.75rem; color:var(--md-on-surface-variant);" id="live-subtotal-tax">Subtotal: ₹16,200 + GST: ₹2,916</div>
+            </div>
+          </div>
+
+          <div class="stepper-actions" style="margin-top:24px;">
             <button type="button" class="md-btn md-btn-text" id="btn-back-2">← Back</button>
-            <button type="button" class="md-btn md-btn-filled" id="btn-next-2">Continue to Services →</button>
+            <button type="button" class="md-btn md-btn-filled" id="btn-next-2">Continue to Admin Setup →</button>
           </div>
         </div>
 
-        <!-- STEP 3: Customize Modules -->
+        <!-- STEP 3: Admin Account -->
         <div class="step-panel" id="panel-step-3">
-          <h2 class="step-heading">Choose Services &amp; Instances</h2>
-          <p class="step-description">You are billed per service, per instance. Tick a service and set how many instances you need — the running total updates below.</p>
-
-          <div class="modules-interactive-grid">
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="APPOINTMENTS" checked />
-              <div>
-                <div class="module-info-title">Appointments Management</div>
-                <div class="module-info-desc">Online patient booking, slot allocation, and doctor schedules.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="ADMISSIONS" checked />
-              <div>
-                <div class="module-info-title">Admissions & Bed Management</div>
-                <div class="module-info-desc">Real-time ward & bed status, patient check-in, and transfer workflows.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="INVENTORY" checked />
-              <div>
-                <div class="module-info-title">Non-Clinical Inventory & Supplies</div>
-                <div class="module-info-desc">Stock monitoring, departmental requisitions, and procurement logs.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="BILLING" checked />
-              <div>
-                <div class="module-info-title">Dynamic Billing & Invoicing</div>
-                <div class="module-info-desc">Automated room charges, itemized invoice generation, and receipts.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="INSURANCE" checked />
-              <div>
-                <div class="module-info-title">Insurance Verification</div>
-                <div class="module-info-desc">TPA policy validation, coverage estimation, and claim tracking.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="ANALYTICS" checked />
-              <div>
-                <div class="module-info-title">Administrative Analytics</div>
-                <div class="module-info-desc">Operational reports, bed occupancy trends, and staff performance metrics.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="DOCTOR" checked />
-              <div>
-                <div class="module-info-title">Doctor Management</div>
-                <div class="module-info-desc">Doctor directory, specializations, department assignment, and availability.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="PATIENT" checked />
-              <div>
-                <div class="module-info-title">Patient Management</div>
-                <div class="module-info-desc">Patient records, demographics, and the patient self-service portal.</div>
-              </div>
-            </label>
-
-            <label class="module-checkbox-card">
-              <input type="checkbox" name="module-code" value="LEADERSHIP" checked />
-              <div>
-                <div class="module-info-title">Service Charge Approvals</div>
-                <div class="module-info-desc">HOM-raised service charges queued for Finance approval before they hit a patient ledger.</div>
-              </div>
-            </label>
-          </div>
-
-          <div id="step3-estimate" style="margin-top:18px; padding:14px 16px; border:1px solid var(--md-outline-variant); border-radius:12px; background:var(--md-surface-container-low, rgba(0,0,0,0.03));"></div>
-
-          <div class="stepper-actions">
-            <button type="button" class="md-btn md-btn-text" id="btn-back-3">← Back</button>
-            <button type="button" class="md-btn md-btn-filled" id="btn-next-3">Continue to Admin Setup →</button>
-          </div>
-        </div>
-
-        <!-- STEP 4: Admin Account -->
-        <div class="step-panel" id="panel-step-4">
           <h2 class="step-heading">Hospital Administrator Account</h2>
-          <p class="step-description">Create the primary super user account for your hospital workspace.</p>
+          <p class="step-description">Create the primary administrative owner account for your hospital workspace.</p>
 
           <div class="form-group">
             <label for="admin-name">Administrator Full Name *</label>
@@ -260,15 +237,15 @@
           </div>
 
           <div class="stepper-actions">
-            <button type="button" class="md-btn md-btn-text" id="btn-back-4">← Back</button>
-            <button type="button" class="md-btn md-btn-filled" id="btn-next-4">Proceed to Payment & Checkout →</button>
+            <button type="button" class="md-btn md-btn-text" id="btn-back-3">← Back</button>
+            <button type="button" class="md-btn md-btn-filled" id="btn-next-3">Review & Proceed to Checkout →</button>
           </div>
         </div>
 
-        <!-- STEP 5: Payment & Checkout -->
-        <div class="step-panel" id="panel-step-5">
-          <h2 class="step-heading">Subscription Checkout & Payment</h2>
-          <p class="step-description">Review your plan summary and complete payment to provision your workspace.</p>
+        <!-- STEP 4: Review & Payment Checkout -->
+        <div class="step-panel" id="panel-step-4">
+          <h2 class="step-heading">Subscription Review &amp; Activation</h2>
+          <p class="step-description">Review your capacity configuration and activate your dedicated hospital workspace.</p>
 
           <div class="checkout-summary-box">
             <div class="summary-row">
@@ -276,13 +253,15 @@
               <strong id="summary-org-name">—</strong>
             </div>
             <div class="summary-row">
-              <span>Billing model:</span>
-              <strong id="summary-plan-name">Usage-based</strong>
+              <span>Billing Model:</span>
+              <strong id="summary-plan-name">Pay As You Scale (Resource Usage)</strong>
             </div>
-            <div id="summary-service-lines" style="padding:8px 0; border-top:1px dashed var(--md-outline-variant); border-bottom:1px dashed var(--md-outline-variant); margin:4px 0;"></div>
+            <div id="summary-resource-breakdown" style="padding:10px 0; border-top:1px dashed var(--md-outline-variant); border-bottom:1px dashed var(--md-outline-variant); margin:8px 0; font-size:0.9rem;">
+              <!-- Filled via JS -->
+            </div>
             <div class="summary-row">
-              <span>Monthly Service Charge:</span>
-              <span id="summary-plan-price">₹0</span>
+              <span>Subtotal (Excl. Tax):</span>
+              <span id="summary-plan-price">₹16,200</span>
             </div>
             <div class="summary-row">
               <span>Platform Setup & Provisioning:</span>
@@ -290,19 +269,19 @@
             </div>
             <div class="summary-row">
               <span>Applicable GST (18%):</span>
-              <span id="summary-tax">₹2,699.82</span>
+              <span id="summary-tax">₹2,916</span>
             </div>
             <div class="summary-row total">
-              <span>Total Payable Now:</span>
-              <span id="summary-total" style="color:var(--md-primary);">₹17,698.82</span>
+              <span>Total Monthly Amount:</span>
+              <span id="summary-total" style="color:var(--md-primary);">₹19,116</span>
             </div>
           </div>
 
           <h3 style="font-size:1.05rem; margin-bottom:12px;">Select Payment Method</h3>
           <div class="payment-method-selector">
-            <div class="payment-tab-btn active" data-method="card">💳 Credit / Debit Card</div>
-            <div class="payment-tab-btn" data-method="upi">⚡ UPI / QR</div>
-            <div class="payment-tab-btn" data-method="netbanking">🏦 Net Banking / Corporate</div>
+            <div class="payment-tab-btn active" data-method="card">Credit / Debit Card</div>
+            <div class="payment-tab-btn" data-method="upi">UPI / QR</div>
+            <div class="payment-tab-btn" data-method="netbanking">Net Banking / Corporate</div>
           </div>
 
           <div id="payment-fields-card">
@@ -342,14 +321,14 @@
           </div>
 
           <div class="stepper-actions">
-            <button type="button" class="md-btn md-btn-text" id="btn-back-5">← Back</button>
+            <button type="button" class="md-btn md-btn-text" id="btn-back-4">← Back</button>
             <button type="submit" class="md-btn md-btn-filled" id="btn-pay-submit" style="background:#2e7d32; color:#fff;">
-              Pay & Stand Up Workspace 🚀
+              Complete Onboarding &amp; Launch Workspace
             </button>
           </div>
         </div>
 
-        <!-- STEP 6: Provisioned Success View -->
+        <!-- SUCCESS VIEW -->
         <div class="step-panel" id="panel-step-success">
           <div class="success-banner">
             <div class="success-icon">✓</div>

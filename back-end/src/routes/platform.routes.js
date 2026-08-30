@@ -118,4 +118,8 @@ router.put(
   controller.renewSubscription,
 );
 
+// Global SaaS pricing rate card
+router.get('/rates', controller.getGlobalRates);
+router.put('/rates', ...gate, controller.updateGlobalRates);
+
 module.exports = router;

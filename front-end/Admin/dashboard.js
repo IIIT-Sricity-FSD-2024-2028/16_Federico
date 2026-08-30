@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Admin/dashboard.js — hospital-wide analytics.
+ * Admin/dashboard.js — hospital-wide operational analytics & SaaS usage transparency.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -13,10 +13,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadAndRender() {
-  const [wards, beds, patients, rawLedgers, items, staff, payments, admissions, preRequests, appointments] = await Promise.all([
-    window.ApiClient.wards.list(),
-    window.ApiClient.wards.beds(),
-    window.ApiClient.patients.list(),
+  const [wards, beds, patients, rawLedgers, items, staff, payments, admissions, preRequests, appointments, doctors, liveRates] = await Promise.all([
+    window.ApiClient.wards.list().catch(() => []),
+    window.ApiClient.wards.beds().catch(() => []),
+    window.ApiClient.patients.list().catch(() => []),
     window.ApiClient.billing.ledger.listAll().catch(() => []),
     window.ApiClient.inventory.items.list().catch(() => []),
     window.ApiClient.rbac.staff().catch(() => []),
@@ -24,10 +24,11 @@ async function loadAndRender() {
     window.ApiClient.admissions.list().catch(() => []),
     window.ApiClient.preRequests.list().catch(() => []),
     window.ApiClient.appointments.list().catch(() => []),
+    window.ApiClient.doctors.list().catch(() => []),
+    window.ApiClient.platform.rates.get().catch(() => null),
   ]);
 
-  // Ledgers carry no precomputed total — sum each one's entries, same as
-  // HOM/billing.js's own billing view.
+  // Sum each ledger's entries for accurate total
   const ledgers = await Promise.all(
     rawLedgers.map(async (ledger) => {
       const entries = await window.ApiClient.billing.ledger.entries(ledger.ledger_id).catch(() => []);
@@ -37,6 +38,7 @@ async function loadAndRender() {
   );
 
   renderMetrics(wards, beds, patients, ledgers, payments, admissions, preRequests, appointments);
+  renderSubscriptionUsage(beds, doctors, staff, admissions, items, liveRates);
   renderWardOccupancy(wards, beds);
   renderBillingSummary(ledgers);
   renderLowStock(items);
@@ -48,51 +50,117 @@ function renderMetrics(wards, beds, patients, ledgers, payments = [], admissions
   const occupancyPct = beds.length ? Math.round((occupied / beds.length) * 100) : 0;
   const totalRevenue = ledgers.reduce((sum, l) => sum + Number(l.total || 0), 0);
   const collected = (payments || []).reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
-  const outstanding = Math.max(0, totalRevenue - collected);
   const activeInpatients = (admissions || []).filter((a) => a.status !== 'DISCHARGED').length;
   const dischargeQueue = (preRequests || []).filter(
     (p) => p.status === 'DISCHARGE_REQUESTED' || p.status === 'DISCHARGE_APPROVED',
   ).length;
-  const intakePending = (preRequests || []).filter((p) => p.status === 'PENDING').length;
-  const paidLedgers = ledgers.filter((l) => l.status === 'PAID').length;
-  const avgBill = paidLedgers ? Math.round(collected / paidLedgers) : 0;
 
   document.getElementById('metrics-container').innerHTML = `
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #E0F7F6;">🏥</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${wards.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Departments / Wards</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Active Inpatients</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${activeInpatients}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${dischargeQueue} pending discharge</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #E0F2FE;">🛏️</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${occupancyPct}%</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Bed Occupancy (${occupied}/${beds.length})</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Bed Occupancy</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${occupancyPct}%</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${occupied} of ${beds.length} beds occupied</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #D1FAE5;">👥</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${patients.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Registered Patients</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Registered Patients</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${patients.length}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Across all departments</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #FEF3C7;">💰</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(totalRevenue)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Total Billed (Live)</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Total Appointments</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${appointments.length}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Booked through portal / PRE</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #DCFCE7;">✅</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(collected)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Payments Collected</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Total Revenue Billed</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${window.Formatters.formatCurrency(totalRevenue)}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Cumulative hospital charges</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #FEE2E2;">⏳</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(outstanding)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Outstanding Bills</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Payments Settled</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${window.Formatters.formatCurrency(collected)}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Direct cash & online receipts</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #EDE9FE;">🧑‍⚕️</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${activeInpatients}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Active Inpatients · ${dischargeQueue} in discharge</div></div>
+  `;
+}
+
+function renderSubscriptionUsage(beds = [], doctors = [], staff = [], admissions = [], items = [], liveRates = null) {
+  const container = document.getElementById('subscription-usage-breakdown');
+  if (!container) return;
+
+  const basePlatformFee = Number(liveRates?.base_fee ?? 3000);
+  const bedRate = Number(liveRates?.rates?.GENERAL_BEDS ?? 150);
+  const docRate = Number(liveRates?.rates?.DOCTOR_SEATS ?? 150);
+  const staffRate = Number(liveRates?.rates?.STAFF_SEATS ?? 200);
+  const termRate = Number(liveRates?.rates?.BILLING_TERMINALS ?? 500);
+  const whRate = Number(liveRates?.rates?.WAREHOUSES ?? 1000);
+  const admRate = Number(liveRates?.rates?.PATIENT_ADMISSIONS ?? 10);
+
+  const bedCount = beds.length || 0;
+  const bedCost = bedCount * bedRate;
+
+  const docCount = doctors.length || 0;
+  const docCost = docCount * docRate;
+
+  const staffCount = staff.length || 0;
+  const staffCost = staffCount * staffRate;
+
+  const terminalsCount = 2;
+  const terminalsCost = terminalsCount * termRate;
+
+  const warehouseCount = 1;
+  const warehouseCost = warehouseCount * whRate;
+
+  const admCount = admissions.length || 0;
+  const admCost = admCount * admRate;
+
+  const subtotal = basePlatformFee + bedCost + docCost + staffCost + terminalsCost + warehouseCost + admCost;
+  const gst = Math.round(subtotal * 0.18);
+  const totalMonthly = subtotal + gst;
+
+  const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; font-size: 13px;">
+      <div style="padding: 12px 14px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;">
+        <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase;">Base Platform Fee</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">${inr(basePlatformFee)}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">All 8 modules unlocked</div>
+      </div>
+      <div style="padding: 12px 14px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;">
+        <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase;">Inpatient Beds</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">${inr(bedCost)}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${bedCount} beds (@ ${inr(bedRate)}/bed)</div>
+      </div>
+      <div style="padding: 12px 14px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;">
+        <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase;">Doctors &amp; Staff</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">${inr(docCost + staffCost)}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${docCount} docs (@ ${inr(docRate)}) + ${staffCount} staff (@ ${inr(staffRate)})</div>
+      </div>
+      <div style="padding: 12px 14px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;">
+        <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase;">Hardware &amp; Warehouse</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">${inr(terminalsCost + warehouseCost)}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${terminalsCount} terminals + ${warehouseCount} warehouse</div>
+      </div>
+      <div style="padding: 12px 14px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;">
+        <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase;">Patient Volume Usage</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">${inr(admCost)}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${admCount} admissions (@ ${inr(admRate)}/adm)</div>
+      </div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #DBEAFE;">📅</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${appointments.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Appointments · ${intakePending} intake pending</div></div>
-    </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #FEF9C3;">🧾</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${window.Formatters.formatCurrency(avgBill)}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Avg Paid Bill (${paidLedgers} paid)</div></div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: #F1F5F9; border-radius: 8px; font-size: 13px;">
+      <div style="color: var(--text-secondary);">
+        Subtotal: <strong style="color: var(--text-primary);">${inr(subtotal)}</strong> &nbsp;·&nbsp; GST (18%): <strong style="color: var(--text-primary);">${inr(gst)}</strong>
+      </div>
+      <div style="font-size: 15px; font-weight: 700; color: var(--primary, #0D9488);">
+        Total Monthly Cloud Charge: <span style="font-size: 18px; font-weight: 800;">${inr(totalMonthly)}</span>
+      </div>
     </div>
   `;
 }
@@ -100,7 +168,7 @@ function renderMetrics(wards, beds, patients, ledgers, payments = [], admissions
 function renderWardOccupancy(wards, beds) {
   const container = document.getElementById('ward-occupancy-list');
   if (!wards.length) {
-    container.innerHTML = '<div class="md-empty-state"><span>No wards yet — add one under Departments.</span></div>';
+    container.innerHTML = '<div class="md-empty-state"><span>No wards configured.</span></div>';
     return;
   }
 
@@ -113,10 +181,10 @@ function renderWardOccupancy(wards, beds) {
         <div style="margin-bottom: 14px;">
           <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
             <span style="font-weight: 500;">${window.Formatters.escapeHtml(ward.ward_name)}</span>
-            <span style="color: var(--text-secondary);">${occupied}/${wardBeds.length}</span>
+            <span style="color: var(--text-secondary);">${occupied}/${wardBeds.length} beds (${pct}%)</span>
           </div>
           <div class="progress-bar-bg" style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
-            <div style="height: 100%; width: ${pct}%; border-radius: 999px; background: ${pct >= 90 ? 'var(--error)' : pct >= 70 ? 'var(--warning)' : 'var(--success)'};"></div>
+            <div style="height: 100%; width: ${pct}%; border-radius: 999px; background: ${pct >= 90 ? 'var(--error, #EF4444)' : pct >= 70 ? 'var(--warning, #F59E0B)' : 'var(--success, #10B981)'};"></div>
           </div>
         </div>
       `;
@@ -144,7 +212,7 @@ function renderBillingSummary(ledgers) {
     .map(
       ([status, stats]) => `
       <tr>
-        <td>${window.Formatters.escapeHtml(status)}</td>
+        <td style="font-weight: 600;">${window.Formatters.escapeHtml(status)}</td>
         <td>${stats.count}</td>
         <td>${window.Formatters.formatCurrency(stats.total)}</td>
       </tr>
@@ -157,7 +225,7 @@ function renderLowStock(items) {
   const container = document.getElementById('low-stock-list');
   const lowStock = items.filter((i) => i.stock_quantity < i.reorder_level);
   if (!lowStock.length) {
-    container.innerHTML = '<div class="md-empty-state"><span>Nothing below its reorder level.</span></div>';
+    container.innerHTML = '<div class="md-empty-state"><span>All items above reorder level.</span></div>';
     return;
   }
 
@@ -165,8 +233,8 @@ function renderLowStock(items) {
     .map(
       (item) => `
       <div class="alert-card" style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-base); padding: 12px; margin-bottom: 12px;">
-        <p style="font-size: 14px; font-weight: 500; color: var(--error-text); margin: 0 0 4px 0;">${window.Formatters.escapeHtml(item.item_name)}</p>
-        <p style="font-size: 12px; color: var(--error-text); margin: 0;">${item.stock_quantity} of ${item.reorder_level} reorder level</p>
+        <p style="font-size: 14px; font-weight: 500; color: var(--error-text, #991B1B); margin: 0 0 4px 0;">${window.Formatters.escapeHtml(item.item_name)}</p>
+        <p style="font-size: 12px; color: var(--error-text, #991B1B); margin: 0;">Stock: ${item.stock_quantity} (Reorder Level: ${item.reorder_level})</p>
       </div>
     `,
     )
@@ -182,7 +250,7 @@ function renderStaffBreakdown(staff) {
 
   const roles = Object.entries(byRole);
   if (!roles.length) {
-    container.innerHTML = '<div class="md-empty-state"><span>No staff yet.</span></div>';
+    container.innerHTML = '<div class="md-empty-state"><span>No staff accounts registered.</span></div>';
     return;
   }
 

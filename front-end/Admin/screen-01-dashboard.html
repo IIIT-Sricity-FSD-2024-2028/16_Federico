@@ -13,20 +13,35 @@
     <main class="dashboard-container">
         <div class="header-section">
             <div>
-                <h1 class="h1" style="margin-bottom: 8px;">Hospital-Wide Analytics</h1>
-                <p class="body-text" id="subtitle">Live overview across every department</p>
+                <h1 class="h1" style="margin-bottom: 8px;">Hospital Operations &amp; Analytics</h1>
+                <p class="body-text" id="subtitle">Real-time overview of clinical flow, resource capacity, and SaaS usage</p>
             </div>
         </div>
 
         <div data-requires-module="ANALYTICS" data-lock-mode="hide">
+            <!-- Key Clinical & Operational Metrics -->
             <div class="metrics-grid" id="metrics-container"></div>
+
+            <!-- SaaS Subscription & Resource Usage Card (Transparent Billing) -->
+            <div class="card" style="margin-bottom: 24px; padding: 20px 24px; border-left: 4px solid var(--primary, #0D9488); background: #FAFDFB;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                    <div>
+                        <h2 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary, #0F172A);">Monthly Cloud Subscription &amp; Resource Usage</h2>
+                        <p style="font-size: 13px; color: var(--text-secondary, #64748B); margin: 4px 0 0 0;">Pay-As-You-Scale usage breakdown · Dynamic capacity with no artificial quota limits</p>
+                    </div>
+                    <span style="font-size: 12px; font-weight: 700; background: #E6FFFA; color: #0D9488; padding: 4px 10px; border-radius: 999px; border: 1px solid #99F6E4;">ACTIVE PLAN</span>
+                </div>
+                <div id="subscription-usage-breakdown">
+                    <div class="md-empty-state"><span>Calculating live monthly usage…</span></div>
+                </div>
+            </div>
 
             <div class="main-grid">
                 <div class="left-column">
                     <div class="card">
                         <div class="card-header">
                             <h2 class="card-title">Ward Occupancy</h2>
-                            <p class="card-description">Beds in use vs. total, per ward.</p>
+                            <p class="card-description">Inpatient beds in use vs. total capacity, per ward</p>
                         </div>
                         <div class="card-content">
                             <div id="ward-occupancy-list"><div class="md-empty-state"><span>Loading…</span></div></div>
@@ -35,7 +50,7 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h2 class="card-title">Billing Summary</h2>
+                            <h2 class="card-title">Clinical Billing Overview</h2>
                         </div>
                         <div class="card-content" style="padding: 0;">
                             <div class="table-container">
@@ -60,7 +75,7 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h2 class="card-title">Staff Headcount</h2>
+                            <h2 class="card-title">Staff Distribution</h2>
                         </div>
                         <div class="card-content">
                             <div id="staff-breakdown"><div class="md-empty-state"><span>Loading…</span></div></div>
@@ -71,20 +86,20 @@
         </div>
 
         <div class="analytics-locked" id="analytics-locked-message" style="display:none;">
-            Administrative Analytics isn't enabled for this organization. Contact the platform to turn it on.
+            Administrative Analytics is not enabled for this organization. Contact platform administration to enable it.
         </div>
     </main>
 
     <script>window.APP_MODULE = "ADMIN";</script>
-<script src="../shared/constants.js"></script>
-<script src="../shared/api-client.js"></script>
-<script src="../shared/rbac.js"></script>
-<script src="../shared/ui-feedback.js"></script>
-<script src="../shared/auth-guard.js"></script>
-<script src="../shared/formatters.js"></script>
+    <script src="../shared/constants.js"></script>
+    <script src="../shared/api-client.js"></script>
+    <script src="../shared/rbac.js"></script>
+    <script src="../shared/ui-feedback.js"></script>
+    <script src="../shared/auth-guard.js"></script>
+    <script src="../shared/formatters.js"></script>
 
-<script src="../shared/shared-nav.js"></script>
-<script src="shared-nav.js"></script>
-<script src="dashboard.js"></script>
+    <script src="../shared/shared-nav.js"></script>
+    <script src="shared-nav.js"></script>
+    <script src="dashboard.js"></script>
 </body>
 </html>
