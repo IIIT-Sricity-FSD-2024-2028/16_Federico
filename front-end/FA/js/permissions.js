@@ -42,16 +42,10 @@ const Permissions = {
     const indicator = document.getElementById('role-indicator');
     const currentActor = this.getActor();
     const accessRole = this.getAccessRole();
-    const moduleSwitchLink = document.getElementById('module-switch-link');
-
     if (indicator) {
       indicator.innerText = currentActor === 'HOM'
         ? 'superUser · Finance Control'
         : 'admin · Finance Operations';
-    }
-
-    if (moduleSwitchLink) {
-      moduleSwitchLink.hidden = accessRole !== 'SUPER_USER';
     }
 
     const links = document.querySelectorAll('.nav-link');
