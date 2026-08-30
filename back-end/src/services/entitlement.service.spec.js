@@ -47,9 +47,9 @@ describe('Entitlement enforcement (module + resource)', () => {
   });
 
   it('403s a direct API call for a module the org disabled, even with RBAC permission', async () => {
-    // Org 2 (Apollo) has LEADERSHIP disabled in the seed. FA has leader RBAC.
+    organizationService.setModuleFlag(2, 'BILLING', false);
     const res = await request(app)
-      .get('/billing/leaders')
+      .get('/billing/services')
       .set('Authorization', `Bearer ${sessionFor(2, 'FA')}`);
 
     expect(res.status).toBe(403);
@@ -57,9 +57,10 @@ describe('Entitlement enforcement (module + resource)', () => {
   });
 
   it('allows the same call once the module is enabled', async () => {
+    organizationService.setModuleFlag(2, 'BILLING', true);
     const res = await request(app)
-      .get('/billing/leaders')
-      .set('Authorization', `Bearer ${sessionFor(1, 'FA')}`);
+      .get('/billing/services')
+      .set('Authorization', `Bearer ${sessionFor(2, 'FA')}`);
 
     expect(res.status).toBe(200);
   });

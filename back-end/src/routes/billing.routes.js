@@ -110,23 +110,19 @@ router.get(
   controller.findReceiptsByPatient,
 );
 
-// Leaders (HOM -> FA -> Ledger) — the service-charge approval queue is its
-// own purchasable module (LEADERSHIP), gated on top of BILLING.
+// Leaders (HOM -> FA -> Ledger) — service-charge staging and approval queue under BILLING
 router.get(
   '/leaders',
-  requireModule('LEADERSHIP'),
   authorize(['ADMIN', 'SUPER_USER'], 'leader', 'read'),
   controller.findAllLeaders,
 );
 router.post(
   '/leaders',
-  requireModule('LEADERSHIP'),
   authorize(['ADMIN', 'SUPER_USER'], 'leader', 'write'),
   controller.createLeader,
 );
 router.put(
   '/leaders/:id/approve',
-  requireModule('LEADERSHIP'),
   authorize(['ADMIN', 'SUPER_USER'], 'leader', 'write'),
   controller.approveLeader,
 );
