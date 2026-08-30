@@ -103,7 +103,10 @@ function populateDoctorsByDepartment(selectedDept, preSelectedDoctorId = null) {
 
   const matchingDoctors = allDoctorsCatalog.filter((d) => {
     if (!selectedDept) return true;
-    return (d.specialization || '').toLowerCase() === selectedDept.toLowerCase();
+    const target = selectedDept.toLowerCase();
+    const docDept = (d.department || '').toLowerCase();
+    const docSpec = (d.specialization || '').toLowerCase();
+    return docDept === target || docSpec === target || docSpec.includes(target) || docDept.includes(target);
   });
 
   matchingDoctors.forEach((d) => {

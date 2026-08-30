@@ -130,10 +130,12 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const doctors = getDoctors().filter((d) =>
-            !d.department || d.department.toLowerCase() === selectedDept.toLowerCase() ||
-            (d.specialization && d.specialization.toLowerCase() === selectedDept.toLowerCase())
-        );
+        const target = selectedDept.toLowerCase();
+        const doctors = getDoctors().filter((d) => {
+            const docDept = (d.department || "").toLowerCase();
+            const docSpec = (d.specialization || "").toLowerCase();
+            return docDept === target || docSpec === target || docSpec.includes(target) || docDept.includes(target);
+        });
 
         doctors.forEach((doc) => {
             const opt = document.createElement("option");

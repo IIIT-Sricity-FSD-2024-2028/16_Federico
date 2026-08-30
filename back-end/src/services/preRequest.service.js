@@ -77,8 +77,8 @@ function isTerminal(status) {
   return ['REJECTED', 'CONSULTATION_DONE', 'DISCHARGED'].includes(status);
 }
 
-function findAll() {
-  return dataStore.preRequests;
+function findAll(predicate = null) {
+  return predicate ? dataStore.preRequests.filter(predicate) : dataStore.preRequests;
 }
 
 function findOne(id) {

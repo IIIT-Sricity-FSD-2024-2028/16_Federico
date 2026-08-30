@@ -300,6 +300,26 @@ async function renderCharges() {
     `;
 }
 
+function renderPatientPicker(rows, currentAdmissionId) {
+    if (!rows || !rows.length) return '';
+    const options = rows.map((r) => {
+        const isSel = r.admission.admission_id === currentAdmissionId ? 'selected' : '';
+        const bedStr = r.bed ? `Bed ${r.bed.bed_number}` : 'No Bed';
+        const st = r.ledger ? `[${r.ledger.status}]` : '[NO LEDGER]';
+        return `<option value="${r.admission.admission_id}" ${isSel}>${H().escapeHtml(r.patient.name || 'Patient')} (${H().escapeHtml(r.patient.uhid || '-')}) — ${bedStr} ${st}</option>`;
+    }).join('');
+
+    return `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding: 12px 18px; background: var(--color-surface, #fff); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+            <label style="font-size: 12px; font-weight: 700; color: var(--color-muted-fg); text-transform: uppercase; white-space: nowrap;">Switch Inpatient:</label>
+            <select style="flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg, #fdf8fd); color: var(--color-fg);"
+                onchange="window.currentAdmissionId = Number(this.value); window.render();">
+                ${options}
+            </select>
+        </div>
+    `;
+}
+
 async function renderLedger() {
     const { rows, servicesById } = await H().loadBillingOverview();
     if (!window.currentAdmissionId && rows.length) window.currentAdmissionId = rows[0].admission.admission_id;
@@ -307,8 +327,11 @@ async function renderLedger() {
 
     if (!row) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected.</h2></div>`;
 
+    const pickerHtml = renderPatientPicker(rows, row.admission.admission_id);
+
     if (!row.ledger) {
         return `
+            ${pickerHtml}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')}</h2>
             </div>
@@ -323,6 +346,8 @@ async function renderLedger() {
     const entries = await H().loadLedgerEntries(row.ledger.ledger_id);
     const total = H().ledgerTotal(entries);
 
+    const serviceOptions = Object.values(servicesById || {}).map((s) => `<option value="${s.service_id}">${H().escapeHtml(s.service_name)} (${H().formatCurrency(s.base_cost)})</option>`).join('');
+
     const entryRows = entries.map((e) => `
         <tr style="border-bottom: 1px solid var(--color-border);">
             <td style="padding: 16px 24px; color: var(--color-muted-fg);">${H().escapeHtml(servicesById[e.service_id]?.service_name || 'Service #' + e.service_id)}</td>
@@ -333,6 +358,7 @@ async function renderLedger() {
     `).join('');
 
     return `
+        ${pickerHtml}
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <div>
                 <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')} <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span></h2>
@@ -344,7 +370,19 @@ async function renderLedger() {
             </div>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+            <div style="padding: 16px 24px; background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="font-size: 13px; font-weight: 700; color: var(--color-fg);">Add Manual Charge:</span>
+                <select id="ledger-add-service" style="padding: 8px 12px; font-size: 13px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: #fff; color: var(--color-fg); min-width: 220px;">
+                    <option value="" disabled selected>Select service / item...</option>
+                    ${serviceOptions}
+                </select>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label style="font-size: 12px; color: var(--color-muted-fg); font-weight: 600;">Qty:</label>
+                    <input id="ledger-add-qty" type="number" min="1" value="1" style="width: 60px; padding: 8px 10px; font-size: 13px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: #fff; color: var(--color-fg);">
+                </div>
+                <button class="btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="window.FAActions.addChargeToCurrentLedger(${row.admission.admission_id}, ${row.ledger.ledger_id})">+ Post to Ledger</button>
+            </div>
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
                     <tr>
@@ -373,6 +411,8 @@ async function renderEodBilling() {
     const row = rows.find((r) => r.admission.admission_id === window.currentAdmissionId);
     if (!row) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected.</h2></div>`;
 
+    const pickerHtml = renderPatientPicker(rows, row.admission.admission_id);
+
     const entries = row.ledger ? await H().loadLedgerEntries(row.ledger.ledger_id) : [];
     const total = H().ledgerTotal(entries);
     const canDispatch = Boolean(row.ledger) && row.ledger.status === 'OPEN' && total > 0;
@@ -396,6 +436,7 @@ async function renderEodBilling() {
     `).join('');
 
     return `
+        ${pickerHtml}
         <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">EOD Dispatcher | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
@@ -429,8 +470,11 @@ async function renderDischarge() {
     const row = rows.find((r) => r.admission.admission_id === window.currentAdmissionId);
     if (!row) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected for discharge.</h2></div>`;
 
+    const pickerHtml = renderPatientPicker(rows, row.admission.admission_id);
+
     if (!row.dischargeApproved) {
         return `
+            ${pickerHtml}
             <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
             <div class="card" style="padding: 40px; text-align: center;">
                 <h2 style="color: var(--color-fg);">Awaiting HOM discharge approval</h2>
@@ -453,6 +497,7 @@ async function renderDischarge() {
 
     if (row.ledger && row.ledger.status === 'PAID') {
         return `
+            ${pickerHtml}
             <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
             <div class="card" style="padding: 40px; text-align: center;">
                 <h2 style="color: var(--color-accent);">Payment Received</h2>
@@ -467,6 +512,7 @@ async function renderDischarge() {
     const dispatched = Boolean(row.ledger) && row.ledger.status === 'DISPATCHED';
 
     return `
+        ${pickerHtml}
         <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
 
         <div class="card" style="padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
