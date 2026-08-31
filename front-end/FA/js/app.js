@@ -305,14 +305,14 @@ function renderPatientPicker(rows, currentAdmissionId) {
     if (!rows || !rows.length) return '';
     const options = rows.map((r) => {
         const isSel = r.admission.admission_id === currentAdmissionId ? 'selected' : '';
-        const bedStr = r.bed ? `Bed ${r.bed.bed_number}` : 'No Bed';
-        const st = r.ledger ? (r.ledger.status === 'DISPATCHED' ? '[EOD SENT]' : `[${r.ledger.status}]`) : '[NO LEDGER]';
-        return `<option value="${r.admission.admission_id}" ${isSel}>${H().escapeHtml(r.patient.name || 'Patient')} (${H().escapeHtml(r.patient.uhid || '-')}) — ${bedStr} ${st}</option>`;
+        const visitTag = r.admission.visit_type === 'OPD' ? '[OPD Consultation]' : (r.bed && r.bed.bed_number ? `[Bed ${r.bed.bed_number}]` : '[Inpatient]');
+        const st = r.ledger ? (r.ledger.status === 'DISPATCHED' ? '[EOD Sent]' : `[${r.ledger.status}]`) : '[NO LEDGER]';
+        return `<option value="${r.admission.admission_id}" ${isSel}>${H().escapeHtml(r.patient.name || 'Patient')} (${H().escapeHtml(r.patient.uhid || '-')}) — ${visitTag} ${st}</option>`;
     }).join('');
 
     return `
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding: 12px 18px; background: var(--color-surface, #fff); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-            <label style="font-size: 12px; font-weight: 700; color: var(--color-muted-fg); text-transform: uppercase; white-space: nowrap;">Switch Inpatient:</label>
+            <label style="font-size: 12px; font-weight: 700; color: var(--color-muted-fg); text-transform: uppercase; white-space: nowrap;">Switch Patient / Ledger:</label>
             <select style="flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg, #fdf8fd); color: var(--color-fg);"
                 onchange="window.currentAdmissionId = Number(this.value); window.render();">
                 ${options}
@@ -358,16 +358,23 @@ async function renderLedger() {
         </tr>
     `).join('');
 
+    const isOpd = row.admission.visit_type === 'OPD';
+    const visitTag = isOpd ? 'OPD Consultation' : (row.bed && row.bed.bed_number ? `Inpatient · Bed ${row.bed.bed_number}` : 'Inpatient');
+
     return `
         ${pickerHtml}
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <div>
-                <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')} <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span></h2>
+                <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">
+                    Ledger: ${H().escapeHtml(row.patient.name || '-')} 
+                    <span style="font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 12px; background: ${isOpd ? '#e0f2fe; color: #0369a1;' : '#ede9fe; color: #6d28d9;'} margin-left: 6px;">${visitTag}</span>
+                    <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span>
+                </h2>
                 <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--color-muted-fg);">User ID: #${H().escapeHtml(String(row.patient.patient_id || row.admission.patient_id || '-'))} &bull; UHID: <span class="uhid-badge">${H().escapeHtml(row.patient.uhid || '-')}</span></p>
             </div>
             <div style="display: flex; gap: 12px;">
                 <button class="md-btn md-btn-tonal" style="padding: 0 20px;" onclick="window.FAActions.dispatchCurrent(${row.ledger.ledger_id})">Send EOD Bill to Patient</button>
-                <button class="btn-primary" style="padding: 10px 20px; font-size: 13px; background: ${row.dischargeApproved ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${row.dischargeApproved ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'};" onclick="${row.dischargeApproved ? `navigate('#/discharge', ${row.admission.admission_id})` : "window.UIFeedback.toast('Waiting for HOM discharge approval for this patient.', 'warning')"}">${row.dischargeApproved ? 'Discharge Patient' : 'Await HOM Approval'}</button>
+                <button class="btn-primary" style="padding: 10px 20px; font-size: 13px; background: ${row.dischargeApproved ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${row.dischargeApproved ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'};" onclick="${row.dischargeApproved ? `navigate('#/discharge', ${row.admission.admission_id})` : "window.UIFeedback.toast('Waiting for HOM discharge approval for this patient.', 'warning')"}">${isOpd ? 'Finalize OPD Bill' : (row.dischargeApproved ? 'Discharge Patient' : 'Await HOM Approval')}</button>
             </div>
         </div>
 
@@ -512,9 +519,13 @@ async function renderDischarge() {
 
     const dispatched = Boolean(row.ledger) && row.ledger.status === 'DISPATCHED';
 
+    const isOpdDischarge = row.admission.visit_type === 'OPD';
+    const pageTitle = isOpdDischarge ? 'OPD Bill Summary & Settlement' : 'Final Discharge Summary';
+    const actionButtonLabel = isOpdDischarge ? 'Finalize & Settle Bill' : 'Discharge Patient';
+
     return `
         ${pickerHtml}
-        <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
+        <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">${pageTitle} | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
 
         <div class="card" style="padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
             <div>
@@ -533,7 +544,7 @@ async function renderDischarge() {
                     <span>Net Payable</span><span id="net-payable-preview">${H().formatCurrency(Math.max(0, grossTotal - coverageLimit))}</span>
                 </div>
                 <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; font-size: 13px;" onclick="window.FAActions.generateDischargeSummary(${row.admission.admission_id})">
-                    Discharge Patient
+                    ${actionButtonLabel}
                 </button>
             </div>
 

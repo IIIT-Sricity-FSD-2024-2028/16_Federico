@@ -40,5 +40,10 @@ router.put(
   validateBody(updatePreRequestRules),
   controller.update,
 );
+router.post(
+  '/:id/check-in',
+  authorize(['SUPER_USER', 'ADMIN', 'OPERATIONS'], 'preRequest', 'write'),
+  controller.checkIn,
+);
 
 module.exports = router;

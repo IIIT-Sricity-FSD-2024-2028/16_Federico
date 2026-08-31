@@ -48,20 +48,21 @@
       const patient = patientsById[admission.patient_id] || {};
       const bed = bedsById[admission.bed_id] || {};
       const ward = wardsById[bed.ward_id];
-      const preRequest = (preRequests || []).find((r) => r.patient_id === admission.patient_id && r.bed_id === admission.bed_id) || null;
-      const doctor = preRequest?.doctor_id ? doctorsById[preRequest.doctor_id] : null;
+      const preRequest = (preRequests || []).find((r) => r.patient_id === admission.patient_id && (r.bed_id === admission.bed_id || !admission.bed_id)) || null;
+      const doctorId = admission.doctor_id || preRequest?.doctor_id;
+      const doctor = doctorId ? doctorsById[doctorId] : null;
       const ledger = ledgersByAdmission[admission.admission_id] || null;
 
       return {
         admission,
         patient,
         bed,
-        wardName: ward ? ward.ward_name : bed.bed_number ? '-' : '-',
-        department: preRequest?.department || '-',
+        wardName: ward ? ward.ward_name : (admission.visit_type === 'OPD' ? 'OPD / Consultation' : '-'),
+        department: admission.department || preRequest?.department || 'General',
         doctorName: doctor ? doctor.name : '-',
         preRequest,
         ledger,
-        dischargeApproved: preRequest?.status === 'DISCHARGE_APPROVED',
+        dischargeApproved: preRequest?.status === 'DISCHARGE_APPROVED' || admission.visit_type === 'OPD',
       };
     });
 

@@ -263,6 +263,157 @@ function transition(id, toStatus, actorRole, extra) {
   return request;
 }
 
+function checkIn(id, payload = {}, organizationId, hospitalId, actorRole = 'PRE') {
+  const request = findOne(id);
+  if (!request) {
+    const err = new Error(`Pre-request #${id} not found`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const visitType = payload.visit_type === 'Admit' ? 'Admit' : 'OPD';
+  const orgId = organizationId || request.organization_id;
+  const hospId = hospitalId || request.hospital_id;
+
+  if (visitType === 'OPD') {
+    request.status = 'CONSULTATION_DONE';
+    request.visit_type = 'OPD';
+    request.updated_at = new Date().toISOString();
+
+    // Check if an active admission for this patient already exists
+    let admission = (request.admission_id ? dataStore.admissions.find((a) => a.admission_id === request.admission_id) : null) ||
+      dataStore.admissions.find(
+        (a) => a.patient_id === request.patient_id && a.status !== 'DISCHARGED',
+      );
+
+    if (!admission) {
+      admission = {
+        admission_id:
+          dataStore.admissions.length > 0
+            ? Math.max(...dataStore.admissions.map((a) => a.admission_id)) + 1
+            : 501,
+        patient_id: request.patient_id,
+        doctor_id: request.doctor_id || null,
+        department: request.department || 'General',
+        visit_type: 'OPD',
+        admission_date: new Date().toISOString(),
+        status: 'ADMITTED',
+        organization_id: orgId,
+        hospital_id: hospId,
+        created_at: new Date().toISOString(),
+      };
+      dataStore.admissions.push(admission);
+    } else {
+      admission.visit_type = 'OPD';
+    }
+    request.admission_id = admission.admission_id;
+
+    // Check if a ledger already exists for this admission or patient
+    let ledger = dataStore.ledgers.find((l) => l.admission_id === admission.admission_id);
+    if (!ledger) {
+      ledger = {
+        ledger_id:
+          dataStore.ledgers.length > 0
+            ? Math.max(...dataStore.ledgers.map((l) => l.ledger_id)) + 1
+            : 801,
+        admission_id: admission.admission_id,
+        status: 'OPEN',
+        organization_id: orgId,
+        hospital_id: hospId,
+        created_at: new Date().toISOString(),
+      };
+      dataStore.ledgers.push(ledger);
+
+      // Find or default Doctor Consultation service
+      let service = dataStore.services.find(
+        (s) =>
+          s.service_name &&
+          (s.service_name.toLowerCase().includes('consult') || s.service_name.toLowerCase().includes('doctor')),
+      ) || dataStore.services[0];
+
+      const serviceId = service ? service.service_id : 1;
+      const unitPrice = service ? Number(service.base_cost) : 500;
+
+      const entry = {
+        entry_id:
+          dataStore.ledgerEntries.length > 0
+            ? Math.max(...dataStore.ledgerEntries.map((e) => e.entry_id)) + 1
+            : 901,
+        ledger_id: ledger.ledger_id,
+        service_id: serviceId,
+        quantity: 1,
+        unit_price: unitPrice,
+        amount: unitPrice,
+        organization_id: orgId,
+        hospital_id: hospId,
+        created_at: new Date().toISOString(),
+      };
+      dataStore.ledgerEntries.push(entry);
+    }
+
+    // Synchronize appointment status
+    if (request.appointment_id) {
+      const appt = dataStore.appointments.find((a) => a.appointment_id === request.appointment_id);
+      if (appt) appt.status = 'COMPLETED';
+    }
+
+    activityService.log(
+      'success',
+      `Outpatient checked in: Pre-request #${id}, Ledger #${ledger.ledger_id} active`,
+      { preRequestId: id, admissionId: admission.admission_id, ledgerId: ledger.ledger_id },
+      orgId,
+    );
+
+    return { preRequest: request, admission, ledger };
+  } else {
+    // Inpatient Admit flow: marks visit_type = 'Admit', status = 'APPROVED'
+    request.visit_type = 'Admit';
+    request.status = 'APPROVED';
+    request.updated_at = new Date().toISOString();
+
+    let admission = (request.admission_id ? dataStore.admissions.find((a) => a.admission_id === request.admission_id) : null) ||
+      dataStore.admissions.find(
+        (a) => a.patient_id === request.patient_id && a.status !== 'DISCHARGED',
+      );
+    if (admission) {
+      admission.visit_type = 'Admit';
+    }
+
+    let bedRequest = dataStore.bedRequests.find(
+      (b) => b.pre_request_id === request.pre_request_id && (b.status === 'PENDING' || b.status === 'ALLOCATED'),
+    );
+    if (!bedRequest) {
+      bedRequest = {
+        bed_request_id:
+          dataStore.bedRequests.length > 0
+            ? Math.max(...dataStore.bedRequests.map((r) => r.bed_request_id)) + 1
+            : 1,
+        pre_request_id: request.pre_request_id,
+        patient_id: Number(request.patient_id),
+        ward_id: null,
+        priority: payload.priority || 'NORMAL',
+        status: 'PENDING',
+        bed_id: null,
+        requested_by: actorRole || 'PRE',
+        organization_id: orgId,
+        hospital_id: hospId,
+        requested_at: new Date().toISOString(),
+        decided_at: null,
+      };
+      dataStore.bedRequests.push(bedRequest);
+    }
+
+    activityService.log(
+      'info',
+      `Pre-request #${id} marked for Inpatient Admission (Bed request #${bedRequest.bed_request_id} sent to HOM)`,
+      { preRequestId: id, bedRequestId: bedRequest.bed_request_id },
+      orgId,
+    );
+
+    return { preRequest: request, bedRequest };
+  }
+}
+
 module.exports = {
   STATUSES,
   TRANSITIONS,
@@ -273,4 +424,5 @@ module.exports = {
   create,
   updateFields,
   transition,
+  checkIn,
 };

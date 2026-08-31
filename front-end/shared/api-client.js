@@ -777,6 +777,9 @@
       update: function (id, patch) {
         return request("PUT", "/pre-requests/" + id, patch);
       },
+      checkIn: function (id, payload) {
+        return request("POST", "/pre-requests/" + id + "/check-in", payload);
+      },
     },
 
     activityLog: {

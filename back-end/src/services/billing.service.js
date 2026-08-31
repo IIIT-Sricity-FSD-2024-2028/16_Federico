@@ -48,6 +48,11 @@ function createLedger(ledger) {
     throw err;
   }
 
+  const existing = findLedgerByAdmission(admissionId);
+  if (existing) {
+    return existing;
+  }
+
   const newLedger = {
     ledger_id:
       dataStore.ledgers.length > 0

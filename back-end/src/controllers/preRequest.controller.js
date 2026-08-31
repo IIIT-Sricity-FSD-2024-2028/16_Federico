@@ -167,4 +167,23 @@ function update(req, res) {
   );
 }
 
-module.exports = { findAll, findOne, create, update };
+function checkIn(req, res) {
+  const existing = preRequestService.findOne(+req.params.id);
+  if (!existing) return sendResult(res, null, 404);
+
+  if (!belongsToOrg(existing, req)) {
+    return res.status(403).json(FORBIDDEN);
+  }
+
+  const result = preRequestService.checkIn(
+    existing.pre_request_id,
+    req.body,
+    req.tenant?.organizationId,
+    req.tenant?.hospitalId,
+    req.session?.role || 'PRE',
+  );
+
+  sendResult(res, result, 200);
+}
+
+module.exports = { findAll, findOne, create, update, checkIn };
