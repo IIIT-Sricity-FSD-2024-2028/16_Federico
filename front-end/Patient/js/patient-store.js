@@ -662,7 +662,7 @@ async function updateInsurance(fields) {
 }
 
 async function payBill(bill, paymentMode) {
-    if (!bill || !bill.ledgerId) return false;
+    if (!bill || !bill.ledgerId || bill.status === "paid") return false;
     await window.ApiClient.billing.payments.create({
         ledger_id: bill.ledgerId,
         amount_paid: bill.youPay,

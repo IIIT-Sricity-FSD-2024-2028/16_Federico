@@ -123,6 +123,13 @@ function createPayment(payment) {
     throw err;
   }
 
+  if (ledger.status === 'PAID') {
+    const existingPayment = dataStore.payments.find((p) => p.ledger_id === ledgerId);
+    if (existingPayment) {
+      return existingPayment;
+    }
+  }
+
   const newPayment = {
     payment_id:
       dataStore.payments.length > 0

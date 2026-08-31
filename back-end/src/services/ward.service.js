@@ -163,13 +163,31 @@ function findAllBedRequests() {
 }
 
 function createBedRequest(payload, requestedBy) {
+  const patientId = Number(payload.patient_id);
+  const preRequestId = payload.pre_request_id ? Number(payload.pre_request_id) : null;
+
+  // Check if an existing PENDING bed request already exists for this pre-request or patient
+  const existing = dataStore.bedRequests.find(
+    (r) =>
+      r.status === 'PENDING' &&
+      ((preRequestId && r.pre_request_id === preRequestId) ||
+        (!preRequestId && r.patient_id === patientId)),
+  );
+
+  if (existing) {
+    if (payload.ward_id) existing.ward_id = Number(payload.ward_id);
+    if (payload.priority) existing.priority = payload.priority;
+    if (requestedBy) existing.requested_by = requestedBy;
+    return existing;
+  }
+
   const newRequest = {
     bed_request_id:
       dataStore.bedRequests.length > 0
         ? Math.max(...dataStore.bedRequests.map((r) => r.bed_request_id)) + 1
         : 1,
-    pre_request_id: payload.pre_request_id ? Number(payload.pre_request_id) : null,
-    patient_id: Number(payload.patient_id),
+    pre_request_id: preRequestId,
+    patient_id: patientId,
     ward_id: payload.ward_id ? Number(payload.ward_id) : null,
     priority: payload.priority || 'NORMAL',
     status: 'PENDING',

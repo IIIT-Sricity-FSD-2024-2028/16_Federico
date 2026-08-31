@@ -153,8 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const visits = getVisits();
 
     const totalBilled = bills.reduce((sum, b) => sum + Number(b.total || 0), 0);
-    const paidTotal = bills.filter((b) => b.status === "paid").reduce((sum, b) => sum + Number(b.youPay || 0), 0) +
-      (sections.receipts || []).filter((r) => r.type === "RECEIPT").reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const paidTotal = bills.filter((b) => b.status === "paid").reduce((sum, b) => sum + Number(b.youPay || 0), 0);
     const pendingTotal = bills.filter((b) => b.status !== "paid").reduce((sum, b) => sum + Number(b.youPay || 0), 0);
 
     setText("kpi-total-billed", `₹${totalBilled.toLocaleString("en-IN")}`);

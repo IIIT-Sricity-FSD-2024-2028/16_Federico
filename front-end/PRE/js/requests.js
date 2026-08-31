@@ -119,10 +119,12 @@ async function confirmApprove(id) {
   if (!doctorId) return UIFeedback.toast('Select a doctor', 'error');
 
   try {
-    const fieldPatch = { doctor_id: Number(doctorId) };
-    if (time) fieldPatch.requested_time = PREHelpers.to12Hour(time);
-    await window.ApiClient.preRequests.update(id, fieldPatch);
-    await window.ApiClient.preRequests.update(id, { status: 'APPROVED' });
+    const payload = {
+      status: 'APPROVED',
+      doctor_id: Number(doctorId),
+    };
+    if (time) payload.requested_time = PREHelpers.to12Hour(time);
+    await window.ApiClient.preRequests.update(id, payload);
     closePopup('approvePopup');
     UIFeedback.toast('Approved', 'success');
     renderTable();

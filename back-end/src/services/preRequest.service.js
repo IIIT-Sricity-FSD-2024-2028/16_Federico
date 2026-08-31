@@ -197,6 +197,11 @@ function transition(id, toStatus, actorRole, extra) {
     request.bed_id = Number(extra.bed_id);
   }
 
+  if (extra?.doctor_id) request.doctor_id = Number(extra.doctor_id);
+  if (extra?.requested_time) request.requested_time = extra.requested_time;
+  if (extra?.requested_date) request.requested_date = extra.requested_date;
+  if (extra?.department) request.department = extra.department;
+
   if (toStatus === 'DISCHARGED') {
     // Release the physical bed and finalize the inpatient admission.
     // We look up by patient_id only — relying on bed_id matching the pre-request

@@ -1,12 +1,11 @@
 'use strict';
 
 async function loadJoined() {
-  const [preRequests, patients, doctors, admissions, ledgers] = await Promise.all([
+  const [preRequests, patients, doctors, admissions] = await Promise.all([
     window.ApiClient.preRequests.list().catch(() => []),
     window.ApiClient.patients.list().catch(() => []),
     window.ApiClient.doctors.list().catch(() => []),
     window.ApiClient.admissions.list().catch(() => []),
-    window.ApiClient.billing.ledgers().catch(() => []),
   ]);
   const doctorsById = {};
   doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
@@ -14,16 +13,13 @@ async function loadJoined() {
 
   const admissionById = {};
   (admissions || []).forEach((a) => (admissionById[a.admission_id] = a));
-  const ledgerByAdmission = {};
-  (ledgers || []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
 
   return joined.map((r) => {
     const adm = r.admission_id
       ? admissionById[r.admission_id]
       : (admissions || []).find((a) => a.patient_id === r.patient_id && (a.visit_type === 'OPD' || a.appointment_id === r.appointment_id));
-    const ledger = adm ? ledgerByAdmission[adm.admission_id] : null;
-    const isPaid = ledger?.status === 'PAID' || adm?.status === 'PAYMENT_CONFIRMED' || adm?.bills_cleared === true;
-    return { ...r, isPaid, ledgerStatus: ledger?.status || 'UNPAID' };
+    const isPaid = Boolean(adm && (adm.status === 'PAYMENT_CONFIRMED' || adm.bills_cleared === true));
+    return { ...r, isPaid };
   });
 }
 
@@ -33,9 +29,13 @@ async function renderApproved() {
 
   const all = await loadJoined();
   const approved = all.filter((r) => {
-    if (['REJECTED', 'ADMITTED', 'DISCHARGED'].includes(r.status)) return false;
-    // Once OPD consultation is completed and payment is paid/settled, clear from active intake table
+    // Hide rejected and discharged
+    if (['REJECTED', 'DISCHARGED'].includes(r.status)) return false;
+    // For admitted inpatients: once bed is allocated (status === 'ADMITTED'), they move to admitted.html
+    if (r.status === 'ADMITTED') return false;
+    // For OPD: if consultation is completed and paid, remove from queue; if not paid yet, keep visible
     if (r.status === 'CONSULTATION_DONE' && r.isPaid) return false;
+    // Show APPROVED (all pending check-in), CONSULTATION_DONE (unpaid), and EMERGENCY
     return ['APPROVED', 'CONSULTATION_DONE', 'EMERGENCY'].includes(r.status);
   });
 
@@ -46,27 +46,31 @@ async function renderApproved() {
 
   table.innerHTML = approved
     .map((r) => {
-      const isOpd = r.visit_type === 'OPD' || r.status === 'CONSULTATION_DONE';
-      const isAdmit = r.visit_type === 'Admit';
-      const isEmergency = r.visit_type === 'Emergency' || r.status === 'EMERGENCY';
+      const isCheckedInOpd = r.status === 'CONSULTATION_DONE' || r.visit_type === 'OPD';
+      const isAdmitRequested = r.visit_type === 'Admit' || r.visit_type === 'Inpatient';
+      const isEmergency = r.status === 'EMERGENCY' || r.visit_type === 'Emergency';
 
       let statusBadge = '<span class="badge badge-neutral">Scheduled</span>';
-      if (isOpd) {
+      if (r.status === 'CONSULTATION_DONE') {
         statusBadge = r.isPaid
           ? '<span class="badge badge-success">Completed &amp; Paid</span>'
           : '<span class="badge badge-warning" style="background:#fff3e0; color:#e65100;">OPD Checked-In (Awaiting Payment)</span>';
-      } else if (isAdmit) {
+      } else if (isAdmitRequested) {
         statusBadge = '<span class="badge badge-info">IPD Bed Requested</span>';
       } else if (isEmergency) {
         statusBadge = '<span class="badge badge-warning">Emergency</span>';
       }
 
+      const selectedValue = r.status === 'CONSULTATION_DONE'
+        ? 'OPD'
+        : (isAdmitRequested ? 'Admit' : (isEmergency ? 'Emergency' : ''));
+
       const dropdownHtml = `
         <select class="custom-select" onchange="setVisitType(${r.pre_request_id}, this.value)" style="padding:6px 10px; font-size:12px; border-radius:6px; border:1px solid var(--color-border); background:#fff; min-width: 170px;">
           <option value="">-- Set / Change Visit --</option>
-          <option value="OPD" ${isOpd ? 'selected' : ''}>Consultation (OPD)</option>
-          <option value="Admit" ${isAdmit ? 'selected' : ''}>Admit (Request Bed &rarr; HOM)</option>
-          <option value="Emergency" ${isEmergency ? 'selected' : ''}>Emergency Triage</option>
+          <option value="OPD" ${selectedValue === 'OPD' ? 'selected' : ''}>Consultation (OPD)</option>
+          <option value="Admit" ${selectedValue === 'Admit' ? 'selected' : ''}>Admit (Request Bed &rarr; HOM)</option>
+          <option value="Emergency" ${selectedValue === 'Emergency' ? 'selected' : ''}>Emergency Triage</option>
         </select>
       `;
 
