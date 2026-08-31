@@ -66,7 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("modal-bill-details");
     if (modal) {
       modal.classList.remove("hidden");
-      document.body.classList.add("modal-open");
     }
   }
 
@@ -74,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("modal-bill-details");
     if (modal) {
       modal.classList.add("hidden");
-      document.body.classList.remove("modal-open");
     }
   }
 

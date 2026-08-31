@@ -65,6 +65,7 @@ button, input, a { font-family: inherit; }
     align-items: center;
     justify-content: center;
     padding: 40px 20px 48px;
+    overflow: hidden;
 }
 
 /* ── Login card — tonal MD3 surface, real elevation ── */

@@ -189,15 +189,10 @@ a, button, input, select, textarea,
     transform var(--duration-fast) var(--ease-standard);
 }
 
-/* ---- Page entrance ----
-   Traditional multi-page navigation (this app has no client router) means
-   every click is a hard reload — the single biggest source of "instant"
-   feeling. This fades+lifts the whole page in on load, which reads as a
-   deliberate transition instead of a jump-cut, without touching any page's
-   markup (applies to <body> globally). */
+/* ---- Page entrance (fade only — no transform on <body> so position:fixed is never broken) ---- */
 @keyframes md-page-enter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 body {
   animation: md-page-enter var(--duration-emphasis) var(--ease-emphasized) both;

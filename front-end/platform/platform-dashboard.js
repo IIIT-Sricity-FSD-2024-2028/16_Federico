@@ -214,8 +214,8 @@
             '<td>' + org.beds_occupied + ' / ' + org.beds + '</td>' +
             '<td>' + (pf.admitted || 0) + ' inpatients · ' + (pf.appointments || 0) + ' appts</td>' +
             '<td class="table-actions">' +
-            '<button class="md-btn md-btn-text md-btn-sm" data-action="view" data-id="' + org.organization_id + '">View</button>' +
-            '<button class="md-btn md-btn-text md-btn-sm" data-action="' + toggleAction + '" data-id="' + org.organization_id + '">' + toggleBtnLabel + '</button>' +
+            '<button class="md-btn md-btn-outlined md-btn-sm" style="border-radius:var(--radius-full, 9999px); padding:4px 14px; font-size:11px; margin-right:6px;" data-action="view" data-id="' + org.organization_id + '">Manage</button>' +
+            '<button class="md-btn md-btn-text md-btn-sm" style="border-radius:var(--radius-full, 9999px); padding:4px 12px; font-size:11px; color:' + (isSuspended ? 'var(--status-success, #2e7d32)' : 'var(--status-error, #b3261e)') + ';" data-action="' + toggleAction + '" data-id="' + org.organization_id + '">' + toggleBtnLabel + '</button>' +
             '</td>' +
             '</tr>'
           );

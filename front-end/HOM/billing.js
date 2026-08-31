@@ -348,7 +348,12 @@ function openPostServiceModal() {
   }
 
   updatePostTotalPreview();
-  document.getElementById('modal-post-service')?.classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-post-service');
+  } else {
+    document.getElementById('modal-post-service')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 }
 
 /**
@@ -470,7 +475,12 @@ async function openBillingDetail(ledgerId) {
     viewPatientBtn.disabled = true;
   }
 
-  document.getElementById('modal-billing-detail')?.classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-billing-detail');
+  } else {
+    document.getElementById('modal-billing-detail')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 
   // Load payment history asynchronously after modal is visible
   await loadPaymentHistory(ledgerId);

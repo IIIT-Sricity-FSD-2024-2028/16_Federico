@@ -571,7 +571,12 @@ window.openLogUsageModal = function (itemId = null) {
 
   clearFormError('modal-usage-error');
   handleModalItemChange(itemId ? String(itemId) : '');
-  document.getElementById('modal-log-usage')?.classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-log-usage');
+  } else {
+    document.getElementById('modal-log-usage')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 };
 
 window.handleModalItemChange = function (itemId) {
@@ -664,7 +669,12 @@ window.openRestockModal = function (itemId = '') {
   setRestockPriority('normal');
   handleRestockItemChange(itemId ? String(itemId) : '');
   clearFormError('restock-form-error');
-  document.getElementById('modal-request-restock')?.classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-request-restock');
+  } else {
+    document.getElementById('modal-request-restock')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 };
 
 window.handleRestockItemChange = function (itemId) {

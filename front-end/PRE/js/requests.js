@@ -100,10 +100,17 @@ async function openApprove(id) {
     </div>
   `;
   document.body.appendChild(popup);
+  document.body.classList.add('modal-open');
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) closePopup('approvePopup');
+  });
 }
 
 function closePopup(id) {
   document.getElementById(id)?.remove();
+  if (!document.querySelector('.approve-popup, .suggest-popup, .reject-popup')) {
+    document.body.classList.remove('modal-open');
+  }
 }
 
 async function confirmApprove(id) {
@@ -148,6 +155,10 @@ async function reject(id) {
     </div>
   `;
   document.body.appendChild(popup);
+  document.body.classList.add('modal-open');
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) closePopup('rejectPopup');
+  });
 }
 
 async function confirmReject(id) {
@@ -204,6 +215,10 @@ async function openSuggest(id) {
     </div>
   `;
   document.body.appendChild(popup);
+  document.body.classList.add('modal-open');
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) closePopup('suggestPopup');
+  });
 }
 
 async function confirmSuggest(id) {
@@ -237,4 +252,13 @@ window.confirmReject = confirmReject;
 window.openSuggest = openSuggest;
 window.confirmSuggest = confirmSuggest;
 
-document.addEventListener('DOMContentLoaded', renderTable);
+document.addEventListener('DOMContentLoaded', () => {
+  renderTable();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closePopup('approvePopup');
+      closePopup('suggestPopup');
+      closePopup('rejectPopup');
+    }
+  });
+});

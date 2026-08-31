@@ -197,9 +197,9 @@
 }
 
 .directory-search-input:focus {
-  border-color: var(--md-primary, #0f766e);
+  border-color: var(--md-primary, #6750a4);
   background: var(--md-surface, #ffffff);
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.12);
 }
 
 .directory-filter-select {
@@ -223,7 +223,7 @@
 }
 
 .directory-filter-select:focus {
-  border-color: var(--md-primary, #0f766e);
+  border-color: var(--md-primary, #6750a4);
   background: var(--md-surface, #ffffff);
 }
 
@@ -575,46 +575,47 @@ tr:hover {
   background: var(--status-success-fg);
 }
 
-/*  POPUP — Material You dialog visuals (matches shared/ui-feedback.css's
-    .md-dialog: large radius, elevation-4 shadow, tonal surface) for the
-    real-content popups (new-patient form, search result) that stay local
-    dialogs rather than moving to the generic UIFeedback dialog. */
+/*  POPUP — Material You dialog visuals centered in viewport */
 .popup {
   display: none;
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  justify-content: center;
-  align-items: center;
-  z-index: 1200;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 999999 !important;
   padding: 24px;
   box-sizing: border-box;
+  margin: 0 !important;
   overflow-y: auto;
 }
 
 /* Active popup */
 .popup.active {
-  display: flex;
+  display: flex !important;
 }
 
 /* Popup box */
 .popup-content {
-  background: var(--md-surface-container-high, #fff);
+  background: var(--md-surface-container-high, #ffffff);
   padding: 32px;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-xl, 24px);
   width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
+  max-width: 500px;
+  max-height: calc(100vh - 48px);
   overflow-y: auto;
   text-align: center;
-  box-shadow: var(--shadow-4);
-  margin: auto;
+  box-shadow: var(--shadow-4, 0 20px 40px rgba(0, 0, 0, 0.25));
+  margin: auto !important;
   position: relative;
   box-sizing: border-box;
+  flex-shrink: 0;
+  animation: popupFade 0.2s var(--ease-standard, ease);
 }
 
 /* Emergency Walk-In Modal Specific Styles */
@@ -623,14 +624,15 @@ tr:hover {
   padding: 28px 32px;
   border-radius: var(--radius-xl, 24px);
   width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
+  max-width: 580px;
+  max-height: calc(100vh - 48px);
   overflow-y: auto;
   text-align: left;
-  box-shadow: var(--shadow-4, 0 16px 40px rgba(0, 0, 0, 0.25));
-  margin: auto;
+  box-shadow: var(--shadow-4, 0 20px 40px rgba(0, 0, 0, 0.25));
+  margin: auto !important;
   position: relative;
   box-sizing: border-box;
+  flex-shrink: 0;
   animation: popupFade 0.2s var(--ease-standard, ease);
 }
 
@@ -707,7 +709,7 @@ tr:hover {
 
 .emergency-form-control:focus {
   outline: none;
-  border-color: var(--md-primary, #0f766e);
+  border-color: var(--md-primary, #6750a4);
   background: #ffffff;
 }
 
@@ -942,29 +944,35 @@ tr:hover {
 .reject-popup,
 .suggest-popup {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
-
-  z-index: 3000;
+  z-index: 9999;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 /* Common box styling — Material You dialog surface */
 .approve-box,
 .reject-box,
 .suggest-box {
-  background: var(--md-surface-container-high);
+  background: var(--md-surface-container-high, #ffffff);
   padding: 32px;
-  border-radius: var(--radius-xl);
-  width: 400px;
-  box-shadow: var(--shadow-4);
-
+  border-radius: var(--radius-xl, 24px);
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  box-shadow: var(--shadow-4, 0 20px 40px rgba(0, 0, 0, 0.25));
+  margin: auto;
+  position: relative;
+  box-sizing: border-box;
   animation: popupFade var(--duration-base) var(--ease-standard);
   text-align: center;
 }

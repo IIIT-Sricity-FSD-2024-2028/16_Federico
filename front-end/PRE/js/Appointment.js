@@ -336,11 +336,15 @@ async function searchPatient() {
 
 function openPatientPopup() {
   const popup = document.getElementById('patientPopup');
-  if (popup) popup.classList.add('active');
+  if (popup) {
+    popup.classList.add('active');
+  }
 }
 function closePatientPopup() {
   const popup = document.getElementById('patientPopup');
-  if (popup) popup.classList.remove('active');
+  if (popup) {
+    popup.classList.remove('active');
+  }
 }
 function openSearchResultPopup(patient) {
   const popup = document.getElementById('searchResultPopup');
@@ -348,11 +352,15 @@ function openSearchResultPopup(patient) {
   const nameEl = document.getElementById('searchResultPatientName');
   if (idEl) idEl.innerText = patient.patientId || '-';
   if (nameEl) nameEl.innerText = patient.name || '-';
-  if (popup) popup.classList.add('active');
+  if (popup) {
+    popup.classList.add('active');
+  }
 }
 function closeSearchResultPopup() {
   const popup = document.getElementById('searchResultPopup');
-  if (popup) popup.classList.remove('active');
+  if (popup) {
+    popup.classList.remove('active');
+  }
 }
 
 // ── REGISTER NEW PATIENT (Real Backend Database Record) ─

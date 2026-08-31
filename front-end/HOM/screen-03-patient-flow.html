@@ -5,10 +5,10 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:* https://*; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Patient Flow | Federico Hospital HOM</title>
-    <link rel="stylesheet" href="../shared/design-tokens.css">
+    <link rel="stylesheet" href="../shared/design-tokens.css?v=2">
     <link rel="stylesheet" href="../shared/material-components.css">
     <link rel="stylesheet" href="../shared/ui-feedback.css">
-    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="global.css?v=2">
     <style>
         /* .dashboard-container / .header-section / .data-table (base+th/td/
            hover) / .filter-bar (base) now live once in global.css — this
@@ -84,7 +84,7 @@
                 <h2 class="h2" style="font-size: 18px;">Inpatient &amp; Admissions Registry</h2>
             </div>
             
-            <div class="filter-bar" style="border: none; border-radius: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; background: #ffffff; padding: 16px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <div class="filter-bar" style="border: none; border-radius: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; background: var(--md-surface-container); padding: 16px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
                 <input type="text" class="input filter-input" placeholder="Search by UHID, patient, bed, doctor..." style="flex: 2; min-width: 240px;" id="patient-flow-search">
                 <select class="input filter-dropdown" id="patient-flow-department" style="flex: 1; min-width: 160px; appearance: auto;">
                     <option value="">All Departments</option>

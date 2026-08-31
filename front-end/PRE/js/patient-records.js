@@ -157,7 +157,7 @@ async function renderPatientDirectory() {
       return `
         <tr>
           <td style="text-align:left; padding:12px 16px;">
-            <a href="javascript:void(0)" onclick="viewPatient360(${p.patient_id})" style="font-weight:700; color:var(--md-primary, #0f766e); text-decoration:none;">
+            <a href="javascript:void(0)" onclick="viewPatient360(${p.patient_id})" style="font-weight:700; color:var(--md-primary, #6750a4); text-decoration:none;">
               ${PREHelpers.escapeHtml(p.uhid)}
             </a>
           </td>
@@ -178,9 +178,8 @@ async function renderPatientDirectory() {
           </td>
           <td style="text-align:center; padding:12px 14px;">${statusBadge}</td>
           <td style="text-align:center; padding:12px 16px;">
-            <div style="display:flex; gap:6px; justify-content:center;">
-              <button class="btn approve" type="button" style="padding:6px 12px; font-size:11px; border-radius:4px;" onclick="viewPatient360(${p.patient_id})">View 360</button>
-              <button class="btn green" type="button" style="padding:6px 12px; font-size:11px; border-radius:4px;" onclick="createAppointmentFor(${p.patient_id})">+ Appoint</button>
+            <div style="display:flex; justify-content:center;">
+              <button class="btn blue" type="button" style="padding:6px 16px; font-size:12px; border-radius:var(--radius-full, 9999px);" onclick="viewPatient360(${p.patient_id})">View</button>
             </div>
           </td>
         </tr>
@@ -279,17 +278,8 @@ function viewPatient360(patientId) {
     `;
   }
 
-  const btnAppoint = document.getElementById('btnModalCreateAppoint');
-  if (btnAppoint) {
-    btnAppoint.onclick = () => {
-      closePatientHistoryModal();
-      createAppointmentFor(p.patient_id);
-    };
-  }
-
   modal.classList.add('active');
   modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
 }
 
 function closePatientHistoryModal() {
@@ -297,7 +287,6 @@ function closePatientHistoryModal() {
   if (modal) {
     modal.classList.remove('active');
     modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
   }
 }
 
@@ -327,7 +316,6 @@ function openRegisterPatientModal() {
 
   modal.classList.add('active');
   modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
 }
 
 function closeRegisterPatientModal() {
@@ -335,7 +323,6 @@ function closeRegisterPatientModal() {
   if (modal) {
     modal.classList.remove('active');
     modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
   }
 }
 

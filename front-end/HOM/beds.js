@@ -250,7 +250,12 @@ window.openAssignModal = function (bedId) {
 
   document.getElementById('assign-bed-error').style.display = 'none';
   document.getElementById('assign-patient-hint').textContent = `Assigning Bed ${pendingBedTarget.bed_number}. Select an incoming patient request:`;
-  document.getElementById('modal-assign-bed').classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-assign-bed');
+  } else {
+    document.getElementById('modal-assign-bed')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 };
 
 window.selectPendingRequest = function (bedRequestId) {
@@ -378,7 +383,12 @@ window.openDetailModal = function (bedId) {
     if (actionBtn) actionBtn.style.display = 'none';
   }
 
-  document.getElementById('modal-bed-detail').classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-bed-detail');
+  } else {
+    document.getElementById('modal-bed-detail')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 };
 
 window.toggleCurrentBedMaintenance = async function () {
