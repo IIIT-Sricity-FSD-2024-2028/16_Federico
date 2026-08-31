@@ -1,6 +1,6 @@
 # Federico — Hospital Administrative Operations Platform
 
-Federico is a multi-tenant web application designed to streamline non-clinical hospital administrative operations, including patient registration, bed and ward management, inventory tracking, role-based access control, and transparent billing.
+Federico is a multi-tenant web application designed to streamline non-clinical hospital administrative operations, including patient registration, OPD/IPD separation, bed and ward management, non-clinical inventory tracking, dynamic role-based access control, resource-based revenue modeling, and transparent billing workflows.
 
 > **Scope Note:** Federico is strictly a non-clinical system. It does not handle clinical diagnosis, medical prescriptions, or clinical decision support.
 
@@ -8,11 +8,11 @@ Federico is a multi-tenant web application designed to streamline non-clinical h
 
 ## Key Features
 
-- **Multi-Tenancy & RBAC:** Organization-level data isolation with custom role and permission management.
-- **Patient Intake & Scheduling:** Online appointment booking, pre-registration review, and emergency admissions.
-- **Bed & Ward Management:** Real-time bed occupancy tracking with automated admission cascades.
-- **Clinical Service Charge Logs:** Ward service logging with dual-step finance approval before ledger entry.
-- **Billing & Receipts:** Insurance copay calculations, itemized digital bill dispatch, and payment receipt generation.
+- **Multi-Tenancy & RBAC:** Organization-level data isolation with custom dynamic role and permission management.
+- **Patient Intake & OPD/IPD Separation:** Online appointment booking, pre-registration review, OPD specialist consultations, and emergency admissions.
+- **Bed & Ward Management:** Real-time bed occupancy tracking with automated admission cascades, transfer tracking, and discharge gating.
+- **Clinical & Resource Service Logs:** Ward service logging and resource-based charging with dual-step finance approval before ledger entry.
+- **Billing, Receipts & Revenue:** Itemized digital bill dispatch, insurance copay calculations, online/cash payment processing, and platform revenue modeling.
 
 ---
 
@@ -21,19 +21,19 @@ Federico is a multi-tenant web application designed to streamline non-clinical h
 Federico follows a layered clean architecture pattern:
 
 ```
-Frontend (HTML / CSS / JS)
+Frontend (Vanilla ES6+ HTML / CSS / JS)
     │
-    ▼ (REST API / Bearer Token)
-Express.js Routing & Middleware (Auth, Multi-Tenancy, Dynamic RBAC)
+    ▼ (REST API / Bearer Token & Per-Tab Session Isolation)
+Express.js Routing & Middleware (Auth, Security/CSP, Multi-Tenancy, Dynamic RBAC)
+    │
+    ▼
+Schema Validators & HTTP Controllers (Standardized API Envelopes)
     │
     ▼
 Domain Services (Business Logic & State Transitions)
     │
     ▼
-Data Access Layer (12 Typed Repositories)
-    │
-    ▼
-In-Memory Store with Atomic Disk Persistence (db.json)
+In-Memory Store (dataStore.js) with Crash-Safe Atomic Disk Persistence (db.json)
 ```
 
 ---
@@ -42,12 +42,12 @@ In-Memory Store with Atomic Disk Persistence (db.json)
 
 | Role | Portal Path | Key Responsibilities |
 | :--- | :--- | :--- |
-| **Platform Super User** | `front-end/platform/` | Tenant provisioning, subscription plans, module flags, and audit logs. |
-| **Hospital Admin** | `front-end/Admin/` | Branch setup, custom RBAC roles, staff assignment, and inventory catalogs. |
-| **Hospital Operations (HOM)** | `front-end/HOM/` | Real-time bed allocation, service charge logs, and discharge approvals. |
-| **Patient Registration (PRE)** | `front-end/PRE/` | Pre-registration review, OPD appointments, and final administrative discharge. |
-| **Finance Associate (FA)** | `front-end/FA/` | Service charge approvals, bill dispatch, payment processing, and receipts. |
-| **Patient** | `front-end/Patient/` | Appointment booking, insurance details, bill review, and digital payments. |
+| **Platform Super User** | `front-end/platform/` | Tenant provisioning, subscription plans, module flags, revenue tracking, and audit logs. |
+| **Hospital Admin** | `front-end/Admin/` | Branch setup, custom dynamic RBAC roles, staff assignment, doctor catalog, and inventory catalogs. |
+| **Hospital Operations (HOM)** | `front-end/HOM/` | Real-time bed allocation, ward occupancy matrix, service charge logging, and medical discharge readiness. |
+| **Patient Registration (PRE)** | `front-end/PRE/` | Pre-registration review, OPD appointments, emergency triage, and final administrative discharge. |
+| **Finance Associate (FA)** | `front-end/FA/` | Service charge approvals, manual charge entries, bill dispatch, payment processing, and receipts. |
+| **Patient** | `front-end/Patient/` | OPD specialist booking, insurance management, itemized bill review, and digital payments. |
 
 ---
 
@@ -78,7 +78,8 @@ The server will run on `http://localhost:3000`.
 ### 3. Open Frontend
 Serve the `front-end` directory with any static web server or open directly in a browser:
 ```bash
-npx serve front-end -p 5500
+cd front-end
+npx serve .
 ```
 Open `http://localhost:5500/landing/landing-page.html` or `http://localhost:5500/login/login-page.html`.
 
@@ -88,12 +89,12 @@ Open `http://localhost:5500/landing/landing-page.html` or `http://localhost:5500
 
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| **Platform Super User** | `platform@federico.com` | `Platform@123` |
+| **Platform Super User** | `platform@federico.com` | `Federico@Platform123` |
 | **Hospital Admin** | `owner@hosp.com` | `Owner@123` |
 | **Hospital Operations (HOM)** | `admin@hosp.com` | `Hom@123` |
 | **Patient Registration (PRE)** | `rekha.pre@hosp.com` | `Pre@123` |
 | **Finance Associate (FA)** | `farah.fa@hosp.com` | `Fa@123` |
-| **Patient** | `hamiz@hosp.com` | `Hamiz@123` |
+| **Patient** | `arjun.k@hosp.com` | `Hamiz@123` |
 
 ---
 
@@ -106,7 +107,7 @@ cd back-end
 npm test
 ```
 
-All 17 test suites (90 tests) cover unit tests, security middleware, data integrity, and the full multi-role patient lifecycle.
+All 20 test suites (101 tests) cover unit tests, security middleware, data integrity, tenant boundary isolation, dynamic RBAC, OPD/IPD separation, platform marketplace revenue, and the full multi-role inpatient admission and discharge lifecycle.
 
 ---
 
@@ -122,22 +123,25 @@ All 17 test suites (90 tests) cover unit tests, security middleware, data integr
 │   ├── PRE/                     # Patient Registration & Eligibility portal
 │   ├── Patient/                 # Patient self-service portal
 │   ├── platform/                # Platform Super User portal
+│   ├── landing/                 # Public product showcase & overview
 │   ├── login/ & signup/         # Authentication & registration
 │   ├── marketplace/             # Hospital onboarding directory
-│   └── shared/                  # API client, design tokens, and navbar
+│   └── shared/                  # API client, design tokens, RBAC, and UI feedback
 └── back-end/                    # Express REST API backend
     ├── src/
-    │   ├── config/              # Environment & Swagger configuration
-    │   ├── controllers/         # HTTP request handlers
-    │   ├── errors/              # Domain exception classes
-    │   ├── middleware/          # Auth, tenancy, and RBAC guards
-    │   ├── repositories/        # Data Access Layer (DAL)
-    │   ├── routes/              # Express route definitions
-    │   ├── services/            # Domain business logic
-    │   ├── store/               # In-memory store and atomic persistence
-    │   ├── utils/               # Response envelopes and helpers
-    │   └── test/                # Automated test suites
-    └── data/                    # Local JSON persistence snapshot (db.json)
+    │   ├── config/              # Environment, Swagger, service & resource catalogs
+    │   ├── controllers/         # HTTP request handlers & standardized response envelopes
+    │   ├── middleware/          # Auth, session, tenant scoping, security CSP & RBAC
+    │   ├── routes/              # Express REST route definitions
+    │   ├── services/            # Domain business logic & state machine orchestration
+    │   ├── store/               # In-memory store (dataStore) & atomic disk persistence (persist)
+    │   ├── utils/               # Logger, password hashing, roles & tenant helpers
+    │   ├── validators/          # Declarative schema validators & validation engine
+    │   └── test/                # E2E lifecycle, data integrity & integration test suites
+    ├── data/                    # Local JSON persistence snapshot (db.json)
+    ├── docs/                    # Architecture manual & API specifications
+    ├── logs/                    # Runtime access, error & combined application logs
+    └── uploads/                 # Storage for documents, branding & inventory media
 ```
 
 ---
