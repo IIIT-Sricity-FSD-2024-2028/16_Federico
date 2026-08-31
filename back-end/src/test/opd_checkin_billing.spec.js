@@ -91,4 +91,30 @@ describe('Outpatient (OPD) Check-in & Automated Ledger Creation', () => {
     expect(entries[0].quantity).toBe(1);
     expect(Number(entries[0].amount)).toBeGreaterThan(0);
   });
+
+  test('Finance collects payment for OPD consultation -> Ledger becomes PAID and patient clears from active queue', () => {
+    const admission = dataStore.admissions.find((a) => a.patient_id === patient.patient_id);
+    const ledger = billingService.findLedgerByAdmission(admission.admission_id);
+    const entries = billingService.findLedgerEntries(ledger.ledger_id);
+    const totalAmount = entries.reduce((sum, e) => sum + (Number(e.amount) * Number(e.quantity || 1)), 0);
+
+    const payment = billingService.createPayment({
+      ledger_id: ledger.ledger_id,
+      amount_paid: totalAmount,
+      payment_mode: 'UPI',
+      organization_id: tenantOrg.organization_id,
+      hospital_id: tenantOrg.hospital_id,
+    });
+
+    expect(payment).toBeDefined();
+    expect(ledger.status).toBe('PAID');
+    expect(admission.bills_cleared).toBe(true);
+    expect(admission.status).toBe('PAYMENT_CONFIRMED');
+
+    // Verify queue removal condition: once paid, CONSULTATION_DONE is resolved and excluded from active awaiting table
+    const req = preRequestService.findOne(preRequest.pre_request_id);
+    const isPaid = ledger.status === 'PAID' || admission.bills_cleared === true;
+    const isClearedFromQueue = req.status === 'CONSULTATION_DONE' && isPaid;
+    expect(isClearedFromQueue).toBe(true);
+  });
 });

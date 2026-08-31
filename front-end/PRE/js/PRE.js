@@ -1,14 +1,30 @@
 'use strict';
 
 async function loadJoined() {
-  const [preRequests, patients, doctors] = await Promise.all([
+  const [preRequests, patients, doctors, admissions, ledgers] = await Promise.all([
     window.ApiClient.preRequests.list().catch(() => []),
     window.ApiClient.patients.list().catch(() => []),
     window.ApiClient.doctors.list().catch(() => []),
+    window.ApiClient.admissions.list().catch(() => []),
+    window.ApiClient.billing.ledgers().catch(() => []),
   ]);
   const doctorsById = {};
   doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
-  return PREHelpers.joinPreRequestsWithPatients(preRequests, patients, doctorsById);
+  const joined = PREHelpers.joinPreRequestsWithPatients(preRequests, patients, doctorsById);
+
+  const admissionById = {};
+  (admissions || []).forEach((a) => (admissionById[a.admission_id] = a));
+  const ledgerByAdmission = {};
+  (ledgers || []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
+
+  return joined.map((r) => {
+    const adm = r.admission_id
+      ? admissionById[r.admission_id]
+      : (admissions || []).find((a) => a.patient_id === r.patient_id && (a.visit_type === 'OPD' || a.appointment_id === r.appointment_id));
+    const ledger = adm ? ledgerByAdmission[adm.admission_id] : null;
+    const isPaid = ledger?.status === 'PAID' || adm?.status === 'PAYMENT_CONFIRMED' || adm?.bills_cleared === true;
+    return { ...r, isPaid, ledgerStatus: ledger?.status || 'UNPAID' };
+  });
 }
 
 async function renderApproved() {
@@ -16,7 +32,12 @@ async function renderApproved() {
   if (!table) return;
 
   const all = await loadJoined();
-  const approved = all.filter((r) => ['APPROVED', 'CONSULTATION_DONE', 'EMERGENCY'].includes(r.status));
+  const approved = all.filter((r) => {
+    if (['REJECTED', 'ADMITTED', 'DISCHARGED'].includes(r.status)) return false;
+    // Once OPD consultation is completed and payment is paid/settled, clear from active intake table
+    if (r.status === 'CONSULTATION_DONE' && r.isPaid) return false;
+    return ['APPROVED', 'CONSULTATION_DONE', 'EMERGENCY'].includes(r.status);
+  });
 
   if (approved.length === 0) {
     table.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--text-secondary);">No Scheduled Patients Awaiting Check-in</td></tr>`;
@@ -30,9 +51,15 @@ async function renderApproved() {
       const isEmergency = r.visit_type === 'Emergency' || r.status === 'EMERGENCY';
 
       let statusBadge = '<span class="badge badge-neutral">Scheduled</span>';
-      if (isOpd) statusBadge = '<span class="badge badge-success">OPD Checked-In</span>';
-      else if (isAdmit) statusBadge = '<span class="badge badge-info">IPD Bed Requested</span>';
-      else if (isEmergency) statusBadge = '<span class="badge badge-warning">Emergency</span>';
+      if (isOpd) {
+        statusBadge = r.isPaid
+          ? '<span class="badge badge-success">Completed &amp; Paid</span>'
+          : '<span class="badge badge-warning" style="background:#fff3e0; color:#e65100;">OPD Checked-In (Awaiting Payment)</span>';
+      } else if (isAdmit) {
+        statusBadge = '<span class="badge badge-info">IPD Bed Requested</span>';
+      } else if (isEmergency) {
+        statusBadge = '<span class="badge badge-warning">Emergency</span>';
+      }
 
       const dropdownHtml = `
         <select class="custom-select" onchange="setVisitType(${r.pre_request_id}, this.value)" style="padding:6px 10px; font-size:12px; border-radius:6px; border:1px solid var(--color-border); background:#fff; min-width: 170px;">
