@@ -4,23 +4,23 @@
 window.currentAdmissionId = window.currentAdmissionId || null;
 
 async function render() {
-    if (typeof parseHashRoute === 'function') parseHashRoute();
+    const routeInfo = typeof parseHashRoute === 'function' ? parseHashRoute() : { mainRoute: (location.hash || '#/dashboard').split('/')[1] ? '#/' + (location.hash || '#/dashboard').split('/')[1] : '#/dashboard' };
+    const mainRoute = routeInfo.mainRoute || '#/dashboard';
     if (typeof updateActiveNav === 'function') updateActiveNav();
     const appDiv = document.getElementById('app');
-    const hash = location.hash || (window.Permissions ? Permissions.getDefaultRoute() : '#/dashboard');
 
-    if (window.Permissions && !Permissions.enforceRoute(hash)) return;
+    if (window.Permissions && !Permissions.enforceRoute(location.hash || mainRoute)) return;
 
     appDiv.innerHTML = '<div class="card" style="padding: 60px; text-align: center; color: var(--text-muted);">Loading…</div>';
 
     try {
-        if (hash === '#/dashboard') appDiv.innerHTML = await renderDashboard();
-        else if (hash === '#/charges') appDiv.innerHTML = await renderCharges();
-        else if (hash.startsWith('#/ledger')) appDiv.innerHTML = await renderLedger();
-        else if (hash === '#/eod') appDiv.innerHTML = await renderEodBilling();
-        else if (hash === '#/discharge') appDiv.innerHTML = await renderDischarge();
-        else if (hash === '#/receipts') appDiv.innerHTML = await renderReceipts();
-        else appDiv.innerHTML = `<div class="card" style="padding: 50px; text-align: center;"><h2>Page Under Construction</h2></div>`;
+        if (mainRoute === '#/dashboard') appDiv.innerHTML = await renderDashboard();
+        else if (mainRoute === '#/charges') appDiv.innerHTML = await renderCharges();
+        else if (mainRoute === '#/ledger') appDiv.innerHTML = await renderLedger();
+        else if (mainRoute === '#/eod') appDiv.innerHTML = await renderEodBilling();
+        else if (mainRoute === '#/discharge') appDiv.innerHTML = await renderDischarge();
+        else if (mainRoute === '#/receipts') appDiv.innerHTML = await renderReceipts();
+        else appDiv.innerHTML = `<div class="card" style="padding: 50px; text-align: center;"><h2>Page Not Found</h2></div>`;
     } catch (err) {
         console.error('FA render failed:', err);
         appDiv.innerHTML = `<div class="card" style="padding: 50px; text-align: center;"><h2>Something went wrong</h2><p style="color: var(--text-muted);">${window.FAHelpers.escapeHtml(err.message || String(err))}</p></div>`;
@@ -34,7 +34,8 @@ const H = () => window.FAHelpers;
 function statusBadge(row) {
     if (!row.ledger) return `<span class="badge badge-warning">Ledger Pending</span>`;
     if (row.ledger.status === 'PAID') return `<span class="badge badge-success">Paid</span>`;
-    if (row.ledger.status === 'DISPATCHED') return `<span class="badge badge-info">Dispatched</span>`;
+    if (row.ledger.status === 'DISPATCHED') return `<span class="badge badge-info">EOD Sent</span>`;
+    if (row.ledger.status === 'PARTIALLY_PAID') return `<span class="badge badge-info">Partially Paid</span>`;
     return `<span class="badge badge-warning">Active</span>`;
 }
 
@@ -300,6 +301,26 @@ async function renderCharges() {
     `;
 }
 
+function renderPatientPicker(rows, currentAdmissionId) {
+    if (!rows || !rows.length) return '';
+    const options = rows.map((r) => {
+        const isSel = r.admission.admission_id === currentAdmissionId ? 'selected' : '';
+        const visitTag = r.admission.visit_type === 'OPD' ? '[OPD Consultation]' : (r.bed && r.bed.bed_number ? `[Bed ${r.bed.bed_number}]` : '[Inpatient]');
+        const st = r.ledger ? (r.ledger.status === 'DISPATCHED' ? '[EOD Sent]' : `[${r.ledger.status}]`) : '[NO LEDGER]';
+        return `<option value="${r.admission.admission_id}" ${isSel}>${H().escapeHtml(r.patient.name || 'Patient')} (${H().escapeHtml(r.patient.uhid || '-')}) — ${visitTag} ${st}</option>`;
+    }).join('');
+
+    return `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding: 12px 18px; background: var(--color-surface, #fff); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+            <label style="font-size: 12px; font-weight: 700; color: var(--color-muted-fg); text-transform: uppercase; white-space: nowrap;">Switch Patient / Ledger:</label>
+            <select style="flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg, #fdf8fd); color: var(--color-fg);"
+                onchange="window.currentAdmissionId = Number(this.value); window.render();">
+                ${options}
+            </select>
+        </div>
+    `;
+}
+
 async function renderLedger() {
     const { rows, servicesById } = await H().loadBillingOverview();
     if (!window.currentAdmissionId && rows.length) window.currentAdmissionId = rows[0].admission.admission_id;
@@ -307,8 +328,11 @@ async function renderLedger() {
 
     if (!row) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected.</h2></div>`;
 
+    const pickerHtml = renderPatientPicker(rows, row.admission.admission_id);
+
     if (!row.ledger) {
         return `
+            ${pickerHtml}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')}</h2>
             </div>
@@ -323,6 +347,8 @@ async function renderLedger() {
     const entries = await H().loadLedgerEntries(row.ledger.ledger_id);
     const total = H().ledgerTotal(entries);
 
+    const serviceOptions = Object.values(servicesById || {}).map((s) => `<option value="${s.service_id}">${H().escapeHtml(s.service_name)} (${H().formatCurrency(s.base_cost)})</option>`).join('');
+
     const entryRows = entries.map((e) => `
         <tr style="border-bottom: 1px solid var(--color-border);">
             <td style="padding: 16px 24px; color: var(--color-muted-fg);">${H().escapeHtml(servicesById[e.service_id]?.service_name || 'Service #' + e.service_id)}</td>
@@ -332,19 +358,39 @@ async function renderLedger() {
         </tr>
     `).join('');
 
+    const isOpd = row.admission.visit_type === 'OPD';
+    const visitTag = isOpd ? 'OPD Consultation' : (row.bed && row.bed.bed_number ? `Inpatient · Bed ${row.bed.bed_number}` : 'Inpatient');
+
     return `
+        ${pickerHtml}
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <div>
-                <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">Ledger: ${H().escapeHtml(row.patient.name || '-')} <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span></h2>
+                <h2 style="margin: 0; color: var(--color-fg); font-weight: 700;">
+                    Ledger: ${H().escapeHtml(row.patient.name || '-')} 
+                    <span style="font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 12px; background: ${isOpd ? '#e0f2fe; color: #0369a1;' : '#ede9fe; color: #6d28d9;'} margin-left: 6px;">${visitTag}</span>
+                    <span style="font-size: 14px; font-weight: 500; color: var(--color-muted-fg);">${statusBadge(row)}</span>
+                </h2>
                 <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--color-muted-fg);">User ID: #${H().escapeHtml(String(row.patient.patient_id || row.admission.patient_id || '-'))} &bull; UHID: <span class="uhid-badge">${H().escapeHtml(row.patient.uhid || '-')}</span></p>
             </div>
             <div style="display: flex; gap: 12px;">
-                <button class="md-btn md-btn-tonal" style="padding: 0 20px;" onclick="navigate('#/eod', ${row.admission.admission_id})">EOD Billing</button>
-                <button class="btn-primary" style="padding: 10px 20px; font-size: 13px; background: ${row.dischargeApproved ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${row.dischargeApproved ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'};" onclick="${row.dischargeApproved ? `navigate('#/discharge', ${row.admission.admission_id})` : "window.UIFeedback.toast('Waiting for HOM discharge approval for this patient.', 'warning')"}">${row.dischargeApproved ? 'Discharge' : 'Await HOM Approval'}</button>
+                <button class="md-btn md-btn-tonal" style="padding: 0 20px;" onclick="window.FAActions.dispatchCurrent(${row.ledger.ledger_id})">Send EOD Bill to Patient</button>
+                <button class="btn-primary" style="padding: 10px 20px; font-size: 13px; background: ${row.dischargeApproved ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${row.dischargeApproved ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'};" onclick="${row.dischargeApproved ? `navigate('#/discharge', ${row.admission.admission_id})` : "window.UIFeedback.toast('Waiting for HOM discharge approval for this patient.', 'warning')"}">${isOpd ? 'Finalize OPD Bill' : (row.dischargeApproved ? 'Discharge Patient' : 'Await HOM Approval')}</button>
             </div>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+            <div style="padding: 16px 24px; background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="font-size: 13px; font-weight: 700; color: var(--color-fg);">Add Manual Charge:</span>
+                <select id="ledger-add-service" style="padding: 8px 12px; font-size: 13px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: #fff; color: var(--color-fg); min-width: 220px;">
+                    <option value="" disabled selected>Select service / item...</option>
+                    ${serviceOptions}
+                </select>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label style="font-size: 12px; color: var(--color-muted-fg); font-weight: 600;">Qty:</label>
+                    <input id="ledger-add-qty" type="number" min="1" value="1" style="width: 60px; padding: 8px 10px; font-size: 13px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: #fff; color: var(--color-fg);">
+                </div>
+                <button class="btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="window.FAActions.addChargeToCurrentLedger(${row.admission.admission_id}, ${row.ledger.ledger_id})">+ Post to Ledger</button>
+            </div>
             <table class="data-table" style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead style="background: var(--color-muted-bg); border-bottom: 1px solid var(--color-border);">
                     <tr>
@@ -373,9 +419,11 @@ async function renderEodBilling() {
     const row = rows.find((r) => r.admission.admission_id === window.currentAdmissionId);
     if (!row) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected.</h2></div>`;
 
+    const pickerHtml = renderPatientPicker(rows, row.admission.admission_id);
+
     const entries = row.ledger ? await H().loadLedgerEntries(row.ledger.ledger_id) : [];
     const total = H().ledgerTotal(entries);
-    const canDispatch = Boolean(row.ledger) && row.ledger.status === 'OPEN' && total > 0;
+    const canDispatch = Boolean(row.ledger) && row.ledger.status !== 'PAID' && total > 0;
 
     const breakdownRows = entries.map((e) => `
         <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: var(--color-muted-fg);">
@@ -389,14 +437,15 @@ async function renderEodBilling() {
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--color-border);">
             <div>
                 <div style="font-weight: 700; color: var(--color-fg); font-size: 14px;">${H().escapeHtml(r.patient.name || '-')}</div>
-                <div style="font-size: 12px; color: var(--color-accent); margin-top: 4px;">${r.ledger.status === 'PAID' ? 'Paid' : 'Dispatched — awaiting payment'}</div>
+                <div style="font-size: 12px; color: var(--color-accent); margin-top: 4px;">${r.ledger.status === 'PAID' ? 'Paid' : 'Billed — awaiting payment'}</div>
             </div>
             <div style="font-weight: 600; color: var(--color-muted-fg); cursor: pointer;" onclick="navigate('#/ledger', ${r.admission.admission_id})">View →</div>
         </div>
     `).join('');
 
     return `
-        <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">EOD Dispatcher | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
+        ${pickerHtml}
+        <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">EOD Billing | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
             <div class="card" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
@@ -411,13 +460,13 @@ async function renderEodBilling() {
                     ` : `<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">${row.ledger ? 'No charges recorded yet.' : 'No ledger exists for this admission yet.'}</p>`}
                 </div>
                 <button onclick="window.FAActions.dispatchCurrent(${row.ledger ? row.ledger.ledger_id : 'null'})" style="width: 100%; background: ${canDispatch ? 'var(--md-primary)' : 'var(--md-surface-container-high)'}; color: ${canDispatch ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)'}; border: none; padding: 14px; border-radius: var(--radius-full); font-weight: 700; cursor: ${canDispatch ? 'pointer' : 'not-allowed'}; font-size: 14px;" ${canDispatch ? '' : 'disabled'}>
-                    ${!row.ledger ? 'No Ledger Yet' : row.ledger.status !== 'OPEN' ? 'Already Dispatched' : total === 0 ? 'Nothing to Dispatch' : 'Dispatch Bill to Patient'}
+                    ${!row.ledger ? 'No Ledger Yet' : row.ledger.status === 'PAID' ? 'Ledger Settled & Paid' : total === 0 ? 'Nothing to Bill' : 'Send EOD Bill to Patient'}
                 </button>
             </div>
 
             <div class="card" style="padding: 24px; height: fit-content;">
-                <h3 style="margin: 0 0 16px 0; font-size: 16px; color: var(--color-fg);">Recently Dispatched</h3>
-                <div>${historyRows || '<p style="color: var(--text-muted); font-size: 14px;">No other bills have been dispatched yet.</p>'}</div>
+                <h3 style="margin: 0 0 16px 0; font-size: 16px; color: var(--color-fg);">Recently Billed</h3>
+                <div>${historyRows || '<p style="color: var(--text-muted); font-size: 14px;">No other bills have been sent yet.</p>'}</div>
             </div>
         </div>
     `;
@@ -429,8 +478,11 @@ async function renderDischarge() {
     const row = rows.find((r) => r.admission.admission_id === window.currentAdmissionId);
     if (!row) return `<div class="card" style="padding: 40px; text-align: center;"><h2>No patient selected for discharge.</h2></div>`;
 
+    const pickerHtml = renderPatientPicker(rows, row.admission.admission_id);
+
     if (!row.dischargeApproved) {
         return `
+            ${pickerHtml}
             <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
             <div class="card" style="padding: 40px; text-align: center;">
                 <h2 style="color: var(--color-fg);">Awaiting HOM discharge approval</h2>
@@ -453,12 +505,13 @@ async function renderDischarge() {
 
     if (row.ledger && row.ledger.status === 'PAID') {
         return `
+            ${pickerHtml}
             <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
             <div class="card" style="padding: 40px; text-align: center;">
                 <h2 style="color: var(--color-accent);">Payment Received</h2>
                 <p>Billing is finalized. <a href="#/receipts" style="color: var(--color-accent);">View Receipt</a></p>
                 <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
-                    <button class="btn-primary" style="padding: 12px 20px;" onclick="window.FAActions.printDischargeSummary(${row.admission.admission_id})">🖨️ Print Discharge Summary</button>
+                    <button class="btn-primary" style="padding: 12px 20px;" onclick="window.FAActions.printDischargeSummary(${row.admission.admission_id})">Print Discharge Summary</button>
                 </div>
             </div>
         `;
@@ -466,8 +519,13 @@ async function renderDischarge() {
 
     const dispatched = Boolean(row.ledger) && row.ledger.status === 'DISPATCHED';
 
+    const isOpdDischarge = row.admission.visit_type === 'OPD';
+    const pageTitle = isOpdDischarge ? 'OPD Bill Summary & Settlement' : 'Final Discharge Summary';
+    const actionButtonLabel = isOpdDischarge ? 'Finalize & Settle Bill' : 'Discharge Patient';
+
     return `
-        <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">Final Discharge Summary | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
+        ${pickerHtml}
+        <h2 style="margin-bottom: 24px; color: var(--color-fg); font-weight: 700;">${pageTitle} | <span style="color: var(--color-muted-fg);">${H().escapeHtml(row.patient.name || '-')}</span></h2>
 
         <div class="card" style="padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
             <div>
@@ -486,7 +544,7 @@ async function renderDischarge() {
                     <span>Net Payable</span><span id="net-payable-preview">${H().formatCurrency(Math.max(0, grossTotal - coverageLimit))}</span>
                 </div>
                 <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; font-size: 13px;" onclick="window.FAActions.generateDischargeSummary(${row.admission.admission_id})">
-                    📄 Generate Discharge Summary
+                    ${actionButtonLabel}
                 </button>
             </div>
 
@@ -496,12 +554,12 @@ async function renderDischarge() {
                     <p style="color: var(--color-muted-fg); font-size: 14px;">No ledger exists for this admission yet.</p>
                     <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700;" onclick="window.FAActions.createLedgerAndOpen(${row.admission.admission_id})">Create Ledger</button>
                 ` : !dispatched ? `
-                    <p style="color: var(--color-muted-fg); font-size: 14px; margin-bottom: 16px;">Dispatch the bill so the patient can pay online, or record a manual payment for a walk-in.</p>
-                    <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; margin-bottom: 12px;" onclick="window.FAActions.dispatchCurrent(${row.ledger.ledger_id})">Dispatch Bill to Patient</button>
+                    <p style="color: var(--color-muted-fg); font-size: 14px; margin-bottom: 16px;">Send the bill so the patient can pay online, or record a manual payment for a walk-in.</p>
+                    <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; margin-bottom: 12px;" onclick="window.FAActions.dispatchCurrent(${row.ledger.ledger_id})">Send Bill to Patient</button>
                     <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700; background: var(--md-secondary-container); color: var(--md-on-secondary-container);" onclick="window.FAActions.recordCashPayment(${row.ledger.ledger_id})">Record Cash Payment</button>
                 ` : `
                     <div style="margin-bottom: 16px; padding: 16px; border-radius: var(--radius-md); background: var(--color-muted-bg); color: var(--color-muted-fg); font-size: 13px;">
-                        Bill dispatched — the patient can pay from their own billing page. You can also record cash collected in person below.
+                        Bill sent — the patient can pay from their own billing page. You can also record cash collected in person below.
                     </div>
                     <button class="btn-primary" style="width: 100%; padding: 14px; font-weight: 700;" onclick="window.FAActions.recordCashPayment(${row.ledger.ledger_id})">Record Cash Payment</button>
                 `}

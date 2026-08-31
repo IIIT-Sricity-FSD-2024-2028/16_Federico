@@ -213,7 +213,6 @@ function openEmergencyModal() {
 
   modal.classList.add('active');
   modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
 }
 
 function closeEmergencyModal() {
@@ -221,7 +220,6 @@ function closeEmergencyModal() {
   if (modal) {
     modal.classList.remove('active');
     modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
   }
 }
 

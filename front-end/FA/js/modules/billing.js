@@ -87,17 +87,18 @@
         if (!ledgerId) return;
 
         const confirmed = await window.UIFeedback.confirm({
-            title: 'Dispatch bill to patient?',
-            body: 'This finalizes the current ledger and makes the bill visible to the patient for payment. You can still record a manual payment afterwards, but charges on this bill can no longer be edited.',
-            confirmLabel: 'Dispatch Bill',
+            title: 'Send EOD bill to patient?',
+            body: 'This sends the running statement to the patient so they can review today\'s hospital charges.',
+            confirmLabel: 'Send Bill',
             cancelLabel: 'Cancel',
         });
         if (!confirmed) return;
 
         try {
             await window.ApiClient.billing.ledger.dispatch(ledgerId);
+            window.UIFeedback.toast('EOD bill sent to patient.', 'success');
         } catch (err) {
-            window.UIFeedback.toast(err.message || 'Unable to dispatch this bill.', 'error');
+            window.UIFeedback.toast(err.message || 'Unable to send this bill.', 'error');
             return;
         }
         window.render();
@@ -147,16 +148,12 @@
         const { row, summary } = await ensureDischargeSummary(admissionId);
         if (!row) return;
 
-        // Sending the discharge summary to the patient also releases the
-        // End-of-Day bill + payment link to them (dispatch the ledger if it
-        // is still open). Keeps summary + bill + pay link together in one
-        // step, matching the intended discharge flow.
         if (row.ledger && row.ledger.status === 'OPEN') {
             try {
                 await window.ApiClient.billing.ledger.dispatch(row.ledger.ledger_id);
-                window.UIFeedback.toast('Discharge summary and EOD bill (with payment link) sent to the patient.', 'success');
+                window.UIFeedback.toast('Discharge summary generated and bill sent to the patient.', 'success');
             } catch (err) {
-                window.UIFeedback.toast(err.message || 'Discharge summary created, but the bill could not be dispatched.', 'warning');
+                window.UIFeedback.toast(err.message || 'Discharge summary created, but the bill could not be sent.', 'warning');
             }
         }
 
@@ -298,7 +295,7 @@
                 <div class="row"><span>Date & Time</span><span>${H().formatDateTime(r.generated_at)}</span></div>
                 <div class="row"><span>Payment Mode</span><span>${H().escapeHtml((r.payment_mode || '').toUpperCase())}</span></div>
                 <div class="row net"><span>Total Amount Paid</span><span>${H().formatCurrency(r.amount)}</span></div>
-                <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+                <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
                 <script>setTimeout(() => { window.print(); }, 500);</script>
             </body></html>
         `);

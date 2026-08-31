@@ -56,11 +56,17 @@ const MODULE_RESOURCE_AREAS = {
   LEADERSHIP: ['leader'],
 };
 
-// Modules that a *pre-existing* organization (one created before a given
-// module code existed) should be granted automatically by the boot-time
-// backfill, so adding a new module code never silently 403s orgs that were
-// working yesterday. New orgs still only get what they select at signup.
-const BACKFILL_GRANT_MODULES = ['DOCTOR', 'PATIENT', 'LEADERSHIP'];
+const BACKFILL_GRANT_MODULES = [
+  'APPOINTMENTS',
+  'ADMISSIONS',
+  'INVENTORY',
+  'BILLING',
+  'INSURANCE',
+  'ANALYTICS',
+  'DOCTOR',
+  'PATIENT',
+  'LEADERSHIP',
+];
 
 /** Stamps organization_id/hospital_id from the request's tenant context onto a create payload. */
 function withTenant(req, payload) {

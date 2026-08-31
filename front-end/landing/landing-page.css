@@ -179,6 +179,13 @@ button, a { font-family: inherit; cursor: pointer; }
     transform: scale(0.98);
 }
 
+.hero-actions #platform-btn {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 6px);
+    min-width: 200px;
+}
+
 /* ─── Side panels ─── */
 .side-panels {
     position: relative;
@@ -383,6 +390,7 @@ button, a { font-family: inherit; cursor: pointer; }
     .why-section { padding: 36px 0 24px; }
 
     .hero-actions { grid-template-columns: 1fr; max-width: 100%; }
+    .hero-actions #platform-btn { width: 100%; }
 
     .site-footer { padding: 16px 20px 24px; flex-direction: column; align-items: flex-start; }
 }

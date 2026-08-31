@@ -319,7 +319,12 @@ window.openPatientDetail = async function (preRequestId) {
   document.getElementById('pd-ledger-status').innerText = billing && billing.ledger ? billing.ledger.status : 'No ledger yet';
 
   switchTab('overview');
-  document.getElementById('modal-patient-detail').classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-patient-detail');
+  } else {
+    document.getElementById('modal-patient-detail')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 };
 
 window.openDischargeFromDetail = function () {
@@ -346,7 +351,12 @@ window.openDischargeModal = async function (preRequestId) {
   if (totalCostEl) totalCostEl.innerText = 'Calculating...';
 
   setDischargeError('');
-  document.getElementById('modal-initiate-discharge').classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-initiate-discharge');
+  } else {
+    document.getElementById('modal-initiate-discharge')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 
   const billing = await findAdmissionAndLedger(row.patient_id);
   if (billing && billing.ledger) {

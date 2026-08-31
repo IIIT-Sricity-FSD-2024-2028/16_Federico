@@ -74,12 +74,29 @@ async function loadPatientDirectoryData() {
       (pAdms[0] && pAdms[0].department) ||
       null;
 
+    const activeInpatient = Boolean(activeBed);
+    const pendingBedRequest = pPres.some((pr) => pr.status === 'APPROVED' && (pr.visit_type === 'Admit' || pr.visit_type === 'Inpatient'));
+    const hasEmergency = pPres.some((pr) => pr.status === 'EMERGENCY' || pr.visit_type === 'Emergency') ||
+      pAdms.some((a) => a.status === 'EMERGENCY');
+    const hasDischarged = !activeInpatient && (pPres.some((pr) => pr.status === 'DISCHARGED') || pAdms.some((a) => a.status === 'DISCHARGED'));
+    const hasScheduled = pPres.some((pr) => pr.status === 'APPROVED' || pr.status === 'CONFIRMED') ||
+      pApts.some((apt) => apt.status === 'CONFIRMED' || apt.status === 'SCHEDULED');
+    const hasPendingIntake = pPres.some((pr) => pr.status === 'PENDING');
+    const hasConsultationDone = pPres.some((pr) => pr.status === 'CONSULTATION_DONE') ||
+      pApts.some((apt) => apt.status === 'COMPLETED');
+
     return {
       ...p,
       age: PREHelpers.formatAge(p.dob),
       insurance: pInsur,
       activeBed,
-      isInpatient: Boolean(activeBed),
+      isInpatient: activeInpatient,
+      pendingBedRequest,
+      hasEmergency,
+      hasDischarged,
+      hasScheduled,
+      hasPendingIntake,
+      hasConsultationDone,
       totalEncounters,
       latestDept,
       appointments: pApts,
@@ -141,6 +158,18 @@ async function renderPatientDirectory() {
       let statusBadge = `<span class="status pending" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; font-size:11px; padding:3px 8px; border-radius:12px;">Registered</span>`;
       if (p.isInpatient) {
         statusBadge = `<span class="status confirmed" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600; font-size:11px; padding:3px 8px; border-radius:12px;">Inpatient (${PREHelpers.escapeHtml(p.activeBed ? p.activeBed.bed_number : 'Bed Assigned')})</span>`;
+      } else if (p.hasEmergency) {
+        statusBadge = `<span class="status pending" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:600; font-size:11px; padding:3px 8px; border-radius:12px;">Emergency</span>`;
+      } else if (p.pendingBedRequest) {
+        statusBadge = `<span class="status pending" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; font-weight:600; font-size:11px; padding:3px 8px; border-radius:12px;">Bed Requested</span>`;
+      } else if (p.hasScheduled) {
+        statusBadge = `<span class="status confirmed" style="background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe; font-weight:600; font-size:11px; padding:3px 8px; border-radius:12px;">Scheduled</span>`;
+      } else if (p.hasPendingIntake) {
+        statusBadge = `<span class="status pending" style="background:#fef9c3; color:#854d0e; border:1px solid #fef08a; font-size:11px; padding:3px 8px; border-radius:12px;">Pending Request</span>`;
+      } else if (p.hasConsultationDone) {
+        statusBadge = `<span class="status confirmed" style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-size:11px; padding:3px 8px; border-radius:12px;">Completed (OPD)</span>`;
+      } else if (p.hasDischarged) {
+        statusBadge = `<span class="status confirmed" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-size:11px; padding:3px 8px; border-radius:12px;">Discharged</span>`;
       } else if (p.totalEncounters > 0) {
         statusBadge = `<span class="status confirmed" style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-size:11px; padding:3px 8px; border-radius:12px;">Outpatient</span>`;
       }
@@ -157,7 +186,7 @@ async function renderPatientDirectory() {
       return `
         <tr>
           <td style="text-align:left; padding:12px 16px;">
-            <a href="javascript:void(0)" onclick="viewPatient360(${p.patient_id})" style="font-weight:700; color:var(--md-primary, #0f766e); text-decoration:none;">
+            <a href="javascript:void(0)" onclick="viewPatient360(${p.patient_id})" style="font-weight:700; color:var(--md-primary, #6750a4); text-decoration:none;">
               ${PREHelpers.escapeHtml(p.uhid)}
             </a>
           </td>
@@ -178,9 +207,8 @@ async function renderPatientDirectory() {
           </td>
           <td style="text-align:center; padding:12px 14px;">${statusBadge}</td>
           <td style="text-align:center; padding:12px 16px;">
-            <div style="display:flex; gap:6px; justify-content:center;">
-              <button class="btn approve" type="button" style="padding:6px 12px; font-size:11px; border-radius:4px;" onclick="viewPatient360(${p.patient_id})">View 360</button>
-              <button class="btn green" type="button" style="padding:6px 12px; font-size:11px; border-radius:4px;" onclick="createAppointmentFor(${p.patient_id})">+ Appoint</button>
+            <div style="display:flex; justify-content:center;">
+              <button class="btn blue" type="button" style="padding:6px 16px; font-size:12px; border-radius:var(--radius-full, 9999px);" onclick="viewPatient360(${p.patient_id})">View</button>
             </div>
           </td>
         </tr>
@@ -208,9 +236,18 @@ function viewPatient360(patientId) {
     ? `<span style="color:#047857; font-weight:700;">${PREHelpers.escapeHtml(p.insurance.provider_name)} (₹${(p.insurance.coverage_limit || 0).toLocaleString('en-IN')})</span>`
     : `<span style="color:var(--color-muted-fg);">Self Pay</span>`;
 
-  // Render Encounters & Appointments Table
+  // Render Encounters & Appointments Table — deduplicate linked records
   const aptsContainer = document.getElementById('modalAppointmentsContainer');
-  const allEncounters = [...(p.appointments || []), ...(p.preRequests || [])];
+  const seenEncounterKeys = new Set();
+  const rawList = [...(p.preRequests || []), ...(p.appointments || [])];
+  const allEncounters = rawList.filter((enc) => {
+    const key = enc.appointment_id
+      ? `apt_${enc.appointment_id}`
+      : (enc.pre_request_id ? `pr_${enc.pre_request_id}` : `raw_${Math.random()}`);
+    if (seenEncounterKeys.has(key)) return false;
+    seenEncounterKeys.add(key);
+    return true;
+  });
   if (allEncounters.length === 0) {
     aptsContainer.innerHTML = `<div style="padding:16px; text-align:center; color:var(--color-muted-fg); font-size:12px;">No recorded outpatient appointments.</div>`;
   } else {
@@ -279,17 +316,8 @@ function viewPatient360(patientId) {
     `;
   }
 
-  const btnAppoint = document.getElementById('btnModalCreateAppoint');
-  if (btnAppoint) {
-    btnAppoint.onclick = () => {
-      closePatientHistoryModal();
-      createAppointmentFor(p.patient_id);
-    };
-  }
-
   modal.classList.add('active');
   modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
 }
 
 function closePatientHistoryModal() {
@@ -297,7 +325,6 @@ function closePatientHistoryModal() {
   if (modal) {
     modal.classList.remove('active');
     modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
   }
 }
 
@@ -327,7 +354,6 @@ function openRegisterPatientModal() {
 
   modal.classList.add('active');
   modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
 }
 
 function closeRegisterPatientModal() {
@@ -335,7 +361,6 @@ function closeRegisterPatientModal() {
   if (modal) {
     modal.classList.remove('active');
     modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
   }
 }
 

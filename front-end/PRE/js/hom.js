@@ -7,6 +7,7 @@
 
 let candidatePatients = [];
 let selectedCandidate = null;
+let wardsCatalog = [];
 let pickerOpen = false;
 
 function escapeHtml(value) {
@@ -37,51 +38,73 @@ function setPickerVisibility(visible) {
 
 // ── DATA FETCHING (Zero Hardcoded Data) ───────────────────
 async function loadCandidates() {
-  const [preRequests, patients, bedRequests] = await Promise.all([
+  const [preRequests, patients, bedRequests, admissions] = await Promise.all([
     window.ApiClient.preRequests.list().catch(() => []),
     window.ApiClient.patients.list().catch(() => []),
     window.ApiClient.wards.bedRequests.list().catch(() => []),
+    window.ApiClient.admissions.list().catch(() => []),
   ]);
 
-  const patientsById = {};
-  (patients || []).forEach((p) => (patientsById[p.patient_id] = p));
+  const preRequestsByPatient = {};
+  (preRequests || []).forEach((r) => {
+    preRequestsByPatient[r.patient_id] = r;
+  });
 
-  const activeBedReqPreIds = new Set(
-    (bedRequests || []).filter((r) => r.status === 'PENDING' || r.status === 'ALLOCATED').map((r) => r.pre_request_id),
+  const admissionsByPatient = {};
+  (admissions || []).forEach((a) => {
+    if (a.status !== 'DISCHARGED') admissionsByPatient[a.patient_id] = a;
+  });
+
+  const activeBedReqPatientIds = new Set(
+    (bedRequests || []).filter((r) => r.status === 'PENDING' || r.status === 'ALLOCATED').map((r) => r.patient_id),
   );
 
-  candidatePatients = (preRequests || [])
-    .filter(
-      (r) =>
-        ((r.status === 'APPROVED' && r.visit_type === 'Admit') || r.status === 'EMERGENCY') &&
-        !activeBedReqPreIds.has(r.pre_request_id),
-    )
-    .map((r) => {
-      const patient = patientsById[r.patient_id] || {};
+  const activePatientsWithBeds = new Set(
+    (admissions || []).filter((a) => a.bed_id && a.status !== 'DISCHARGED').map((a) => a.patient_id),
+  );
+
+  candidatePatients = (patients || [])
+    .filter((p) => !activePatientsWithBeds.has(p.patient_id))
+    .map((p) => {
+      const preReq = preRequestsByPatient[p.patient_id];
+      const adm = admissionsByPatient[p.patient_id];
+      const hasPendingReq = activeBedReqPatientIds.has(p.patient_id);
+      const isOpd = adm?.visit_type === 'OPD' || preReq?.visit_type === 'OPD' || preReq?.status === 'CONSULTATION_DONE';
+      const isEmergency = preReq?.visit_type === 'Emergency' || preReq?.status === 'EMERGENCY';
+
+      let visitType = 'Inpatient Admission';
+      if (hasPendingReq) visitType = 'Bed Request Pending in HOM';
+      else if (isOpd) visitType = 'OPD (Escalate to Admit)';
+      else if (isEmergency) visitType = 'Emergency Triage';
+      else if (preReq?.visit_type) visitType = preReq.visit_type;
+
       return {
-        preRequestId: r.pre_request_id,
-        patientId: r.patient_id,
-        uhid: patient.uhid || `UHID-${r.patient_id}`,
-        name: patient.name || 'Unknown Patient',
-        department: r.department || 'General Medicine',
-        visitType: r.visit_type || (r.status === 'EMERGENCY' ? 'Emergency' : 'Admit'),
-        priority: r.visit_type === 'Emergency' || r.status === 'EMERGENCY' ? 'CRITICAL' : 'NORMAL',
+        preRequestId: preReq ? preReq.pre_request_id : null,
+        patientId: p.patient_id,
+        uhid: p.uhid || `UHID-${p.patient_id}`,
+        name: p.name || 'Unknown Patient',
+        department: adm?.department || preReq?.department || 'General Medicine',
+        visitType: visitType,
+        priority: isEmergency ? 'CRITICAL' : 'NORMAL',
       };
     });
 }
 
-function renderDropdown(query) {
+function renderDropdown(query = '') {
   const { dropdown } = getPickerElements();
   if (!dropdown) return;
 
   const q = String(query || '').trim().toLowerCase();
-  const matches = candidatePatients.filter((c) => !q || `${c.uhid} ${c.name} ${c.department}`.toLowerCase().includes(q));
+  const matches = candidatePatients.filter((c) => {
+    if (!q) return true;
+    return `${c.uhid} ${c.name} ${c.department} ${c.visitType}`.toLowerCase().includes(q);
+  });
 
   if (matches.length === 0) {
     dropdown.innerHTML = `
-      <div class="appointment-picker-empty">
-        <strong>No patients awaiting a bed</strong>
-        <span>To request a bed, ensure an admitted or emergency case is registered.</span>
+      <div class="appointment-picker-empty" style="padding: 16px; text-align: center; color: var(--text-secondary, #64748b);">
+        <strong style="display: block; font-size: 13px; color: var(--text-primary, #1e293b);">No matching patients</strong>
+        <span style="font-size: 11px;">All registered patients currently have beds assigned or pending requests.</span>
       </div>
     `;
     setPickerVisibility(true);
@@ -91,33 +114,55 @@ function renderDropdown(query) {
   dropdown.innerHTML = matches
     .map(
       (c) => `
-      <button type="button" class="appointment-picker-option" data-pre-request-id="${c.preRequestId}">
-        <div class="appointment-picker-row">
-          <strong>${escapeHtml(c.name)}</strong>
-          <span style="font-size:11px; color:var(--md-primary, #0f766e); font-weight:600;">${escapeHtml(c.uhid)}</span>
+      <div class="appointment-picker-option" data-patient-id="${c.patientId}" style="padding: 10px 14px; border-radius: 6px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.15s;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="font-size: 13px; color: #1e293b;">${escapeHtml(c.name)}</strong>
+          <span style="font-size: 11px; font-weight: 700; color: var(--primary, #0D9488);">${escapeHtml(c.uhid)}</span>
         </div>
-        <div class="appointment-picker-row appointment-picker-meta">
-          <span>${escapeHtml(c.department)}</span>
-          <span style="font-weight:600; color:${c.priority === 'CRITICAL' ? 'var(--status-error)' : 'var(--color-muted-fg)'};">${escapeHtml(c.visitType)}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px; color: #64748b;">
+          <span>Dept: ${escapeHtml(c.department)}</span>
+          <span style="font-weight: 600; color: ${c.priority === 'CRITICAL' ? '#dc2626' : '#0284c7'};">${escapeHtml(c.visitType)}</span>
         </div>
-      </button>
+      </div>
     `,
     )
     .join('');
 
-  dropdown.querySelectorAll('.appointment-picker-option').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const candidate = candidatePatients.find((c) => String(c.preRequestId) === btn.dataset.preRequestId);
-      if (!candidate) return;
-      fillForm(candidate);
-      setPickerVisibility(false);
+  dropdown.querySelectorAll('.appointment-picker-option').forEach((option) => {
+    option.addEventListener('mouseenter', () => { option.style.background = '#f8fafc'; });
+    option.addEventListener('mouseleave', () => { option.style.background = 'transparent'; });
+    option.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const candidate = candidatePatients.find((c) => String(c.patientId) === option.dataset.patientId);
+      if (candidate) {
+        fillForm(candidate);
+        setPickerVisibility(false);
+      }
     });
   });
 
   setPickerVisibility(true);
 }
 
-let wardsCatalog = [];
+function bindPicker() {
+  const { picker, nameInput } = getPickerElements();
+  if (!picker || !nameInput) return;
+
+  nameInput.addEventListener('focus', () => renderDropdown(nameInput.value));
+  nameInput.addEventListener('click', () => renderDropdown(nameInput.value));
+  nameInput.addEventListener('input', () => {
+    selectedCandidate = null;
+    const pid = document.getElementById('patientId');
+    if (pid) pid.value = '';
+    renderDropdown(nameInput.value);
+  });
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setPickerVisibility(false);
+  });
+  document.addEventListener('click', (e) => {
+    if (!picker.contains(e.target)) setPickerVisibility(false);
+  });
+}
 
 function fillForm(candidate) {
   selectedCandidate = candidate;
@@ -189,25 +234,6 @@ async function populateWards() {
   select.innerHTML =
     '<option value="">HOM Decides Best Ward</option>' +
     (wardsCatalog || []).map((w) => `<option value="${w.ward_id}">${escapeHtml(w.ward_name)} (${w.total_beds || 0} Beds)</option>`).join('');
-}
-
-function bindPicker() {
-  const { picker, nameInput } = getPickerElements();
-  if (!picker || !nameInput) return;
-
-  nameInput.addEventListener('focus', () => renderDropdown(nameInput.value));
-  nameInput.addEventListener('click', () => renderDropdown(nameInput.value));
-  nameInput.addEventListener('input', () => {
-    selectedCandidate = null;
-    document.getElementById('patientId').value = '';
-    renderDropdown(nameInput.value);
-  });
-  nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') setPickerVisibility(false);
-  });
-  document.addEventListener('click', (e) => {
-    if (!picker.contains(e.target)) setPickerVisibility(false);
-  });
 }
 
 // ── SEND BED REQUEST (PRE to HOM Dispatcher) ────────────
@@ -386,4 +412,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   await populateWards();
   await loadAndRenderAll();
 });
-

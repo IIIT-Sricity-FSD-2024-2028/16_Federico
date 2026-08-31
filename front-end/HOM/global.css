@@ -283,53 +283,122 @@ select.input { cursor: pointer; }
 .tabs-content { display: none; outline: none; }
 .tabs-content[data-state="active"] { display: block; }
 
-/* 6. Modal — the ONE Material You modal-overlay/dialog definition for
-   every HOM screen (previously copy-pasted, near-identically, into each
-   screen's own inline <style> block — see screen-0X-*.html). */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 999;
-  display: none;
+/* 5b. Unified Filter Pills & Action Tabs */
+.pill-group { display: flex; align-items: center; gap: 8px; }
+.pill-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #49454f);
+  background: var(--md-surface-container-high, #ece6f0);
+  border: 1px solid var(--border, #cac4d0);
+  cursor: pointer;
+  transition: all var(--duration-fast, 200ms) var(--ease-standard, ease);
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 16px;
+  gap: 6px;
+  text-decoration: none;
 }
-.modal-overlay.active { display: flex; }
-.modal-content {
-  background: var(--md-surface-container-high, var(--md-surface-container));
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-4);
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
+.pill-btn:hover {
+  background: var(--md-secondary-container, #e8def8);
+  color: var(--md-on-secondary-container, #1d192b);
+  border-color: var(--primary, #6750a4);
+}
+.pill-btn.active {
+  background: var(--primary, #6750a4);
+  color: var(--md-on-primary, #ffffff);
+  font-weight: 600;
+  border-color: var(--primary, #6750a4);
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(0,0,0,0.1));
+}
+
+.tab-group { display: flex; align-items: center; gap: 8px; }
+.tab-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-base, 12px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #49454f);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--duration-fast, 200ms) var(--ease-standard, ease);
+}
+.tab-btn:hover {
+  background: var(--md-surface-container-high, #ece6f0);
+  color: var(--text-primary, #1c1b1f);
+}
+.tab-btn.active {
+  background: var(--primary, #6750a4);
+  color: var(--md-on-primary, #ffffff);
+  font-weight: 600;
+}
+
+/* 6. Modal — Unified Material You centered modal dialogs */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 999999 !important;
+  display: none;
+  padding: 24px;
+  box-sizing: border-box;
+  margin: 0 !important;
   overflow-y: auto;
 }
+.modal-overlay.active {
+  display: flex !important;
+}
+.modal-content {
+  background: var(--md-surface-container-high, #ffffff);
+  border-radius: var(--radius-xl, 24px);
+  box-shadow: var(--shadow-4, 0 20px 40px rgba(0, 0, 0, 0.25));
+  width: 100%;
+  max-width: 600px;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: auto !important;
+  position: relative;
+  flex-shrink: 0;
+  animation: modalScaleIn 0.2s var(--ease-standard, ease);
+}
+@keyframes modalScaleIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
 .modal-header {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: sticky;
-  top: 0;
-  background: var(--md-surface-container-high, var(--md-surface-container));
-  z-index: 10;
+  background: var(--md-surface-container-high, #ffffff);
+  flex-shrink: 0;
 }
 .modal-body {
   padding: 24px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  max-height: 100%;
 }
 .modal-footer {
   padding: 16px 24px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border, #e2e8f0);
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  position: sticky;
-  bottom: 0;
-  background: var(--md-surface-container-high, var(--md-surface-container));
-  z-index: 10;
+  background: var(--md-surface-container-high, #ffffff);
+  flex-shrink: 0;
 }
 
 /* 7. Screen layout/table/bed-card basics — the same rules were

@@ -89,8 +89,44 @@
   }
 
   function closeModals() {
-    document.querySelectorAll('.modal-overlay').forEach((modal) => modal.classList.remove('active'));
+    document.querySelectorAll('.modal-overlay').forEach((modal) => {
+      modal.classList.remove('active');
+    });
   }
+
+  function openModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+
+    // Teleport to document.body to ensure it sits directly on the viewport
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach((m) => m.classList.remove('active'));
+    modal.classList.add('active');
+    modal.scrollTop = 0;
+    const innerBody = modal.querySelector('.modal-body');
+    if (innerBody) innerBody.scrollTop = 0;
+  }
+
+  // Universal backdrop and Escape key listener
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
+        closeModals();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModals();
+    });
+    // Prevent mousewheel on backdrop from scrolling underlying page
+    document.addEventListener('wheel', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  });
 
   window.HOMHelpers = Object.freeze({
     statusLabel,
@@ -104,6 +140,8 @@
     joinPreRequestsWithPatients,
     bedStyle,
     closeModals,
+    openModal,
   });
   window.closeModals = closeModals;
+  window.openModal = openModal;
 })();

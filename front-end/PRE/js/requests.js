@@ -100,10 +100,17 @@ async function openApprove(id) {
     </div>
   `;
   document.body.appendChild(popup);
+  document.body.classList.add('modal-open');
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) closePopup('approvePopup');
+  });
 }
 
 function closePopup(id) {
   document.getElementById(id)?.remove();
+  if (!document.querySelector('.approve-popup, .suggest-popup, .reject-popup')) {
+    document.body.classList.remove('modal-open');
+  }
 }
 
 async function confirmApprove(id) {
@@ -112,10 +119,12 @@ async function confirmApprove(id) {
   if (!doctorId) return UIFeedback.toast('Select a doctor', 'error');
 
   try {
-    const fieldPatch = { doctor_id: Number(doctorId) };
-    if (time) fieldPatch.requested_time = PREHelpers.to12Hour(time);
-    await window.ApiClient.preRequests.update(id, fieldPatch);
-    await window.ApiClient.preRequests.update(id, { status: 'APPROVED' });
+    const payload = {
+      status: 'APPROVED',
+      doctor_id: Number(doctorId),
+    };
+    if (time) payload.requested_time = PREHelpers.to12Hour(time);
+    await window.ApiClient.preRequests.update(id, payload);
     closePopup('approvePopup');
     UIFeedback.toast('Approved', 'success');
     renderTable();
@@ -148,6 +157,10 @@ async function reject(id) {
     </div>
   `;
   document.body.appendChild(popup);
+  document.body.classList.add('modal-open');
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) closePopup('rejectPopup');
+  });
 }
 
 async function confirmReject(id) {
@@ -204,6 +217,10 @@ async function openSuggest(id) {
     </div>
   `;
   document.body.appendChild(popup);
+  document.body.classList.add('modal-open');
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) closePopup('suggestPopup');
+  });
 }
 
 async function confirmSuggest(id) {
@@ -237,4 +254,13 @@ window.confirmReject = confirmReject;
 window.openSuggest = openSuggest;
 window.confirmSuggest = confirmSuggest;
 
-document.addEventListener('DOMContentLoaded', renderTable);
+document.addEventListener('DOMContentLoaded', () => {
+  renderTable();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closePopup('approvePopup');
+      closePopup('suggestPopup');
+      closePopup('rejectPopup');
+    }
+  });
+});

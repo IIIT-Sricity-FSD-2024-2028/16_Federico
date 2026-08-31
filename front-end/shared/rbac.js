@@ -21,7 +21,7 @@
       actor: "Admin",
       accessRole: "ORG_ADMIN",
       label: "Admin",
-      modules: ["ADMIN"],
+      modules: ["ADMIN", "ANALYTICS", "ADMISSIONS", "INVENTORY", "DOCTOR", "PATIENT", "BILLING", "APPOINTMENTS", "INSURANCE", "LEADERSHIP"],
     },
     Patient: {
       actor: "Patient",

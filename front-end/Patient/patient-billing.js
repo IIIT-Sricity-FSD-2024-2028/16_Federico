@@ -66,7 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("modal-bill-details");
     if (modal) {
       modal.classList.remove("hidden");
-      document.body.classList.add("modal-open");
     }
   }
 
@@ -74,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("modal-bill-details");
     if (modal) {
       modal.classList.add("hidden");
-      document.body.classList.remove("modal-open");
     }
   }
 
@@ -155,8 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const visits = getVisits();
 
     const totalBilled = bills.reduce((sum, b) => sum + Number(b.total || 0), 0);
-    const paidTotal = bills.filter((b) => b.status === "paid").reduce((sum, b) => sum + Number(b.youPay || 0), 0) +
-      (sections.receipts || []).filter((r) => r.type === "RECEIPT").reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const paidTotal = bills.filter((b) => b.status === "paid").reduce((sum, b) => sum + Number(b.youPay || 0), 0);
     const pendingTotal = bills.filter((b) => b.status !== "paid").reduce((sum, b) => sum + Number(b.youPay || 0), 0);
 
     setText("kpi-total-billed", `₹${totalBilled.toLocaleString("en-IN")}`);
@@ -191,13 +188,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     el.innerHTML = bills.map((bill) => {
       const isPaid = bill.status === "paid";
-      const statusBadge = isPaid
-        ? `<span class="status paid">Paid</span>`
-        : `<span class="status pending">Pending</span>`;
+      let statusBadge = '';
+      let payAction = '';
 
-      const payAction = !isPaid
-        ? `<button class="btn-view" type="button" data-pay-ledger="${escapeAttr(String(bill.ledgerId))}">Pay Now</button>`
-        : `<button class="btn-download" type="button" data-print-ledger="${escapeAttr(String(bill.ledgerId))}">Digital Copy</button>`;
+      if (isPaid) {
+        statusBadge = `<span class="status paid">Paid</span>`;
+        payAction = `<button class="btn-download" type="button" data-print-ledger="${escapeAttr(String(bill.ledgerId))}">Digital Copy</button>`;
+      } else if (bill.hasDischargeSummary) {
+        statusBadge = `<span class="status pending">Payable</span>`;
+        payAction = `<button class="btn-view" type="button" data-pay-ledger="${escapeAttr(String(bill.ledgerId))}">Pay Now</button>`;
+      } else {
+        statusBadge = `<span class="status info">Interim EOD</span>`;
+        payAction = `<button class="btn-view" type="button" disabled style="opacity:0.6; cursor:not-allowed; background:var(--muted);" title="Daily interim statement. Online payment unlocks when the hospital sends the final Discharge Summary.">Interim Bill</button>`;
+      }
+
+      const interimNotice = !isPaid && !bill.hasDischargeSummary
+        ? `<div style="color:var(--primary); font-size:11px; margin-top:2px;">Daily interim statement · Payment opens upon final discharge summary</div>`
+        : '';
 
       return `
         <div class="billing-row">
@@ -208,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <span class="billing-row-date">${escapeHtml(bill.date || "N/A")} · ${escapeHtml(bill.description || "Hospital Care")}</span>
             <small style="color:var(--muted); font-size:11px;">${bill.items ? `${bill.items.length} itemized services` : ""} (Gross: ₹${Number(bill.total || 0).toLocaleString("en-IN")}${bill.insuranceCovered ? ` · Ins. Covered: ₹${Number(bill.insuranceCovered).toLocaleString("en-IN")}` : ""})</small>
+            ${interimNotice}
           </div>
           <div class="billing-row-meta">
             <div style="text-align:right;">
@@ -410,8 +418,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const statusEl = document.getElementById("modal-bill-status");
     if (statusEl) {
-      statusEl.textContent = bill.status === "paid" ? "PAID" : "PENDING";
-      statusEl.style.color = bill.status === "paid" ? "var(--success)" : "var(--warn)";
+      if (bill.status === "paid") {
+        statusEl.textContent = "PAID";
+        statusEl.style.color = "var(--success)";
+      } else if (bill.hasDischargeSummary) {
+        statusEl.textContent = "PENDING PAYMENT (DISCHARGED)";
+        statusEl.style.color = "var(--warn)";
+      } else {
+        statusEl.textContent = "INTERIM EOD STATEMENT";
+        statusEl.style.color = "var(--muted)";
+      }
     }
 
     const tbody = document.getElementById("modal-items-tbody");
@@ -440,8 +456,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (payBtn) {
       if (bill.status === "paid") {
         payBtn.style.display = "none";
+      } else if (!bill.hasDischargeSummary) {
+        payBtn.style.display = "inline-flex";
+        payBtn.disabled = true;
+        payBtn.style.opacity = "0.6";
+        payBtn.style.cursor = "not-allowed";
+        payBtn.textContent = "Payment Opens on Discharge";
+        payBtn.onclick = null;
       } else {
         payBtn.style.display = "inline-flex";
+        payBtn.disabled = false;
+        payBtn.style.opacity = "1";
+        payBtn.style.cursor = "pointer";
+        payBtn.textContent = "Pay Now";
         payBtn.onclick = async () => {
           closeModal();
           const method = await selectPaymentMethodModal(bill.youPay);

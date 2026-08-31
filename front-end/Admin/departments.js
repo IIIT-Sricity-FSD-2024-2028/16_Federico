@@ -33,17 +33,20 @@ function renderMetrics() {
   const occupied = bedsCache.filter((b) => b.status === 'OCCUPIED').length;
 
   document.getElementById('metrics-container').innerHTML = `
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #E0F7F6;">🏥</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${wardsCache.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Departments / Wards</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Departments / Wards</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${wardsCache.length}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Configured clinical units</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #E0F2FE;">🛏️</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${totalBeds}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Total Beds</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Total Beds Capacity</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${totalBeds}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Across all hospital wards</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #FEF3C7;">📈</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${totalBeds ? Math.round((occupied / totalBeds) * 100) : 0}%</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Occupancy</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Bed Occupancy Rate</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${totalBeds ? Math.round((occupied / totalBeds) * 100) : 0}%</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${occupied} of ${totalBeds} beds occupied</div>
     </div>
   `;
 }

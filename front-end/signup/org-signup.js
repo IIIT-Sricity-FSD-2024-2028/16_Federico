@@ -1,13 +1,13 @@
 'use strict';
 
 /**
- * org-signup.js — Hospital Chain Self-Service Onboarding & Checkout.
- * Handles interactive 5-step registration wizard, plan selection,
- * dynamic pricing/tax calculations, payment processing, and instant tenant provisioning.
+ * org-signup.js — Hospital Chain Self-Service Onboarding & Pay-As-You-Scale Checkout.
+ * Handles interactive 4-step registration wizard, live resource pricing calculation,
+ * 18% GST itemization, and instant multi-tenant workspace provisioning.
  */
 document.addEventListener('DOMContentLoaded', function () {
   var currentStep = 1;
-  var totalSteps = 5;
+  var totalSteps = 4;
 
   function escape(str) {
     if (window.Formatters && typeof window.Formatters.escapeHtml === 'function') {
@@ -21,379 +21,184 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/'/g, '&#39;');
   }
 
-  // Federico is billed per service used, not on a fixed tier. `selectedPlan`
-  // is just the technical anchor plan the backend provisioning still keys
-  // off; the real cost is estimated from the services picked in step 3.
-  var selectedPlan = {
-    plan_id: 1,
-    name: 'Usage-based',
-    price: 0,
+  var inr = function (n) {
+    return '₹' + Number(n || 0).toLocaleString('en-IN');
   };
 
-  // Monthly BASE price per service instance — mirrors
-  // back-end/src/config/serviceCatalog.js.
-  var SERVICE_PRICES = {
-    APPOINTMENTS: 1500,
-    ADMISSIONS: 2500,
-    INVENTORY: 2000,
-    BILLING: 2500,
-    INSURANCE: 1800,
-    ANALYTICS: 3000,
-    DOCTOR: 1200,
-    PATIENT: 1500,
-    LEADERSHIP: 1000,
-  };
-  var SERVICE_LABELS = {
-    APPOINTMENTS: 'Appointments Management',
-    ADMISSIONS: 'Admissions & Bed Management',
-    INVENTORY: 'Non-Clinical Inventory & Supplies',
-    BILLING: 'Dynamic Billing & Invoicing',
-    INSURANCE: 'Insurance Verification',
-    ANALYTICS: 'Administrative Analytics',
-    DOCTOR: 'Doctor Management',
-    PATIENT: 'Patient Management',
-    LEADERSHIP: 'Service Charge Approvals',
+  // Base platform rate & unit price catalog
+  var BASE_PLATFORM_FEE = 3000;
+  var RATES = {
+    GENERAL_BEDS: 150,
+    ICU_BEDS: 600,
+    PRIVATE_BEDS: 350,
+    DOCTOR_SEATS: 150,
+    STAFF_SEATS: 200,
+    BILLING_TERMINALS: 500,
+    WAREHOUSES: 1000,
+    PATIENT_ADMISSIONS: 10,
   };
 
-  // Resource types per module — mirrors
-  // back-end/src/config/resourceCatalog.js. { MODULE: [{ code, name, unit_price }] }.
-  var RESOURCE_CATALOG = {
-    ADMISSIONS: [
-      { code: 'GENERAL_BEDS', name: 'General Ward Beds', unit_price: 150 },
-      { code: 'ICU_BEDS', name: 'ICU Beds', unit_price: 600 },
-      { code: 'PRIVATE_BEDS', name: 'Private Beds', unit_price: 400 },
-      { code: 'SEMI_PRIVATE_BEDS', name: 'Semi-Private Beds', unit_price: 250 },
-    ],
-    INVENTORY: [
-      { code: 'STORAGE_UNITS', name: 'Storage Units', unit_price: 200 },
-      { code: 'WAREHOUSES', name: 'Warehouses', unit_price: 1200 },
-      { code: 'INVENTORY_USERS', name: 'Inventory Users', unit_price: 300 },
-    ],
-    BILLING: [
-      { code: 'BILLING_USERS', name: 'Billing Users', unit_price: 350 },
-      { code: 'BILLING_TERMINALS', name: 'Billing Terminals', unit_price: 500 },
-    ],
-    DOCTOR: [
-      { code: 'DOCTOR_SEATS', name: 'Doctor Directory Seats', unit_price: 120 },
-    ],
-    APPOINTMENTS: [
-      { code: 'BOOKING_CHANNELS', name: 'Online Booking Channels', unit_price: 400 },
-    ],
-  };
-
-  function resourceQtyFor(moduleCode, resourceCode) {
-    var input = document.querySelector(
-      '.module-resource-qty[data-module="' + moduleCode + '"][data-resource="' + resourceCode + '"]',
-    );
-    return Math.max(0, parseInt(input && input.value, 10) || 0);
+  function getQty(id) {
+    var el = document.getElementById(id);
+    return Math.max(0, parseInt(el && el.value, 10) || 0);
   }
 
-  // { MODULE: { RESOURCE: qty } } for the currently checked services.
-  function selectedModuleResources() {
-    var out = {};
-    selectedModuleCodes().forEach(function (code) {
-      var defs = RESOURCE_CATALOG[code];
-      if (!defs) return;
-      defs.forEach(function (def) {
-        var qty = resourceQtyFor(code, def.code);
-        if (qty > 0) {
-          if (!out[code]) out[code] = {};
-          out[code][def.code] = qty;
-        }
-      });
-    });
-    return out;
+  function calculateCosts() {
+    var genBeds = getQty('res-general-beds');
+    var icuBeds = getQty('res-icu-beds');
+    var privBeds = getQty('res-private-beds');
+    var docSeats = getQty('res-doctor-seats');
+    var staffSeats = getQty('res-staff-seats');
+    var terminals = getQty('res-terminals');
+    var warehouses = getQty('res-warehouses');
+    var admissions = getQty('res-patient-admissions');
+
+    var genCost = genBeds * RATES.GENERAL_BEDS;
+    var icuCost = icuBeds * RATES.ICU_BEDS;
+    var privCost = privBeds * RATES.PRIVATE_BEDS;
+    var docCost = docSeats * RATES.DOCTOR_SEATS;
+    var staffCost = staffSeats * RATES.STAFF_SEATS;
+    var termCost = terminals * RATES.BILLING_TERMINALS;
+    var whCost = warehouses * RATES.WAREHOUSES;
+    var admCost = admissions * RATES.PATIENT_ADMISSIONS;
+
+    var resourceSubtotal = genCost + icuCost + privCost + docCost + staffCost + termCost + whCost + admCost;
+    var subtotal = BASE_PLATFORM_FEE + resourceSubtotal;
+    var gst = Math.round(subtotal * 0.18);
+    var total = subtotal + gst;
+
+    return {
+      genBeds: genBeds, genCost: genCost,
+      icuBeds: icuBeds, icuCost: icuCost,
+      privBeds: privBeds, privCost: privCost,
+      docSeats: docSeats, docCost: docCost,
+      staffSeats: staffSeats, staffCost: staffCost,
+      terminals: terminals, termCost: termCost,
+      warehouses: warehouses, whCost: whCost,
+      admissions: admissions, admCost: admCost,
+      baseFee: BASE_PLATFORM_FEE,
+      resourceSubtotal: resourceSubtotal,
+      subtotal: subtotal,
+      gst: gst,
+      total: total,
+    };
   }
 
-  function resourceLinesFor(code) {
-    var defs = RESOURCE_CATALOG[code];
-    if (!defs) return [];
-    return defs
-      .map(function (def) {
-        var qty = resourceQtyFor(code, def.code);
-        return { code: def.code, label: def.name, qty: qty, unit: def.unit_price, amount: qty * def.unit_price };
-      })
-      .filter(function (l) { return l.qty > 0; });
-  }
-  var inr = function (n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); };
+  function updateLivePricing() {
+    var c = calculateCosts();
 
-  function selectedModuleCodes() {
-    return Array.from(document.querySelectorAll('input[name="module-code"]:checked')).map(function (el) { return el.value; });
-  }
+    var setTxt = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = inr(val);
+    };
 
-  // How many instances the operator wants of a given service (min 1).
-  function instanceCountFor(code) {
-    var input = document.querySelector('.module-instances[data-code="' + code + '"]');
-    return Math.max(1, parseInt(input && input.value, 10) || 1);
-  }
+    setTxt('cost-general-beds', c.genCost);
+    setTxt('cost-icu-beds', c.icuCost);
+    setTxt('cost-private-beds', c.privCost);
+    setTxt('cost-doctor-seats', c.docCost);
+    setTxt('cost-staff-seats', c.staffCost);
+    setTxt('cost-terminals', c.termCost);
+    setTxt('cost-warehouses', c.whCost);
+    setTxt('cost-patient-admissions', c.admCost);
 
-  // { CODE: count } for the currently checked services.
-  function selectedModuleInstances() {
-    var out = {};
-    selectedModuleCodes().forEach(function (code) { out[code] = instanceCountFor(code); });
-    return out;
+    var liveTotal = document.getElementById('live-total-price');
+    if (liveTotal) liveTotal.textContent = inr(c.total) + '/mo';
+
+    var liveTax = document.getElementById('live-subtotal-tax');
+    if (liveTax) liveTax.textContent = 'Subtotal: ' + inr(c.subtotal) + ' + GST (18%): ' + inr(c.gst);
   }
 
-  function serviceLines() {
-    return selectedModuleCodes().map(function (code) {
-      var qty = instanceCountFor(code);
-      var unit = SERVICE_PRICES[code] || 0;
-      var base = unit * qty;
-      var resLines = resourceLinesFor(code);
-      var resTotal = resLines.reduce(function (s, l) { return s + l.amount; }, 0);
-      return {
-        code: code,
-        label: SERVICE_LABELS[code] || code,
-        qty: qty,
-        unit: unit,
-        base: base,
-        resourceLines: resLines,
-        resourceTotal: resTotal,
-        amount: base + resTotal,
-      };
-    });
-  }
+  // Attach live pricing listener to all resource inputs
+  document.querySelectorAll('.resource-input').forEach(function (input) {
+    input.addEventListener('input', updateLivePricing);
+    input.addEventListener('change', updateLivePricing);
+  });
+  updateLivePricing();
 
-  function estimatedMonthly() {
-    return serviceLines().reduce(function (sum, l) { return sum + l.amount; }, 0);
-  }
-
-  // Inject a price line + an "Instances" number input into each service card
-  // in step 3, so the operator sees exactly what each service costs and picks
-  // how many instances of it to provision.
-  function decorateModuleCards() {
-    document.querySelectorAll('input[name="module-code"]').forEach(function (cb) {
-      var code = cb.value;
-      var card = cb.closest('.module-checkbox-card');
-      if (!card || card.querySelector('.module-price-row')) return;
-      var price = SERVICE_PRICES[code] || 0;
-
-      var row = document.createElement('div');
-      row.className = 'module-price-row';
-      row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; font-size:13px;';
-      row.innerHTML =
-        '<span style="font-weight:600; color:var(--md-primary);">' + inr(price) + ' / month <span style="font-weight:400; color:var(--md-on-surface-variant);">per instance</span></span>' +
-        '<span style="display:flex; align-items:center; gap:6px;">Instances' +
-        '<input type="number" class="module-instances" data-code="' + code + '" min="1" value="1" ' +
-        (cb.checked ? '' : 'disabled ') +
-        'style="width:64px; padding:4px 6px; border:1px solid var(--md-outline-variant); border-radius:6px; font:inherit;" /></span>';
-      // Sits next to the description, inside the card's text column.
-      (card.querySelector('div') || card).appendChild(row);
-
-      var qtyInput = row.querySelector('.module-instances');
-
-      // Resource-type rows (beds / seats / terminals) for modules that
-      // declare them — tasks.md §6/§7. Each is its own qty × unit price line.
-      var defs = RESOURCE_CATALOG[code] || [];
-      var resWrap = null;
-      if (defs.length) {
-        resWrap = document.createElement('div');
-        resWrap.className = 'module-resource-rows';
-        resWrap.style.cssText = 'margin-top:8px; padding-left:10px; border-left:2px solid var(--md-outline-variant); display:flex; flex-direction:column; gap:6px;';
-        resWrap.innerHTML = defs.map(function (def) {
-          return '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px;">' +
-            '<span>' + def.name + ' <span style="color:var(--md-on-surface-variant);">(' + inr(def.unit_price) + '/mo each)</span></span>' +
-            '<input type="number" class="module-resource-qty" data-module="' + code + '" data-resource="' + def.code + '" min="0" value="0" ' +
-            (cb.checked ? '' : 'disabled ') +
-            'style="width:64px; padding:4px 6px; border:1px solid var(--md-outline-variant); border-radius:6px; font:inherit;" /></div>';
-        }).join('');
-        (card.querySelector('div') || card).appendChild(resWrap);
-        resWrap.querySelectorAll('.module-resource-qty').forEach(function (inp) {
-          inp.addEventListener('input', updateCheckoutSummary);
-          ['click', 'mousedown', 'keydown'].forEach(function (evt) {
-            inp.addEventListener(evt, function (e) { e.stopPropagation(); });
-          });
-        });
+  // Dynamically load live platform rates from Super User rate card
+  if (window.ApiClient && window.ApiClient.platform && window.ApiClient.platform.rates) {
+    window.ApiClient.platform.rates.get().then(function (res) {
+      if (res && res.rates) {
+        if (typeof res.base_fee === 'number') BASE_PLATFORM_FEE = res.base_fee;
+        Object.assign(RATES, res.rates);
+        updateLivePricing();
       }
-
-      cb.addEventListener('change', function () {
-        qtyInput.disabled = !cb.checked;
-        if (resWrap) {
-          resWrap.querySelectorAll('.module-resource-qty').forEach(function (inp) { inp.disabled = !cb.checked; });
-        }
-        updateCheckoutSummary();
-      });
-      qtyInput.addEventListener('input', updateCheckoutSummary);
-      // The input lives inside the card's <label>, so a bare click would
-      // also toggle the checkbox — keep clicks/keys on the number field local.
-      ['click', 'mousedown', 'keydown'].forEach(function (evt) {
-        qtyInput.addEventListener(evt, function (e) { e.stopPropagation(); });
-      });
-    });
+    }).catch(function () {});
   }
 
-  var stepsNodes = document.querySelectorAll('.step-node');
-  var progressFill = document.getElementById('progress-fill');
-
-  // Load public plans from backend if available
-  (async function loadAvailablePlans() {
-    try {
-      var api = window.API || window.ApiClient;
-      var plans = await api.marketplace.plans();
-      if (Array.isArray(plans) && plans.length > 0) {
-        // Usage-based billing: there is a single anchor plan. Point the
-        // provisioning payload at whatever the backend actually offers.
-        selectedPlan.plan_id = Number(plans[0].plan_id);
-        selectedPlan.name = plans[0].name;
-        var container = document.getElementById('plan-selection-container');
-        if (container) {
-          container.innerHTML = plans.map(function (p) {
-            var isSelected = p.plan_id === selectedPlan.plan_id ? 'selected' : '';
-            var isPopular = p.name.toLowerCase().includes('pro') ? '<div class="plan-badge-popular">Most Popular</div>' : '';
-            var modulesList = (p.included_modules || []).map(function (m) {
-              return '<li>' + escape(m.toLowerCase().replace(/_/g, ' ')) + '</li>';
-            }).join('');
-
-            return (
-              '<div class="plan-select-card ' + isSelected + '" data-plan-id="' + escape(p.plan_id) + '" data-price="' + escape(p.price_monthly) + '" data-name="' + escape(p.name) + '">' +
-              isPopular +
-              '<div class="plan-card-name">' + escape(p.name) + '</div>' +
-              '<div class="plan-card-price">₹' + Number(p.price_monthly).toLocaleString('en-IN') + ' <small>/ month</small></div>' +
-              '<ul class="plan-card-features">' +
-              '<li>Up to ' + escape(p.max_beds) + ' Beds Quota</li>' +
-              '<li>' + escape(p.max_users) + ' Staff Users</li>' +
-              '<li>' + escape(p.max_hospitals) + ' Hospital Campus(es)</li>' +
-              (modulesList || '<li>Standard administrative modules</li>') +
-              '</ul>' +
-              '</div>'
-            );
-          }).join('');
-
-          attachPlanCardListeners();
-        }
-      }
-    } catch (_) {
-      attachPlanCardListeners();
-    }
-  })();
-
-  function attachPlanCardListeners() {
-    document.querySelectorAll('.plan-select-card').forEach(function (card) {
-      card.addEventListener('click', function () {
-        document.querySelectorAll('.plan-select-card').forEach(function (c) { c.classList.remove('selected'); });
-        card.classList.add('selected');
-        selectedPlan = {
-          plan_id: Number(card.dataset.planId),
-          name: card.dataset.name,
-          price: Number(card.dataset.price),
-        };
-        updateCheckoutSummary();
-      });
-    });
-  }
-  attachPlanCardListeners();
-
+  // Stepper UI Navigation
   function updateStepUI(step) {
     currentStep = step;
-    var percent = ((step - 1) / (totalSteps - 1)) * 100;
-    if (progressFill) progressFill.style.width = percent + '%';
+    var fill = document.getElementById('progress-fill');
+    if (fill) fill.style.width = ((step - 1) / (totalSteps - 1)) * 100 + '%';
 
-    stepsNodes.forEach(function (node) {
-      var nodeStep = Number(node.dataset.step);
-      node.classList.remove('active', 'completed');
-      if (nodeStep === step) {
-        node.classList.add('active');
-      } else if (nodeStep < step) {
-        node.classList.add('completed');
-      }
+    document.querySelectorAll('.step-node').forEach(function (node) {
+      var s = parseInt(node.dataset.step, 10);
+      node.classList.toggle('active', s === step);
+      node.classList.toggle('completed', s < step);
     });
 
-    document.querySelectorAll('.step-panel').forEach(function (p) { p.classList.remove('active'); });
-    var targetPanel = document.getElementById('panel-step-' + step);
-    if (targetPanel) {
-      targetPanel.classList.add('active');
-    }
-  }
+    document.querySelectorAll('.step-panel').forEach(function (p) {
+      p.classList.remove('active');
+    });
+    var target = document.getElementById('panel-step-' + step);
+    if (target) target.classList.add('active');
 
-  function renderServiceBreakdown(container) {
-    if (!container) return;
-    var lines = serviceLines();
-    if (!lines.length) {
-      container.innerHTML = '<div style="color:var(--md-error, #b3261e); font-size:13px;">No services selected — pick at least one above.</div>';
-      return;
-    }
-    container.innerHTML =
-      lines.map(function (l) {
-        var head = '<div style="display:flex; justify-content:space-between; gap:12px; padding:4px 0; font-size:13px;">' +
-          '<span>' + l.label + ' <span style="color:var(--md-on-surface-variant);">(' + inr(l.unit) + ' × ' + l.qty + ')</span></span>' +
-          '<strong>' + inr(l.base) + '/mo</strong></div>';
-        var res = (l.resourceLines || []).map(function (r) {
-          return '<div style="display:flex; justify-content:space-between; gap:12px; padding:2px 0 2px 14px; font-size:12px; color:var(--md-on-surface-variant);">' +
-            '<span>' + r.label + ' (' + inr(r.unit) + ' × ' + r.qty + ')</span>' +
-            '<span>' + inr(r.amount) + '/mo</span></div>';
-        }).join('');
-        return head + res;
-      }).join('') +
-      '<div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0 0; margin-top:6px; border-top:1px solid var(--md-outline-variant); font-weight:700;">' +
-      '<span>Service subtotal</span><span>' + inr(estimatedMonthly()) + '/mo</span></div>';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function updateCheckoutSummary() {
-    var orgName = document.getElementById('org-name')?.value.trim() || 'Your Hospital Chain';
+    var c = calculateCosts();
+    var orgName = document.getElementById('org-name')?.value.trim() || 'Hospital Network';
     var summaryOrg = document.getElementById('summary-org-name');
-    var summaryPlan = document.getElementById('summary-plan-name');
-    var summaryPrice = document.getElementById('summary-plan-price');
-    var summaryTax = document.getElementById('summary-tax');
-    var summaryTotal = document.getElementById('summary-total');
-
-    // Cost is the sum of (service price × instances) picked in step 3.
-    var price = estimatedMonthly();
-    var tax = price * 0.18;
-    var total = price + tax;
-    var lines = serviceLines();
-    var totalInstances = lines.reduce(function (s, l) { return s + l.qty; }, 0);
-
     if (summaryOrg) summaryOrg.textContent = orgName;
-    if (summaryPlan) {
-      summaryPlan.textContent = 'Usage-based · ' + lines.length + ' service' + (lines.length === 1 ? '' : 's') + ' · ' + totalInstances + ' instance' + (totalInstances === 1 ? '' : 's');
-    }
-    if (summaryPrice) summaryPrice.textContent = '₹' + price.toLocaleString('en-IN');
-    if (summaryTax) summaryTax.textContent = '₹' + tax.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    if (summaryTotal) summaryTotal.textContent = '₹' + total.toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
-    renderServiceBreakdown(document.getElementById('step3-estimate'));
-    renderServiceBreakdown(document.getElementById('summary-service-lines'));
+    var breakdown = document.getElementById('summary-resource-breakdown');
+    if (breakdown) {
+      breakdown.innerHTML =
+        '<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Base Platform License (All 8 Modules)</span><strong>' + inr(c.baseFee) + '</strong></div>' +
+        '<div style="display:flex; justify-content:space-between; padding:4px 0; color:var(--md-on-surface-variant);"><span>Inpatient Beds (' + (c.genBeds + c.icuBeds + c.privBeds) + ' total)</span><span>' + inr(c.genCost + c.icuCost + c.privCost) + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; padding:4px 0; color:var(--md-on-surface-variant);"><span>Staff & Doctor Directory (' + (c.docSeats + c.staffSeats) + ' seats)</span><span>' + inr(c.docCost + c.staffCost) + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; padding:4px 0; color:var(--md-on-surface-variant);"><span>Hardware & Warehouses (' + (c.terminals + c.warehouses) + ' units)</span><span>' + inr(c.termCost + c.whCost) + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; padding:4px 0; color:var(--md-on-surface-variant);"><span>Patient Volume Usage (~' + c.admissions + ' admissions)</span><span>' + inr(c.admCost) + '</span></div>';
+    }
+
+    var planPrice = document.getElementById('summary-plan-price');
+    if (planPrice) planPrice.textContent = inr(c.subtotal);
+
+    var taxEl = document.getElementById('summary-tax');
+    if (taxEl) taxEl.textContent = inr(c.gst);
+
+    var totalEl = document.getElementById('summary-total');
+    if (totalEl) totalEl.textContent = inr(c.total);
   }
 
-  // ---- Navigation Handlers ----
+  // Step 1 -> Step 2
   document.getElementById('btn-next-1')?.addEventListener('click', function () {
     var name = document.getElementById('org-name')?.value.trim();
     var city = document.getElementById('org-city')?.value.trim();
     var phone = document.getElementById('org-phone')?.value.trim();
-
     if (!name || !city || !phone) {
-      window.UIFeedback?.toast('Please fill in hospital name, city, and contact phone.', 'warn');
+      window.UIFeedback?.toast('Please fill in required hospital details (Name, City, Phone).', 'warn');
       return;
     }
+    updateLivePricing();
     updateStepUI(2);
   });
 
-  document.getElementById('btn-back-2')?.addEventListener('click', function () { updateStepUI(1); });
-  document.getElementById('btn-next-2')?.addEventListener('click', function () { updateStepUI(3); });
-
-  // Step 3: render per-service price + instance inputs, then keep the
-  // running estimate in sync as services / counts change.
-  decorateModuleCards();
-  updateCheckoutSummary();
-
-  document.getElementById('btn-back-3')?.addEventListener('click', function () { updateStepUI(2); });
-  document.getElementById('btn-next-3')?.addEventListener('click', function () {
-    var checked = Array.from(document.querySelectorAll('input[name="module-code"]:checked'));
-    if (checked.length === 0) {
-      window.UIFeedback?.toast('Select at least one service to enable.', 'warn');
-      return;
-    }
-    var badQty = checked.some(function (cb) { return instanceCountFor(cb.value) < 1; });
-    if (badQty) {
-      window.UIFeedback?.toast('Each selected service needs at least 1 instance.', 'warn');
-      return;
-    }
-    updateCheckoutSummary();
-    updateStepUI(4);
+  // Step 2 -> Step 3
+  document.getElementById('btn-back-2')?.addEventListener('click', function () {
+    updateStepUI(1);
+  });
+  document.getElementById('btn-next-2')?.addEventListener('click', function () {
+    updateStepUI(3);
   });
 
-  document.getElementById('btn-back-4')?.addEventListener('click', function () { updateStepUI(3); });
-  document.getElementById('btn-next-4')?.addEventListener('click', function () {
+  // Step 3 -> Step 4
+  document.getElementById('btn-back-3')?.addEventListener('click', function () {
+    updateStepUI(2);
+  });
+  document.getElementById('btn-next-3')?.addEventListener('click', function () {
     var adminName = document.getElementById('admin-name')?.value.trim();
     var adminEmail = document.getElementById('admin-email')?.value.trim();
     var adminPassword = document.getElementById('admin-password')?.value || '';
@@ -407,10 +212,13 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     updateCheckoutSummary();
-    updateStepUI(5);
+    updateStepUI(4);
   });
 
-  document.getElementById('btn-back-5')?.addEventListener('click', function () { updateStepUI(4); });
+  // Step 4 Back
+  document.getElementById('btn-back-4')?.addEventListener('click', function () {
+    updateStepUI(3);
+  });
 
   // Payment Method Tabs
   document.querySelectorAll('.payment-tab-btn').forEach(function (btn) {
@@ -424,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Form Submission
+  // Form Submission & Provisioning
   var onboardingForm = document.getElementById('onboarding-form');
   onboardingForm?.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -432,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var submitBtn = document.getElementById('btn-pay-submit');
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Processing Payment & Provisioning Tenant…';
+      submitBtn.textContent = 'Provisioning Multi-Tenant Cloud Workspace…';
     }
 
     var name = document.getElementById('org-name').value.trim();
@@ -440,16 +248,28 @@ document.addEventListener('DOMContentLoaded', function () {
     var phone = document.getElementById('org-phone').value.trim();
     var address = document.getElementById('org-address').value.trim();
     var specialtiesStr = document.getElementById('org-specialties').value.trim();
-    var specialties = specialtiesStr ? specialtiesStr.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : ['General Medicine'];
+    var specialties = specialtiesStr
+      ? specialtiesStr.split(',').map(function (s) { return s.trim(); }).filter(Boolean)
+      : ['General Medicine'];
     var emergency_available = document.getElementById('org-emergency').checked;
 
-    var modules = selectedModuleCodes();
-    var moduleInstances = selectedModuleInstances();
-    var moduleResources = selectedModuleResources();
+    var costs = calculateCosts();
 
     var adminName = document.getElementById('admin-name').value.trim();
     var adminEmail = document.getElementById('admin-email').value.trim();
     var adminPassword = document.getElementById('admin-password').value;
+
+    var allModules = [
+      'APPOINTMENTS',
+      'ADMISSIONS',
+      'INVENTORY',
+      'BILLING',
+      'INSURANCE',
+      'ANALYTICS',
+      'DOCTOR',
+      'PATIENT',
+      'LEADERSHIP',
+    ];
 
     var payload = {
       name: name,
@@ -458,10 +278,39 @@ document.addEventListener('DOMContentLoaded', function () {
       address: address,
       specialties: specialties,
       emergency_available: emergency_available,
-      plan_id: selectedPlan.plan_id,
-      modules: modules,
-      module_instances: moduleInstances,
-      module_resources: moduleResources,
+      plan_id: 1, // Usage-based anchor
+      modules: allModules,
+      module_instances: {
+        APPOINTMENTS: 1,
+        ADMISSIONS: 1,
+        INVENTORY: 1,
+        BILLING: 1,
+        INSURANCE: 1,
+        ANALYTICS: 1,
+        DOCTOR: 1,
+        PATIENT: 1,
+        LEADERSHIP: 1,
+      },
+      module_resources: {
+        ADMISSIONS: {
+          GENERAL_BEDS: costs.genBeds,
+          ICU_BEDS: costs.icuBeds,
+          PRIVATE_BEDS: costs.privBeds,
+        },
+        DOCTOR: {
+          DOCTOR_SEATS: costs.docSeats,
+        },
+        BILLING: {
+          BILLING_TERMINALS: costs.terminals,
+          STAFF_SEATS: costs.staffSeats,
+        },
+        INVENTORY: {
+          WAREHOUSES: costs.warehouses,
+        },
+        PATIENT: {
+          PATIENT_ADMISSIONS: costs.admissions,
+        },
+      },
       admin_name: adminName,
       admin_email: adminEmail,
       admin_password: adminPassword,
@@ -473,10 +322,6 @@ document.addEventListener('DOMContentLoaded', function () {
       var response = await api.marketplace.registerOrganization(payload);
       var provisioned = response.provisioned;
 
-      // The backend already authenticated the new org admin and returned a
-      // session — persist it so the new organization is logged straight in
-      // (previously it dropped the session and the admin bounced back to
-      // the login screen and "couldn't log in themselves").
       var sess = response.session;
       if (sess && sess.token && api && typeof api.setSession === 'function') {
         api.setSession({
@@ -500,16 +345,16 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:0.9rem;">' +
         '<div><strong>Organization Name:</strong> ' + escape(provisioned.organization.name) + '</div>' +
         '<div><strong>Tenant Identifier:</strong> <code style="background:var(--md-surface-container);padding:2px 6px;border-radius:4px;">tenant_' + escape(provisioned.organization.organization_id) + '</code></div>' +
-        '<div><strong>Primary Campus Branch:</strong> ' + escape(provisioned.hospital.name) + '</div>' +
-        '<div><strong>Billing:</strong> Usage-based · ' + inr(estimatedMonthly()) + '/mo</div>' +
-        '<div><strong>Admin Account:</strong> ' + escape(provisioned.admin.email) + '</div>' +
-        '<div><strong>Live API Gateway Key:</strong> <code style="background:var(--md-surface-container);padding:2px 6px;border-radius:4px;">' + escape(provisioned.apiKey ? provisioned.apiKey.key : 'fed_live_...') + '</code></div>' +
+        '<div><strong>Primary Campus:</strong> ' + escape(provisioned.hospital.name) + '</div>' +
+        '<div><strong>Monthly Rate:</strong> ' + inr(costs.total) + ' (Incl. GST)</div>' +
+        '<div><strong>Administrator:</strong> ' + escape(provisioned.admin.email) + '</div>' +
+        '<div><strong>API Gateway Key:</strong> <code style="background:var(--md-surface-container);padding:2px 6px;border-radius:4px;">' + escape(provisioned.apiKey ? provisioned.apiKey.key : 'fed_live_...') + '</code></div>' +
         '</div>' +
         '<div style="margin-top:14px; padding-top:10px; border-top:1px solid var(--md-outline-variant); font-size:0.85rem; color:var(--md-on-surface-variant);">' +
-        'Provisioned services: ' + serviceLines().map(function(l){ return '<strong>' + escape(l.label) + '</strong> ×' + l.qty + ' (' + inr(l.amount) + '/mo)'; }).join(' &nbsp;·&nbsp; ') +
+        'Provisioned Scale: ' + (costs.genBeds + costs.icuBeds + costs.privBeds) + ' Beds · ' + costs.docSeats + ' Doctor Directory Seats · ' + costs.staffSeats + ' Staff Accounts · ' + costs.terminals + ' Terminals' +
         '</div>';
 
-      window.UIFeedback?.toast('Organization successfully created and provisioned!', 'success');
+      window.UIFeedback?.toast('Organization workspace successfully activated!', 'success');
 
       document.getElementById('btn-launch-admin')?.addEventListener('click', function () {
         window.location.href = '../Admin/screen-01-dashboard.html';
@@ -519,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
       window.UIFeedback?.toast(err.message || 'Failed to register organization. Please check details and retry.', 'error');
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Pay & Stand Up Workspace 🚀';
+        submitBtn.textContent = 'Complete Onboarding & Launch Workspace';
       }
     }
   });

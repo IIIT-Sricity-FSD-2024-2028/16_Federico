@@ -28,17 +28,20 @@ function renderMetrics() {
   const categories = new Set(itemsCache.map((i) => i.category)).size;
 
   document.getElementById('metrics-container').innerHTML = `
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #E0F7F6;">📦</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${itemsCache.length}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Catalog Items</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Catalog Items</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${itemsCache.length}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Tracked non-clinical supplies</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #FEE2E2;">⚠️</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1; color: var(--error);">${lowStock}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Below Reorder Level</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Low Stock Alerts</div>
+      <div style="font-size: 26px; font-weight: 700; color: ${lowStock > 0 ? 'var(--error, #EF4444)' : 'var(--text-primary)'}; margin-top: 6px;">${lowStock}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Below designated reorder level</div>
     </div>
-    <div class="card" style="padding: 16px; flex-direction: row; gap: 12px; align-items: center;">
-      <div class="metric-card-icon" style="background: #FEF3C7;">🏷️</div>
-      <div><div style="font-size: 24px; font-weight: 600; line-height: 1;">${categories}</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Categories</div></div>
+    <div class="card" style="padding: 18px 20px;">
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Item Categories</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">${categories}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Medicine, consumable, equipment, linen</div>
     </div>
   `;
 }

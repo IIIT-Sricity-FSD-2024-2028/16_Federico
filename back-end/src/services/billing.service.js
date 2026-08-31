@@ -48,6 +48,11 @@ function createLedger(ledger) {
     throw err;
   }
 
+  const existing = findLedgerByAdmission(admissionId);
+  if (existing) {
+    return existing;
+  }
+
   const newLedger = {
     ledger_id:
       dataStore.ledgers.length > 0
@@ -75,6 +80,11 @@ function addLedgerEntry(entry) {
   if (!ledger) {
     const err = new Error(`Ledger #${entry.ledger_id} not found`);
     err.statusCode = 404;
+    throw err;
+  }
+  if (ledger.status === 'PAID') {
+    const err = new Error(`Cannot add charges to settled PAID ledger #${entry.ledger_id}`);
+    err.statusCode = 400;
     throw err;
   }
 
@@ -113,6 +123,13 @@ function createPayment(payment) {
     throw err;
   }
 
+  if (ledger.status === 'PAID') {
+    const existingPayment = dataStore.payments.find((p) => p.ledger_id === ledgerId);
+    if (existingPayment) {
+      return existingPayment;
+    }
+  }
+
   const newPayment = {
     payment_id:
       dataStore.payments.length > 0
@@ -127,48 +144,63 @@ function createPayment(payment) {
   };
   dataStore.payments.push(newPayment);
 
-  // Automatically confirm payment. This is the "bills cleared" signal that
-  // HOM and PRE watch for: the ledger goes PAID, the admission is flagged
-  // bills_cleared, and an activity-log entry is written. PRE's final
-  // discharge sign-off (which releases the bed) is gated on this state.
-  ledger.status = 'PAID';
-  ledger.cleared_at = new Date().toISOString();
+  // Compute cumulative payments for this ledger
+  const allLedgerPayments = dataStore.payments.filter((p) => p.ledger_id === ledgerId);
+  const totalPaid = allLedgerPayments.reduce((s, p) => s + Number(p.amount_paid || 0), 0);
+  const entries = findLedgerEntries(ledgerId);
+  const grossTotal = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const admission = dataStore.admissions.find(
     (a) => a.admission_id === ledger.admission_id,
   );
-  if (admission) {
-    admission.receipt_sent_to_hom = true;
-    admission.bills_cleared = true;
-    admission.status = 'PAYMENT_CONFIRMED';
+  const dischargeSummary = admission ? findDischargeSummaryByAdmission(admission.admission_id) : null;
+  const netDue = dischargeSummary ? Number(dischargeSummary.final_amount) : grossTotal;
 
-    // Phase 2: auto-generate a receipt for the patient, and log it.
-    const newReceipt = {
-      receipt_id:
-        dataStore.receipts.length > 0
-          ? Math.max(...dataStore.receipts.map((r) => r.receipt_id)) + 1
-          : 1,
-      payment_id: newPayment.payment_id,
-      ledger_id: ledger.ledger_id,
-      admission_id: admission.admission_id,
-      patient_id: admission.patient_id,
-      amount: newPayment.amount_paid,
-      payment_mode: newPayment.payment_mode,
-      organization_id: newPayment.organization_id || null,
-      hospital_id: newPayment.hospital_id || null,
-      generated_at: new Date().toISOString(),
-    };
-    dataStore.receipts.push(newReceipt);
+  // Generate receipt for this payment transaction
+  const newReceipt = {
+    receipt_id:
+      dataStore.receipts.length > 0
+        ? Math.max(...dataStore.receipts.map((r) => r.receipt_id)) + 1
+        : 1,
+    payment_id: newPayment.payment_id,
+    ledger_id: ledger.ledger_id,
+    admission_id: admission ? admission.admission_id : null,
+    patient_id: admission ? admission.patient_id : null,
+    amount: newPayment.amount_paid,
+    payment_mode: newPayment.payment_mode,
+    organization_id: newPayment.organization_id || null,
+    hospital_id: newPayment.hospital_id || null,
+    generated_at: new Date().toISOString(),
+  };
+  dataStore.receipts.push(newReceipt);
+
+  if (totalPaid >= netDue || payment.amount_paid >= grossTotal || grossTotal === 0) {
+    ledger.status = 'PAID';
+    ledger.cleared_at = new Date().toISOString();
+
+    if (admission) {
+      admission.receipt_sent_to_hom = true;
+      admission.bills_cleared = true;
+      admission.status = 'PAYMENT_CONFIRMED';
+    }
 
     activityService.log(
       'success',
-      `Bill cleared for admission #${admission.admission_id} — payment of ${newPayment.amount_paid} received. Bed may now be released by PRE.`,
+      `Bill cleared for admission #${ledger.admission_id} — total payments of ${totalPaid} received. Bed may now be released by PRE.`,
       {
         paymentId: newPayment.payment_id,
         receiptId: newReceipt.receipt_id,
-        admissionId: admission.admission_id,
+        admissionId: ledger.admission_id,
         billsCleared: true,
       },
+      newPayment.organization_id,
+    );
+  } else {
+    ledger.status = 'PARTIALLY_PAID';
+    activityService.log(
+      'info',
+      `Partial payment of ${newPayment.amount_paid} received for ledger #${ledger.ledger_id} (Total paid: ${totalPaid}/${netDue}).`,
+      { paymentId: newPayment.payment_id, ledgerId: ledger.ledger_id, balanceRemaining: Math.max(0, netDue - totalPaid) },
       newPayment.organization_id,
     );
   }
@@ -342,6 +374,9 @@ function approveLeader(leader_id) {
       organization_id: leader.organization_id,
       hospital_id: leader.hospital_id,
     });
+  }
+  if (ledger && ledger.status === 'PAID') {
+    return { error: 'LEDGER_SETTLED', message: `Cannot approve charges into settled PAID ledger #${ledger.ledger_id}` };
   }
 
   // Check to prevent duplicate entry of the exact same leader into ledger

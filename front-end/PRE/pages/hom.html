@@ -5,12 +5,12 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:* https://*; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HOM Coordination – Federico PRE</title>
-  <link rel="stylesheet" href="../../shared/design-tokens.css">
+  <link rel="stylesheet" href="../../shared/design-tokens.css?v=2">
   <link rel="stylesheet" href="../../shared/material-components.css">
   <link rel="stylesheet" href="../../shared/ui-feedback.css">
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/layout.css">
-  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/components.css?v=2">
 </head>
 
 <body>
@@ -53,11 +53,11 @@
       <div>
         <div class="appointment-form-group">
           <label class="emergency-form-label" for="name">Select Admitted / Emergency Patient *</label>
-          <div class="appointment-patient-picker" id="patientPicker">
-            <input type="text" id="name" class="emergency-form-control" placeholder="Search patient by name or UHID..." autocomplete="off">
-            <div class="appointment-picker-dropdown" id="patientListDropdown" hidden></div>
+          <div class="appointment-patient-picker" id="patientPicker" style="position: relative;">
+            <input type="text" id="name" class="emergency-form-control" placeholder="Click to choose or search patient..." autocomplete="off" style="cursor: pointer;">
+            <div class="appointment-picker-dropdown" id="patientListDropdown" hidden style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; max-height: 260px; overflow-y: auto; background: #fff; border: 1px solid var(--border, #e2e8f0); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 6px; margin-top: 4px;"></div>
           </div>
-          <div class="appointment-picker-helper">Select from verified patients marked for Admission or Emergency Triage awaiting a bed.</div>
+          <div class="appointment-picker-helper" style="margin-top: 6px;">Select from verified patients marked for Admission, OPD escalation, or Emergency Triage awaiting a bed.</div>
         </div>
 
         <div id="homSelectedPatientBox" class="quick-patient-box" style="margin-top:12px;">

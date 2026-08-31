@@ -61,6 +61,7 @@ button, input, select, a { font-family: inherit; }
     padding: 64px 20px 80px;
     display: flex;
     justify-content: center;
+    overflow: hidden;
 }
 
 .signup-card {

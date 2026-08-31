@@ -366,7 +366,12 @@ window.openAdmissionModal = function (bedRequestId) {
     : '<span style="color: var(--text-secondary);">Any ward</span>';
 
   renderAdmitBeds(request);
-  document.getElementById('modal-admission-request').classList.add('active');
+  if (typeof window.openModal === 'function') {
+    window.openModal('modal-admission-request');
+  } else {
+    document.getElementById('modal-admission-request')?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
 };
 
 function renderAdmitBeds(request) {
