@@ -6,14 +6,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { joinPreRequestsWithPatients, formatDate, to12Hour } from './preHelpers.js';
 
-/**
- * Ported from PRE/pages/discharge.html + discharge.js.
- *
- * The "Discharge & release bed" button stays disabled until Finance marks the
- * bill cleared. The backend enforces this too - PUT with status DISCHARGED on
- * an unpaid ledger returns 409 - so this is a UI mirror of a server rule, not
- * the rule itself.
- */
+
 export default function DischargePage() {
   useDocumentTitle('Discharge Requests');
 
