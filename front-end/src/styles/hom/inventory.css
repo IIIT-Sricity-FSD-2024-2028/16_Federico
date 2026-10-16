@@ -1,0 +1,569 @@
+/*
+ * Extracted verbatim from the inline <style> block of
+ * front-end/HOM/screen-04-inventory.html. These rules were page-scoped only because
+ * each legacy page loaded alone; the matching route chunk imports this file
+ * so the scoping still holds (DEC-5).
+ */
+        /* .dashboard-container / .header-section / .metrics-grid /
+           .metric-card-icon / .main-grid / .table-container / .data-table
+           now live once in global.css. */
+        .stepper-btn { width: 44px; height: 44px; border-radius: var(--radius-base); border: 1px solid var(--border); background: white; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 18px; }
+        .stepper-btn:hover { background: var(--neutral-bg); }
+        .stepper-input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-base); text-align: center; font-size: 14px; color: var(--text-primary); outline: none; }
+        .stepper-input:focus { border-color: var(--primary); }
+
+        .alert-card { background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-base); padding: 12px; margin-bottom: 12px; }
+
+        /* .modal-overlay/.modal-content/.modal-header/.modal-body/.modal-footer
+           now live once in global.css (Material You dialog styling) instead
+           of being duplicated in every screen's own <style> block. */
+
+        /* AdmittedPatientPicker component styles */
+        .admitted-picker-container {
+          position: relative;
+          width: 100%;
+        }
+
+        .admitted-picker-input-wrapper {
+          display: flex;
+          align-items: center;
+          position: relative;
+          width: 100%;
+          height: 44px;
+          background: var(--color-surface, #ffffff);
+          border: 1px solid var(--border, #cbd5e1);
+          border-radius: var(--radius-base, 8px);
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          box-sizing: border-box;
+        }
+
+        .admitted-picker-input-wrapper.is-focused {
+          border-color: var(--primary, #6750a4);
+          box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.12);
+        }
+
+        .admitted-picker-input-wrapper.has-error {
+          border-color: var(--error, #dc2626);
+        }
+
+        .admitted-picker-search-icon {
+          position: absolute;
+          left: 12px;
+          color: var(--color-muted-fg, #64748b);
+          pointer-events: none;
+        }
+
+        .admitted-picker-input {
+          width: 100%;
+          height: 100%;
+          padding: 0 36px 0 36px;
+          border: none;
+          background: transparent;
+          outline: none;
+          font-size: 13.5px;
+          font-family: inherit;
+          color: var(--color-fg, #0f172a);
+          box-sizing: border-box;
+        }
+
+        .admitted-picker-input::placeholder {
+          color: var(--color-muted-fg, #94a3b8);
+          font-size: 13px;
+        }
+
+        .admitted-picker-clear-btn {
+          position: absolute;
+          right: 10px;
+          background: none;
+          border: none;
+          padding: 4px;
+          border-radius: 4px;
+          color: var(--color-muted-fg, #64748b);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.12s ease, color 0.12s ease;
+        }
+
+        .admitted-picker-clear-btn:hover {
+          background: var(--neutral-bg, #f1f5f9);
+          color: var(--color-fg, #0f172a);
+        }
+
+        .admitted-picker-chevron {
+          position: absolute;
+          right: 12px;
+          color: var(--color-muted-fg, #64748b);
+          pointer-events: none;
+          transition: transform 0.2s ease;
+        }
+
+        .admitted-picker-chevron.is-open {
+          transform: rotate(180deg);
+        }
+
+        .admitted-picker-dropdown {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          right: 0;
+          z-index: 100;
+          background: var(--color-surface, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          border-radius: var(--radius-md, 10px);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+          max-height: 280px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: admittedDropdownPop 0.15s ease-out;
+        }
+
+        @keyframes admittedDropdownPop {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .admitted-picker-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          background: var(--neutral-bg, #f8fafc);
+          border-bottom: 1px solid var(--border, #e2e8f0);
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--color-muted-fg, #64748b);
+        }
+
+        .admitted-picker-match-count {
+          color: var(--primary, #6750a4);
+          font-weight: 600;
+          text-transform: none;
+        }
+
+        .admitted-picker-list {
+          overflow-y: auto;
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .admitted-picker-option {
+          width: 100%;
+          padding: 9px 12px;
+          border-radius: var(--radius-sm, 6px);
+          border: 1px solid transparent;
+          background: transparent;
+          text-align: left;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          box-sizing: border-box;
+        }
+
+        .admitted-picker-option:hover {
+          background: var(--neutral-bg, #f1f5f9);
+          border-color: var(--border, #e2e8f0);
+        }
+
+        .admitted-picker-option.is-selected {
+          background: var(--primary-light, #f3edf7);
+          border-color: var(--primary, #6750a4);
+        }
+
+        .admitted-picker-option-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .admitted-picker-option-name {
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--color-fg, #0f172a);
+        }
+
+        .admitted-picker-bed-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #1e40af;
+          background: #dbeafe;
+          padding: 2px 7px;
+          border-radius: 9999px;
+        }
+
+        .admitted-picker-option-bottom {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          color: var(--color-muted-fg, #64748b);
+        }
+
+        .admitted-picker-uhid-tag {
+          font-weight: 600;
+          color: var(--color-fg, #334155);
+        }
+
+        .admitted-picker-phone-tag {
+          color: var(--color-muted-fg, #94a3b8);
+        }
+
+        .admitted-picker-empty {
+          padding: 24px 16px;
+          text-align: center;
+          color: var(--color-muted-fg, #64748b);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .admitted-picker-empty-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--color-fg, #1e293b);
+        }
+
+        .admitted-picker-empty-hint {
+          font-size: 11.5px;
+          color: var(--color-muted-fg, #64748b);
+        }
+
+        /* ========================================================
+           Clean HOM Restock & Purchase Order Modal Styles (.restock-*)
+           ======================================================== */
+        .restock-form-container {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .restock-form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          align-items: flex-start;
+        }
+
+        .restock-form-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .restock-form-field.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .restock-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1e293b;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        .restock-req {
+          color: #dc2626;
+          font-weight: 700;
+        }
+
+        .restock-select-wrapper {
+          position: relative;
+          width: 100%;
+        }
+
+        .restock-select {
+          width: 100%;
+          height: 42px;
+          padding: 0 36px 0 14px;
+          background-color: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 13.5px;
+          font-family: inherit;
+          color: #0f172a;
+          appearance: none;
+          cursor: pointer;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          box-sizing: border-box;
+        }
+
+        .restock-select:focus,
+        .restock-input:focus,
+        .restock-textarea:focus {
+          border-color: var(--primary, #6750a4);
+          background-color: #ffffff;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.12);
+        }
+
+        .restock-select-chevron {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+          color: #64748b;
+        }
+
+        .restock-input {
+          width: 100%;
+          height: 42px;
+          padding: 0 14px;
+          background-color: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 13.5px;
+          font-family: inherit;
+          color: #0f172a;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          box-sizing: border-box;
+        }
+
+        .restock-input::placeholder,
+        .restock-textarea::placeholder {
+          color: #94a3b8;
+          font-size: 13px;
+        }
+
+        /* Priority Segmented Control */
+        .restock-priority-group {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+          background: #f1f5f9;
+          padding: 4px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          height: 42px;
+          box-sizing: border-box;
+        }
+
+        .restock-priority-btn {
+          border: none;
+          background: transparent;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+
+        .restock-priority-btn:hover {
+          color: #1e293b;
+        }
+
+        .restock-priority-btn.is-active-normal {
+          background: #ffffff;
+          color: var(--primary, #6750a4);
+          font-weight: 600;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .restock-priority-btn.is-active-urgent {
+          background: #fef2f2;
+          color: #dc2626;
+          font-weight: 600;
+          box-shadow: 0 1px 3px rgba(220, 38, 38, 0.12);
+        }
+
+        /* Cost Preview Card */
+        .restock-cost-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          box-sizing: border-box;
+        }
+
+        .restock-cost-breakdown {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .restock-cost-title {
+          font-size: 11.5px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #64748b;
+        }
+
+        .restock-cost-formula {
+          font-size: 13px;
+          color: #334155;
+          font-weight: 500;
+        }
+
+        .restock-cost-total {
+          font-size: 17px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        .restock-textarea {
+          width: 100%;
+          height: 68px;
+          padding: 10px 14px;
+          background-color: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 13px;
+          font-family: inherit;
+          color: #0f172a;
+          resize: none;
+          box-sizing: border-box;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        /* Styled File Upload */
+        .restock-file-zone {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          border: 1px dashed #cbd5e1;
+          border-radius: 8px;
+          padding: 8px 12px;
+          background: #f8fafc;
+          height: 42px;
+          box-sizing: border-box;
+          transition: border-color 0.15s, background-color 0.15s;
+          cursor: pointer;
+        }
+
+        .restock-file-zone:hover {
+          border-color: var(--primary, #6750a4);
+          background: #f3edf7;
+        }
+
+        .restock-file-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 10px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #334155;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .restock-file-info {
+          font-size: 12px;
+          color: #64748b;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
+        }
+
+        .restock-file-clear {
+          background: none;
+          border: none;
+          color: #64748b;
+          padding: 4px;
+          cursor: pointer;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .restock-file-clear:hover {
+          color: #dc2626;
+          background: #fef2f2;
+        }
+
+        /* Error Banner */
+        .restock-error-banner {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #b91c1c;
+          padding: 10px 14px;
+          border-radius: 8px;
+          font-size: 12.5px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        /* Modal Footer Buttons */
+        .restock-footer {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+        }
+
+        .restock-btn-cancel {
+          height: 40px;
+          padding: 0 18px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          color: #475569;
+          font-weight: 600;
+          font-size: 13.5px;
+          cursor: pointer;
+          transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .restock-btn-cancel:hover {
+          background: #f1f5f9;
+          border-color: #94a3b8;
+          color: #1e293b;
+        }
+
+        .restock-btn-submit {
+          height: 40px;
+          padding: 0 22px;
+          border-radius: 8px;
+          border: none;
+          background: var(--primary, #6750a4);
+          color: #ffffff;
+          font-weight: 600;
+          font-size: 13.5px;
+          cursor: pointer;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+          transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .restock-btn-submit:hover {
+          background: #533e85;
+          box-shadow: 0 2px 6px rgba(103, 80, 164, 0.25);
+        }
+
