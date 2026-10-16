@@ -1,9 +1,25 @@
 $ErrorActionPreference = "Stop"
 
 $API_BASE = "http://localhost:3000"
+
+Write-Host "Authenticating as Admin to obtain session token..." -ForegroundColor Yellow
+$loginPayload = @{
+    email    = "owner.admin@citygen.com"
+    password = "Owner@123"
+} | ConvertTo-Json
+
+try {
+    $loginResponse = Invoke-RestMethod -Method Post -Uri "$API_BASE/auth/login" -ContentType "application/json" -Body $loginPayload
+    $TOKEN = $loginResponse.token
+    Write-Host "✅ Authenticated successfully. Token acquired." -ForegroundColor Green
+} catch {
+    Write-Host "⚠️ Warning: Could not authenticate against $API_BASE (server may not be running). Defaulting headers." -ForegroundColor Yellow
+    $TOKEN = ""
+}
+
 $HEADERS = @{
-    "Content-Type" = "application/json"
-    "x-role"       = "SUPER_USER"
+    "Content-Type"  = "application/json"
+    "Authorization" = "Bearer $TOKEN"
 }
 
 function Invoke-Api {

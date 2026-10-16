@@ -12,6 +12,7 @@
     "start:prod": "node server.js",
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
     "lint": "eslint \"src/**/*.js\" \"test/**/*.js\" --fix",
+    "db:reset": "node scripts/reset-database.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

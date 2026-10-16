@@ -3,10 +3,8 @@
 const request = require('supertest');
 const { createApp } = require('../app');
 const provisioningService = require('../services/provisioning.service');
-const authService = require('../services/auth.service');
+const rbacService = require('../services/rbac.service');
 const patientService = require('../services/patient.service');
-const dataStore = require('../store/dataStore');
-const persist = require('../store/persist');
 
 describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', () => {
   let app;
@@ -25,8 +23,9 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       contact: { phone: '+919876543210', email: 'contact@integrity.com', address: 'Bangalore' },
       specialties: ['Cardiology', 'General Medicine'],
       emergency_available: true,
+      email_domain: 'integrity.com',
       admin_name: 'Integrity Admin',
-      admin_email: 'admin@integrity.com',
+      admin_email: 'owner.admin@integrity.com',
       admin_password: 'Password@123',
     });
 
@@ -35,44 +34,33 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
     // Login as Admin
     const adminLoginRes = await request(app)
       .post('/auth/login')
-      .send({ email: 'admin@integrity.com', password: 'Password@123' });
+      .send({ email: 'owner.admin@integrity.com', password: 'Password@123' });
 
     adminToken = adminLoginRes.body.token;
 
-    // Create HOM and PRE staff users
-    const homSignup = authService.signup({
+    // Create HOM and PRE staff users (name.<role>@<hospital domain>)
+    rbacService.createStaffUser(tenantOrg.organization_id, {
       name: 'HOM Manager',
-      email: 'hom@integrity.com',
+      email: 'manager.hom@integrity.com',
       password: 'Password@123',
-      organization_id: tenantOrg.organization_id,
-      hospital_id: 1,
+      actor_role: 'HOM',
     });
-    const homUser = dataStore.users.find((u) => u.user_id === homSignup.user.user_id);
-    Object.assign(homUser, { role_id: 1, role: 'HOM' });
-
-    const preSignup = authService.signup({
+    rbacService.createStaffUser(tenantOrg.organization_id, {
       name: 'PRE Desk',
-      email: 'pre@integrity.com',
+      email: 'desk.pre@integrity.com',
       password: 'Password@123',
-      organization_id: tenantOrg.organization_id,
-      hospital_id: 1,
+      actor_role: 'PRE',
     });
-    const preUser = dataStore.users.find((u) => u.user_id === preSignup.user.user_id);
-    Object.assign(preUser, { role_id: 4, role: 'PRE' });
 
     const homLoginRes = await request(app)
       .post('/auth/login')
-      .send({ email: 'hom@integrity.com', password: 'Password@123' });
+      .send({ email: 'manager.hom@integrity.com', password: 'Password@123' });
     homToken = homLoginRes.body.token;
 
     const preLoginRes = await request(app)
       .post('/auth/login')
-      .send({ email: 'pre@integrity.com', password: 'Password@123' });
+      .send({ email: 'desk.pre@integrity.com', password: 'Password@123' });
     preToken = preLoginRes.body.token;
-  });
-
-  afterAll(() => {
-    persist.saveImmediate();
   });
 
   describe('1. Health Check Endpoint', () => {
