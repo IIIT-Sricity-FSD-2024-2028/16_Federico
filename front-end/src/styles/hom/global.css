@@ -336,27 +336,6 @@ select.input { cursor: pointer; }
 }
 
 /* 6. Modal — Unified Material You centered modal dialogs */
-.modal-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: rgba(15, 23, 42, 0.65) !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 999999 !important;
-  display: none;
-  padding: 24px;
-  box-sizing: border-box;
-  margin: 0 !important;
-  overflow-y: auto;
-}
-.modal-overlay.active {
-  display: flex !important;
-}
 .modal-content {
   background: var(--md-surface-container-high, #ffffff);
   border-radius: var(--radius-xl, 24px);
@@ -385,6 +364,23 @@ select.input { cursor: pointer; }
   background: var(--md-surface-container-high, #ffffff);
   flex-shrink: 0;
 }
+/* Round close button (Post Service modal). Moved here from the removed
+   HOM billing.css. */
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background var(--trans), color var(--trans);
+}
+.modal-close-btn:hover { background: var(--neutral-bg); color: var(--text-primary); }
 .modal-body {
   padding: 24px;
   overflow-y: auto;
@@ -410,10 +406,16 @@ select.input { cursor: pointer; }
    difference stays as a small local override on top of the shared base
    below, same cascade order as the .modal-* rules above. */
 .dashboard-container {
-  padding: 32px;
-  padding-bottom: 64px;
-  max-width: 1440px;
+  padding: 40px 32px 56px;
+  max-width: 1320px;
   margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 24px 16px 40px;
+  }
 }
 .header-section {
   display: flex;

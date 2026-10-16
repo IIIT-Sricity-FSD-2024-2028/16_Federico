@@ -1,6 +1,7 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 const activityService = require('./activity.service');
 
 // WARD
@@ -26,9 +27,7 @@ function bedNumberPrefix(wardName) {
 function createWard(ward) {
   const newWard = {
     ward_id:
-      dataStore.wards.length > 0
-        ? Math.max(...dataStore.wards.map((w) => w.ward_id)) + 1
-        : 1,
+      maxId(dataStore.wards, 'ward_id', 1) + 1,
     ward_name: ward.ward_name,
     description: ward.description || null,
     total_beds: Number(ward.total_beds) || 0,
@@ -62,14 +61,15 @@ function createWard(ward) {
  * count (those beds are in use — Admin can't will them away).
  */
 function updateWard(ward_id, patch) {
-  const ward = dataStore.wards.find((w) => w.ward_id === ward_id);
+  const numId = Number(ward_id);
+  const ward = dataStore.wards.find((w) => Number(w.ward_id) === numId);
   if (!ward) return null;
 
   if (patch.ward_name !== undefined) ward.ward_name = patch.ward_name;
   if (patch.description !== undefined) ward.description = patch.description;
 
   if (patch.total_beds !== undefined) {
-    const beds = findBedsByWard(ward_id);
+    const beds = findBedsByWard(numId);
     const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;
     const target = Number(patch.total_beds);
 
@@ -84,7 +84,7 @@ function updateWard(ward_id, patch) {
       const prefix = bedNumberPrefix(ward.ward_name);
       for (let i = beds.length + 1; i <= target; i++) {
         createBed({
-          ward_id,
+          ward_id: numId,
           bed_number: `${prefix}-${String(i).padStart(2, '0')}`,
           status: 'AVAILABLE',
           organization_id: ward.organization_id,
@@ -107,10 +107,11 @@ function updateWard(ward_id, patch) {
 
 /** Admin-only (see wardAdmin). Refuses to delete a ward with any OCCUPIED bed. */
 function deleteWard(ward_id) {
-  const ward = dataStore.wards.find((w) => w.ward_id === ward_id);
+  const numId = Number(ward_id);
+  const ward = dataStore.wards.find((w) => Number(w.ward_id) === numId);
   if (!ward) return null;
 
-  const beds = findBedsByWard(ward_id);
+  const beds = findBedsByWard(numId);
   if (beds.some((b) => b.status === 'OCCUPIED')) {
     return {
       error: 'WARD_HAS_OCCUPIED_BEDS',
@@ -118,9 +119,9 @@ function deleteWard(ward_id) {
     };
   }
 
-  dataStore.wards = dataStore.wards.filter((w) => w.ward_id !== ward_id);
-  dataStore.beds = dataStore.beds.filter((b) => b.ward_id !== ward_id);
-  return { deleted: true, ward_id };
+  dataStore.wards = dataStore.wards.filter((w) => Number(w.ward_id) !== numId);
+  dataStore.beds = dataStore.beds.filter((b) => Number(b.ward_id) !== numId);
+  return { deleted: true, ward_id: numId };
 }
 
 // BED
@@ -129,15 +130,14 @@ function findAllBeds() {
 }
 
 function findBedsByWard(ward_id) {
-  return dataStore.beds.filter((b) => b.ward_id === ward_id);
+  const numId = Number(ward_id);
+  return dataStore.beds.filter((b) => Number(b.ward_id) === numId);
 }
 
 function createBed(bed) {
   const newBed = {
     bed_id:
-      dataStore.beds.length > 0
-        ? Math.max(...dataStore.beds.map((b) => b.bed_id)) + 1
-        : 11,
+      maxId(dataStore.beds, 'bed_id', 11) + 1,
     ward_id: Number(bed.ward_id),
     bed_number: bed.bed_number,
     status: bed.status || 'AVAILABLE',
@@ -149,7 +149,8 @@ function createBed(bed) {
 }
 
 function updateBedStatus(bed_id, status) {
-  const bed = dataStore.beds.find((b) => b.bed_id === bed_id);
+  const bedId = Number(bed_id);
+  const bed = dataStore.beds.find((b) => Number(b.bed_id) === bedId);
   if (!bed) return null;
   bed.status = status;
   return bed;
@@ -164,7 +165,18 @@ function findAllBedRequests() {
 
 function createBedRequest(payload, requestedBy) {
   const patientId = Number(payload.patient_id);
-  const preRequestId = payload.pre_request_id ? Number(payload.pre_request_id) : null;
+  const orgId = payload.organization_id ? Number(payload.organization_id) : 1;
+  const preRequestId = payload.pre_request_id
+    ? Number(payload.pre_request_id)
+    : (dataStore.preRequests.find((pr) => Number(pr.patient_id) === patientId)?.pre_request_id || null);
+
+  const wardId = payload.ward_id
+    ? Number(payload.ward_id)
+    : (dataStore.wards.find((w) => Number(w.organization_id) === orgId)?.ward_id || 1);
+
+  const requestedByNum = requestedBy
+    ? (typeof requestedBy === 'number' ? requestedBy : Number(requestedBy) || 102)
+    : (dataStore.users.find((u) => Number(u.organization_id) === orgId && u.role_id === 2)?.user_id || 102);
 
   // Check if an existing PENDING bed request already exists for this pre-request or patient
   const existing = dataStore.bedRequests.find(
@@ -177,23 +189,21 @@ function createBedRequest(payload, requestedBy) {
   if (existing) {
     if (payload.ward_id) existing.ward_id = Number(payload.ward_id);
     if (payload.priority) existing.priority = payload.priority;
-    if (requestedBy) existing.requested_by = requestedBy;
+    if (requestedBy) existing.requested_by = requestedByNum;
     return existing;
   }
 
   const newRequest = {
     bed_request_id:
-      dataStore.bedRequests.length > 0
-        ? Math.max(...dataStore.bedRequests.map((r) => r.bed_request_id)) + 1
-        : 1,
+      maxId(dataStore.bedRequests, 'bed_request_id', 1) + 1,
     pre_request_id: preRequestId,
     patient_id: patientId,
-    ward_id: payload.ward_id ? Number(payload.ward_id) : null,
+    ward_id: wardId,
     priority: payload.priority || 'NORMAL',
     status: 'PENDING',
     bed_id: null,
-    requested_by: requestedBy || null,
-    organization_id: payload.organization_id ? Number(payload.organization_id) : null,
+    requested_by: requestedByNum,
+    organization_id: orgId,
     hospital_id: payload.hospital_id ? Number(payload.hospital_id) : null,
     requested_at: new Date().toISOString(),
     decided_at: null,
@@ -213,12 +223,32 @@ function createBedRequest(payload, requestedBy) {
   return newRequest;
 }
 
+function conflict(message) {
+  const err = new Error(message);
+  err.name = 'Conflict';
+  err.statusCode = 409;
+  return err;
+}
+
+/**
+ * Allocating a bed (patch.bed_id) is refused with 409 when the target bed is
+ * already OCCUPIED — the original wrote OCCUPIED unconditionally, so a second
+ * allocation silently put two patients in one bed.
+ */
 function updateBedRequest(id, patch) {
-  const request = dataStore.bedRequests.find((r) => r.bed_request_id === id);
+  const reqId = Number(id);
+  const request = dataStore.bedRequests.find((r) => Number(r.bed_request_id) === reqId);
   if (!request) return null;
 
   if (patch.bed_id) {
-    const bed = updateBedStatus(patch.bed_id, 'OCCUPIED');
+    if (request.status === 'ALLOCATED') {
+      throw conflict(`Bed request #${id} has already been allocated a bed`);
+    }
+    const target = dataStore.beds.find((b) => Number(b.bed_id) === Number(patch.bed_id));
+    if (target && target.status === 'OCCUPIED') {
+      throw conflict('Bed is already occupied');
+    }
+    const bed = updateBedStatus(Number(patch.bed_id), 'OCCUPIED');
     if (bed) {
       request.bed_id = Number(patch.bed_id);
       request.status = 'ALLOCATED';
@@ -230,8 +260,8 @@ function updateBedRequest(id, patch) {
         request.organization_id,
       );
     }
-  } else if (patch.status === 'DENIED') {
-    request.status = 'DENIED';
+  } else if (patch.status === 'DENIED' || patch.status === 'REJECTED') {
+    request.status = 'REJECTED';
     request.decided_at = new Date().toISOString();
     activityService.log(
       'warning',
@@ -239,57 +269,15 @@ function updateBedRequest(id, patch) {
       { bedRequestId: id },
       request.organization_id,
     );
+  } else if (patch.status === 'PENDING') {
+    // Compensating rollback from ward.controller.js when the admission
+    // cascade after an allocation fails: put the request back in the queue.
+    request.status = 'PENDING';
+    request.bed_id = null;
+    request.decided_at = null;
   }
 
   return request;
-}
-
-// --- Phase 2: emergency admission notifications. Per SRS/domain-expert
-// interaction, an emergency patient is moved to a ward before formal
-// registration — patient_id is intentionally optional here. ---
-
-function findAllEmergencies() {
-  return dataStore.emergencyNotifications;
-}
-
-function createEmergency(payload, createdBy) {
-  const newEmergency = {
-    emergency_id:
-      dataStore.emergencyNotifications.length > 0
-        ? Math.max(
-            ...dataStore.emergencyNotifications.map((e) => e.emergency_id),
-          ) + 1
-        : 1,
-    patient_id: payload.patient_id ? Number(payload.patient_id) : null,
-    bed_id: payload.bed_id ? Number(payload.bed_id) : null,
-    department: payload.department || null,
-    status: 'PENDING',
-    created_by: createdBy || null,
-    organization_id: payload.organization_id ? Number(payload.organization_id) : null,
-    hospital_id: payload.hospital_id ? Number(payload.hospital_id) : null,
-    created_at: new Date().toISOString(),
-  };
-  dataStore.emergencyNotifications.push(newEmergency);
-
-  if (newEmergency.bed_id) updateBedStatus(newEmergency.bed_id, 'OCCUPIED');
-
-  activityService.log(
-    'error',
-    `Emergency admission — bed ${newEmergency.bed_id || 'TBD'}`,
-    { emergencyId: newEmergency.emergency_id },
-    newEmergency.organization_id,
-  );
-
-  return newEmergency;
-}
-
-function updateEmergency(id, patch) {
-  const emergency = dataStore.emergencyNotifications.find(
-    (e) => e.emergency_id === id,
-  );
-  if (!emergency) return null;
-  Object.assign(emergency, patch);
-  return emergency;
 }
 
 module.exports = {
@@ -305,7 +293,4 @@ module.exports = {
   findAllBedRequests,
   createBedRequest,
   updateBedRequest,
-  findAllEmergencies,
-  createEmergency,
-  updateEmergency,
 };

@@ -124,7 +124,11 @@ function createBedRequest(req, res) {
 // admission to attach to — a dead end for FA's billing flow. Bed
 // allocation is the natural anchor: it's the moment patient_id + bed_id
 // are both known for certain.
-function updateBedRequest(req, res) {
+// FIX: Added `next` so caught errors are forwarded to Express's global
+// errorHandler instead of being re-thrown from a synchronous handler.
+// A bare `throw` inside a sync Express handler that has no `next` becomes
+// an unhandled exception and crashes the entire Node.js process.
+function updateBedRequest(req, res, next) {
   const existing = wardService
     .findAllBedRequests()
     .find((r) => r.bed_request_id === +req.params.id);
@@ -179,38 +183,12 @@ function updateBedRequest(req, res) {
       // Compensating transaction: roll back bed to AVAILABLE
       wardService.updateBedStatus(result.bed_id, 'AVAILABLE');
       wardService.updateBedRequest(result.bed_request_id, { status: 'PENDING', bed_id: null });
-      // Let the global error handler (middleware/errorHandler.js) format the
-      // response — it duck-types statusCode/message off whatever was thrown.
-      throw err;
+      // Forward to Express global error handler — sends 500 without crashing the process.
+      return next(err);
     }
   }
 
   sendResult(res, result, 200);
-}
-
-function findAllEmergencies(req, res) {
-  sendResult(res, scopeToOrg(wardService.findAllEmergencies(), req), 200);
-}
-
-function createEmergency(req, res) {
-  const createdBy = req.session ? req.session.userId : null;
-  const result = wardService.createEmergency(
-    withTenant(req, req.body),
-    createdBy,
-  );
-  logger.log(
-    `✅ EMERGENCY LOGGED  id=${result.emergency_id}  type=${result.emergency_type}`,
-  );
-  sendResult(res, result, 201);
-}
-
-function updateEmergency(req, res) {
-  const existing = wardService
-    .findAllEmergencies()
-    .find((e) => e.emergency_id === +req.params.id);
-  if (existing && !belongsToOrg(existing, req))
-    return res.status(403).json(FORBIDDEN);
-  sendResult(res, wardService.updateEmergency(+req.params.id, req.body), 200);
 }
 
 module.exports = {
@@ -225,7 +203,4 @@ module.exports = {
   findAllBedRequests,
   createBedRequest,
   updateBedRequest,
-  findAllEmergencies,
-  createEmergency,
-  updateEmergency,
 };
