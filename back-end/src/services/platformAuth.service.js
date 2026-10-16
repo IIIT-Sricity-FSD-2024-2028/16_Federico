@@ -3,6 +3,8 @@
 const dataStore = require('../store/dataStore');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { createSession, destroySession } = require('../store/sessionStore');
+const { parseEmail, PLATFORM_EMAIL_DOMAIN } = require('../utils/emailIdentity');
+const { maxId } = require('../utils/maxId');
 
 /**
  * Platform Super User authentication — a wholly separate account namespace
@@ -55,14 +57,22 @@ function logout(token) {
   return destroySession(token);
 }
 
+/**
+ * Platform logins must be name.platform@federico.com — the unified login page
+ * routes that shape (and only that shape) to the platform realm.
+ */
 function create(payload) {
+  const parsed = parseEmail(payload.email);
+  if (
+    !parsed ||
+    parsed.actor !== 'PLATFORM' ||
+    parsed.domain !== PLATFORM_EMAIL_DOMAIN
+  ) {
+    return { error: 'INVALID_PLATFORM_EMAIL' };
+  }
   const newUser = {
     platform_user_id:
-      dataStore.platformSuperUsers.length > 0
-        ? Math.max(
-            ...dataStore.platformSuperUsers.map((u) => u.platform_user_id),
-          ) + 1
-        : 1,
+      maxId(dataStore.platformSuperUsers, 'platform_user_id') + 1 || 1,
     name: payload.name,
     email: payload.email,
     password_hash: hashPassword(payload.password),

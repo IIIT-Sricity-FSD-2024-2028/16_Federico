@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { maxId } = require('../utils/maxId');
 const dataStore = require('../store/dataStore');
 const organizationService = require('./organization.service');
 const subscriptionService = require('./subscription.service');
@@ -8,13 +9,14 @@ const planService = require('./subscriptionPlan.service');
 const wardService = require('./ward.service');
 const inventoryService = require('./inventory.service');
 const billingService = require('./billing.service');
+const authService = require('./auth.service');
 const { hashPassword } = require('../utils/password');
 const {
   DEFAULT_DEPARTMENTS,
   DEFAULT_SERVICES,
   DEFAULT_INVENTORY_ITEMS,
 } = require('../config/defaultClinicalCatalog');
-const { MODULE_CODES } = require('../utils/tenant');
+const { parseEmail } = require('../utils/emailIdentity');
 
 /**
  * Provisioning Engine (tasks.md §6) — the one place a new tenant gets
@@ -27,9 +29,7 @@ const { MODULE_CODES } = require('../utils/tenant');
 function logStep(organizationId, step, status, message) {
   dataStore.provisioningLog.push({
     id:
-      dataStore.provisioningLog.length > 0
-        ? Math.max(...dataStore.provisioningLog.map((l) => l.id)) + 1
-        : 1,
+      maxId(dataStore.provisioningLog, 'id') + 1 || 1,
     organization_id: Number(organizationId),
     step,
     status,
@@ -90,9 +90,7 @@ function seedDefaultClinicalBaseline(organizationId, hospitalId) {
 function generateApiKey(organizationId, label) {
   const newKey = {
     api_key_id:
-      dataStore.apiKeys.length > 0
-        ? Math.max(...dataStore.apiKeys.map((k) => k.api_key_id)) + 1
-        : 1,
+      maxId(dataStore.apiKeys, 'api_key_id') + 1 || 1,
     organization_id: Number(organizationId),
     label: label || 'Default',
     key: `fed_live_${crypto.randomBytes(18).toString('hex')}`,
@@ -104,16 +102,39 @@ function generateApiKey(organizationId, label) {
 }
 
 /**
- * payload: { name, contact, specialties, emergency_available, admin_name,
- *            admin_email, admin_password, plan_id, modules? }
+ * payload: { name, email_domain?, contact, specialties, emergency_available,
+ *            admin_name, admin_email, admin_password, plan_id, modules? }
  * `modules`, if omitted, defaults to the plan's included_modules.
+ * `email_domain`, if omitted, is suggested from the name. The admin's login
+ * must be <name>.admin@<email_domain> — the unified login page reads the
+ * actor from the tag and the hospital from the domain.
  */
 function provision(payload) {
   const plan = planService.findById(payload.plan_id);
   if (!plan) return { error: 'PLAN_NOT_FOUND' };
 
+  let emailDomain;
+  if (payload.email_domain) {
+    const checked = organizationService.validateEmailDomain(
+      payload.email_domain,
+    );
+    if (checked.error) return checked;
+    emailDomain = checked.domain;
+  } else {
+    emailDomain = organizationService.suggestEmailDomain(payload.name);
+  }
+  const adminEmail = parseEmail(payload.admin_email);
+  if (
+    !adminEmail ||
+    adminEmail.actor !== 'Admin' ||
+    adminEmail.domain !== emailDomain
+  ) {
+    return { error: 'ADMIN_EMAIL_MISMATCH', email_domain: emailDomain };
+  }
+
   const organization = organizationService.create({
     name: payload.name,
+    email_domain: emailDomain,
     contact: payload.contact,
     specialties: payload.specialties,
     emergency_available: payload.emergency_available,
@@ -153,22 +174,6 @@ function provision(payload) {
     `Subscribed to "${plan.name}" — quotas allocated`,
   );
 
-  const chosenModules = (payload.modules && payload.modules.length) ? payload.modules : (plan && plan.included_modules && plan.included_modules.length ? plan.included_modules : MODULE_CODES);
-  const enabledModules = organizationService.setModuleFlags(
-    organization.organization_id,
-    chosenModules,
-    payload.module_instances || {},
-  );
-  const instanceSummary = enabledModules
-    .map((code) => `${code}×${(payload.module_instances || {})[code] || 1}`)
-    .join(', ');
-  logStep(
-    organization.organization_id,
-    'ENABLE_MODULES',
-    'DONE',
-    `Enabled services: ${instanceSummary || 'none'}`,
-  );
-
   // Resource-level entitlements (beds / seats / terminals — tasks.md §6/§7).
   // `module_resources` shape: { MODULE_CODE: { RESOURCE_CODE: quantity } }.
   if (payload.module_resources && typeof payload.module_resources === 'object') {
@@ -196,18 +201,18 @@ function provision(payload) {
 
   const adminUser = {
     user_id:
-      dataStore.users.length > 0
-        ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1
-        : 101,
+      maxId(dataStore.users, 'user_id') + 1 || 101,
     name: payload.admin_name,
     email: payload.admin_email,
     password_hash: hashPassword(payload.admin_password),
+    demo_password: payload.admin_password,
     role_id: 5, // Admin — the organization's owner/super user, above HOM (see utils/roles.js ROLE_ID_TO_NAME)
     organization_id: organization.organization_id,
     hospital_id: hospital.hospital_id,
     created_at: new Date().toISOString(),
   };
   dataStore.users.push(adminUser);
+  authService.registerDemoPassword(adminUser.email, payload.admin_password);
   logStep(
     organization.organization_id,
     'CREATE_DEFAULT_ADMIN',
@@ -259,8 +264,37 @@ function provision(payload) {
   };
 }
 
+/**
+ * [status, message] for each { error } provision() and
+ * organizationService.changeEmailDomain() can return, shared by the platform
+ * and marketplace controllers.
+ */
+function errorResponseFor(result) {
+  switch (result.error) {
+    case 'PLAN_NOT_FOUND':
+      return [400, 'Unknown subscription plan'];
+    case 'INVALID_EMAIL_DOMAIN':
+      return [
+        400,
+        'Email domain must look like yourhospital.com and cannot be a public mail provider',
+      ];
+    case 'EMAIL_DOMAIN_TAKEN':
+      return [409, 'That email domain is already used by another hospital'];
+    case 'ADMIN_EMAIL_MISMATCH':
+      return [
+        400,
+        `Admin email must look like name.admin@${result.email_domain || 'yourhospital.com'}`,
+      ];
+    case 'NOT_FOUND':
+      return [404, 'Organization not found'];
+    default:
+      return [400, result.error || 'Bad Request'];
+  }
+}
+
 module.exports = {
   provision,
+  errorResponseFor,
   generateApiKey,
   logStep,
   seedDefaultClinicalBaseline,

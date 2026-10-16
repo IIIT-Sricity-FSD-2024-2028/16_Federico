@@ -1,6 +1,7 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 
 /**
  * Platform-wide audit trail — distinct from `activityService` (org-scoped
@@ -12,9 +13,7 @@ const dataStore = require('../store/dataStore');
 function log(platformUserId, action, targetOrganizationId, details) {
   const entry = {
     id:
-      dataStore.platformActivityLog.length > 0
-        ? Math.max(...dataStore.platformActivityLog.map((a) => a.id)) + 1
-        : 1,
+      maxId(dataStore.platformActivityLog, 'id') + 1 || 1,
     platform_user_id: platformUserId ? Number(platformUserId) : null,
     action,
     target_organization_id: targetOrganizationId ? Number(targetOrganizationId) : null,
