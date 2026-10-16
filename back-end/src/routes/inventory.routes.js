@@ -3,7 +3,6 @@
 const { Router } = require('express');
 const controller = require('../controllers/inventory.controller');
 const { authorize } = require('../middleware/actorAccess');
-const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createInventoryItemRules,
@@ -13,7 +12,6 @@ const {
 } = require('../validators/inventory.validators');
 
 const router = Router();
-router.use(requireModule('INVENTORY'));
 
 router.get(
   '/items',

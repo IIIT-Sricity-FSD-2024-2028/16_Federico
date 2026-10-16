@@ -1,104 +1,195 @@
-# Federico — Frontend Architecture & Portal Reference
+# Federico Hospital Platform — Frontend
 
-This directory contains the entire frontend client application for the **Federico Hospital Administrative Operations Platform**.
+A React + Vite single-page application covering all eight role portals. It
+replaces the previous vanilla-JS multi-page frontend (111 files, no build step);
+the migration is recorded in `../react-migration-plan.md`.
 
----
-
-## 1. Architecture & Design Principles
-
-* **Pure Vanilla JavaScript (ES6+ Modules):** Zero build steps, zero transpilation, and zero node runtime requirements for client assets.
-* **Semantic HTML5 & Standard Web Components:** Clean DOM architecture with ARIA accessibility labels and mobile-friendly responsive viewports.
-* **Design Token Engine:** Standardized styling via `shared/design-tokens.css` and `shared/material-components.css` following Material Design 3 / Material You guidelines.
-* **Per-Tab Session Isolation:** Authentication state is stored per browser tab (`sessionStorage` with graceful `localStorage` sync) to allow multi-role testing simultaneously across browser tabs without session collision.
-* **Resilient API Communication:** Centralized `shared/api-client.js` with automated Bearer token attachment, 15-second AbortSignal timeouts, CSRF protection, and concurrency lock guards (`withAsyncLock`) to prevent double form submissions.
+The backend it talks to is unchanged: `../back-end`, Express on port 3000.
 
 ---
 
-## 2. Directory Structure & Role Portals
+## Running it
+
+```sh
+cd back-end && npm install && npm run start:dev   # terminal 1 — API on :3000
+cd front-end && npm install && npm run dev        # terminal 2 — app on :5173
+```
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Vite dev server on `http://localhost:5173` |
+| `npm run build` | Production bundle into `dist/` |
+| `npm run preview` | Serves `dist/` with the same URL rewriting as dev |
+| `npm run lint` | oxlint over `src/` |
+
+### Configuration
+
+Copy `.env.example` to `.env` if the API is not on `http://localhost:3000`:
 
 ```
-front-end/
-├── Admin/                 # Hospital Owner / Admin Portal
-│   ├── screen-01-dashboard.html    # Org statistics & branch summary
-│   ├── screen-02-departments.html  # Department & doctor catalog management
-│   ├── screen-03-inventory.html    # Non-clinical inventory catalog administration
-│   └── screen-04-admin.html        # Dynamic RBAC roles & staff user assignment
-│
-├── FA/                    # Financial Administrator (FA) Portal
-│   ├── fa-dashboard.html           # Unified finance ledger, review & dispatch
-│   ├── js/modules/                 # Ledger, charge approval, and payment logic
-│   └── css/                        # Finance dashboard theme
-│
-├── HOM/                   # Hospital Operations Manager (HOM) Portal
-│   ├── screen-01-dashboard.html    # Real-time occupancy KPIs & alerts
-│   ├── screen-02-bed-management.html# Interactive ward bed matrix & assignment
-│   ├── screen-03-patient-flow.html # Inpatient admissions & discharge readiness
-│   ├── screen-04-inventory.html    # Operational stock replenishment & requests
-│   └── screen-05-billing.html      # Clinical/ward service charge entry (Leaders)
-│
-├── PRE/                   # Patient Registration & Eligibility (PRE) Portal
-│   ├── index.html                  # Navigation hub
-│   └── pages/                      # Pre-requests, OPD appointments, admissions & discharges
-│
-├── Patient/               # Patient Self-Service Portal
-│   ├── patient-dashboard.html      # Upcoming visits, active admissions, bill notices
-│   ├── patient-book-appointment.html# OPD specialist scheduling
-│   ├── patient-billing.html        # Itemized bills, online payment & receipt download
-│   └── patient-profile.html        # UHID demographics & insurance document upload
-│
-├── platform/              # SaaS Platform Super User Portal
-│   ├── platform-login.html         # Isolated platform authentication
-│   └── platform-dashboard.html     # Tenant provisioning, subscriptions & feature flags
-│
-├── landing/               # Public product showcase & features overview
-├── login/                 # Unified actor login portal with role-based routing
-├── signup/                # Hospital organization onboarding & patient registration
-├── marketplace/           # Multi-tenant directory of accredited hospitals
-└── shared/                # Core client utilities (API client, RBAC, tokens, toasts)
+VITE_API_URL=http://localhost:3000
+```
+
+With no `.env`, `src/api/client.js` falls back to the page's own origin when it
+is served on port 3000, and to `http://localhost:3000` otherwise — the same rule
+the old `shared/api-client.js` used.
+
+### Deploying
+
+Routes keep their legacy `.html` suffixes, and Vite's built-in SPA fallback
+skips any path whose last segment contains a dot. `vite.config.js` adds a
+middleware that rewrites navigation requests (`Accept: text/html`) to
+`/index.html`, and **any production host needs the equivalent rewrite** or every
+deep link 404s. For example, with nginx:
+
+```nginx
+location / {
+  try_files $uri $uri/ /index.html;
+}
 ```
 
 ---
 
-## 3. Shared Utilities (`shared/`)
+## Routes
 
-| File | Purpose |
-| :--- | :--- |
-| **`api-client.js`** | Unified REST client wrapping `fetch` with Bearer auth, session recovery, and tenant headers |
-| **`rbac.js`** | Client-side role and capability verification (`hasRole`, `canAccess`) |
-| **`auth-guard.js`** | Page-level authentication guard redirecting unauthenticated users to `/login` |
-| **`design-tokens.css`** | CSS custom properties for color palettes, spacing, elevation, and typography |
-| **`material-components.css`** | Reusable UI components (buttons, input fields, cards, tables, badges, modals) |
-| **`ui-feedback.js` & `ui-feedback.css`** | Accessible toast alerts, confirm dialogs, and loading spinners |
-| **`sanitizer.js`** | DOMPurify-style HTML sanitization preventing XSS during dynamic DOM rendering |
-| **`formatters.js`** | Currency (INR/USD), date/time, and UHID formatting utilities |
+Every URL is identical to the one the old multi-page app served, including the
+`.html` suffix and the FA hash routes, so existing links and bookmarks keep
+working.
+
+### Public
+
+| URL | Page |
+|---|---|
+| `/` | redirects to the landing page |
+| `/landing/landing-page.html` | Marketing landing page |
+| `/login/login-page.html` | Staff and patient sign-in (`?org=<id>` preselects a hospital) |
+| `/signup/signup-page.html` | Patient self-registration (`?org=<id>`) |
+| `/signup/org-signup.html` | Four-step hospital-chain onboarding |
+| `/marketplace/marketplace-page.html` | Public hospital directory |
+
+### Platform Super User
+
+| URL | Page |
+|---|---|
+| `/platform/platform-login.html` | Redirects to the unified sign-in page (platform staff sign in as `name.platform@federico.com`) |
+| `/platform/platform-dashboard.html` | Tenants, provisioning, plan rates |
+
+### HOM — Hospital Operations Manager
+
+| URL | Page |
+|---|---|
+| `/HOM/` and `/HOM/index.html` | redirect to the dashboard |
+| `/HOM/screen-01-dashboard.html` | KPIs, bed requests, discharge queue |
+| `/HOM/screen-02-bed-management.html` | Ward and bed matrix |
+| `/HOM/screen-03-patient-flow.html` | Inpatient flow and discharge clearance (`?uhid=`) |
+| `/HOM/screen-04-inventory.html` | Stock, usage logging, restock orders |
+| `/HOM/screen-05-billing.html` | Ledgers and service posting (`?uhid=`) |
+
+### PRE — Patient Relational Executive
+
+| URL | Page |
+|---|---|
+| `/PRE/` and `/PRE/index.html` | redirect to the dashboard |
+| `/PRE/pages/PRE.html` | Dashboard counters and approved patients |
+| `/PRE/pages/request.html` | Pending pre-requests: approve / suggest / reject |
+| `/PRE/pages/rejected.html` | Rejected requests |
+| `/PRE/pages/admitted.html` | Admitted inpatients |
+| `/PRE/pages/discharge.html` | Discharge requests and HOM approvals |
+| `/PRE/pages/emergency.html` | Emergency triage and walk-in registration |
+| `/PRE/pages/patient-records.html` | Patient directory and Patient 360 |
+| `/PRE/pages/doctor.html` | Doctor roster |
+| `/PRE/pages/appointment.html` | OPD booking (`?patient_id=`, `?doctor_id=`) |
+| `/PRE/pages/APPointment.html` | Alias of the above — the file on disk used this casing while every link used the lowercase form |
+| `/PRE/pages/bed-coordination.html` | Bed allocation and operations coordination (legacy `/PRE/pages/hom.html` redirects here) |
+
+### Patient
+
+| URL | Page |
+|---|---|
+| `/Patient/patient-dashboard.html` | Appointments, visits, PRE updates, bills, documents |
+| `/Patient/patient-book-appointment.html` | OPD booking with slot capacity |
+| `/Patient/patient-billing.html` | Invoices, receipts, discharge summaries, EOD bills |
+| `/Patient/patient-profile.html` | Personal, contact, password and insurance sections |
+
+### FA — Finance Associate
+
+One page with six hash views:
+
+| URL | View |
+|---|---|
+| `/FA/fa-dashboard.html#/dashboard` | Billing queue and recent receipts |
+| `/FA/fa-dashboard.html#/charges` | HOM-submitted charges awaiting approval |
+| `/FA/fa-dashboard.html#/ledger` | Patient ledger and manual charges |
+| `/FA/fa-dashboard.html#/eod` | End-of-day bill dispatch |
+| `/FA/fa-dashboard.html#/discharge` | Final settlement and discharge summary |
+| `/FA/fa-dashboard.html#/receipts` | Receipt search and printing |
+
+`#/ledger/42`, `#/eod/42` and `#/discharge/42` open that admission directly.
+
+### Admin
+
+| URL | Page |
+|---|---|
+| `/Admin/screen-01-dashboard.html` | Organization analytics |
+| `/Admin/screen-02-departments.html` | Wards and beds |
+| `/Admin/screen-03-inventory.html` | Inventory catalog |
+| `/Admin/screen-04-admin.html` | Roles, permissions, branding |
+| `/Admin/screen-05-people.html` | Staff logins and doctors |
 
 ---
 
-## 4. Authentication Flow & Role Routing
+## How the code is arranged
 
-When logging in via `login/login-page.html`:
-1. `POST /auth/login` validates credentials against the backend.
-2. The returned token and user profile are saved into the active tab's session store.
-3. The user is redirected automatically to their designated role portal:
-   * **Role 0 (Platform Super User):** `/platform/platform-dashboard.html`
-   * **Role 5 (Hospital Admin):** `/Admin/screen-01-dashboard.html`
-   * **Role 1 (HOM):** `/HOM/screen-01-dashboard.html`
-   * **Role 4 (PRE):** `/PRE/pages/PRE.html`
-   * **Role 3 (FA):** `/FA/fa-dashboard.html`
-   * **Role 2 (Patient):** `/Patient/patient-dashboard.html`
-
----
-
-## 5. Local Development & Serving
-
-Serve the `front-end` directory with any static HTTP server (e.g. `npx serve`, Python `http.server`, or VS Code Live Server):
-
-```bash
-# Serve frontend on port 5500
-npx serve front-end -p 5500
+```
+src/
+  main.jsx            createRoot + SessionProvider + RouterProvider
+  routes.jsx          the whole route table; portal layouts are lazy
+  api/                one module per backend namespace, composed into `api`
+  auth/               SessionContext, the route guard, actor home paths
+  lib/                pure helpers: formatters, insurance, sanitizer, CSV, print
+  hooks/              useApi, usePolling, usePageStyles, useDocumentTitle, …
+  components/         feedback (toast/dialog), ui primitives, layout, forms
+  pages/<portal>/     one folder per portal
+  styles/             the legacy stylesheets, unchanged
 ```
 
-* **Landing Page:** `http://localhost:5500/landing/landing-page.html`
-* **Login Portal:** `http://localhost:5500/login/login-page.html`
-* **Platform Super User:** `http://localhost:5500/platform/platform-login.html`
-* **Marketplace:** `http://localhost:5500/marketplace/marketplace-page.html`
+Two things are worth knowing before editing:
+
+**Nothing is on `window`.** Everything is an ES module import. `window.location`,
+`window.open` and the other browser APIs are used directly, but the app defines
+no globals — `grep -rn "window\." src/` should only ever show browser APIs.
+
+**Stylesheets are mounted per route.** The legacy CSS files are byte-identical
+copies, and they collide with each other by design: 20 class names, 10 `:root`
+blocks, 17 `body` rules and 8 `*` resets are defined in more than one file. That
+was safe when each HTML page loaded only its own stylesheet. A lazily imported
+CSS chunk, by contrast, is injected once and never removed, so a portal's styles
+would leak into every page visited afterwards. Each portal stylesheet is
+therefore imported with Vite's `?inline` query and mounted by `usePageStyles`,
+which appends it to `<head>` on mount and removes it on unmount. If you add a
+portal stylesheet, import it the same way — a plain `import './x.css'` will leak.
+
+The three shared stylesheets (`design-tokens.css`, `material-components.css`,
+`ui-feedback.css`) are imported once in `main.jsx`; they loaded on every legacy
+page too, so there is nothing to isolate.
+
+---
+
+## Sign-in accounts
+
+Seed accounts, organization 1 ("City General Hospital"):
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `owner.admin@citygen.com` | `Owner@123` |
+| HOM | `admin.hom@citygen.com` | `Hom@123` |
+| PRE | `rekha.pre@citygen.com` | `Pre@123` |
+| FA | `farah.fa@citygen.com` | `Fa@123` |
+| Patient | `arjun.k@hosp.com` | `Hamiz@123` |
+| Platform | `super.platform@federico.com` | `Federico@Platform123` |
+
+There is one sign-in page for every actor. It reads the portal from the
+email (`name.hom@`, `.pre@`, `.fa@`, `.admin@` on the hospital's email domain,
+`name.platform@federico.com`; anything else is a patient, who then picks a
+hospital). The logic lives in `src/lib/emailIdentity.js`. The demo panel lists
+each hospital's accounts; clicking a row fills the form.

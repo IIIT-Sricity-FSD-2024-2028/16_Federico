@@ -1,0 +1,56 @@
+/* empty-state.css — Zero-data state notice styling */
+
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--md-surface, #ffffff);
+  border: 1px dashed var(--color-border, #cbd5e1);
+  border-radius: var(--radius-sm, 12px);
+  margin: 16px 0;
+  width: 100%;
+}
+
+.empty-state-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+  line-height: 1;
+  color: var(--color-muted-fg, #64748b);
+  opacity: 0.85;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-fg, #1c1b1f);
+  margin: 0 0 6px 0;
+}
+
+.empty-state-message {
+  font-size: 13px;
+  color: var(--color-muted-fg, #64748b);
+  max-width: 420px;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.empty-state-action {
+  margin-top: 4px;
+}
+
+/* Table empty cell format */
+.empty-state-table-cell {
+  padding: 40px 16px !important;
+  text-align: center !important;
+  background: transparent !important;
+}
+
+.empty-state-table-cell .empty-state-container {
+  border: none;
+  padding: 16px;
+  margin: 0;
+  background: transparent;
+}

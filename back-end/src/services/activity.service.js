@@ -1,6 +1,7 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 
 /**
  * Lightweight audit trail for workflow transitions (login, pre-request
@@ -9,15 +10,14 @@ const dataStore = require('../store/dataStore');
  * had no equivalent beyond raw console request logging.
  */
 function log(type, text, meta, organizationId) {
+  const hospitalId = (meta && meta.hospital_id) ? Number(meta.hospital_id) : (meta && meta.hospitalId) ? Number(meta.hospitalId) : null;
   const entry = {
-    id:
-      dataStore.activityLog.length > 0
-        ? Math.max(...dataStore.activityLog.map((a) => a.id)) + 1
-        : 1,
+    id: maxId(dataStore.activityLog, 'id', 1) + 1,
     type: type || 'info', // 'info' | 'success' | 'warning' | 'error'
     text: text || '',
     meta: meta || null,
     organization_id: organizationId ? Number(organizationId) : null,
+    hospital_id: hospitalId,
     created_at: new Date().toISOString(),
   };
   dataStore.activityLog.unshift(entry);

@@ -20,7 +20,8 @@ describe('Outpatient (OPD) Check-in & Automated Ledger Creation', () => {
       specialties: ['General Medicine'],
       emergency_available: true,
       admin_name: 'Metro Admin',
-      admin_email: 'admin@metrohealth.com',
+      email_domain: 'metrohealth.com',
+      admin_email: 'owner.admin@metrohealth.com',
       admin_password: 'Password@123',
     });
     tenantOrg = provisionResult.organization;

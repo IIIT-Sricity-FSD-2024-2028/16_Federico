@@ -24,12 +24,16 @@ npm start
 
 # Development mode (auto-reload via nodemon)
 npm run start:dev
+
+# Reset database to canonical default mock data anytime
+npm run db:reset
 ```
 
 * **API Server:** `http://localhost:3000`
 * **Health Check:** `http://localhost:3000/health`
 * **Interactive Swagger UI:** `http://localhost:3000/api`
 * **Public File Uploads:** `http://localhost:3000/uploads/:category/:filename`
+* **Database Reset:** `npm run db:reset` (restores `data/db.json` from `src/store/dataStore.js`, prunes temporary uploads, and reloads server)
 
 ---
 
@@ -88,12 +92,12 @@ src/
 
 | Role | Email | Password | Primary Portal |
 | :--- | :--- | :--- | :--- |
-| **Platform Super User** | `platform@federico.com` | `Federico@Platform123` | `front-end/platform/` |
-| **Hospital Admin** | `owner@hosp.com` | `Owner@123` | `front-end/Admin/` |
-| **Hospital Operations (HOM)** | `admin@hosp.com` | `Hom@123` | `front-end/HOM/` |
-| **Patient Registration (PRE)** | `rekha.pre@hosp.com` | `Pre@123` | `front-end/PRE/` |
-| **Finance Associate (FA)** | `farah.fa@hosp.com` | `Fa@123` | `front-end/FA/` |
-| **Patient** | `arjun.k@hosp.com` | `Hamiz@123` | `front-end/Patient/` |
+| **Platform Super User** | `super.platform@federico.com` | `Federico@Platform123` | `/platform/platform-dashboard.html` |
+| **Hospital Admin** | `owner.admin@citygen.com` | `Owner@123` | `/Admin/screen-01-dashboard.html` |
+| **Hospital Operations (HOM)** | `admin.hom@citygen.com` | `Hom@123` | `/HOM/screen-01-dashboard.html` |
+| **Patient Registration (PRE)** | `rekha.pre@citygen.com` | `Pre@123` | `/PRE/pages/PRE.html` |
+| **Finance Associate (FA)** | `farah.fa@citygen.com` | `Fa@123` | `/FA/fa-dashboard.html` |
+| **Patient** | `arjun.k@hosp.com` | `Hamiz@123` | `/Patient/patient-dashboard.html` |
 
 ---
 

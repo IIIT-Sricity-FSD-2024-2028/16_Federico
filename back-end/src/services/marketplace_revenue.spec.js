@@ -36,6 +36,7 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
       plan_id: 1,
       modules: ['APPOINTMENTS', 'ADMISSIONS', 'INVENTORY', 'BILLING', 'INSURANCE'],
       admin_name: 'Dr. Vikram Rao',
+      email_domain: 'globalhealth.com',
       admin_email: 'vikram.admin@globalhealth.com',
       admin_password: 'Password@123',
       payment_reference: 'PAY_TEST_12345',
@@ -60,7 +61,7 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
   it('should calculate live platform MRR/ARR from per-service usage for Platform Super User', async () => {
     const loginRes = await request(app)
       .post('/platform/auth/login')
-      .send({ email: 'platform@federico.com', password: 'Federico@Platform123' });
+      .send({ email: 'super.platform@federico.com', password: 'Federico@Platform123' });
 
     expect(loginRes.status).toBe(200);
     const token = loginRes.body.token;
@@ -85,14 +86,12 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(org).toBeDefined();
     expect(org.subscription.plan_name).toBe('Usage-based');
     expect(org.subscription.billing_model).toBe('USAGE');
-    // 5 chosen services × 1 branch instance.
+    // 1 branch instance -> Base platform license
     const expectedCost = serviceCatalog.computeCost(
-      ['APPOINTMENTS', 'ADMISSIONS', 'INVENTORY', 'BILLING', 'INSURANCE'],
-      1,
+      org.hospitals || 1,
     ).total;
     expect(org.subscription.price_monthly).toBe(expectedCost);
-    expect(org.subscription.service_lines).toHaveLength(5);
-    expect(org.enabled_modules).toContain('APPOINTMENTS');
-    expect(org.enabled_modules).toContain('BILLING');
+    expect(org.subscription.service_lines).toHaveLength(1);
+    expect(org.subscription.service_lines[0].code).toBe('PLATFORM_BASE');
   });
 });

@@ -1,0 +1,248 @@
+/* app-navbar.css — Universal top navigation bar */
+
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--md-surface, #ffffff);
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(0, 0, 0, 0.05));
+  width: 100%;
+}
+
+.app-navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  max-width: 1440px;
+  margin: 0 auto;
+  gap: 16px;
+}
+
+/* Brand & Hospital details */
+.app-navbar-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.app-navbar-logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--md-primary, #6750a4);
+  color: var(--md-on-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+}
+
+.app-navbar-brand-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-navbar-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-navbar-brand-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-fg, #1c1b1f);
+  line-height: 1.2;
+}
+
+.app-navbar-role-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--md-primary-container, #eaddff);
+  color: var(--md-on-primary-container, #21005d);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.app-navbar-subtitle {
+  font-size: 12px;
+  color: var(--color-muted-fg, #64748b);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+/* Navigation links */
+.app-navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.app-navbar-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-full, 999px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted-fg, #64748b);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.app-navbar-link:hover {
+  background: var(--md-surface-container, #f3edf7);
+  color: var(--color-fg, #1c1b1f);
+}
+
+.app-navbar-link.active {
+  background: var(--md-primary-container, #eaddff);
+  color: var(--md-on-primary-container, #21005d);
+  font-weight: 600;
+}
+
+/* Actions & Profile Menu */
+.app-navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.app-navbar-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--md-surface-container, #f3edf7);
+  border: 1px solid var(--color-border, #e2e8f0);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.app-navbar-profile-btn:hover {
+  background: var(--md-surface-variant, #e7e0ec);
+}
+
+.app-navbar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--md-primary, #6750a4);
+  color: var(--md-on-primary, #ffffff);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-navbar-user-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.app-navbar-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-fg, #1c1b1f);
+}
+
+.app-navbar-user-role {
+  font-size: 11px;
+  color: var(--color-muted-fg, #64748b);
+}
+
+.app-navbar-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  background: var(--md-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 12px);
+  box-shadow: var(--shadow-3, 0 8px 24px rgba(0, 0, 0, 0.12));
+  padding: 6px;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-navbar-dropdown-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  font-size: 12px;
+  color: var(--color-muted-fg, #64748b);
+}
+
+.app-navbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-fg, #1c1b1f);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.app-navbar-dropdown-item:hover {
+  background: var(--md-surface-container, #f3edf7);
+}
+
+.app-navbar-dropdown-item.danger {
+  color: var(--status-error, #b3261e);
+}
+
+.app-navbar-dropdown-item.danger:hover {
+  background: var(--status-error-bg, #fbe8e6);
+}
+
+.app-navbar-logout-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: transparent;
+  color: var(--color-fg, #1c1b1f);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-navbar-logout-btn:hover {
+  background: var(--status-error-bg, #fbe8e6);
+  border-color: var(--status-error, #b3261e);
+  color: var(--status-error, #b3261e);
+}

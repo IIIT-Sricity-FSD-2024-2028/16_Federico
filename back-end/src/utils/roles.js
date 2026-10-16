@@ -19,4 +19,13 @@ const ROLE_NAME_TO_ID = Object.fromEntries(
   Object.entries(ROLE_ID_TO_NAME).map(([id, name]) => [name, Number(id)]),
 );
 
-module.exports = { ROLE_ID_TO_NAME, ROLE_NAME_TO_ID };
+// URL slug of each actor's login endpoint: POST /auth/login/:actor.
+const ACTOR_SLUG_TO_ROLE = {
+  hom: 'HOM',
+  pre: 'PRE',
+  fa: 'FA',
+  admin: 'Admin',
+  patient: 'Patient',
+};
+
+module.exports = { ROLE_ID_TO_NAME, ROLE_NAME_TO_ID, ACTOR_SLUG_TO_ROLE };

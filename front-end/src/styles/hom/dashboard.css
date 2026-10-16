@@ -1,0 +1,77 @@
+/*
+ * Extracted verbatim from the inline <style> block of
+ * front-end/HOM/screen-01-dashboard.html. These rules were page-scoped only because
+ * each legacy page loaded alone; the matching route chunk imports this file
+ * so the scoping still holds (DEC-5).
+ */
+      /* .dashboard-container / .header-section (default) now live once in
+         ../HOM/global.css instead of being duplicated in every screen's
+         own <style> block. This screen's .metrics-grid/.main-grid below
+         are its own distinct responsive versions and stay local. */
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      /* This screen's own responsive .metrics-grid (1/2/4 columns) —
+         overrides global.css's fixed 4-column default. .main-grid is the
+         same on this screen as global.css's default, so it's not
+         restated here. */
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(1, 1fr);
+        gap: 20px;
+        margin-bottom: 32px;
+      }
+      @media (min-width: 768px) {
+        .metrics-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (min-width: 1024px) {
+        .metrics-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      .dashboard-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        width: 100%;
+      }
+
+      .metric-card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-md, 12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+      }
+      .metric-value {
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+
+      .bed-grid {
+        margin-bottom: 24px;
+      }
+
+      .progress-bar-bg {
+        height: 6px;
+        background: var(--md-surface-container-highest, #e7e0ec);
+        border-radius: var(--radius-full, 9999px);
+        overflow: hidden;
+        margin-top: 6px;
+      }
+      .progress-bar-fill {
+        height: 100%;
+        border-radius: var(--radius-full, 9999px);
+        transition: width 0.3s ease;
+      }
+    

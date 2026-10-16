@@ -4,7 +4,7 @@ const { partial } = require('./engine');
 
 // Port of admission/dto/create-admission.dto.ts
 const createAdmissionRules = [
-  { field: 'appointment_id', checks: ['isNotEmpty', 'isInt'] },
+  { field: 'appointment_id', checks: ['isInt'], optional: true },
   { field: 'patient_id', checks: ['isNotEmpty', 'isInt'] },
   { field: 'bed_id', checks: ['isNotEmpty', 'isInt'] },
   { field: 'admit_time', checks: ['isISO8601'], optional: true },

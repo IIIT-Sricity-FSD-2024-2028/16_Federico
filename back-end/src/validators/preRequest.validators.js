@@ -27,6 +27,8 @@ const updatePreRequestRules = [
   { field: 'doctor_id', checks: ['isInt'], optional: true },
   { field: 'department', checks: ['isNotEmpty', 'isString'], optional: true },
   { field: 'visit_type', checks: ['isNotEmpty', 'isString'], optional: true },
+  { field: 'note', checks: ['isString'], optional: true },
+  { field: 'document_urls', checks: ['isArray'], optional: true },
 ];
 
 module.exports = { createPreRequestRules, updatePreRequestRules };

@@ -23,6 +23,7 @@ function listPlans(req, res) {
 function registerOrganization(req, res) {
   const {
     name,
+    email_domain,
     city,
     phone,
     email,
@@ -49,6 +50,7 @@ function registerOrganization(req, res) {
 
   const payload = {
     name,
+    email_domain,
     city: city || 'Main Branch',
     contact: {
       phone: phone || null,
@@ -74,10 +76,11 @@ function registerOrganization(req, res) {
 
   const result = provisioningService.provision(payload);
   if (result.error) {
-    return res.status(400).json({
-      message: result.error,
-      error: 'Bad Request',
-      statusCode: 400,
+    const [status, message] = provisioningService.errorResponseFor(result);
+    return res.status(status).json({
+      message,
+      error: status === 409 ? 'Conflict' : 'Bad Request',
+      statusCode: status,
     });
   }
 

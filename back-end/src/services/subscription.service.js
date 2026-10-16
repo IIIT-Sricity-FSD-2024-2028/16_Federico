@@ -1,11 +1,13 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 const planService = require('./subscriptionPlan.service');
 
 function findByOrg(organizationId) {
+  const numId = Number(organizationId);
   return (
-    dataStore.subscriptions.find((s) => s.organization_id === organizationId) ||
+    dataStore.subscriptions.find((s) => Number(s.organization_id) === numId) ||
     null
   );
 }
@@ -50,11 +52,7 @@ function setPlan(organizationId, planId) {
     subscription.updated_at = now.toISOString();
   } else {
     subscription = {
-      subscription_id:
-        dataStore.subscriptions.length > 0
-          ? Math.max(...dataStore.subscriptions.map((s) => s.subscription_id)) +
-            1
-          : 1,
+      subscription_id: maxId(dataStore.subscriptions, 'subscription_id') + 1 || 1,
       organization_id: oid,
       plan_id: pid,
       status: 'ACTIVE',

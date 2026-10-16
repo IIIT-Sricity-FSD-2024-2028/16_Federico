@@ -1,38 +1,30 @@
 'use strict';
 
 /**
- * Service-based (usage) pricing catalog.
+ * Service & Capacity-based (usage) pricing catalog.
  *
- * Federico is NOT billed on fixed Basic/Pro/Enterprise plan tiers. An
- * organization pays only for the individual services (modules) it turns
- * on, multiplied by how many service instances it runs — one instance per
- * hospital branch. So the monthly charge for an org is:
+ * Federico operates on a pure capacity and resource-based model:
+ * Every organization gets ALL 8 core clinical and operational modules
+ * (Appointments, Admissions & Bed Management, Doctor Directory, Patient Portal,
+ * Inventory & Procurement, Billing & Ledger, Insurance, Analytics)
+ * included by default with zero artificial feature locks.
  *
- *   Σ  SERVICE_PRICES[module] × (number of hospital branches)
- *   for every enabled module
- *
- * `subscription.service.js` computes this; `organization.service.js`
- * exposes it as `usage.subscription.price_monthly`; the Platform Super
- * User dashboard aggregates it into MRR / ARR and a per-service revenue
- * breakdown.
+ * Pricing is structured around:
+ *   1. Base Platform License: ₹3,000 / month per hospital branch.
+ *   2. Capacity & Resource Quotas (resourceCatalog.js):
+ *      - Inpatient Beds (General ₹150, ICU ₹600, Private ₹350, Semi-Private ₹350)
+ *      - Staff / User Accounts (₹200/seat)
+ *      - Billing Terminals (₹500/terminal)
+ *      - Inventory Warehouses (₹1,000/warehouse) & Storage Units (₹200/unit)
+ *      - Doctor Directory Seats (₹150/doctor)
+ *      - Patient Admissions Volume (₹10/admission)
+ *      - Online Booking Channels (₹400/channel)
  */
 
-// Monthly BASE price per enabled service, per provisioned instance (branch).
-// Resource-level line items (config/resourceCatalog.js) are added on top of
-// this base — see computeCost() below.
-const SERVICE_PRICES = {
-  APPOINTMENTS: 1500,
-  ADMISSIONS: 2500,
-  INVENTORY: 2000,
-  BILLING: 2500,
-  INSURANCE: 1800,
-  ANALYTICS: 3000,
-  DOCTOR: 1200,
-  PATIENT: 1500,
-  LEADERSHIP: 1000,
-};
+const BASE_PLATFORM_FEE = 3000;
 
 const SERVICE_NAMES = {
+  PLATFORM: 'Base Platform License',
   APPOINTMENTS: 'Appointments',
   ADMISSIONS: 'Admissions & Bed Management',
   INVENTORY: 'Inventory & Procurement',
@@ -44,65 +36,79 @@ const SERVICE_NAMES = {
   LEADERSHIP: 'Service Charge Approvals (Leaders)',
 };
 
-const { computeResourceCost } = require('./resourceCatalog');
+const { computeResourceCost, modulesWithResources } = require('./resourceCatalog');
 
 function priceFor(moduleCode) {
-  return Number(SERVICE_PRICES[String(moduleCode).toUpperCase()]) || 0;
+  const code = String(moduleCode).toUpperCase();
+  if (code === 'PLATFORM' || code === 'PLATFORM_BASE') {
+    return BASE_PLATFORM_FEE;
+  }
+  // All operational modules are included by default (₹0 add-on cost)
+  return 0;
 }
 
 /**
- * Line-item + total cost for one organization.
+ * Computes line-item and total monthly subscription charge for an organization.
  *
- * `modules` accepts either:
- *   - an array of service codes  -> each billed at `defaultCount` instances
- *   - an object { CODE: count }  -> each billed at its own instance count
- *
- * @param {string[]|Object<string,number>} modules
- * @param {number} [defaultCount=1]  instances to use for the array form / missing counts
- * @param {Object<string,Object>} [resourcesByModule]  { MODULE: { RESOURCE: qty | {quantity,unit_price_at_purchase} } }
- *        resource-level line items added ON TOP of each module's base price.
+ * @param {number|Array|Object} branchesOrConfig  Number of hospital branches, or legacy module array/config
+ * @param {number|Object} [defaultCountOrResources=1]  Fallback count or resources map
+ * @param {Object} [resourcesByModule={}]  { MODULE: { RESOURCE: qty } }
  * @returns {{ lines: Array, resource_lines: Array, total: number, instances: number, base_total: number, resource_total: number }}
  */
-function computeCost(modules, defaultCount = 1, resourcesByModule = {}) {
-  const fallback = Math.max(1, Number(defaultCount) || 1);
+function computeCost(branchesOrConfig = 1, defaultCountOrResources = 1, resourcesByModule = {}) {
+  let branchCount = 1;
+  let resources = {};
 
-  let entries;
-  if (Array.isArray(modules)) {
-    entries = modules.map((code) => [String(code).toUpperCase(), fallback]);
-  } else {
-    entries = Object.keys(modules || {}).map((code) => [
-      String(code).toUpperCase(),
-      Math.max(1, Number(modules[code]) || fallback),
-    ]);
+  if (typeof branchesOrConfig === 'number') {
+    branchCount = Math.max(1, branchesOrConfig);
+    resources = typeof defaultCountOrResources === 'object' && defaultCountOrResources !== null
+      ? defaultCountOrResources
+      : (resourcesByModule || {});
+  } else if (typeof branchesOrConfig === 'object' && !Array.isArray(branchesOrConfig) && branchesOrConfig !== null) {
+    if (branchesOrConfig.branches !== undefined || branchesOrConfig.branchCount !== undefined) {
+      branchCount = Math.max(1, Number(branchesOrConfig.branches || branchesOrConfig.branchCount) || 1);
+      resources = branchesOrConfig.resources || {};
+    } else {
+      branchCount = Math.max(1, Number(defaultCountOrResources) || 1);
+      resources = resourcesByModule || {};
+    }
+  } else if (Array.isArray(branchesOrConfig)) {
+    branchCount = Math.max(1, Number(defaultCountOrResources) || 1);
+    resources = resourcesByModule || {};
   }
 
-  const lines = entries.map(([code, instances]) => {
-    const unit_price = priceFor(code);
-    return {
-      code,
-      name: SERVICE_NAMES[code] || code,
-      unit_price,
-      instances,
-      amount: unit_price * instances,
-    };
-  });
+  const lines = [
+    {
+      code: 'PLATFORM_BASE',
+      name: 'Base Platform License (Unlimited Hospital Suite)',
+      unit_price: BASE_PLATFORM_FEE,
+      instances: branchCount,
+      amount: BASE_PLATFORM_FEE * branchCount,
+    },
+  ];
 
-  // Resource-level lines — only for modules that are in `entries` (i.e.
-  // enabled) AND have resource quantities supplied.
-  const enabledCodes = new Set(entries.map(([code]) => code));
   const resource_lines = [];
-  Object.keys(resourcesByModule || {}).forEach((rawCode) => {
-    const code = String(rawCode).toUpperCase();
-    if (!enabledCodes.has(code)) return;
-    const { lines: rl } = computeResourceCost(code, resourcesByModule[rawCode]);
-    resource_lines.push(...rl);
+  const catalogModules = modulesWithResources();
+
+  catalogModules.forEach((modCode) => {
+    const resMap = resources[modCode] || resources[modCode.toLowerCase()];
+    if (resMap) {
+      const { lines: rl } = computeResourceCost(modCode, resMap);
+      resource_lines.push(...rl);
+    }
   });
 
   const base_total = lines.reduce((sum, l) => sum + l.amount, 0);
   const resource_total = resource_lines.reduce((sum, l) => sum + l.amount, 0);
   const total = base_total + resource_total;
-  const instances = lines.reduce((sum, l) => sum + l.instances, 0);
+  const instances = branchCount;
+
   return { lines, resource_lines, total, instances, base_total, resource_total };
 }
 
-module.exports = { SERVICE_PRICES, SERVICE_NAMES, priceFor, computeCost };
+module.exports = {
+  BASE_PLATFORM_FEE,
+  SERVICE_NAMES,
+  priceFor,
+  computeCost,
+};

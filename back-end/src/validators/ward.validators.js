@@ -38,17 +38,6 @@ const updateBedRequestRules = [
   { field: 'status', checks: ['isString'], optional: true },
 ];
 
-const createEmergencyRules = [
-  { field: 'patient_id', checks: ['isInt'], optional: true },
-  { field: 'bed_id', checks: ['isInt'], optional: true },
-  { field: 'department', checks: ['isString'], optional: true },
-];
-
-const updateEmergencyRules = [
-  { field: 'patient_id', checks: ['isInt'], optional: true },
-  { field: 'status', checks: ['isNotEmpty', 'isString'], optional: true },
-];
-
 module.exports = {
   createWardRules,
   updateWardRules,
@@ -56,6 +45,4 @@ module.exports = {
   updateBedStatusRules,
   createBedRequestRules,
   updateBedRequestRules,
-  createEmergencyRules,
-  updateEmergencyRules,
 };

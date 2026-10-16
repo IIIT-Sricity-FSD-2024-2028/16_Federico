@@ -16,6 +16,12 @@ router.post(
   controller.login,
 );
 router.post(
+  '/login/:actor',
+  authRateLimiter,
+  validateBody(loginRules),
+  controller.loginAsActor,
+);
+router.post(
   '/signup',
   authRateLimiter,
   validateBody(signupRules),
@@ -23,6 +29,8 @@ router.post(
 );
 router.get('/me', requireSession, controller.me);
 router.get('/entitlements', requireSession, controller.entitlements);
+router.get('/demo-accounts', controller.demoAccounts);
+router.put('/password', requireSession, controller.changePassword);
 router.post('/logout', requireSession, controller.logout);
 
 module.exports = router;

@@ -25,6 +25,12 @@ const helmetSecurity = helmet({
       connectSrc: ["'self'", 'http://localhost:*', 'ws://localhost:*'],
       objectSrc: ["'none'"],
       frameAncestors: ["'self'"],
+      // FIX: Vite's dev-server HMR creates Web Workers from blob: URLs.
+      // Without an explicit worker-src, the browser falls back to script-src
+      // which doesn't include blob: — so every HMR worker is blocked, the
+      // Vite WebSocket reconnects in a loop, and the browser console fills
+      // with "server connection lost / Creating a worker from blob: violates CSP".
+      workerSrc: ["'self'", 'blob:'],
     },
   },
   crossOriginEmbedderPolicy: false, // For local development & multi-origin embedding
@@ -32,9 +38,21 @@ const helmetSecurity = helmet({
 });
 
 // 2. Global Rate Limiter (Protects API against flooding)
+//
+// FIX: The previous limit of 1000 req / 15 min was too low for local
+// development. A single developer session involves:
+//   - React StrictMode double-fetching on every page mount
+//   - HOM dashboard polling every 15 s (7 parallel API calls each tick)
+//   - Patient portal parallel fetch bundle (~6 calls on every open)
+//   - Multiple open browser tabs
+//
+// With these patterns, 1000 requests is exhausted in roughly 3-5 minutes of
+// normal use, causing every subsequent call to return 429 and the entire app
+// to appear broken. The limit is raised to 10 000 for the current dev setup.
+// Auth and upload sub-limiters below remain stricter (brute-force protection).
 const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per window
+  max: 10000, // 10 000 requests per 15-min window per IP
   standardHeaders: true, // Return standard RateLimit-* headers
   legacyHeaders: false,
   message: {
@@ -50,7 +68,7 @@ const globalRateLimiter = rateLimit({
 // 3. Auth Rate Limiter (Protects login endpoints against brute-force attacks)
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 attempts per 15 min
+  max: 200, // Raised from 50 → 200: dev sessions log in/out frequently across roles
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -64,7 +82,7 @@ const authRateLimiter = rateLimit({
 // 4. File Upload Rate Limiter (Protects upload endpoints against disk filling)
 const uploadRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 60,
+  max: 200, // Raised from 60 → 200 to allow normal document upload workflows
   standardHeaders: true,
   legacyHeaders: false,
   message: {

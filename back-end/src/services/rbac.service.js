@@ -1,8 +1,11 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 const { ROLE_ID_TO_NAME, ROLE_NAME_TO_ID } = require('../utils/roles');
 const { hashPassword } = require('../utils/password');
+const { parseEmail, ACTOR_TO_TAG } = require('../utils/emailIdentity');
+const authService = require('./auth.service');
 
 /**
  * Fixed permission catalog — the `resource:mode` pairs `actorAccess.js`'s
@@ -46,9 +49,7 @@ function ensurePermissionCatalog() {
     if (!dataStore.permissions.some((p) => p.permission_code === code)) {
       dataStore.permissions.push({
         permission_id:
-          dataStore.permissions.length > 0
-            ? Math.max(...dataStore.permissions.map((p) => p.permission_id)) + 1
-            : 1,
+          maxId(dataStore.permissions, 'permission_id') + 1 || 1,
         permission_code: code,
         description: `${mode === 'read' ? 'View' : 'Manage'} ${resource} records`,
       });
@@ -69,9 +70,7 @@ function listRoles(organizationId) {
 function createRole(organizationId, payload) {
   const newRole = {
     custom_role_id:
-      dataStore.customRoles.length > 0
-        ? Math.max(...dataStore.customRoles.map((r) => r.custom_role_id)) + 1
-        : 1,
+      maxId(dataStore.customRoles, 'custom_role_id') + 1 || 1,
     organization_id: Number(organizationId),
     role_name: payload.role_name,
     description: payload.description || null,
@@ -185,6 +184,13 @@ function staffFor(organizationId) {
     }));
 }
 
+function orgEmailDomain(organizationId) {
+  const org = dataStore.organizations.find(
+    (o) => o.organization_id === Number(organizationId),
+  );
+  return (org && org.email_domain) || null;
+}
+
 // Fixed staff actor roles an Admin may create accounts for. Deliberately
 // excludes Admin (role 5 — the org owner, provisioned once) and Patient
 // (role 2 — self-registers, not staff).
@@ -203,6 +209,23 @@ function createStaffUser(organizationId, payload) {
   }
   const email = String(payload.email || '').trim().toLowerCase();
   if (!email) return { error: 'INVALID_EMAIL' };
+  // Unified login: the tag names the portal, the domain names the hospital.
+  const parsed = parseEmail(email);
+  if (!parsed) return { error: 'INVALID_EMAIL' };
+  if (parsed.tag !== ACTOR_TO_TAG[role]) {
+    return {
+      error: 'EMAIL_ROLE_MISMATCH',
+      role,
+      email_domain: orgEmailDomain(oid),
+    };
+  }
+  if (parsed.domain !== orgEmailDomain(oid)) {
+    return {
+      error: 'EMAIL_DOMAIN_MISMATCH',
+      role,
+      email_domain: orgEmailDomain(oid),
+    };
+  }
   if (dataStore.users.some((u) => u.email && u.email.toLowerCase() === email)) {
     return { error: 'EMAIL_TAKEN' };
   }
@@ -213,12 +236,11 @@ function createStaffUser(organizationId, payload) {
 
   const newUser = {
     user_id:
-      dataStore.users.length > 0
-        ? Math.max(...dataStore.users.map((u) => u.user_id)) + 1
-        : 101,
+      maxId(dataStore.users, 'user_id') + 1 || 101,
     name: payload.name,
-    email: payload.email,
+    email,
     password_hash: hashPassword(payload.password),
+    demo_password: payload.password,
     role_id: ROLE_NAME_TO_ID[role],
     organization_id: oid,
     hospital_id: primaryHospital ? primaryHospital.hospital_id : null,
@@ -226,6 +248,7 @@ function createStaffUser(organizationId, payload) {
     created_at: new Date().toISOString(),
   };
   dataStore.users.push(newUser);
+  authService.registerDemoPassword(email, payload.password);
   return {
     user_id: newUser.user_id,
     name: newUser.name,
@@ -250,6 +273,43 @@ function setStaffActive(userId, active) {
   };
 }
 
+/**
+ * Changes a staff account's portal role (HOM / PRE / FA). Returns
+ * { error: 'INVALID_ROLE' } for anything else — Admin is the provisioned org
+ * owner and Patient self-registers, so neither is assignable here.
+ */
+function setStaffRole(userId, actorRole) {
+  const role = String(actorRole || '').toUpperCase();
+  if (!CREATABLE_STAFF_ROLES.includes(role)) return { error: 'INVALID_ROLE' };
+  const user = dataStore.users.find((u) => u.user_id === Number(userId));
+  if (!user) return null;
+  // The email's tag names the portal, so it follows the role:
+  // rekha.pre@citygen.com promoted to HOM signs in as rekha.hom@citygen.com.
+  const parsed = parseEmail(user.email);
+  if (parsed && parsed.tag && parsed.tag !== ACTOR_TO_TAG[role]) {
+    const renamed =
+      `${parsed.name}.${ACTOR_TO_TAG[role]}@${parsed.domain}`.toLowerCase();
+    if (
+      dataStore.users.some(
+        (u) =>
+          u.user_id !== user.user_id &&
+          String(u.email || '').toLowerCase() === renamed,
+      )
+    ) {
+      return { error: 'EMAIL_TAKEN' };
+    }
+    user.email = renamed;
+  }
+  user.role_id = ROLE_NAME_TO_ID[role];
+  return {
+    user_id: user.user_id,
+    name: user.name,
+    email: user.email,
+    actor_role: role,
+    is_active: user.is_active !== false,
+  };
+}
+
 module.exports = {
   ensurePermissionCatalog,
   listPermissions,
@@ -265,5 +325,6 @@ module.exports = {
   staffFor,
   createStaffUser,
   setStaffActive,
+  setStaffRole,
   CREATABLE_STAFF_ROLES,
 };

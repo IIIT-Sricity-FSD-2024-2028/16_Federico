@@ -1,0 +1,37 @@
+/*
+ * Extracted verbatim from the inline <style> block of
+ * front-end/HOM/screen-02-bed-management.html. These rules were page-scoped only because
+ * each legacy page loaded alone; the matching route chunk imports this file
+ * so the scoping still holds (DEC-5).
+ */
+        /* .dashboard-container / .header-section / .filter-bar (base) /
+           .bed-grid / .bed-card* now live once in global.css. */
+        .filter-bar { justify-content: space-between; }
+
+        /* Stats Row */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+        .stat-label { font-size: 14px; color: var(--text-secondary); }
+        .stat-value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+
+        /* Bed Grid with scroll bar */
+        .ward-section { background: var(--md-surface-container, #fff); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-1); }
+        .ward-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .bed-scroll-container {
+            max-height: 360px;
+            overflow-y: auto;
+            padding-right: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--md-outline-variant, #cac4d0) transparent;
+        }
+        .bed-scroll-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .bed-scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .bed-scroll-container::-webkit-scrollbar-thumb {
+            background-color: var(--md-outline-variant, #cac4d0);
+            border-radius: var(--radius-full);
+        }
+    

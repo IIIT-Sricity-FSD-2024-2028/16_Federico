@@ -28,41 +28,22 @@ describe('Entitlement enforcement (module + resource)', () => {
     });
   }
 
-  it('fails CLOSED when an org has no flag row for a module', async () => {
-    // Org 1 has every module row seeded; remove the BILLING row entirely to
-    // simulate a module that was never provisioned for this org.
-    const original = dataStore.organizationModules.slice();
-    dataStore.organizationModules = dataStore.organizationModules.filter(
-      (m) => !(m.organization_id === 1 && m.module_code === 'BILLING'),
-    );
-
+  it('all core clinical and operational modules are unlocked by default', async () => {
     const res = await request(app)
       .get('/billing/services')
       .set('Authorization', `Bearer ${sessionFor(1, 'FA')}`);
 
-    dataStore.organizationModules = original;
-
-    expect(res.status).toBe(403);
-    expect(res.body.message).toMatch(/BILLING module is not enabled/i);
-  });
-
-  it('403s a direct API call for a module the org disabled, even with RBAC permission', async () => {
-    organizationService.setModuleFlag(2, 'BILLING', false);
-    const res = await request(app)
-      .get('/billing/services')
-      .set('Authorization', `Bearer ${sessionFor(2, 'FA')}`);
-
-    expect(res.status).toBe(403);
-    expect(res.body.error).toBe('Forbidden');
-  });
-
-  it('allows the same call once the module is enabled', async () => {
-    organizationService.setModuleFlag(2, 'BILLING', true);
-    const res = await request(app)
-      .get('/billing/services')
-      .set('Authorization', `Bearer ${sessionFor(2, 'FA')}`);
-
     expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('exposes all modules as enabled in isModuleEnabled and modulesFor', () => {
+    expect(entitlementService.isModuleEnabled(1, 'BILLING')).toBe(true);
+    expect(entitlementService.isModuleEnabled(1, 'ADMISSIONS')).toBe(true);
+    expect(entitlementService.isModuleEnabled(2, 'INVENTORY')).toBe(true);
+    const modules = entitlementService.modulesFor(1);
+    expect(modules.BILLING).toBe(true);
+    expect(modules.APPOINTMENTS).toBe(true);
   });
 
   it('exposes the entitlement snapshot at GET /auth/entitlements', async () => {
@@ -126,7 +107,7 @@ describe('Entitlement enforcement (module + resource)', () => {
   });
 
   it('rejects login for deactivated staff accounts with 403 ACCOUNT_INACTIVE', async () => {
-    const user = dataStore.users.find((u) => u.email === 'rekha.pre@hosp.com');
+    const user = dataStore.users.find((u) => u.email === 'rekha.pre@citygen.com');
     expect(user).toBeDefined();
     const originalState = user.is_active;
 
@@ -134,7 +115,7 @@ describe('Entitlement enforcement (module + resource)', () => {
 
     const res = await request(app)
       .post('/auth/login')
-      .send({ email: 'rekha.pre@hosp.com', password: 'Pre@123', organization_id: 1 });
+      .send({ email: 'rekha.pre@citygen.com', password: 'Pre@123', organization_id: 1 });
 
     user.is_active = originalState;
 

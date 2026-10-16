@@ -65,6 +65,10 @@ function createAvailability(req, res) {
 }
 
 function deleteAvailability(req, res) {
+  const availability = doctorService.findAvailabilityById(+req.params.id);
+  if (availability && !belongsToOrg(availability, req)) {
+    return res.status(403).json(FORBIDDEN);
+  }
   sendResult(res, doctorService.deleteAvailability(+req.params.id), 200);
 }
 

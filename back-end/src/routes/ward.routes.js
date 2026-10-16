@@ -3,7 +3,6 @@
 const { Router } = require('express');
 const controller = require('../controllers/ward.controller');
 const { authorize } = require('../middleware/actorAccess');
-const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createWardRules,
@@ -12,15 +11,9 @@ const {
   updateBedStatusRules,
   createBedRequestRules,
   updateBedRequestRules,
-  createEmergencyRules,
-  updateEmergencyRules,
 } = require('../validators/ward.validators');
 
 const router = Router();
-
-// Wards/beds/bed-requests/emergency all live under the ADMISSIONS module
-// flag ("Admissions & Bed Management" — see utils/tenant.js#MODULES).
-router.use(requireModule('ADMISSIONS'));
 
 router.get(
   '/',
@@ -86,25 +79,6 @@ router.put(
   authorize(['SUPER_USER'], 'ward', 'write'),
   validateBody(updateBedRequestRules),
   controller.updateBedRequest,
-);
-
-// Phase 2 — emergency admissions
-router.get(
-  '/emergency',
-  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
-  controller.findAllEmergencies,
-);
-router.post(
-  '/emergency',
-  authorize(['SUPER_USER'], 'admission', 'write'),
-  validateBody(createEmergencyRules),
-  controller.createEmergency,
-);
-router.put(
-  '/emergency/:id',
-  authorize(['SUPER_USER'], 'ward', 'write'),
-  validateBody(updateEmergencyRules),
-  controller.updateEmergency,
 );
 
 module.exports = router;

@@ -1,6 +1,7 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 
 function findAll() {
   return dataStore.patients;
@@ -40,9 +41,9 @@ function generateUhid() {
 function create(patient) {
   const newPatient = {
     patient_id:
-      dataStore.patients.length > 0
-        ? Math.max(...dataStore.patients.map((p) => p.patient_id)) + 1
-        : 201,
+      maxId(dataStore.patients, 'patient_id', 201) + 1,
+    user_id: patient.user_id ? Number(patient.user_id) : null,
+    uhid: patient.uhid || generateUhid(),
     name: patient.name,
     email: patient.email || null,
     phone: patient.phone || null,
@@ -51,7 +52,8 @@ function create(patient) {
     gender: patient.gender || null,
     blood_group: patient.blood_group || null,
     address: patient.address || null,
-    uhid: patient.uhid || generateUhid(),
+    emergency_contact_name: patient.emergency_contact_name || null,
+    emergency_contact_phone: patient.emergency_contact_phone || null,
     organization_id: patient.organization_id ? Number(patient.organization_id) : null,
     hospital_id: patient.hospital_id ? Number(patient.hospital_id) : null,
     created_at: new Date().toISOString(),
@@ -63,13 +65,22 @@ function create(patient) {
 function update(id, patch) {
   const patient = findOne(id);
   if (!patient) return null;
-  Object.assign(patient, patch);
+  const { patient_id: _pid, organization_id: _oid, hospital_id: _hid, created_at: _cat, uhid: _uhid, ...safePatch } = patch;
+  Object.assign(patient, safePatch);
   return patient;
 }
 
 function remove(id) {
   const patient = findOne(id);
   if (!patient) return { deleted: false };
+  const hasActiveAdmission = (dataStore.admissions || []).some(
+    (a) => a.patient_id === patient.patient_id && a.status === 'ADMITTED',
+  );
+  if (hasActiveAdmission) {
+    const err = new Error(`Cannot delete patient #${patient.patient_id} with active admission`);
+    err.statusCode = 409;
+    throw err;
+  }
   const initialLen = dataStore.patients.length;
   dataStore.patients = dataStore.patients.filter(
     (p) => p.patient_id !== patient.patient_id,
@@ -89,16 +100,12 @@ function findInsuranceByPatient(patient_id) {
 
 function createInsurance(insurance) {
   const newIns = {
-    insurance_id:
-      dataStore.patientInsurances.length > 0
-        ? Math.max(...dataStore.patientInsurances.map((i) => i.insurance_id)) +
-          1
-        : 301,
+    insurance_id: maxId(dataStore.patientInsurances, 'insurance_id', 301) + 1,
     patient_id: Number(insurance.patient_id),
     provider_name: insurance.provider_name,
     policy_number: insurance.policy_number,
     member_id: insurance.member_id || `MEM-${Number(insurance.patient_id)}`,
-    coverage_type: insurance.coverage_type || 'Self',
+    coverage_type: insurance.coverage_type || 'Comprehensive',
     coverage_limit: Number(insurance.coverage_limit) || 0,
     copay_percentage: Number(insurance.copay_percentage) || 0,
     valid_from: insurance.valid_from || new Date().toISOString().slice(0, 10),

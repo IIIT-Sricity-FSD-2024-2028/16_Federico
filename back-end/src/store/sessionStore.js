@@ -39,4 +39,20 @@ function destroySession(token) {
   return sessions.delete(token);
 }
 
-module.exports = { createSession, getSession, destroySession };
+/**
+ * Ends every live session for a user. Sessions snapshot the role at login,
+ * so an Admin changing a staff member's role (or disabling them) must revoke
+ * the old sessions for the change to take effect immediately.
+ */
+function destroySessionsForUser(userId) {
+  let removed = 0;
+  sessions.forEach((session, token) => {
+    if (session.userId === userId && !session.isPlatformUser) {
+      sessions.delete(token);
+      removed++;
+    }
+  });
+  return removed;
+}
+
+module.exports = { createSession, getSession, destroySession, destroySessionsForUser };

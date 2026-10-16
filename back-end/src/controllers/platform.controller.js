@@ -64,10 +64,11 @@ function findOrganization(req, res) {
 function createOrganization(req, res) {
   const result = provisioningService.provision(req.body);
   if (result.error) {
-    return res.status(400).json({
-      message: 'Unknown subscription plan',
-      error: 'Bad Request',
-      statusCode: 400,
+    const [status, message] = provisioningService.errorResponseFor(result);
+    return res.status(status).json({
+      message,
+      error: status === 409 ? 'Conflict' : 'Bad Request',
+      statusCode: status,
     });
   }
   logger.log(
@@ -80,6 +81,63 @@ function createOrganization(req, res) {
     `Provisioned "${result.organization.name}"`,
   );
   sendResult(res, result, 201);
+}
+
+/**
+ * Moves an organization to a new email domain, renaming every staff/admin
+ * login on the old one. Platform-only: a Hospital Admin changing it could
+ * lock their own staff out.
+ */
+function changeEmailDomain(req, res) {
+  const result = organizationService.changeEmailDomain(
+    +req.params.id,
+    req.body.email_domain,
+  );
+  if (result.error) {
+    const [status, message] = provisioningService.errorResponseFor(result);
+    return res.status(status).json({
+      message,
+      error:
+        status === 409
+          ? 'Conflict'
+          : status === 404
+            ? 'Not Found'
+            : 'Bad Request',
+      statusCode: status,
+    });
+  }
+  const { organization, previousDomain, renamedUsers } = result;
+  logger.log(
+    `✉️  EMAIL DOMAIN  organization_id=${organization.organization_id}  ${previousDomain} → ${organization.email_domain}  renamed=${renamedUsers.length}`,
+  );
+  platformActivityService.log(
+    req.session.userId,
+    'CHANGE_EMAIL_DOMAIN',
+    organization.organization_id,
+    `Changed "${organization.name}" email domain from ${previousDomain} to ${organization.email_domain} (${renamedUsers.length} staff logins renamed)`,
+  );
+  sendResult(res, result, 200);
+}
+
+function emailDomainImpact(req, res) {
+  const organization = organizationService.findById(+req.params.id);
+  if (!organization) {
+    return res.status(404).json({
+      message: 'Organization not found',
+      error: 'Not Found',
+      statusCode: 404,
+    });
+  }
+  sendResult(
+    res,
+    {
+      email_domain: organization.email_domain || null,
+      staff_logins: organizationService.staffLoginCount(
+        organization.organization_id,
+      ),
+    },
+    200,
+  );
 }
 
 function suspendOrganization(req, res) {
@@ -150,6 +208,7 @@ function platformUsage(req, res) {
     return {
       organization_id: o.organization_id,
       name: o.name,
+      email_domain: o.email_domain || null,
       status: o.status,
       ...usageData,
     };
@@ -234,31 +293,6 @@ function createHospital(req, res) {
     `✅ BRANCH CREATED  hospital_id=${result.hospital_id}  organization_id=${result.organization_id}`,
   );
   sendResult(res, result, 201);
-}
-
-// ---- Feature flags ----
-
-function findModuleFlags(req, res) {
-  sendResult(res, organizationService.allModuleFlagsFor(+req.params.id), 200);
-}
-
-function setModuleFlag(req, res) {
-  const result = organizationService.setModuleFlag(
-    +req.params.id,
-    req.params.moduleCode,
-    Boolean(req.body.enabled),
-    req.body.instances,
-  );
-  logger.log(
-    `🚩 MODULE FLAG  organization_id=${req.params.id}  module=${req.params.moduleCode}  enabled=${req.body.enabled}  instances=${req.body.instances ?? '(unchanged)'}`,
-  );
-  platformActivityService.log(
-    req.session.userId,
-    'SET_MODULE_FLAG',
-    +req.params.id,
-    `${req.params.moduleCode} ${req.body.enabled ? 'enabled' : 'disabled'}`,
-  );
-  sendResult(res, result, 200);
 }
 
 // ---- Resource-level entitlements ----
@@ -409,11 +443,15 @@ function getGlobalRates(req, res) {
       updated_at: new Date().toISOString(),
     };
   }
-  sendResult(res, dataStore.platformRates, 200);
+  const payload = {
+    ...dataStore.platformRates,
+    base_fee: dataStore.platformRates.base_platform_fee,
+  };
+  sendResult(res, payload, 200);
 }
 
 function updateGlobalRates(req, res) {
-  const { base_platform_fee, rates } = req.body;
+  const { base_platform_fee, base_fee, rates } = req.body;
   if (!dataStore.platformRates) {
     dataStore.platformRates = {
       base_platform_fee: 3000,
@@ -431,8 +469,9 @@ function updateGlobalRates(req, res) {
       updated_at: new Date().toISOString(),
     };
   }
-  if (base_platform_fee !== undefined) {
-    dataStore.platformRates.base_platform_fee = Math.max(0, Number(base_platform_fee) || 0);
+  const effectiveBaseFee = base_platform_fee !== undefined ? base_platform_fee : base_fee;
+  if (effectiveBaseFee !== undefined) {
+    dataStore.platformRates.base_platform_fee = Math.max(0, Number(effectiveBaseFee) || 0);
   }
   if (rates && typeof rates === 'object') {
     Object.keys(rates).forEach((k) => {
@@ -448,7 +487,11 @@ function updateGlobalRates(req, res) {
     'Updated global SaaS platform pricing rates',
   );
 
-  sendResult(res, dataStore.platformRates, 200);
+  const payload = {
+    ...dataStore.platformRates,
+    base_fee: dataStore.platformRates.base_platform_fee,
+  };
+  sendResult(res, payload, 200);
 }
 
 module.exports = {
@@ -458,6 +501,8 @@ module.exports = {
   findAllOrganizations,
   findOrganization,
   createOrganization,
+  changeEmailDomain,
+  emailDomainImpact,
   suspendOrganization,
   activateOrganization,
   deleteOrganization,
@@ -467,8 +512,6 @@ module.exports = {
   platformUsage,
   findHospitals,
   createHospital,
-  findModuleFlags,
-  setModuleFlag,
   moduleResourceCatalog,
   findResources,
   setResources,

@@ -1,21 +1,20 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 
 function findAll() {
   return dataStore.admissions;
 }
 
 function findOne(id) {
-  return dataStore.admissions.find((a) => a.admission_id === id) || null;
+  const numId = Number(id);
+  return dataStore.admissions.find((a) => a.admission_id === numId) || null;
 }
 
 function create(admission) {
   const newAdmission = {
-    admission_id:
-      dataStore.admissions.length > 0
-        ? Math.max(...dataStore.admissions.map((a) => a.admission_id)) + 1
-        : 701,
+    admission_id: maxId(dataStore.admissions, 'admission_id', 701) + 1,
     patient_id: Number(admission.patient_id),
     appointment_id: admission.appointment_id ? Number(admission.appointment_id) : null,
     bed_id: admission.bed_id ? Number(admission.bed_id) : null,
@@ -33,7 +32,8 @@ function create(admission) {
 function update(id, patch) {
   const admission = findOne(id);
   if (!admission) return null;
-  Object.assign(admission, patch);
+  const { admission_id: _aid, patient_id: _pid, organization_id: _oid, hospital_id: _hid, admit_time: _at, ...safePatch } = patch;
+  Object.assign(admission, safePatch);
   return admission;
 }
 

@@ -9,10 +9,10 @@ const {
   platformLoginRules,
   provisionOrganizationRules,
   createHospitalRules,
-  setModuleFlagRules,
   createApiKeyRules,
   createPlanRules,
   setSubscriptionRules,
+  changeEmailDomainRules,
 } = require('../validators/platform.validators');
 
 const router = Router();
@@ -37,6 +37,17 @@ router.post(
   controller.createOrganization,
 );
 router.get('/organizations/:id', ...gate, controller.findOrganization);
+router.get(
+  '/organizations/:id/email-domain',
+  ...gate,
+  controller.emailDomainImpact,
+);
+router.patch(
+  '/organizations/:id/email-domain',
+  ...gate,
+  validateBody(changeEmailDomainRules),
+  controller.changeEmailDomain,
+);
 router.put(
   '/organizations/:id/suspend',
   ...gate,
@@ -64,15 +75,6 @@ router.post(
   ...gate,
   validateBody(createHospitalRules),
   controller.createHospital,
-);
-
-// Feature flags
-router.get('/organizations/:id/modules', ...gate, controller.findModuleFlags);
-router.put(
-  '/organizations/:id/modules/:moduleCode',
-  ...gate,
-  validateBody(setModuleFlagRules),
-  controller.setModuleFlag,
 );
 
 // Resource-level entitlements

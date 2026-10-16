@@ -1,0 +1,104 @@
+/* tab-nav.css — Universal tab switcher styling */
+
+.tab-nav-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  user-select: none;
+  scrollbar-width: thin;
+}
+
+/* Underline variant */
+.tab-nav-container.variant-underline {
+  border-bottom: 2px solid var(--color-border, #e2e8f0);
+  gap: 16px;
+  padding: 0 4px;
+}
+
+.tab-nav-container.variant-underline .tab-nav-item {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-muted-fg, #64748b);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+
+.tab-nav-container.variant-underline .tab-nav-item:hover {
+  color: var(--color-fg, #1c1b1f);
+}
+
+.tab-nav-container.variant-underline .tab-nav-item.is-active {
+  color: var(--md-primary, #6750a4);
+  font-weight: 700;
+}
+
+.tab-nav-container.variant-underline .tab-nav-item.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--md-primary, #6750a4);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Pills variant */
+.tab-nav-container.variant-pills {
+  background: var(--md-surface-container, #f1f5f9);
+  padding: 4px;
+  border-radius: var(--radius-full, 999px);
+  gap: 4px;
+  display: inline-flex;
+}
+
+.tab-nav-container.variant-pills .tab-nav-item {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-full, 999px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted-fg, #64748b);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.tab-nav-container.variant-pills .tab-nav-item:hover {
+  color: var(--color-fg, #1c1b1f);
+}
+
+.tab-nav-container.variant-pills .tab-nav-item.is-active {
+  background: var(--md-surface, #ffffff);
+  color: var(--color-fg, #1c1b1f);
+  font-weight: 600;
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+/* Badge count inside tab */
+.tab-nav-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--md-surface-container-high, #e2e8f0);
+  color: var(--color-fg, #1c1b1f);
+}
+
+.tab-nav-item.is-active .tab-nav-badge {
+  background: var(--md-primary-container, #eaddff);
+  color: var(--md-on-primary-container, #21005d);
+}
