@@ -160,7 +160,7 @@ export default function PreDashboardPage() {
                             Follow Up
                           </Button>
                           <Button variant="primary" size="sm" className="approve" onClick={() => setBedRequestId(r.pre_request_id)}>
-                            Admitted
+                           Request Bed
                           </Button>
                         </div>
                       )}
@@ -182,4 +182,3 @@ export default function PreDashboardPage() {
     </>
   );
 }
-
