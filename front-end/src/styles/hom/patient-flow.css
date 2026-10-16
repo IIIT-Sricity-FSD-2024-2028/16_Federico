@@ -1,0 +1,366 @@
+/*
+ * Extracted from front-end/HOM/screen-03-patient-flow.html + patient-flow.js.
+ */
+.table-container {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Filter Bar */
+.filter-bar {
+  gap: 12px;
+}
+.filter-input {
+  flex: 1;
+  min-width: 200px;
+}
+.filter-dropdown {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.filter-dropdown:hover {
+  background: #f8fafc;
+}
+
+/* Detail Modal Specifics */
+.avatar-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+.tab-content-panel {
+  display: none;
+}
+.tab-content-panel.active {
+  display: block;
+}
+
+/* ========================================================
+   Clean Patient Detail & Receipt Modal Redesign
+   ======================================================== */
+.pd-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pd-nav-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.pd-badges-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-cleared-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+/* Info Cards */
+.pd-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.pd-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pd-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px 20px;
+}
+
+@media (max-width: 720px) {
+  .pd-grid-4col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pd-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.pd-field-value {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.pd-field-value.subdued {
+  font-weight: 500;
+  color: #475569;
+}
+
+/* Clinical notes block */
+.pd-notes-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.pd-notes-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.pd-notes-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* Receipt / Billing Card */
+.pd-receipt-hero {
+  background: linear-gradient(to bottom, #ffffff, #f8fafc);
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.pd-receipt-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pd-receipt-org {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pd-receipt-subtitle {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.pd-receipt-badge-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.pd-receipt-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.pd-receipt-status-pill.open {
+  color: #854d0e;
+  background: #fef9c3;
+  border-color: #fef08a;
+}
+
+.pd-receipt-number {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pd-receipt-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .pd-receipt-meta-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pd-receipt-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pd-receipt-meta-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.pd-receipt-meta-val {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Itemized Charges Table Container */
+.pd-table-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.pd-table-header {
+  padding: 12px 18px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pd-table-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  margin: 0;
+}
+
+.pd-table-scroll {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+/* Summary Totals Card */
+.pd-totals-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pd-totals-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pd-totals-note {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.pd-totals-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.pd-totals-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 13px;
+  color: #475569;
+}
+
+.pd-totals-row.grand-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.pd-totals-row.grand-total .amount {
+  color: var(--primary, #6750a4);
+  font-size: 18px;
+}
