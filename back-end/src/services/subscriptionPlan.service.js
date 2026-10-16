@@ -1,21 +1,21 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
+const { maxId } = require('../utils/maxId');
 
 function findAll() {
   return dataStore.subscriptionPlans;
 }
 
 function findById(id) {
-  return dataStore.subscriptionPlans.find((p) => p.plan_id === id) || null;
+  const numId = Number(id);
+  return dataStore.subscriptionPlans.find((p) => Number(p.plan_id) === numId) || null;
 }
 
 function create(payload) {
   const newPlan = {
     plan_id:
-      dataStore.subscriptionPlans.length > 0
-        ? Math.max(...dataStore.subscriptionPlans.map((p) => p.plan_id)) + 1
-        : 1,
+      maxId(dataStore.subscriptionPlans, 'plan_id', 1) + 1,
     name: payload.name,
     max_beds: Number(payload.max_beds) || 0,
     max_users: Number(payload.max_users) || 0,
