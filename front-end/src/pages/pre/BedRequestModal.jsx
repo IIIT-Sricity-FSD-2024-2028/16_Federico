@@ -8,6 +8,19 @@ import Modal from '../../components/layout/Modal.jsx';
 import { toast } from '../../components/feedback/feedback.js';
 import { formatDate, to12Hour } from './preHelpers.js';
 
+function autoMatchWard(wards, department) {
+  const deptLower = String(department || '').toLowerCase();
+  const matched = (wards || []).find((w) => {
+    const wName = String(w.ward_name).toLowerCase();
+    if (deptLower.includes('pediatr') && wName.includes('pediatr')) return true;
+    if ((deptLower.includes('cardio') || deptLower.includes('heart')) && wName.includes('cardiac')) return true;
+    if ((deptLower.includes('matern') || deptLower.includes('gynec') || deptLower.includes('obstet')) && wName.includes('matern')) return true;
+    if (deptLower.includes('icu') && wName.includes('icu')) return true;
+    return false;
+  });
+  return matched ? String(matched.ward_id) : '';
+}
+
 export default function BedRequestModal({ request, wards, onClose, onSubmitted }) {
   if (!request) return null;
   return (
@@ -22,7 +35,7 @@ export default function BedRequestModal({ request, wards, onClose, onSubmitted }
 }
 
 function BedRequestForm({ request, wards, onClose, onSubmitted }) {
-  const [wardId, setWardId] = useState('');
+  const [wardId, setWardId] = useState(() => autoMatchWard(wards, request.department));
   const [priority, setPriority] = useState('NORMAL');
   const [submitting, setSubmitting] = useState(false);
 
