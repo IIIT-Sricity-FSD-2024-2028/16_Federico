@@ -65,14 +65,13 @@ function dynamicRoleGrants(req, resource, mode) {
 
 function authorize(legacyRoles, resource, mode) {
   return function (req, res, next) {
-    const legacyOk = legacyRoles.includes(req.headers['x-role']);
     const allowedActors = ACTOR_ACCESS[resource]?.[mode] || [];
     const actorOk = Boolean(
-      req.session && allowedActors.includes(req.session.role),
+      req.session && (allowedActors.includes(req.session.role) || allowedActors.includes(req.session.actor)),
     );
     const dynamicOk = dynamicRoleGrants(req, resource, mode);
 
-    if (legacyOk || actorOk || dynamicOk) return next();
+    if (actorOk || dynamicOk) return next();
 
     return res.status(403).json({
       message: 'Forbidden resource',

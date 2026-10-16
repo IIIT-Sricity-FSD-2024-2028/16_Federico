@@ -5,12 +5,10 @@ const dataStore = require('../store/dataStore');
 // Exact key list from the original DataController — order matters only
 // for readability, not behavior.
 const SYNCED_KEYS = [
-  'stateVersion',
   'roles',
   'users',
   'patients',
   'patientInsurances',
-  'patientInsuranceDocuments',
   'doctors',
   'doctorAvailabilities',
   'appointments',
@@ -21,7 +19,6 @@ const SYNCED_KEYS = [
   'services',
   'ledgers',
   'ledgerEntries',
-  'insurances',
   'payments',
   'inventoryItems',
   'purchaseRequests',

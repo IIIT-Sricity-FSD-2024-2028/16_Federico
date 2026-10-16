@@ -20,14 +20,9 @@
  * has `req.tenant.organizationId === null`.
  */
 
-// Fixed module catalog (tasks.md §10 "Feature Flags" example set, extended
-// to cover every module this app actually has a resource for).
-//
-// A module is a *commercially purchasable* unit. Each maps to one or more
-// of the `resource:mode` areas in middleware/actorAccess.js#ACTOR_ACCESS
-// (see MODULE_RESOURCE_AREAS below). RBAC still decides which role may act
-// within a module; the module flag decides whether the organization bought
-// the module at all. Both must pass — see middleware/tenant.js#requireModule.
+// Standard clinical and operational module catalog.
+// In Federico's capacity-based model, all 8 core modules are included by
+// default for every organization.
 const MODULES = [
   { code: 'APPOINTMENTS', name: 'Appointments' },
   { code: 'ADMISSIONS', name: 'Admissions & Bed Management' },
@@ -41,9 +36,7 @@ const MODULES = [
 ];
 const MODULE_CODES = MODULES.map((m) => m.code);
 
-// Which ACTOR_ACCESS `resource` keys sit under each purchasable module.
-// Used by documentation / tooling — the actual route gating is one
-// requireModule('CODE') per feature router.
+// Which ACTOR_ACCESS `resource` keys sit under each module area.
 const MODULE_RESOURCE_AREAS = {
   APPOINTMENTS: ['appointment'],
   ADMISSIONS: ['ward', 'wardAdmin', 'admission', 'preRequest'],
