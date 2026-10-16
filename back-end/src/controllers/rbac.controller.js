@@ -4,6 +4,7 @@ const rbacService = require('../services/rbac.service');
 const dataStore = require('../store/dataStore');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
+const { destroySessionsForUser } = require('../store/sessionStore');
 
 const logger = createLogger('🛡️  RBAC');
 const FORBIDDEN = {
@@ -132,9 +133,25 @@ const STAFF_CREATE_ERRORS = {
   EMAIL_TAKEN: [409, 'That email is already registered', 'Conflict'],
 };
 
+/** Staff emails must be name.<role>@<the hospital's domain> (unified login). */
+function staffEmailMessage(result) {
+  const tag = String(result.role || '').toLowerCase();
+  return `${result.role} staff emails must look like name.${tag}@${result.email_domain || 'yourhospital.com'}`;
+}
+
 function createStaff(req, res) {
   const result = rbacService.createStaffUser(req.tenant.organizationId, req.body);
   if (result && result.error) {
+    if (
+      result.error === 'EMAIL_ROLE_MISMATCH' ||
+      result.error === 'EMAIL_DOMAIN_MISMATCH'
+    ) {
+      return res.status(400).json({
+        message: staffEmailMessage(result),
+        error: 'Bad Request',
+        statusCode: 400,
+      });
+    }
     const [status, message, error] =
       STAFF_CREATE_ERRORS[result.error] || STAFF_CREATE_ERRORS.INVALID_ROLE;
     return res.status(status).json({ message, error, statusCode: status });
@@ -145,7 +162,8 @@ function createStaff(req, res) {
   sendResult(res, result, 201);
 }
 
-function setStaffActive(req, res) {
+/** The org's own non-Patient, non-Admin user named by :userId, or null. */
+function staffTarget(req) {
   const targetUser = dataStore.users.find(
     (u) => u.user_id === +req.params.userId,
   );
@@ -155,11 +173,42 @@ function setStaffActive(req, res) {
     targetUser.role_id === 2 ||
     targetUser.role_id === 5
   ) {
-    return res.status(403).json(FORBIDDEN);
+    return null;
   }
+  return targetUser;
+}
+
+function setStaffActive(req, res) {
+  const targetUser = staffTarget(req);
+  if (!targetUser) return res.status(403).json(FORBIDDEN);
   const result = rbacService.setStaffActive(
     targetUser.user_id,
     Boolean(req.body.is_active),
+  );
+  if (!result.is_active) destroySessionsForUser(targetUser.user_id);
+  sendResult(res, result, 200);
+}
+
+// PUT /rbac/staff/:userId/actor-role — the Staff Directory's role dropdown.
+function setStaffRole(req, res) {
+  const targetUser = staffTarget(req);
+  if (!targetUser) return res.status(403).json(FORBIDDEN);
+  const result = rbacService.setStaffRole(targetUser.user_id, req.body.actor_role);
+  if (result && result.error) {
+    const [status, message, error] =
+      result.error === 'EMAIL_TAKEN'
+        ? [
+            409,
+            'Changing the role renames the login email, and that address is already registered',
+            'Conflict',
+          ]
+        : STAFF_CREATE_ERRORS.INVALID_ROLE;
+    return res.status(status).json({ message, error, statusCode: status });
+  }
+  // Live sessions carry the old role; make the change effective now.
+  destroySessionsForUser(targetUser.user_id);
+  logger.log(
+    `✏️  STAFF ROLE  user_id=${targetUser.user_id}  role=${result.actor_role}  org=${req.tenant.organizationId}`,
   );
   sendResult(res, result, 200);
 }
@@ -176,4 +225,5 @@ module.exports = {
   listStaff,
   createStaff,
   setStaffActive,
+  setStaffRole,
 };

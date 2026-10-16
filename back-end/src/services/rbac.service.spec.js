@@ -96,18 +96,18 @@ describe('services/rbac.service', () => {
 
   it('staffFor() lists only non-Patient users in the organization, each with their custom roles resolved', () => {
     // Uses the real seeded org-1 dataset (see dataStore.js and docs/README.md):
-    // admin@hosp.com (HOM), rekha.pre@hosp.com (PRE), farah.fa@hosp.com (FA),
-    // billing.assist@hosp.com (PRE, has a custom role) all live in organization_id 1,
+    // admin.hom@citygen.com (HOM), rekha.pre@citygen.com (PRE), farah.fa@citygen.com (FA),
+    // billing.assist.pre@citygen.com (PRE, has a custom role) all live in organization_id 1,
     // alongside several Patient users that must NOT appear here.
     const staff = rbacService.staffFor(1);
     expect(staff.length).toBeGreaterThan(0);
     expect(staff.every((s) => s.actor_role !== 'Patient')).toBe(true);
 
-    const hom = staff.find((s) => s.email === 'admin@hosp.com');
+    const hom = staff.find((s) => s.email === 'admin.hom@citygen.com');
     expect(hom.actor_role).toBe('HOM');
 
     const billingAssist = staff.find(
-      (s) => s.email === 'billing.assist@hosp.com',
+      (s) => s.email === 'billing.assist.pre@citygen.com',
     );
     expect(
       billingAssist.custom_roles.some(

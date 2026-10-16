@@ -10,6 +10,7 @@ const {
   assignPermissionRules,
   assignStaffRoleRules,
   createStaffRules,
+  setStaffRoleRules,
 } = require('../validators/rbac.validators');
 
 const router = Router();
@@ -83,6 +84,13 @@ router.put(
   requireTenant,
   authorize(['SUPER_USER'], 'rbac', 'write'),
   controller.setStaffActive,
+);
+router.put(
+  '/staff/:userId/actor-role',
+  requireTenant,
+  authorize(['SUPER_USER'], 'rbac', 'write'),
+  validateBody(setStaffRoleRules),
+  controller.setStaffRole,
 );
 
 module.exports = router;
