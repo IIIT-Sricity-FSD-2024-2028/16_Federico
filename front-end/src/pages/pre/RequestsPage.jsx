@@ -74,7 +74,6 @@ export default function RequestsPage() {
       <div className="container">
         <PageHeader
           title="Patient Appointment Requests"
-          subtitle="Review incoming patient requests, verify details, and assign consultation slots"
         />
         <SearchToolbar
           searchQuery={query}
@@ -115,7 +114,6 @@ export default function RequestsPage() {
                 colSpan={11}
                 icon={null}
                 title="No Pending Requests"
-                message="There are no patient appointment requests waiting for review."
               />
             ) : filtered.length === 0 ? (
               <EmptyState
@@ -123,7 +121,6 @@ export default function RequestsPage() {
                 colSpan={11}
                 icon={null}
                 title="No Matching Requests"
-                message="No patient requests match your search criteria."
               />
             ) : (
               filtered.map((r) => (

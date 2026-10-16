@@ -59,7 +59,6 @@ export default function RejectPopup({ request, onClose, onDone }) {
       open
       onClose={onClose}
       title="Reject Appointment Request"
-      subtitle="Provide a clear, clinical reason so the patient understands why their request cannot be accommodated."
       size="md"
       className="approve-dialog-shell"
       footer={dialogFooter}
@@ -106,15 +105,11 @@ export default function RejectPopup({ request, onClose, onDone }) {
           <textarea
             id="rejectReason"
             className="approve-textarea"
-            placeholder="e.g. Doctor is unavailable for the selected slot, specialist referral required, or please reschedule to next week..."
             rows={4}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             required
           />
-          <span className="approve-help-text">
-            This reason will be visible to the patient in their appointment history.
-          </span>
         </div>
       </div>
     </DialogShell>

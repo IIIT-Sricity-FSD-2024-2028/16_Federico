@@ -96,7 +96,6 @@ export default function RegisterWalkInPopup({ open, onClose, onRegistered }) {
           <div className="emergency-modal-head">
             <div>
               <h2 id="patientModalTitle" style={{ color: 'var(--md-primary, #0f766e)' }}>Register Walk-In Patient</h2>
-              <p>Create verified hospital record for new walk-in patient.</p>
             </div>
             <button className="emergency-modal-close" type="button" onClick={onClose} aria-label="Close modal">{'✕'}</button>
           </div>

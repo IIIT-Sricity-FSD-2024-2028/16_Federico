@@ -12,7 +12,7 @@ import PageHeader from '../../components/layout/PageHeader.jsx';
 import DepartmentSelect from '../../components/forms/DepartmentSelect.jsx';
 import { toast } from '../../components/feedback/feedback.js';
 import { formatAge, to12Hour } from './preHelpers.js';
-import { getBookingDateBounds, MAX_ADVANCE_BOOKING_DAYS } from '../patient/slotHelpers.js';
+import { getBookingDateBounds } from '../patient/slotHelpers.js';
 import RegisterWalkInPopup from './RegisterWalkInPopup.jsx';
 import SearchResultPopup from './SearchResultPopup.jsx';
 
@@ -362,7 +362,6 @@ export default function AppointmentPage() {
       <div className="container" style={{ maxWidth: 1080, margin: '0 auto' }}>
         <PageHeader
           title="Schedule Patient Appointment"
-          subtitle="Select verified patient record, assign specialty department & consulting physician, and allocate appointment time slots."
           actions={
             <Button variant="primary" className="green directory-action-btn" type="button" onClick={() => setRegisterOpen(true)}>
               + Register Walk-In Patient
@@ -584,9 +583,6 @@ export default function AppointmentPage() {
                   value={date}
                   onChange={(e) => handleDateChange(e.target.value)}
                 />
-                <div style={{ fontSize: 11, color: 'var(--color-muted-fg)', marginTop: 4 }}>
-                  Advance booking window: today up to {MAX_ADVANCE_BOOKING_DAYS} days.
-                </div>
               </div>
 
               <div className="appointment-form-group">

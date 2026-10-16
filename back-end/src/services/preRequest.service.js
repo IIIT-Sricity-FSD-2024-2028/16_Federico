@@ -60,7 +60,7 @@ TRANSITIONS.APPROVED.ADMITTED = ['HOM'];
 const HOM_STATUS_BY_STATUS = {
   PENDING: 'Awaiting PRE review',
   APPROVED: 'Awaiting PRE action / bed request',
-  REJECTED: 'Closed — rejected by PRE',
+  REJECTED: 'Closed — rejected',
   CONSULTATION_DONE: 'Closed — consultation complete',
   CRITICAL: 'Awaiting HOM bed allocation',
   ADMITTED: 'Bed confirmed',
@@ -304,6 +304,20 @@ function transition(id, toStatus, actorRole, extra) {
   return request;
 }
 
+/** HOM may reject only the PRE request linked to an inpatient bed request. */
+function rejectAdmissionRequest(id, actorRole) {
+  const request = findOne(id);
+  if (
+    actorRole !== 'HOM' ||
+    !request ||
+    request.visit_type !== 'Admit' ||
+    !['PENDING', 'APPROVED', 'CRITICAL'].includes(request.status)
+  ) {
+    return null;
+  }
+  return transition(id, 'REJECTED', actorRole);
+}
+
 const OPD_CONSULTATION_FEE = 500;
 const CHECK_IN_STATUSES = ['PENDING', 'APPROVED', 'CRITICAL'];
 
@@ -512,5 +526,6 @@ module.exports = {
   create,
   updateFields,
   transition,
+  rejectAdmissionRequest,
   checkIn,
 };

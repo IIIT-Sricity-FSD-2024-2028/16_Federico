@@ -137,6 +137,14 @@ function updateBedRequest(req, res, next) {
 
   const result = wardService.updateBedRequest(+req.params.id, req.body);
 
+  // HOM's rejection applies to the linked PRE admission request too. Keep
+  // both existing records in sync by their pre_request_id; do not create a
+  // second request or lose the original request details.
+  if (result && result.status === 'REJECTED' && result.pre_request_id) {
+    const actorRole = req.session ? req.session.role : 'HOM';
+    preRequestService.rejectAdmissionRequest(result.pre_request_id, actorRole);
+  }
+
   if (result && result.status === 'ALLOCATED') {
     let appointmentId = null;
 

@@ -69,7 +69,6 @@ export default function SuggestPopup({ request, doctors, onClose, onDone }) {
       open
       onClose={onClose}
       title="Suggest New Slot"
-      subtitle="Select an alternative date, time, and attending doctor for this patient."
       size="md"
       className="approve-dialog-shell"
       footer={dialogFooter}
@@ -162,7 +161,6 @@ export default function SuggestPopup({ request, doctors, onClose, onDone }) {
               max={bounds.maxDate}
               onChange={(e) => setNewDate(e.target.value)}
             />
-            <span className="approve-help-text">Within 14 days ({bounds.minDate} to {bounds.maxDate}).</span>
           </div>
           <div className="approve-field-group">
             <label htmlFor="appointTime" className="approve-label">
@@ -175,7 +173,6 @@ export default function SuggestPopup({ request, doctors, onClose, onDone }) {
               value={time}
               onChange={(e) => setTime(e.target.value)}
             />
-            <span className="approve-help-text">Standard appointment hours.</span>
           </div>
         </div>
       </div>
