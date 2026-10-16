@@ -11,13 +11,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "Session bearer token obtained from /auth/login or /platform/auth/login"
-      },
-      "xRoleAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-role",
-        "description": "Legacy role header for backward compatibility (e.g. ADMIN, SUPER_USER)"
+        "description": "Session bearer token obtained from /auth/login/{actor}, /auth/login or /platform/auth/login"
       }
     }
   },
@@ -265,10 +259,38 @@
         "tags": [
           "Auth"
         ],
-        "summary": "User login authentication",
+        "summary": "User login authentication (legacy, any role)",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/login/{actor}": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Unified-login portal endpoint (hom, pre, fa, admin, patient); 403 for an account of another role",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "actor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -302,6 +324,24 @@
           "Auth"
         ],
         "summary": "Get currently authenticated user session",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/auth/demo-accounts": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get active organizations and demo credentials",
         "security": [
           {
             "bearerAuth": []
@@ -1392,68 +1432,6 @@
         }
       }
     },
-    "/ward/emergency": {
-      "get": {
-        "tags": [
-          "Wards"
-        ],
-        "summary": "Get all emergency intake records",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Wards"
-        ],
-        "summary": "Create an emergency intake record",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
-    "/ward/emergency/{id}": {
-      "put": {
-        "tags": [
-          "Wards"
-        ],
-        "summary": "Update emergency intake status",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    },
     "/inventory/items": {
       "get": {
         "tags": [
@@ -1938,6 +1916,60 @@
           "Platform"
         ],
         "summary": "Delete (soft) an organization",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/platform/organizations/{id}/email-domain": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Staff email domain and how many logins a change would rename",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Change the staff email domain; renames staff/admin logins and signs them out",
         "security": [
           {
             "bearerAuth": []
@@ -2667,6 +2699,34 @@
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/staff/{userId}/actor-role": {
+      "put": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Change a staff user's portal role (HOM / PRE / FA)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

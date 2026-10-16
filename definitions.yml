@@ -23,8 +23,8 @@ tech_stack:
     testing: "Jest + Supertest (17 Test Suites, 90 Automated Tests)"
     api_docs: "OpenAPI 3.0 (Swagger UI at /api)"
   frontend:
-    architecture: "Vanilla ES6+ Modules + Material Design 3 (Material You Tokens)"
-    client: "Unified REST API Client (front-end/shared/api-client.js)"
+    architecture: "React 19 + Vite 8 SPA (react-router-dom) + Material Design 3 (Material You Tokens)"
+    client: "Unified REST API Client (front-end/src/api/)"
     state_sync: "Reactive Cross-Tab LocalStorage Sync (storage event listeners)"
     resilience: "15s AbortSignal Timeouts + withAsyncLock Double-Submit Prevention"
 
@@ -35,7 +35,7 @@ actors:
   platform_super_user:
     code: "PLATFORM_SUPER_USER"
     role_id: 0
-    portal: "front-end/platform/"
+    portal: "/platform/platform-dashboard.html"
     description: "SaaS Platform Owner overseeing all tenant organizations, subscription plans, module flags, and platform-wide metrics."
     responsibilities:
       - "Provision, activate, and suspend hospital organizations"
@@ -46,7 +46,7 @@ actors:
   hospital_admin:
     code: "Admin"
     role_id: 5
-    portal: "front-end/Admin/"
+    portal: "/Admin/screen-01-dashboard.html"
     description: "Owner/Administrator of a specific hospital organization."
     responsibilities:
       - "Manage hospital organization branding and branches"
@@ -57,7 +57,7 @@ actors:
   hospital_operations_manager:
     code: "HOM"
     role_id: 1
-    portal: "front-end/HOM/"
+    portal: "/HOM/screen-01-dashboard.html"
     description: "Oversees physical resources, bed occupancy, and operational flow."
     responsibilities:
       - "Manage wards and real-time bed registry"
@@ -69,7 +69,7 @@ actors:
   patient_relation_executive:
     code: "PRE"
     role_id: 4
-    portal: "front-end/PRE/"
+    portal: "/PRE/pages/PRE.html"
     description: "Front-desk officer managing patient intake and scheduling."
     responsibilities:
       - "Review and approve/reject patient pre-registration requests"
@@ -80,7 +80,7 @@ actors:
   finance_associate:
     code: "FA"
     role_id: 3
-    portal: "front-end/FA/"
+    portal: "/FA/fa-dashboard.html"
     description: "Financial administrator managing billing ledgers and receipts."
     responsibilities:
       - "Review and approve HOM Leader service charges into ledger entries"
@@ -91,7 +91,7 @@ actors:
   patient:
     code: "Patient"
     role_id: 2
-    portal: "front-end/Patient/"
+    portal: "/Patient/patient-dashboard.html"
     description: "End-user patient accessing healthcare services."
     responsibilities:
       - "Self-service online registration and profile management"
@@ -195,6 +195,10 @@ api_endpoints:
       description: "System uptime, timestamp, and health status."
 
   auth:
+    - method: "POST"
+      path: "/auth/login/:actor"
+      auth: "Public"
+      description: "Unified-login endpoint per portal (hom, pre, fa, admin, patient); rejects accounts of any other role (403)."
     - method: "POST"
       path: "/auth/login"
       auth: "Public"

@@ -55,13 +55,12 @@ The system comes pre-seeded with accounts for all platform and hospital roles:
 
 | Role / Portal | Name / Description | Email | Password | Primary Portal |
 |:---|:---|:---|:---|:---|
-| **Platform Super User** | Platform Owner | `platform@federico.com` | `Platform@123` | `front-end/platform/` |
-| **Hospital Admin** | Hospital Owner / Admin | `owner@hosp.com` | `Owner@123` | `front-end/Admin/` |
-| **HOM (Hospital Ops Manager)** | Operations Lead | `admin@hosp.com` | `Hom@123` | `front-end/HOM/` |
-| **PRE (Patient Relations Exec)** | Intake & Front Desk | `rekha.pre@hosp.com` | `Pre@123` | `front-end/PRE/` |
-| **FA (Finance Administrator)** | Billing & Cashier | `farah.fa@hosp.com` | `Fa@123` | `front-end/FA/` |
-| **Patient** | Arjun Kapoor | `arjun.k@hosp.com` | `Arjun@123` | `front-end/Patient/` |
-| **Patient** | Hamiz Shams | `hamiz@hosp.com` | `Hamiz@123` | `front-end/Patient/` |
+| **Platform Super User** | Platform Owner | `super.platform@federico.com` | `Federico@Platform123` | `/platform/platform-dashboard.html` |
+| **Hospital Admin** | Hospital Owner / Admin | `owner.admin@citygen.com` | `Owner@123` | `/Admin/screen-01-dashboard.html` |
+| **HOM (Hospital Ops Manager)** | Operations Lead | `admin.hom@citygen.com` | `Hom@123` | `/HOM/screen-01-dashboard.html` |
+| **PRE (Patient Relations Exec)** | Intake & Front Desk | `rekha.pre@citygen.com` | `Pre@123` | `/PRE/pages/PRE.html` |
+| **FA (Finance Administrator)** | Billing & Cashier | `farah.fa@citygen.com` | `Fa@123` | `/FA/fa-dashboard.html` |
+| **Patient** | Arjun Kapoor | `arjun.k@hosp.com` | `Hamiz@123` | `/Patient/patient-dashboard.html` |
 
 ---
 
@@ -69,9 +68,9 @@ The system comes pre-seeded with accounts for all platform and hospital roles:
 
 The system supports cryptographic session tokens with per-tab session isolation:
 
-1. **Bearer Token Header:** Passed via `Authorization: Bearer <token>`, obtained from `POST /auth/login` or `POST /platform/auth/login`.
+1. **Bearer Token Header:** Passed via `Authorization: Bearer <token>`, obtained from `POST /auth/login/:actor` (`hom`, `pre`, `fa`, `admin`, `patient`; the unified login page picks it from the email's `.role@` tag and the endpoint rejects accounts of any other role), the legacy `POST /auth/login`, or `POST /platform/auth/login`.
 2. **Per-Tab Session Isolation:** Prevents multi-tab session overwrites by keeping session keys isolated per tab while syncing auth lifecycles.
-3. **Legacy Role Header (Backward Compatibility):** Supports `x-role: ADMIN|SUPER_USER` for legacy automated test suites.
+3. **Session Cookies:** Automatically set via `HttpOnly`, `SameSite=Lax` cookies for secure browser sessions. Legacy unauthenticated `x-role` bypass headers have been completely decommissioned.
 
 ### Actor Access & Permissions Matrix
 

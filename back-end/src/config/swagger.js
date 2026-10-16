@@ -23,9 +23,11 @@ const ROUTES = [
   ['PreRequests', 'put', '/pre-requests/{id}', 'Transition or update a pre-registration request'],
 
   // Auth
-  ['Auth', 'post', '/auth/login', 'User login authentication'],
+  ['Auth', 'post', '/auth/login', 'User login authentication (legacy, any role)'],
+  ['Auth', 'post', '/auth/login/{actor}', 'Unified-login portal endpoint (hom, pre, fa, admin, patient); 403 for an account of another role'],
   ['Auth', 'post', '/auth/signup', 'Patient self-service signup'],
   ['Auth', 'get', '/auth/me', 'Get currently authenticated user session'],
+  ['Auth', 'get', '/auth/demo-accounts', 'Get active organizations and demo credentials'],
   ['Auth', 'post', '/auth/logout', 'User logout and session invalidation'],
 
   // Billing
@@ -83,9 +85,6 @@ const ROUTES = [
   ['Wards', 'get', '/ward/bed-requests', 'Get all bed allocation requests'],
   ['Wards', 'post', '/ward/bed-requests', 'Create a bed allocation request'],
   ['Wards', 'put', '/ward/bed-requests/{id}', 'Allocate or reject a bed request'],
-  ['Wards', 'get', '/ward/emergency', 'Get all emergency intake records'],
-  ['Wards', 'post', '/ward/emergency', 'Create an emergency intake record'],
-  ['Wards', 'put', '/ward/emergency/{id}', 'Update emergency intake status'],
 
   // Inventory
   ['Inventory', 'get', '/inventory/items', 'Get all inventory items'],
@@ -122,6 +121,8 @@ const ROUTES = [
   ['Platform', 'get', '/platform/organizations', 'List all organizations'],
   ['Platform', 'post', '/platform/organizations', 'Provision a new organization'],
   ['Platform', 'get', '/platform/organizations/{id}', 'Get an organization by ID'],
+  ['Platform', 'get', '/platform/organizations/{id}/email-domain', 'Staff email domain and how many logins a change would rename'],
+  ['Platform', 'patch', '/platform/organizations/{id}/email-domain', 'Change the staff email domain; renames staff/admin logins and signs them out'],
   ['Platform', 'put', '/platform/organizations/{id}/suspend', 'Suspend an organization'],
   ['Platform', 'put', '/platform/organizations/{id}/activate', 'Activate an organization'],
   ['Platform', 'delete', '/platform/organizations/{id}', 'Delete (soft) an organization'],
@@ -153,6 +154,7 @@ const ROUTES = [
   ['RBAC', 'post', '/rbac/staff/{userId}/role', 'Assign a custom role to a staff user'],
   ['RBAC', 'delete', '/rbac/staff/{userId}/role/{roleId}', 'Remove a custom role from a staff user'],
   ['RBAC', 'get', '/rbac/staff', "List staff in the caller's organization with their roles"],
+  ['RBAC', 'put', '/rbac/staff/{userId}/actor-role', "Change a staff user's portal role (HOM / PRE / FA)"],
 ];
 
 function buildDocument() {
@@ -195,13 +197,7 @@ function buildDocument() {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'Session bearer token obtained from /auth/login or /platform/auth/login',
-        },
-        xRoleAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'x-role',
-          description: 'Legacy role header for backward compatibility (e.g. ADMIN, SUPER_USER)',
+          description: 'Session bearer token obtained from /auth/login/{actor}, /auth/login or /platform/auth/login',
         },
       },
     },
