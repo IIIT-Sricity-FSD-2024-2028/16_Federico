@@ -16,7 +16,6 @@ import { toast } from '../../components/feedback/feedback.js';
 import { statusLabel, statusVariant, daysSince, formatDate, joinPreRequestsWithPatients } from './homHelpers.js';
 import PatientDetailModal from './PatientDetailModal.jsx';
 import DischargeModal from './DischargeModal.jsx';
-import PostServiceModal from './PostServiceModal.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientFlowCss from '../../styles/hom/patient-flow.css?inline';
 
@@ -31,17 +30,15 @@ export default function PatientFlowPage() {
   const [filters, setFilters] = useState({ search: uhidParam || '', department: '', status: '', dateRange: '' });
   const [detail, setDetail] = useState(null); // { id, tab }
   const [dischargeId, setDischargeId] = useState(null);
-  const [postOpen, setPostOpen] = useState(false);
 
   const { data, reload } = useApi(async () => {
-    const [preRequests, patients, doctors, beds, admissions, ledgers, services] = await Promise.all([
+    const [preRequests, patients, doctors, beds, admissions, ledgers] = await Promise.all([
       api.preRequests.list().catch(() => []),
       api.patients.list().catch(() => []),
       api.doctors.list().catch(() => []),
       api.wards.beds().catch(() => []),
       api.admissions.list().catch(() => []),
       api.billing.ledger.listAll().catch(() => []),
-      api.billing.services.list().catch(() => []),
     ]);
 
     const doctorsById = {};
@@ -72,20 +69,7 @@ export default function PatientFlowPage() {
       billsCleared: Boolean(billsClearedByPatient[r.patient_id]),
     }));
 
-    // "+ Post Service" (moved here from the removed HOM Billing screen):
-    // only active admissions can have a service charge staged for FA.
-    const patientsById = {};
-    (Array.isArray(patients) ? patients : []).forEach((p) => (patientsById[p.patient_id] = p));
-    const activeAdmissions = (Array.isArray(admissions) ? admissions : [])
-      .filter((a) => a.status !== 'DISCHARGED')
-      .map((a) => ({
-        admission_id: a.admission_id,
-        patient_id: a.patient_id,
-        patientName: patientsById[a.patient_id]?.name || 'Patient',
-        uhid: patientsById[a.patient_id]?.uhid || '',
-      }));
-
-    return { rows, activeAdmissions, services: Array.isArray(services) ? services : [] };
+    return { rows };
   }, []);
 
   usePolling(reload, 15000);
@@ -159,10 +143,7 @@ export default function PatientFlowPage() {
           title="Patient Flow & Admissions"
           subtitle="Manage inpatient care paths and process PRE discharge clearances"
           actions={
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <button className="btn btn-secondary btn-default" id="patient-flow-export" onClick={exportCsv}>Export CSV</button>
-              <button className="btn btn-primary btn-default" id="btn-open-post-service" onClick={() => setPostOpen(true)}>+ Post Service</button>
-            </div>
+            <button className="btn btn-secondary btn-default" id="patient-flow-export" onClick={exportCsv}>Export CSV</button>
           }
         />
 
@@ -339,14 +320,6 @@ export default function PatientFlowPage() {
         key={'discharge-' + (dischargeId ?? 'closed')}
         row={rows.find((r) => r.pre_request_id === dischargeId) || null}
         onClose={() => setDischargeId(null)}
-        onChanged={reload}
-      />
-
-      <PostServiceModal
-        open={postOpen}
-        admissions={data?.activeAdmissions || []}
-        services={data?.services || []}
-        onClose={() => setPostOpen(false)}
         onChanged={reload}
       />
     </>

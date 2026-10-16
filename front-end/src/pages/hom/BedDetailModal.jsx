@@ -60,7 +60,7 @@ export default function BedDetailModal({
           ) : null}
           <button className="btn btn-secondary btn-default" onClick={onClose}>Close</button>
           {isOccupied ? (
-            <button className="btn btn-primary btn-default" id="detail-action-btn" onClick={onViewInPatientFlow}>
+            <button className="btn btn-primary btn-default" id="detail-action-btn" onClick={() => onViewInPatientFlow && onViewInPatientFlow(linked?.patient?.uhid)}>
               View in Patient Flow
             </button>
           ) : isAvailable && compatibleRequests.length > 0 ? (

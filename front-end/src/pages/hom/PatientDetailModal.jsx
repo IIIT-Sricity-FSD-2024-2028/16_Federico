@@ -1,6 +1,6 @@
 'use strict';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
