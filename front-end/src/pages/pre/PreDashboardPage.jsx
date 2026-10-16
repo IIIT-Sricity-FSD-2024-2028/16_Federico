@@ -80,7 +80,6 @@ export default function PreDashboardPage() {
     <>
       <PageHeader
         title="Patient Relational Executive (PRE)"
-        subtitle="Manage appointments, verify records, coordinate bed allocations & facilitate discharges"
       />
 
       <div className="cards" style={{ padding: '0 0 24px 0', margin: 0 }}>
@@ -107,14 +106,6 @@ export default function PreDashboardPage() {
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--color-fg)' }}>Approved Patients</h2>
               <Badge variant="neutral">{approved.length} {approved.length === 1 ? 'Patient' : 'Patients'}</Badge>
             </div>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--color-muted-fg)' }}>
-              Scheduled appointments awaiting clinical check-in, follow-up consultation, or inpatient admission
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <Button variant="outline" size="sm" onClick={reload} title="Refresh patient list">
-              ↻ Refresh
-            </Button>
           </div>
         </div>
 
@@ -140,7 +131,6 @@ export default function PreDashboardPage() {
                 colSpan={10}
                 icon={null}
                 title="No Scheduled Patients Awaiting Check-in"
-                message="All approved patient requests have been scheduled or admitted."
               />
             ) : (
               approved.map((r) => {

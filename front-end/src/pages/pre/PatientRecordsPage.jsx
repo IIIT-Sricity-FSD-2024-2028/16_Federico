@@ -156,7 +156,6 @@ export default function PatientRecordsPage() {
       <div className="container">
         <PageHeader
           title="Master Patient Directory"
-          subtitle="Review verified patient demographics, active insurance policies, and complete clinical encounter logs."
         />
         <SearchToolbar
           searchQuery={query}

@@ -125,7 +125,6 @@ export default function DischargePage() {
     <div className="container">
       <PageHeader
         title="Discharge Requests & Clearance"
-        subtitle="Review discharge clearance, coordinate with Operations, and finalize patient discharge processing"
       />
       <TabNav
         tabs={tabs}
@@ -174,7 +173,6 @@ export default function DischargePage() {
                 colSpan={11}
                 icon={null}
                 title="No Pending Discharge Requests"
-                message="No discharge requests are currently awaiting HOM coordination."
               />
             ) : filteredPending.length === 0 ? (
               <EmptyState
@@ -182,7 +180,6 @@ export default function DischargePage() {
                 colSpan={11}
                 icon={null}
                 title="No Matching Discharge Requests"
-                message="No discharge requests match your search criteria."
               />
             ) : (
               filteredPending.map((r) => (
@@ -213,7 +210,6 @@ export default function DischargePage() {
                 colSpan={12}
                 icon={null}
                 title="No Approved Discharge Requests"
-                message="No patients are currently cleared and waiting for bed release."
               />
             ) : filteredApproved.length === 0 ? (
               <EmptyState
@@ -221,7 +217,6 @@ export default function DischargePage() {
                 colSpan={12}
                 icon={null}
                 title="No Matching Approved Discharges"
-                message="No approved discharges match your search criteria."
               />
             ) : (
               filteredApproved.map((r) => (

@@ -14,7 +14,6 @@ export default function SearchResultPopup({ patient, onClose }) {
           <div className="emergency-modal-head">
             <div>
               <h2 id="searchFoundTitle" style={{ color: 'var(--md-primary, #0f766e)' }}>Patient Record Found</h2>
-              <p>Verified profile linked to this contact number.</p>
             </div>
             <button className="emergency-modal-close" type="button" onClick={onClose} aria-label="Close modal">{'✕'}</button>
           </div>

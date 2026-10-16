@@ -32,9 +32,9 @@ export default function HomCoordinationPage() {
     const bedsById = {};
     (beds || []).forEach((b) => (bedsById[b.bed_id] = b));
 
-    // Show PENDING + ALLOCATED + DENIED so PRE can see the full bed allocation response.
+    // Show PENDING + ALLOCATED + rejected so PRE can see the full bed allocation response.
     const allBedRequests = (bedRequests || []).filter((r) =>
-      r.status === 'PENDING' || r.status === 'ALLOCATED' || r.status === 'DENIED',
+      r.status === 'PENDING' || r.status === 'ALLOCATED' || r.status === 'REJECTED' || r.status === 'DENIED',
     );
 
     return { allBedRequests, patientsById, wardsById, bedsById };
@@ -50,7 +50,8 @@ export default function HomCoordinationPage() {
 
   const q = query.trim().toLowerCase();
   const filteredRequests = d.allBedRequests.filter((r) => {
-    if (statusFilter && r.status !== statusFilter) return false;
+    const status = r.status === 'DENIED' ? 'REJECTED' : r.status;
+    if (statusFilter && status !== statusFilter) return false;
     if (wardFilter && String(r.ward_id) !== wardFilter) return false;
     if (!q) return true;
 
@@ -74,7 +75,6 @@ export default function HomCoordinationPage() {
     <div className="container">
       <PageHeader
         title="Bed Allocation & Coordination"
-        subtitle="Monitor inpatient bed allocation requests submitted from PRE. Bed assignments are handled by Operations."
       />
 
       <div>
@@ -95,7 +95,7 @@ export default function HomCoordinationPage() {
                 { value: '', label: 'All Statuses' },
                 { value: 'PENDING', label: 'Pending' },
                 { value: 'ALLOCATED', label: 'Allocated' },
-                { value: 'DENIED', label: 'Rejected' },
+                { value: 'REJECTED', label: 'Rejected' },
               ],
             },
             ...(wardOptions.length > 0
@@ -138,7 +138,6 @@ export default function HomCoordinationPage() {
                   colSpan={6}
                   icon={null}
                   title="No matching requests found"
-                  message="Try adjusting your search query or filters."
                 />
               ) : (
                 filteredRequests.map((r) => {
@@ -153,13 +152,13 @@ export default function HomCoordinationPage() {
                   let bedCell = <span style={{ color: 'var(--color-muted-fg)', fontSize: 12 }}>—</span>;
                   if (r.status === 'ALLOCATED' && r.bed_id && d.bedsById[r.bed_id]) {
                     bedCell = <strong style={{ color: 'var(--md-primary, #0f766e)' }}>{d.bedsById[r.bed_id].bed_number}</strong>;
-                  } else if (r.status === 'DENIED') {
+                  } else if (r.status === 'REJECTED' || r.status === 'DENIED') {
                     bedCell = <span style={{ color: '#6b7280', fontStyle: 'italic' }}>N/A</span>;
                   }
 
                   const statusBadge =
                     r.status === 'ALLOCATED' ? <Badge variant="success">Allocated</Badge>
-                    : r.status === 'DENIED'  ? <Badge variant="error">Rejected</Badge>
+                    : r.status === 'REJECTED' || r.status === 'DENIED' ? <Badge variant="error">Rejected</Badge>
                     : <Badge variant="warning">Pending</Badge>;
 
                   return (

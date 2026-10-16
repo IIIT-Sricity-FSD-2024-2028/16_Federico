@@ -83,8 +83,7 @@ export default function DoctorRosterPage() {
     <>
       <div className="container">
         <PageHeader
-          title="Doctor Availability & Rosters"
-          subtitle="Review active physician duty hours, consultation slots, and departmental specializations."
+          title="Doctor Availability"
         />
         <SearchToolbar
           searchQuery={query}

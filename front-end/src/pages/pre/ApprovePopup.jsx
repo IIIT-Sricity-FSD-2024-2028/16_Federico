@@ -229,7 +229,6 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
       open
       onClose={onClose}
       title="Approve Appointment"
-      subtitle="Review patient details, assign an attending doctor, and confirm the slot."
       size="md"
       className="approve-dialog-shell"
       footer={dialogFooter}
@@ -305,9 +304,6 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </div>
-          <span className="approve-help-text">
-            Specialists matching {request.department || 'the department'} are sorted to the top.
-          </span>
         </div>
 
         {/* Appointment Time Selection */}
@@ -384,10 +380,6 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
               </button>
             )}
           </div>
-
-          <span className="approve-help-text">
-            Leave hour blank (HH) to confirm the patient&apos;s requested time.
-          </span>
 
           {/* Availability error notification banner */}
           {availError && (

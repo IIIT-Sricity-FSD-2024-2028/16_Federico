@@ -71,7 +71,6 @@ function BedRequestForm({ request, wards, onClose, onSubmitted }) {
           <div className="emergency-modal-head">
             <div>
               <h2 id="pre-bed-request-title" style={{ color: 'var(--md-primary, #0f766e)' }}>Bed Request</h2>
-              <p>Confirm inpatient bed details before sending the request to HOM.</p>
             </div>
             <button className="emergency-modal-close" type="button" onClick={onClose} aria-label="Close modal">{'x'}</button>
           </div>

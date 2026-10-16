@@ -54,7 +54,6 @@ export default function RejectedPage() {
     <div className="container">
       <PageHeader
         title="Rejected Patient Requests"
-        subtitle="Historical archive of declined patient requests and recorded clinical rejection reasons"
       />
       <SearchToolbar
         searchQuery={query}
@@ -94,7 +93,6 @@ export default function RejectedPage() {
               colSpan={10}
               icon={null}
               title="No Rejected Requests"
-              message="No patient requests have been rejected."
             />
           ) : filtered.length === 0 ? (
             <EmptyState
@@ -102,7 +100,6 @@ export default function RejectedPage() {
               colSpan={10}
               icon={null}
               title="No Matching Requests"
-              message="No rejected requests match your search criteria."
             />
           ) : (
             filtered.map((r) => (

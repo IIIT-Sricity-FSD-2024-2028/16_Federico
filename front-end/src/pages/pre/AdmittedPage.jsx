@@ -76,7 +76,6 @@ export default function AdmittedPage() {
     <div className="container">
       <PageHeader
         title="Admitted Patients"
-        subtitle="Current admitted inpatient queue requiring PRE tracking and discharge facilitation"
       />
       <SearchToolbar
         searchQuery={query}
@@ -116,7 +115,6 @@ export default function AdmittedPage() {
               colSpan={11}
               icon={null}
               title="No Admitted Patients Found"
-              message="There are currently no patients marked as admitted in this organization."
             />
           ) : filtered.length === 0 ? (
             <EmptyState
@@ -124,7 +122,6 @@ export default function AdmittedPage() {
               colSpan={11}
               icon={null}
               title="No Matching Patients"
-              message="No admitted patients match your search criteria."
             />
           ) : (
             filtered.map((r) => {
