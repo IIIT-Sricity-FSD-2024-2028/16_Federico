@@ -1,0 +1,77 @@
+/* search-toolbar.css — Standard directory search and filter bar styling */
+
+.search-toolbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-toolbar-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 280px;
+  flex-wrap: wrap;
+}
+
+.search-toolbar-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+}
+
+.search-toolbar-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-muted-fg, #64748b);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-toolbar-input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border-radius: var(--radius-sm, 10px);
+  border: 1px solid var(--color-border, #cbd5e1);
+  background: var(--md-surface, #ffffff);
+  color: var(--color-fg, #1c1b1f);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-toolbar-input:focus {
+  border-color: var(--md-primary, #6750a4);
+  box-shadow: 0 0 0 2px var(--md-primary-container, #eaddff);
+}
+
+.search-toolbar-select {
+  padding: 9px 14px;
+  border-radius: var(--radius-sm, 10px);
+  border: 1px solid var(--color-border, #cbd5e1);
+  background: var(--md-surface, #ffffff);
+  color: var(--color-fg, #1c1b1f);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.search-toolbar-select:focus {
+  border-color: var(--md-primary, #6750a4);
+}
+
+.search-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}

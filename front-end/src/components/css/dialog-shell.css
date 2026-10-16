@@ -1,0 +1,110 @@
+/* dialog-shell.css — Standard modal window container styling */
+
+.dialog-shell-container {
+  background: var(--md-surface, #ffffff);
+  border-radius: var(--radius-md, 16px);
+  box-shadow: var(--shadow-4, 0 16px 40px rgba(0, 0, 0, 0.18));
+  border: 1px solid var(--color-border, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  width: 100%;
+  overflow: hidden;
+  animation: dialogShellPop 0.2s cubic-bezier(0.2, 0, 0, 1);
+  margin: auto;
+}
+
+@keyframes dialogShellPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Size variants */
+.dialog-shell-container.size-sm {
+  max-width: 420px;
+}
+
+.dialog-shell-container.size-md {
+  max-width: 580px;
+}
+
+.dialog-shell-container.size-lg {
+  max-width: 780px;
+}
+
+.dialog-shell-container.size-xl {
+  max-width: 980px;
+}
+
+/* Header */
+.dialog-shell-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.dialog-shell-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialog-shell-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-fg, #1c1b1f);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.dialog-shell-subtitle {
+  font-size: 13px;
+  color: var(--color-muted-fg, #64748b);
+  margin: 0;
+}
+
+.dialog-shell-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-muted-fg, #64748b);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs, 8px);
+  transition: all 0.12s ease;
+}
+
+.dialog-shell-close-btn:hover {
+  background: var(--md-surface-container, #f3edf7);
+  color: var(--color-fg, #1c1b1f);
+}
+
+/* Body (scrollable) */
+.dialog-shell-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Footer (fixed) */
+.dialog-shell-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  background: var(--md-surface-container, #f8fafc);
+  flex-shrink: 0;
+}

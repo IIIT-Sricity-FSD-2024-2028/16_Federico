@@ -143,6 +143,28 @@
 .md-chip-neutral, .badge-neutral { background: var(--status-neutral-bg); color: var(--status-neutral-fg); }
 
 /* =========================================================
+   Modal overlay — shared by every portal
+   ========================================================= */
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 999999 !important;
+  display: none;
+  padding: 24px;
+  box-sizing: border-box;
+  margin: 0 !important;
+  overflow-y: auto;
+}
+.modal-overlay.active {
+  display: flex !important;
+}
+
+/* =========================================================
    Navigation — top app bar + side nav rail
    ========================================================= */
 .md-topbar {
@@ -367,6 +389,10 @@
 .md-native-dialog[open]::backdrop { opacity: 1; }
 @starting-style {
   .md-native-dialog[open]::backdrop { opacity: 0; }
+}
+.modal-overlay .md-native-dialog {
+  opacity: 1;
+  transform: none;
 }
 .md-native-dialog-wide { width: min(720px, calc(100vw - 48px)); }
 .dialog-form { padding: 28px; overflow-y: auto; max-height: calc(100vh - 112px); }
