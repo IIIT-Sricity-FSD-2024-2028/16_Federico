@@ -6,6 +6,7 @@ const preRequestService = require('../services/preRequest.service');
 const appointmentService = require('../services/appointment.service');
 const doctorService = require('../services/doctor.service');
 const wardService = require('../services/ward.service');
+const organizationService = require('../services/organization.service');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
 const {
@@ -67,12 +68,16 @@ function update(req, res) {
 }
 
 // Deleting a patient record is never a patient self-service action.
-function remove(req, res) {
-  if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
-  const existing = patientService.findOne(req.params.id);
-  if (existing && !belongsToOrg(existing, req))
-    return res.status(403).json(FORBIDDEN);
-  sendResult(res, patientService.remove(req.params.id), 200);
+function remove(req, res, next) {
+  try {
+    if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
+    const existing = patientService.findOne(req.params.id);
+    if (existing && !belongsToOrg(existing, req))
+      return res.status(403).json(FORBIDDEN);
+    sendResult(res, patientService.remove(req.params.id), 200);
+  } catch (err) {
+    next(err);
+  }
 }
 
 // Same list-all-across-everyone concern as findAll above.
@@ -159,10 +164,13 @@ function getPortalSummary(req, res) {
   const doctors = scopeToOrg(doctorService.findAllDoctors(), req);
   const beds = scopeToOrg(wardService.findAllBeds(), req);
   const services = scopeToOrg(billingService.findAllServices(), req);
+  const organization = organizationService.findById(patient.organization_id);
+  const orgSpecialties = organization && Array.isArray(organization.specialties) ? organization.specialties : [];
 
   sendResult(res, {
     patient,
     insurance,
+    specialties: orgSpecialties,
     preRequests,
     appointments,
     bundles: enrichedBundles,

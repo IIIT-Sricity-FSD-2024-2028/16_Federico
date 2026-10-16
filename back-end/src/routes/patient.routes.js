@@ -3,7 +3,6 @@
 const { Router } = require('express');
 const controller = require('../controllers/patient.controller');
 const { authorize } = require('../middleware/actorAccess');
-const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createPatientRules,
@@ -12,10 +11,6 @@ const {
 } = require('../validators/patient.validators');
 
 const router = Router();
-
-// Patient Management is its own purchasable module (utils/tenant.js#MODULES).
-// Insurance sub-routes below add a second requireModule('INSURANCE') gate.
-router.use(requireModule('PATIENT'));
 
 router.get(
   '/',
@@ -53,23 +48,19 @@ router.delete(
   controller.remove,
 );
 
-// Insurance — its own toggleable module (utils/tenant.js#MODULES), unlike
-// core patient records, so only these three routes are gated.
+// Insurance routes
 router.get(
   '/insurance/all',
-  requireModule('INSURANCE'),
   authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
   controller.findAllInsurances,
 );
 router.get(
   '/:id/insurance',
-  requireModule('INSURANCE'),
   authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
   controller.findInsuranceByPatient,
 );
 router.post(
   '/insurance',
-  requireModule('INSURANCE'),
   authorize(['SUPER_USER'], 'patient', 'write'),
   validateBody(createPatientInsuranceRules),
   controller.createInsurance,
