@@ -2,28 +2,31 @@
 
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Search,
+  MapPin,
+  AlertTriangle,
+  ArrowRight,
+  X,
+  RefreshCw,
+} from 'lucide-react';
 import { api } from '../../api/index.js';
 import { useApi } from '../../hooks/useApi.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import marketplacePageCss from '../../styles/marketplace/marketplace-page.css?inline';
-import EmptyState from '../../components/ui/EmptyState.jsx';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import HospitalBackground from '../../components/landing/HospitalBackground.jsx';
 
 /**
- * Ported from marketplace/marketplace-page.html + marketplace-page.js.
- *
- * The legacy page cloned a <template id="org-card-template"> per organization;
- * that becomes a mapped component. Search matches name, specialties and branch
- * "name city" text, and the emergency checkbox filters on emergency_available -
- * all as before.
+ * Filter organizations based on query matching name, specialties, and branch names / cities.
  */
 function matchesSearch(org, query) {
   if (!query) return true;
   const haystack = [
     org.name,
     org.specialties?.join(' '),
-    org.branches?.map((b) => b.name + ' ' + (b.city || '')).join(' '),
+    org.branches?.map((b) => `${b.name} ${b.city || ''}`).join(' '),
   ]
     .join(' ')
     .toLowerCase();
@@ -31,65 +34,66 @@ function matchesSearch(org, query) {
 }
 
 /**
- * Branch summary text. One branch shows its city (or name); several show the
- * count plus each branch name with the organization prefix stripped, which is
- * why "City General - Main Campus" renders as "Main Campus".
+ * Patient-focused location summary.
  */
-function branchSummary(org) {
+function formatPatientLocation(org) {
   const branches = org.branches || [];
-  if (!branches.length) return 'No branches listed';
-  if (branches.length === 1) return branches[0].city || branches[0].name;
-  const names = branches.map((b) =>
-    b.name.replace(org.name + ' — ', '').replace(org.name, 'Main Campus'),
-  );
-  return branches.length + ' branches — ' + names.join(', ');
+  if (!branches.length) return 'Main Campus';
+  const cities = [...new Set(branches.map((b) => b.city).filter(Boolean))].join(', ');
+  const branchCount = branches.length;
+  if (branchCount === 1) {
+    return branches[0].city ? `${branches[0].city} · ${branches[0].name}` : branches[0].name;
+  }
+  return `${cities || 'Multiple Facilities'} (${branchCount} branches)`;
 }
 
+/**
+ * Clean, patient-centric hospital card (helpline & logo removed per user request).
+ */
 function OrgCard({ org }) {
-  const contactParts = [org.contact?.phone, org.contact?.email].filter(Boolean);
-
   return (
-    <article className="md-card org-card">
-      <div className="org-card-head">
-        <span
-          className="org-mark"
-          style={{ background: (org.branding && org.branding.primary_color) || 'var(--md-primary)' }}
-        >
-          {(org.branding && org.branding.initial) || org.name.charAt(0).toUpperCase()}
-        </span>
-        <div>
-          <h3 className="org-name">{org.name}</h3>
-          <p className="org-branches">{branchSummary(org)}</p>
+    <article className="hospital-card">
+      <div className="hospital-card-header">
+        <div className="hospital-title-group">
+          <div className="hospital-title-row">
+            <h3 className="hospital-name">{org.name}</h3>
+            {org.emergency_available && (
+              <span className="emergency-status-chip">
+                <AlertTriangle size={11} />
+                <span>24×7 Emergency</span>
+              </span>
+            )}
+          </div>
+          <p className="hospital-branches">
+            <MapPin size={13} className="loc-icon" />
+            <span>{formatPatientLocation(org)}</span>
+          </p>
         </div>
-        {org.emergency_available ? (
-          <span className="md-chip emergency-chip">24{'×'}7 Emergency</span>
-        ) : null}
       </div>
 
-      <div className="org-specialties">
-        {(org.specialties || []).map((s) => (
-          <span key={s} className="md-chip md-chip-neutral">
-            {s}
-          </span>
-        ))}
-      </div>
+      {org.specialties && org.specialties.length > 0 && (
+        <div className="hospital-specialties-wrap">
+          {org.specialties.slice(0, 5).map((specialty) => (
+            <span key={specialty} className="specialty-chip">
+              {specialty}
+            </span>
+          ))}
+        </div>
+      )}
 
-      <p className="org-contact">
-        {contactParts.join(' · ') || 'Contact details unavailable'}
-      </p>
-
-      <div className="org-actions">
+      <div className="hospital-actions-row">
         <Link
-          className="md-btn md-btn-outlined org-login-link"
-          to={'/login/login-page.html?org=' + encodeURIComponent(org.organization_id)}
+          className="btn-hospital-primary"
+          to={`/signup/signup-page.html?org=${encodeURIComponent(org.organization_id)}`}
         >
-          Login
+          <span>Register as Patient</span>
+          <ArrowRight size={14} />
         </Link>
         <Link
-          className="md-btn md-btn-filled org-register-link"
-          to={'/signup/signup-page.html?org=' + encodeURIComponent(org.organization_id)}
+          className="btn-hospital-secondary"
+          to={`/login/login-page.html?org=${encodeURIComponent(org.organization_id)}`}
         >
-          Register as Patient
+          <span>Patient Sign In</span>
         </Link>
       </div>
     </article>
@@ -98,7 +102,7 @@ function OrgCard({ org }) {
 
 export default function MarketplacePage() {
   usePageStyles(marketplacePageCss);
-  useDocumentTitle('Federico — Find a Hospital');
+  useDocumentTitle('Federico — Hospital Directory');
   const [query, setQuery] = useState('');
   const [emergencyOnly, setEmergencyOnly] = useState(false);
 
@@ -111,8 +115,6 @@ export default function MarketplacePage() {
     }
   }, []);
 
-  // Keyed on `data` (stable between loads); a `data || []` local would be a
-  // fresh [] on every render until the first load lands.
   const filtered = useMemo(
     () =>
       (data || []).filter((org) => {
@@ -123,84 +125,148 @@ export default function MarketplacePage() {
   );
 
   return (
-    <>
-      <header className="md-topbar">
-        <Link className="md-brand" to="/landing/landing-page.html" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <span className="md-brand-mark">F</span>
-          <span>Federico</span>
-        </Link>
-        <div className="topbar-actions">
-          <Link className="md-btn md-btn-text" to="/landing/landing-page.html">
-            Home
-          </Link>
-          <Link className="md-btn md-btn-outlined" to="/login/login-page.html">
-            Login
-          </Link>
-          <Link
-            className="md-btn md-btn-filled"
-            to="/signup/org-signup.html"
-            style={{ background: '#2e7d32', textDecoration: 'none' }}
-          >
-            Onboard Hospital Chain
+    <div className="marketplace-root">
+      {/* 1. Atmospheric Hospital Background (heartbeat ECG removed per request) */}
+      <HospitalBackground showEcg={false} />
+
+      {/* 2. Frosted Glass Top Navigation - ONLY brand logo, no buttons */}
+      <header className="marketplace-topbar">
+        <div className="marketplace-topbar-content">
+          <Link className="marketplace-brand" to="/landing/landing-page.html">
+            <div className="brand-badge-icon">
+              <span>F</span>
+            </div>
+            <span className="brand-name">Federico</span>
           </Link>
         </div>
       </header>
 
-      <main className="md-container marketplace-page">
+      {/* 3. Main Content Container */}
+      <main className="marketplace-main">
+        {/* Hero Section (lead text removed per request) */}
         <section className="marketplace-hero">
-          <div
-            className="md-blur-shape md-blur-primary"
-            style={{ width: 420, height: 420, top: -140, right: -120 }}
-            aria-hidden="true"
-          />
-          <span className="label">Federico Organization Marketplace</span>
-          <h1>Find your hospital on Federico</h1>
-          <p className="marketplace-lead">
-            Browse participating hospital organizations across India. Search by hospital name, city
-            branch, specialty, or 24x7 emergency service {'—'} and seamlessly open that
-            hospital&apos;s patient registration and booking gateway.
-          </p>
+          <span className="section-pill-tag">Verified Hospital Directory</span>
+          <h1 className="marketplace-heading">
+            Find certified hospitals &amp; <span>care centers</span>
+          </h1>
+        </section>
 
-          <div className="marketplace-search">
+        {/* Search & Filter Control Bar */}
+        <section className="marketplace-control-bar" aria-label="Search and filter organizations">
+          <div className="search-input-wrap">
+            <Search size={17} className="search-icon" />
             <input
-              type="search"
+              type="text"
               id="search-input"
-              placeholder="Search by hospital name, city, or specialty&hellip;"
+              className="marketplace-search-input"
+              placeholder="Search by hospital name, city, or medical specialty…"
               aria-label="Search organizations"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <label className="emergency-filter">
-              <input
-                type="checkbox"
-                id="emergency-filter"
-                checked={emergencyOnly}
-                onChange={(e) => setEmergencyOnly(e.target.checked)}
-              />
-              <span>24{'×'}7 Emergency only</span>
-            </label>
+            {query && (
+              <button
+                type="button"
+                className="clear-search-btn"
+                onClick={() => setQuery('')}
+                aria-label="Clear search text"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
+
+          <div className="filter-divider" aria-hidden="true" />
+
+          <button
+            type="button"
+            className={`emergency-toggle-btn ${emergencyOnly ? 'active' : ''}`}
+            onClick={() => setEmergencyOnly(!emergencyOnly)}
+            aria-pressed={emergencyOnly}
+          >
+            <AlertTriangle size={14} />
+            <span>24×7 Emergency Only</span>
+          </button>
         </section>
 
-        <section id="org-grid" className="org-grid" aria-live="polite">
+        {/* Results Metadata */}
+        {!loading && !error && (
+          <div className="results-meta-bar">
+            <span className="results-count-text">
+              Showing {filtered.length} {filtered.length === 1 ? 'hospital' : 'hospitals'}{' '}
+              available
+            </span>
+          </div>
+        )}
+
+        {/* Organizations Grid */}
+        <section className="hospital-cards-grid" aria-live="polite">
           {loading ? (
-            <EmptyState title="Loading hospitals…" />
+            <div className="marketplace-empty-card">
+              <div className="empty-icon-wrap">
+                <RefreshCw size={22} className="spinning-icon" />
+              </div>
+              <h3 className="empty-title">Loading verified hospitals…</h3>
+              <p className="empty-desc">
+                Connecting to the secure Federico healthcare network registry.
+              </p>
+            </div>
           ) : error ? (
-            <EmptyState
-              title="Could not load hospitals"
-              message="Is the backend running? Refresh to retry."
-            />
+            <div className="marketplace-empty-card">
+              <div className="empty-icon-wrap" style={{ color: '#D80027' }}>
+                <AlertTriangle size={22} />
+              </div>
+              <h3 className="empty-title">Unable to reach hospital directory</h3>
+              <p className="empty-desc">
+                Please verify network connectivity and ensure the Federico service is active.
+              </p>
+              <button
+                type="button"
+                className="btn-hospital-secondary"
+                style={{ marginTop: '12px' }}
+                onClick={() => window.location.reload()}
+              >
+                <RefreshCw size={13} />
+                <span>Retry Connection</span>
+              </button>
+            </div>
           ) : filtered.length === 0 ? (
-            <EmptyState
-              title="No hospitals match your search"
-              message="Try a different name, city, or specialty."
-            />
+            <div className="marketplace-empty-card">
+              <div className="empty-icon-wrap">
+                <Search size={22} />
+              </div>
+              <h3 className="empty-title">No matching hospitals found</h3>
+              <p className="empty-desc">
+                {emergencyOnly
+                  ? 'No hospitals currently match both your query and the 24×7 emergency requirement.'
+                  : `No hospitals matched "${query}". Try searching for cardiology, emergency, or general campus.`}
+              </p>
+              <button
+                type="button"
+                className="btn-hospital-secondary"
+                style={{ marginTop: '12px' }}
+                onClick={() => {
+                  setQuery('');
+                  setEmergencyOnly(false);
+                }}
+              >
+                Clear all filters
+              </button>
+            </div>
           ) : (
             filtered.map((org) => <OrgCard key={org.organization_id} org={org} />)
           )}
         </section>
       </main>
-    </>
+
+      {/* 4. Minimalist Plain Single-Line Footer */}
+      <footer className="marketplace-footer">
+        <div className="marketplace-footer-container">
+          <p className="marketplace-footer-text">
+            © 2026 Federico Cloud Platform. Built with care for hospitals &amp; patients worldwide.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }
-
