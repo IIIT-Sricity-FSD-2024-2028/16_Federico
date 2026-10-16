@@ -13,7 +13,7 @@ function autoMatchWard(wards, department) {
   const matched = (wards || []).find((w) => {
     const wName = String(w.ward_name).toLowerCase();
     if (deptLower.includes('pediatr') && wName.includes('pediatr')) return true;
-    if ((deptLower.includes('cardio') || deptLower.includes('heart')) && (wName.includes('cardiac') || wName.includes('icu'))) return true;
+    if ((deptLower.includes('cardio') || deptLower.includes('heart')) && wName.includes('cardiac')) return true;
     if ((deptLower.includes('matern') || deptLower.includes('gynec') || deptLower.includes('obstet')) && wName.includes('matern')) return true;
     if (deptLower.includes('icu') && wName.includes('icu')) return true;
     return false;

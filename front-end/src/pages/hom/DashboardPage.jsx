@@ -5,7 +5,6 @@ import { api } from '../../api/index.js';
 import { useApi } from '../../hooks/useApi.js';
 import { usePolling } from '../../hooks/usePolling.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
-import { useSession } from '../../auth/useSession.js';
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
@@ -96,7 +95,6 @@ function timeAgo(dateString) {
 export default function HomDashboardPage() {
   usePageStyles(dashboardCss);
   useDocumentTitle('Dashboard | Federico Hospital HOM');
-  const { actor } = useSession();
   const [selectedBedRequestId, setSelectedBedRequestId] = useState(null);
 
   const { data, reload } = useApi(async () => {
@@ -171,16 +169,12 @@ export default function HomDashboardPage() {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 
-  const profileLabel =
-    actor === 'HOM' ? 'Super User · Full CRUD Access' : 'Hospital Operations Manager';
-
   return (
     <>
       <main className="dashboard-container">
         <PageHeader
           title="Bed & Patient Operations Dashboard"
           subtitle={`${today} · Live operational overview`}
-          badge={<Badge variant="info">{profileLabel}</Badge>}
         />
 
         <div className="metrics-grid">

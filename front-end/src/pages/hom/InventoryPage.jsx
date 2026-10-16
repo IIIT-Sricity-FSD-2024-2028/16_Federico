@@ -15,7 +15,6 @@ import { csvEscape, downloadCsv } from '../../lib/csv.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { formatCurrency, formatDate } from './homHelpers.js';
 import { computeItemStatus, itemCost, serviceForItem, findPatientByUhid, validateUsageDetails } from './inventoryHelpers.js';
-import LogUsageModal from './LogUsageModal.jsx';
 import RestockModal from './RestockModal.jsx';
 import AdmittedPatientPicker from './AdmittedPatientPicker.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
@@ -31,7 +30,6 @@ export default function InventoryPage() {
 
   const [filters, setFilters] = useState({ search: '', category: '', status: '' });
   const [actionTab, setActionTab] = useState('low-stock');
-  const [usageModalItemId, setUsageModalItemId] = useState(undefined);
   const [restockModalItemId, setRestockModalItemId] = useState(undefined);
 
   // Sidebar "Post Usage to Patient" form
@@ -163,6 +161,25 @@ export default function InventoryPage() {
     setSidebarQty(1);
   }
 
+  async function receiveDelivery(order) {
+    const item = d.items.find((i) => i.item_id === order.item_id);
+    try {
+      await api.inventory.requests.update(order.request_id, { status: 'APPROVED' });
+      if (item) {
+        await api.inventory.items.update(item.item_id, {
+          stock_quantity: (item.stock_quantity || 0) + (order.quantity_requested || 0),
+        });
+      }
+      toast(
+        'Delivery received: +' + order.quantity_requested + ' units of ' + (item?.item_name || 'Item #' + order.item_id) + '. Stock updated.',
+        'success',
+      );
+      await reload();
+    } catch (err) {
+      toast(err.message || 'Failed to receive delivery.', 'error');
+    }
+  }
+
   function exportInventory() {
     if (!filteredItems.length) {
       toast('No inventory items to export for the current filters.', 'warning');
@@ -197,11 +214,7 @@ export default function InventoryPage() {
           title="Non-Clinical Supplies & Inventory"
           subtitle="Track ward stock levels, request purchase orders, and record patient supply usage"
           actions={
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <button className="btn btn-secondary btn-default" id="inventory-export" onClick={exportInventory}>Export CSV</button>
-              <button className="btn btn-secondary btn-default" onClick={() => setUsageModalItemId(null)}>Log Usage</button>
-              <button className="btn btn-primary btn-default" onClick={() => setRestockModalItemId(null)}>Request Restock</button>
-            </div>
+            <button className="btn btn-secondary btn-default" id="inventory-export" onClick={exportInventory}>Export CSV</button>
           }
         />
 
@@ -279,14 +292,14 @@ export default function InventoryPage() {
 
               <div id="panel-orders" style={{ display: actionTab === 'orders' ? 'block' : 'none' }}>
                 <div id="pending-orders-list" style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 240, overflowY: 'auto', paddingRight: 4 }}>
-                  {d.requests.length === 0 ? (
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, padding: '8px 0' }}>No active purchase orders.</p>
+                  {pendingOrders.length === 0 ? (
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, padding: '8px 0' }}>No pending purchase orders.</p>
                   ) : (
-                    d.requests.map((order) => {
+                    pendingOrders.map((order) => {
                       const item = d.items.find((i) => i.item_id === order.item_id);
                       return (
-                        <div key={order.request_id} style={{ borderBottom: '1px solid var(--border)', padding: '8px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
+                        <div key={order.request_id} style={{ borderBottom: '1px solid var(--border)', padding: '10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                               PO #{order.request_id} {'·'} {item?.item_name || 'Item #' + order.item_id}
                             </p>
@@ -309,9 +322,19 @@ export default function InventoryPage() {
                               </button>
                             ) : null}
                           </div>
-                          <Badge variant={order.status === 'APPROVED' ? 'success' : order.status === 'PENDING' ? 'warning' : 'neutral'}>
-                            {order.status}
-                          </Badge>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            <Badge variant="warning">
+                              {order.status}
+                            </Badge>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => receiveDelivery(order)}
+                              title="Confirm delivery and add quantity to stock"
+                            >
+                              Receive Delivery
+                            </Button>
+                          </div>
                         </div>
                       );
                     })
@@ -344,7 +367,17 @@ export default function InventoryPage() {
                   </div>
                 </div>
                 <div>
-                  <select className="input" id="sidebar-item-select" style={{ appearance: 'auto' }} value={sidebarItemId} onChange={(e) => setSidebarItemId(e.target.value)}>
+                  <select
+                    className="input"
+                    id="sidebar-item-select"
+                    style={{ appearance: 'auto' }}
+                    value={sidebarItemId}
+                    onChange={(e) => {
+                      setSidebarItemId(e.target.value);
+                      setSidebarQty(1);
+                      setSidebarError('');
+                    }}
+                  >
                     <option value="">Select supply item...</option>
                     {itemOptions}
                   </select>
@@ -353,9 +386,32 @@ export default function InventoryPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 12, alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button className="stepper-btn" onClick={() => setSidebarQty((v) => Math.max(1, v - 1))}>{'−'}</button>
-                  <input type="number" className="stepper-input" id="sidebar-qty" value={sidebarQty} readOnly />
-                  <button className="stepper-btn" onClick={() => setSidebarQty((v) => Math.max(1, v + 1))}>+</button>
+                  <button
+                    type="button"
+                    className="stepper-btn"
+                    onClick={() => setSidebarQty((v) => Math.max(1, v - 1))}
+                    disabled={sidebarQty <= 1 || (sidebarItem && sidebarItem.stock_quantity <= 0)}
+                  >
+                    {'−'}
+                  </button>
+                  <input
+                    type="number"
+                    className="stepper-input"
+                    id="sidebar-qty"
+                    value={sidebarItem && sidebarItem.stock_quantity <= 0 ? 0 : sidebarQty}
+                    readOnly
+                  />
+                  <button
+                    type="button"
+                    className="stepper-btn"
+                    onClick={() => {
+                      const maxStock = sidebarItem ? sidebarItem.stock_quantity : 999;
+                      setSidebarQty((v) => Math.min(maxStock, v + 1));
+                    }}
+                    disabled={sidebarItem ? sidebarQty >= sidebarItem.stock_quantity : false}
+                  >
+                    +
+                  </button>
                 </div>
                 <div style={{ background: 'var(--neutral-bg)', padding: '10px 14px', borderRadius: 'var(--radius-base)', fontSize: 13, color: 'var(--text-secondary)' }}>
                   Cost: <span id="sidebar-cost-preview" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -371,8 +427,13 @@ export default function InventoryPage() {
               <div id="sidebar-form-error" style={{ display: sidebarError ? 'block' : 'none', fontSize: 12, color: 'var(--error)', fontWeight: 500 }}>
                 {sidebarError}
               </div>
-              <button className="btn btn-primary btn-default" style={{ width: '100%', height: 42 }} onClick={submitSidebarUsage}>
-                Post to Patient Ledger
+              <button
+                className="btn btn-primary btn-default"
+                style={{ width: '100%', height: 42 }}
+                onClick={submitSidebarUsage}
+                disabled={Boolean(sidebarItem && sidebarItem.stock_quantity <= 0)}
+              >
+                {sidebarItem && sidebarItem.stock_quantity <= 0 ? 'Item Out of Stock' : 'Post to Patient Ledger'}
               </button>
             </div>
           </div>
@@ -453,10 +514,7 @@ export default function InventoryPage() {
                         <td style={{ color: 'var(--text-secondary)' }}>{cost !== null ? formatCurrency(cost) : '—'}</td>
                         <td><Badge variant={variant}>{label}</Badge></td>
                         <td>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <Button variant="secondary" size="sm" onClick={() => setUsageModalItemId(item.item_id)}>Log Usage</Button>
-                            <Button variant="outline" size="sm" onClick={() => setRestockModalItemId(item.item_id)}>Restock</Button>
-                          </div>
+                          <Button variant="outline" size="sm" onClick={() => setRestockModalItemId(item.item_id)}>Restock</Button>
                         </td>
                       </tr>
                     );
@@ -478,15 +536,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </main>
-
-      <LogUsageModal
-        open={usageModalItemId !== undefined}
-        initialItemId={usageModalItemId}
-        data={d}
-        admittedPatients={admittedPatients}
-        onClose={() => setUsageModalItemId(undefined)}
-        onSubmit={postUsage}
-      />
 
       <RestockModal
         open={restockModalItemId !== undefined}

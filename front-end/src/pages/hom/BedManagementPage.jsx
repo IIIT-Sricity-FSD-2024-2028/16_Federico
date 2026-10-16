@@ -8,7 +8,6 @@ import { usePolling } from '../../hooks/usePolling.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import StatCard from '../../components/ui/StatCard.jsx';
-import TabNav from '../../components/ui/TabNav.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import { bedStyle } from './homHelpers.js';
@@ -65,7 +64,7 @@ export default function BedManagementPage() {
   const q = search.trim().toLowerCase();
   const bedMatchesSearch = (bed, linked) => {
     if (!q) return true;
-    return [bed.bed_number, linked?.patient.uhid || '', linked?.patient.name || '', linked?.request.department || '']
+    return [bed.bed_number, linked?.patient?.uhid || '', linked?.patient?.name || '', linked?.request?.department || '']
       .join(' ')
       .toLowerCase()
       .includes(q);
@@ -165,10 +164,27 @@ export default function BedManagementPage() {
         />
 
         <div className="filter-bar" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'stretch' }}>
-          <TabNav tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-          <div className="pill-group" id="status-filters">
+          <div className="pill-group" id="ward-filters" style={{ flexWrap: 'wrap' }}>
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={'pill-btn' + (activeTab === t.id ? ' active' : '')}
+                onClick={() => setActiveTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="divider" style={{ margin: '4px 0' }} />
+          <div className="pill-group" id="status-filters" style={{ flexWrap: 'wrap' }}>
             {filters.map((f) => (
-              <button key={f.id} className={'pill-btn' + (activeFilter === f.id ? ' active' : '')} onClick={() => setActiveFilter(f.id)}>
+              <button
+                key={f.id}
+                type="button"
+                className={'pill-btn' + (activeFilter === f.id ? ' active' : '')}
+                onClick={() => setActiveFilter(f.id)}
+              >
                 {f.label}
               </button>
             ))}
@@ -230,7 +246,9 @@ export default function BedManagementPage() {
           setDetailBedId(null);
           setAssignBedId(id);
         }}
-        onViewInPatientFlow={() => navigate('/HOM/screen-03-patient-flow.html')}
+        onViewInPatientFlow={(uhid) =>
+          navigate('/HOM/screen-03-patient-flow.html' + (uhid ? `?uhid=${encodeURIComponent(uhid)}` : ''))
+        }
       />
     </>
   );
