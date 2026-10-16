@@ -1,9 +1,17 @@
 'use strict';
 
 const dataStore = require('../store/dataStore');
-const { MODULE_CODES, BACKFILL_GRANT_MODULES } = require('../utils/tenant');
+const { maxId } = require('../utils/maxId');
 const serviceCatalog = require('../config/serviceCatalog');
 const resourceCatalog = require('../config/resourceCatalog');
+const { destroySessionsForUser } = require('../store/sessionStore');
+const {
+  parseEmail,
+  normalizeDomain,
+  isValidDomainFormat,
+  isReservedDomain,
+  suggestEmailDomainBase,
+} = require('../utils/emailIdentity');
 
 function slugify(name) {
   const base = String(name || '')
@@ -18,22 +26,74 @@ function slugify(name) {
   return slug;
 }
 
+function findByEmailDomain(domain) {
+  const normalized = normalizeDomain(domain);
+  if (!normalized) return null;
+  return (
+    dataStore.organizations.find((o) => o.email_domain === normalized) || null
+  );
+}
+
+/**
+ * Unique email domain suggested from a hospital name ("City General
+ * Hospital" → "citygen.com"; "citygen2.com" if that is taken). Same
+ * uniqueness loop as slugify().
+ */
+function suggestEmailDomain(name) {
+  const base = suggestEmailDomainBase(name);
+  const [label, ...rest] = base.split('.');
+  const tld = rest.join('.');
+  let domain = base;
+  let suffix = 1;
+  while (findByEmailDomain(domain) || isReservedDomain(domain)) {
+    domain = `${label}${++suffix}.${tld}`;
+  }
+  return domain;
+}
+
+/**
+ * The normalized domain, or { error } — INVALID_EMAIL_DOMAIN for a bad or
+ * reserved (public mailbox / platform) domain, EMAIL_DOMAIN_TAKEN when another
+ * organization already owns it. `exceptOrganizationId` lets an org keep its own.
+ */
+function validateEmailDomain(domain, exceptOrganizationId) {
+  const normalized = normalizeDomain(domain);
+  if (!isValidDomainFormat(normalized) || isReservedDomain(normalized)) {
+    return { error: 'INVALID_EMAIL_DOMAIN' };
+  }
+  const owner = findByEmailDomain(normalized);
+  if (owner && owner.organization_id !== Number(exceptOrganizationId)) {
+    return { error: 'EMAIL_DOMAIN_TAKEN' };
+  }
+  return { domain: normalized };
+}
+
+/** Boot-time: orgs saved before email domains existed get a suggested one. */
+function backfillEmailDomains() {
+  dataStore.organizations.forEach((o) => {
+    if (!o.email_domain) o.email_domain = suggestEmailDomain(o.name);
+  });
+}
+
 function findAll() {
   return dataStore.organizations;
 }
 
 function findById(id) {
-  return dataStore.organizations.find((o) => o.organization_id === id) || null;
+  const numId = Number(id);
+  return dataStore.organizations.find((o) => Number(o.organization_id) === numId) || null;
 }
 
 function create(payload) {
   const newOrg = {
     organization_id:
-      dataStore.organizations.length > 0
-        ? Math.max(...dataStore.organizations.map((o) => o.organization_id)) + 1
-        : 1,
+      maxId(dataStore.organizations, 'organization_id', 1) + 1,
     name: payload.name,
     slug: slugify(payload.name),
+    // Callers validate a supplied domain first (validateEmailDomain).
+    email_domain: payload.email_domain
+      ? normalizeDomain(payload.email_domain)
+      : suggestEmailDomain(payload.name),
     status: 'ACTIVE',
     branding: payload.branding || {
       initial: (payload.name || '?').trim().charAt(0).toUpperCase(),
@@ -65,6 +125,46 @@ function remove(id) {
   return update(id, { status: 'DELETED' });
 }
 
+/**
+ * Moves an organization to a new email domain. Every staff/admin login
+ * (everyone but patients, who use personal emails) is renamed from
+ * name.tag@old to name.tag@new and signed out so they log in again with the
+ * new address. Returns { organization, renamedUsers } or { error }.
+ */
+function changeEmailDomain(id, newDomain) {
+  const org = findById(id);
+  if (!org) return { error: 'NOT_FOUND' };
+  const checked = validateEmailDomain(newDomain, org.organization_id);
+  if (checked.error) return checked;
+
+  const oldDomain = org.email_domain;
+  const renamedUsers = [];
+  dataStore.users.forEach((u) => {
+    if (u.organization_id !== org.organization_id || u.role_id === 2) return;
+    const parsed = parseEmail(u.email);
+    if (!parsed || parsed.domain !== oldDomain) return;
+    const local = String(u.email).trim().split('@')[0];
+    u.email = `${local}@${checked.domain}`;
+    destroySessionsForUser(u.user_id);
+    renamedUsers.push({ user_id: u.user_id, email: u.email });
+  });
+
+  update(org.organization_id, { email_domain: checked.domain });
+  return { organization: org, previousDomain: oldDomain, renamedUsers };
+}
+
+/** Staff/admin logins that a domain change would rename (for the confirm step). */
+function staffLoginCount(id) {
+  const org = findById(id);
+  if (!org) return 0;
+  return dataStore.users.filter((u) => {
+    if (u.organization_id !== org.organization_id || u.role_id === 2)
+      return false;
+    const parsed = parseEmail(u.email);
+    return Boolean(parsed && parsed.domain === org.email_domain);
+  }).length;
+}
+
 // ---- Hospitals (branches) ----
 
 function hospitalsFor(organizationId) {
@@ -81,9 +181,7 @@ function createHospital(organizationId, payload) {
   const isFirst = hospitalsFor(organizationId).length === 0;
   const newHospital = {
     hospital_id:
-      dataStore.hospitals.length > 0
-        ? Math.max(...dataStore.hospitals.map((h) => h.hospital_id)) + 1
-        : 1,
+      maxId(dataStore.hospitals, 'hospital_id') + 1 || 1,
     organization_id: Number(organizationId),
     name: payload.name,
     city: payload.city || null,
@@ -94,86 +192,6 @@ function createHospital(organizationId, payload) {
   };
   dataStore.hospitals.push(newHospital);
   return newHospital;
-}
-
-// ---- Feature flags (organizationModules) ----
-
-/**
- * Every module gets an explicit row (true or false) — see requireModule() in
- * middleware/tenant.js, which treats a missing row as "not configured" rather
- * than implicitly enabled.
- *
- * `instancesMap` (optional) is { CODE: count } — how many billable instances
- * of that service the org provisioned. Usage-based billing multiplies each
- * enabled service's unit price by its instance count. Missing / <1 -> 1.
- */
-function setModuleFlags(organizationId, enabledCodes, instancesMap) {
-  const oid = Number(organizationId);
-  const enabledSet = new Set(enabledCodes || []);
-  const instances = instancesMap || {};
-  MODULE_CODES.forEach((code) => {
-    setModuleFlag(oid, code, enabledSet.has(code), instances[code]);
-  });
-  return enabledModulesFor(oid);
-}
-
-function setModuleFlag(organizationId, moduleCode, enabled, instanceCount) {
-  const oid = Number(organizationId);
-  const code = String(moduleCode).toUpperCase();
-  const existing = dataStore.organizationModules.find(
-    (m) => m.organization_id === oid && m.module_code === code,
-  );
-  const normalizedInstances =
-    instanceCount === undefined ? undefined : Math.max(1, Number(instanceCount) || 1);
-  if (existing) {
-    existing.enabled = enabled;
-    if (normalizedInstances !== undefined) existing.instances = normalizedInstances;
-    if (existing.instances === undefined) existing.instances = 1;
-    existing.updated_at = new Date().toISOString();
-    return existing;
-  }
-  const newFlag = {
-    organization_id: oid,
-    module_code: code,
-    enabled,
-    instances: normalizedInstances === undefined ? 1 : normalizedInstances,
-    updated_at: new Date().toISOString(),
-  };
-  dataStore.organizationModules.push(newFlag);
-  return newFlag;
-}
-
-function enabledModulesFor(organizationId) {
-  const oid = Number(organizationId);
-  return dataStore.organizationModules
-    .filter((m) => m.organization_id === oid && m.enabled)
-    .map((m) => m.module_code);
-}
-
-/** { CODE: instanceCount } for the org's ENABLED services only. */
-function moduleInstancesFor(organizationId) {
-  const oid = Number(organizationId);
-  const out = {};
-  dataStore.organizationModules
-    .filter((m) => m.organization_id === oid && m.enabled)
-    .forEach((m) => {
-      out[m.module_code] = Math.max(1, Number(m.instances) || 1);
-    });
-  return out;
-}
-
-function allModuleFlagsFor(organizationId) {
-  const oid = Number(organizationId);
-  return MODULE_CODES.map((code) => {
-    const flag = dataStore.organizationModules.find(
-      (m) => m.organization_id === oid && m.module_code === code,
-    );
-    return {
-      module_code: code,
-      enabled: flag ? flag.enabled : false,
-      instances: flag && flag.instances ? Math.max(1, Number(flag.instances) || 1) : 1,
-    };
-  });
 }
 
 // ---- Resource-level entitlements (organizationResources) ----
@@ -261,38 +279,6 @@ function resourceCatalogFor(organizationId) {
   return out;
 }
 
-/**
- * Boot-time reconciliation. Guarantees every organization has an explicit
- * organizationModules row for every module code in the catalog, so
- * requireModule() (fail-closed) never 403s an org just because a newly
- * added module code has no row yet. Pre-existing orgs are GRANTED the
- * modules listed in BACKFILL_GRANT_MODULES (so yesterday's working orgs
- * keep working); any other newly added code defaults to disabled.
- */
-function syncOrganizationConfig() {
-  if (!Array.isArray(dataStore.organizationResources)) {
-    dataStore.organizationResources = [];
-  }
-  const grant = new Set(BACKFILL_GRANT_MODULES);
-  dataStore.organizations.forEach((org) => {
-    const oid = org.organization_id;
-    MODULE_CODES.forEach((code) => {
-      const existing = dataStore.organizationModules.find(
-        (m) => m.organization_id === oid && m.module_code === code,
-      );
-      if (!existing) {
-        dataStore.organizationModules.push({
-          organization_id: oid,
-          module_code: code,
-          enabled: grant.has(code),
-          instances: 1,
-          updated_at: new Date().toISOString(),
-        });
-      }
-    });
-  });
-}
-
 // ---- Usage / quotas ----
 
 function quotasFor(organizationId) {
@@ -308,13 +294,9 @@ function usageFor(organizationId) {
   const sub =
     dataStore.subscriptions.find((s) => s.organization_id === oid) || null;
 
-  const enabledModules = enabledModulesFor(oid);
-  // Usage-based billing: pay per enabled service × the number of instances
-  // of that service the org provisioned at onboarding, PLUS resource-level
-  // line items (beds, seats, terminals — config/resourceCatalog.js).
+  const branchCount = hospitalsFor(oid).length || 1;
   const cost = serviceCatalog.computeCost(
-    moduleInstancesFor(oid),
-    1,
+    branchCount,
     resourceQuantitiesFor(oid),
   );
 
@@ -374,7 +356,6 @@ function usageFor(organizationId) {
           renews_at: sub.renews_at,
         }
       : null,
-    enabled_modules: enabledModules,
   };
 }
 
@@ -387,6 +368,7 @@ function marketplaceListing() {
       organization_id: o.organization_id,
       name: o.name,
       slug: o.slug,
+      email_domain: o.email_domain || null,
       branding: o.branding,
       branches: hospitalsFor(o.organization_id).map((h) => ({
         hospital_id: h.hospital_id,
@@ -402,6 +384,12 @@ function marketplaceListing() {
 module.exports = {
   findAll,
   findById,
+  findByEmailDomain,
+  suggestEmailDomain,
+  validateEmailDomain,
+  changeEmailDomain,
+  staffLoginCount,
+  backfillEmailDomains,
   create,
   update,
   setStatus,
@@ -409,15 +397,9 @@ module.exports = {
   hospitalsFor,
   primaryHospitalFor,
   createHospital,
-  setModuleFlags,
-  setModuleFlag,
-  enabledModulesFor,
-  moduleInstancesFor,
-  allModuleFlagsFor,
   setResourceQuantities,
   resourceQuantitiesFor,
   resourceCatalogFor,
-  syncOrganizationConfig,
   quotasFor,
   usageFor,
   marketplaceListing,

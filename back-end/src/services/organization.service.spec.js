@@ -1,7 +1,6 @@
 'use strict';
 
 const organizationService = require('./organization.service');
-const { MODULE_CODES } = require('../utils/tenant');
 
 describe('services/organization.service', () => {
   it('create() assigns an incrementing id and a unique slug', () => {
@@ -44,24 +43,23 @@ describe('services/organization.service', () => {
     );
   });
 
-  it('setModuleFlags()/enabledModulesFor() round-trip and default every unconfigured module to disabled', () => {
+  it('setResourceQuantities()/resourceQuantitiesFor() round-trip and store capacity limits', () => {
     const org = organizationService.create({ name: 'Unit Test Hospital D' });
-    expect(organizationService.enabledModulesFor(org.organization_id)).toEqual(
-      [],
-    );
+    expect(organizationService.resourceQuantitiesFor(org.organization_id)).toEqual({});
 
-    organizationService.setModuleFlags(org.organization_id, [
-      'BILLING',
-      'APPOINTMENTS',
-    ]);
-    const enabled = organizationService.enabledModulesFor(org.organization_id);
-    expect(enabled.sort()).toEqual(['APPOINTMENTS', 'BILLING'].sort());
+    organizationService.setResourceQuantities(org.organization_id, {
+      ADMISSIONS: { GENERAL_BEDS: 50, ICU_BEDS: 10 },
+      BILLING: { BILLING_TERMINALS: 5 },
+    });
+    const stored = organizationService.resourceQuantitiesFor(org.organization_id);
+    expect(stored.ADMISSIONS.GENERAL_BEDS).toBe(50);
+    expect(stored.ADMISSIONS.ICU_BEDS).toBe(10);
+    expect(stored.BILLING.BILLING_TERMINALS).toBe(5);
 
-    const allFlags = organizationService.allModuleFlagsFor(org.organization_id);
-    expect(allFlags).toHaveLength(MODULE_CODES.length);
-    expect(allFlags.find((f) => f.module_code === 'INSURANCE').enabled).toBe(
-      false,
-    );
+    const catalog = organizationService.resourceCatalogFor(org.organization_id);
+    expect(catalog.length).toBeGreaterThan(0);
+    const genBed = catalog.find((r) => r.resource_code === 'GENERAL_BEDS');
+    expect(genBed.quantity).toBe(50);
   });
 
   it('marketplaceListing() only includes ACTIVE organizations and never leaks internal fields', () => {

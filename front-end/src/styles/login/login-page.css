@@ -105,42 +105,28 @@ button, input, a { font-family: inherit; }
     font-weight: 400;
 }
 
-/* ── Role tabs — MD3 5-role segmented control ── */
-.role-tabs {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
-    margin-bottom: 24px;
-    background: var(--md-surface-container-low);
-    padding: 4px;
-    border-radius: var(--radius-lg);
+/* ── Detected portal chip (unified login: the email picks the portal) ── */
+.portal-chip-row {
+    margin-top: 8px;
+    min-height: 22px;
 }
 
-.role-tab {
-    border: none;
+.portal-chip {
+    display: inline-block;
+    padding: 4px 12px;
     border-radius: var(--radius-full);
-    background: transparent;
-    color: var(--md-on-surface-variant);
-    padding: 9px 2px;
-    font-family: var(--font-body);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor: pointer;
-    text-align: center;
-    transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
-}
-
-.role-tab:hover {
-    color: var(--md-on-background);
-    background: color-mix(in srgb, var(--md-primary) 8%, transparent);
-}
-
-.role-tab.active {
     background: var(--md-secondary-container);
     color: var(--md-on-secondary-container);
-    box-shadow: var(--shadow-1);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.portal-chip strong { font-weight: 600; }
+
+.portal-chip-idle {
+    background: transparent;
+    padding: 0;
+    color: var(--md-on-surface-variant);
 }
 
 /* ── Form ── */
@@ -321,15 +307,69 @@ button, input, a { font-family: inherit; }
     color: var(--md-on-background);
 }
 
-.demo-credential-row span {
+.demo-role-desc {
+    font-size: 11px;
+    color: var(--md-on-surface-variant);
+    line-height: 1.35;
+    margin: 2px 0 4px;
+}
+
+.demo-row-creds {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.demo-row-creds span {
     font-size: 11.5px;
     color: var(--md-on-surface-variant);
 }
 
-.demo-credential-row code {
+.demo-row-creds code {
     font-size: 11.5px;
     color: var(--md-on-background);
     font-weight: 600;
+}
+
+/* ── Demo hospital tabs ── */
+.demo-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.demo-tab {
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--md-on-surface-variant);
+    padding: 4px 12px;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+.demo-tab:hover { color: var(--md-on-background); }
+
+.demo-tab.active {
+    background: var(--md-secondary-container);
+    border-color: transparent;
+    color: var(--md-on-secondary-container);
+}
+
+.demo-role-badge {
+    display: inline-block;
+    min-width: 52px;
+    margin-right: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--md-primary);
 }
 
 /* ── Footer links ── */
