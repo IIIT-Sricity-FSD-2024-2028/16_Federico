@@ -155,9 +155,16 @@
 }
 
 .main-content {
-    padding: 40px;
-    max-width: 1400px;
+    max-width: 1320px;
     margin: 0 auto;
+    padding: 40px 32px 56px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: 24px 16px 40px;
+    }
 }
 
 /* Dashboard Stat Cards Layout */
