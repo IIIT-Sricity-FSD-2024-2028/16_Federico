@@ -3,7 +3,6 @@
 const { Router } = require('express');
 const controller = require('../controllers/billing.controller');
 const { authorize } = require('../middleware/actorAccess');
-const { requireModule } = require('../middleware/tenant');
 const { validateBody } = require('../validators/engine');
 const {
   createServiceRules,
@@ -11,10 +10,10 @@ const {
   createLedgerEntryRules,
   createPaymentRules,
   createDischargeSummaryRules,
+  createLeaderRules,
 } = require('../validators/billing.validators');
 
 const router = Router();
-router.use(requireModule('BILLING'));
 
 // Services
 router.get(
@@ -119,6 +118,7 @@ router.get(
 router.post(
   '/leaders',
   authorize(['ADMIN', 'SUPER_USER'], 'leader', 'write'),
+  validateBody(createLeaderRules),
   controller.createLeader,
 );
 router.put(

@@ -78,7 +78,8 @@ function findAllPayments(req, res) {
 // there's no real payment gateway to confirm asynchronously, the
 // triggering call itself is treated as the confirmed payment.
 function createPayment(req, res) {
-  const ledger = billingService.findLedgerById(req.body.ledger_id);
+  const ledgerId = Number(req.body.ledger_id);
+  const ledger = billingService.findLedgerById(ledgerId);
   const admission =
     ledger &&
     dataStore.admissions.find((a) => a.admission_id === ledger.admission_id);
