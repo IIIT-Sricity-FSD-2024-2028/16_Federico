@@ -1,98 +1,566 @@
-/* marketplace-page.css — Material You */
+/* ==========================================================================
+   marketplace-page.css — Apple UI Typography & Minimal Aesthetic
+   Features:
+   - Apple SF Pro & Inter typography (clean, crisp, elegant, less bold)
+   - Brand: F and Federico only (no subtitle, no dot)
+   - Search bar: Single border focus, zero double outline issue
+   - Heartbeat line removed completely
+   - Suggestions and lead text removed
+   - Clean hospital cards without helpline clutter
+   - Hospital Red Cross (+) blood red capsule buttons (#D80027) with smooth hover
+   - Minimal plain single-line footer
+   ========================================================================== */
 
-body { background: var(--md-background); }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
-.topbar-actions { display: flex; gap: 8px; }
-
-.marketplace-page { padding-top: 40px; padding-bottom: 64px; }
-
-.marketplace-hero {
+/* 1. Root & Apple Typography Enforcement */
+.marketplace-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   position: relative;
+  background: #FAFAFC;
+  color: #111111;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'SF Pro', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.marketplace-root * {
+  font-family: inherit !important;
+  box-sizing: border-box;
+}
+
+/* Hospital Atmospheric Visual Background */
+.hospital-bg-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
   overflow: hidden;
-  background: var(--md-surface-container);
-  border-radius: var(--radius-xxl);
-  padding: 56px 48px;
-  margin-bottom: 40px;
-}
-.marketplace-hero h1 { font: var(--type-headline-large); margin: 12px 0 16px; position: relative; }
-.marketplace-hero .label { position: relative; }
-.marketplace-lead {
-  max-width: 640px;
-  color: var(--md-on-surface-variant);
-  font-size: 1.05rem;
-  line-height: 1.6;
-  position: relative;
-  margin-bottom: 28px;
+  background: radial-gradient(circle at 50% 0%, #FFFFFF 0%, #F5F4F8 100%);
 }
 
-.marketplace-search {
+.hospital-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(103, 80, 164, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(103, 80, 164, 0.035) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at 50% 30%, rgba(0, 0, 0, 0.8) 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, rgba(0, 0, 0, 0.8) 0%, transparent 80%);
+}
+
+.hospital-glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.6;
+  will-change: transform;
+}
+
+.hospital-glow-cyan {
+  width: 520px;
+  height: 520px;
+  top: -120px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(0, 163, 137, 0.15) 0%, transparent 70%);
+}
+
+.hospital-glow-violet {
+  width: 580px;
+  height: 580px;
+  top: 30%;
+  right: -100px;
+  background: radial-gradient(circle, rgba(103, 80, 164, 0.12) 0%, transparent 70%);
+}
+
+.hospital-glow-amber {
+  width: 480px;
+  height: 480px;
+  bottom: 12%;
+  left: 10%;
+  background: radial-gradient(circle, rgba(224, 86, 36, 0.06) 0%, transparent 70%);
+}
+
+/* Explicitly remove the heartbeat ECG animation */
+.hospital-ecg-container {
+  display: none !important;
+}
+
+.hospital-depth-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(250, 250, 252, 0.6) 100%);
+}
+
+/* 2. Topbar Navigation (Apple Frosted Glass) */
+.marketplace-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 28px;
+}
+
+.marketplace-topbar-content {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Brand element: F and Federico only */
+.marketplace-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.marketplace-brand:hover {
+  opacity: 0.85;
+}
+
+.brand-badge-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #6750A4;
+  color: #FFFFFF;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 17px;
+  box-shadow: 0 2px 8px rgba(103, 80, 164, 0.22);
+}
+
+.brand-name {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #111111;
+  line-height: 1;
+}
+
+/* 3. Main Container */
+.marketplace-main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
   position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 44px 24px 72px;
+}
+
+/* 4. Hero Section */
+.marketplace-hero {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 28px;
+}
+
+.section-pill-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(0, 163, 137, 0.08);
+  color: #00897B;
+  border: 1px solid rgba(0, 163, 137, 0.18);
+  margin-bottom: 12px;
+}
+
+.marketplace-heading {
+  font-size: clamp(28px, 3.2vw, 38px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #111111;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.marketplace-heading span {
+  background: linear-gradient(135deg, #6750A4 0%, #D80027 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 5. Filter & Search Control */
+.marketplace-control-bar {
+  background: #FFFFFF;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  padding: 10px 22px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto 28px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.marketplace-control-bar:focus-within {
+  border-color: #D80027;
+  box-shadow: 0 0 0 3.5px rgba(216, 0, 39, 0.12), 0 4px 16px rgba(216, 0, 39, 0.06);
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-icon {
+  color: #86868b;
+  flex-shrink: 0;
+}
+
+/* Fix: strictly eliminate double border/outline on input */
+.marketplace-search-input,
+.marketplace-search-input:focus,
+.marketplace-search-input:focus-visible,
+.marketplace-search-input:active {
+  width: 100%;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-size: 15px;
+  font-weight: 400;
+  color: #111111;
+  padding: 6px 0;
+}
+
+.marketplace-search-input::placeholder {
+  color: #86868b;
+  font-weight: 400;
+}
+
+.clear-search-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  color: #6e6e73;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clear-search-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #111111;
+}
+
+.results-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+
+.results-count-text {
+  font-size: 13px;
+  font-weight: 400;
+  color: #86868b;
+}
+
+/* 6. Clean, Minimal Hospital Cards Grid */
+.hospital-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+}
+
+.hospital-card {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.hospital-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(216, 0, 39, 0.22);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
+}
+
+.hospital-card-header {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.hospital-title-group {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hospital-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hospital-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111111;
+  margin: 0;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.hospital-branches {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #6e6e73;
+  margin: 0;
+}
+
+.loc-icon {
+  color: #00A389;
+  flex-shrink: 0;
+}
+
+.emergency-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 9px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(216, 0, 39, 0.08);
+  color: #D80027;
+  border: 1px solid rgba(216, 0, 39, 0.18);
+  flex-shrink: 0;
+}
+
+/* Specialties Chips */
+.hospital-specialties-wrap {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
+  gap: 6px;
 }
-.marketplace-search input[type="search"] {
-  flex: 1;
-  min-width: 240px;
-  height: 56px;
-  padding: 0 20px;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--md-surface-container-low);
-  color: var(--md-on-background);
-  font-size: 1rem;
-  box-shadow: var(--shadow-1);
+
+.specialty-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: #F5F5F7;
+  color: #424245;
+  font-size: 12px;
+  font-weight: 400;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
-.marketplace-search input[type="search"]:focus {
-  outline: 2px solid var(--md-primary);
-  outline-offset: 2px;
-}
-.emergency-filter {
+
+/* Action Buttons (Capsule Shape & Hospital Blood Red) */
+.hospital-actions-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: var(--md-on-surface-variant);
-  white-space: nowrap;
+  gap: 10px;
+}
+
+.btn-hospital-primary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: #D80027;
+  color: #FFFFFF;
+  border: 1.5px solid transparent;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(216, 0, 39, 0.22);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
-.emergency-filter input { width: 18px; height: 18px; accent-color: var(--md-primary); }
 
-.org-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+.btn-hospital-primary:hover {
+  background: #B71C1C;
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px rgba(216, 0, 39, 0.35);
+  color: #FFFFFF;
 }
 
-.org-card { display: flex; flex-direction: column; gap: 16px; }
-.org-card-head { display: flex; align-items: flex-start; gap: 14px; }
-.org-mark {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
+.btn-hospital-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-hospital-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  border: 1.5px solid #D80027;
+  color: #D80027;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 1px 4px rgba(216, 0, 39, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.btn-hospital-secondary:hover {
+  background: #D80027;
+  color: #FFFFFF;
+  border-color: #D80027;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(216, 0, 39, 0.25);
+}
+
+.btn-hospital-secondary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 7. Empty State */
+.marketplace-empty-card {
+  grid-column: 1 / -1;
+  background: #FFFFFF;
+  border-radius: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  padding: 56px 24px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.empty-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.035);
+  display: grid;
+  place-items: center;
+  color: #86868b;
+  margin-bottom: 6px;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111111;
+  margin: 0;
+}
+
+.empty-desc {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6e6e73;
+  max-width: 400px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.spinning-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 8. Minimal Plain Footer */
+.marketplace-footer {
+  margin-top: auto;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  background: #F5F5F7;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 24px 24px;
+  text-align: center;
+}
+
+.marketplace-footer-container {
+  max-width: 1240px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 1.25rem;
 }
-.org-name { margin: 0; font-size: 1.15rem; }
-.org-branches { margin: 4px 0 0; font-size: 0.85rem; color: var(--md-on-surface-variant); }
-.org-card-head .emergency-chip { margin-left: auto; flex-shrink: 0; }
 
-.org-specialties { display: flex; flex-wrap: wrap; gap: 6px; }
+.marketplace-footer-text {
+  margin: 0;
+  font-size: 13px;
+  color: #6e6e73;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
 
-.org-contact { margin: 0; font-size: 0.85rem; color: var(--md-on-surface-variant); }
-
-.org-actions { display: flex; gap: 8px; margin-top: auto; }
-.org-actions .md-btn { flex: 1; text-align: center; text-decoration: none; }
-
-.md-empty-state { grid-column: 1 / -1; }
+/* Responsive */
+@media (max-width: 900px) {
+  .hospital-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 @media (max-width: 640px) {
-  .marketplace-hero { border-radius: var(--radius-lg); padding: 32px 20px; }
-  .org-grid { grid-template-columns: 1fr; }
+  .marketplace-control-bar {
+    padding: 6px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
