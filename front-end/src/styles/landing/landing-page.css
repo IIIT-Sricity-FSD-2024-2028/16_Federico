@@ -193,18 +193,6 @@ button, a {
   letter-spacing: -0.02em;
 }
 
-.brand-live-pulse {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #00C853;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 0 6px #00C853;
-}
-
 .brand-info {
   display: flex;
   flex-direction: column;

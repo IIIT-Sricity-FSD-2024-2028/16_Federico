@@ -48,22 +48,14 @@ function formatPatientLocation(org) {
 }
 
 /**
- * Clean, patient-centric hospital card (helpline & logo removed per user request).
+ * Clean, patient-centric hospital card.
  */
 function OrgCard({ org }) {
   return (
     <article className="hospital-card">
       <div className="hospital-card-header">
         <div className="hospital-title-group">
-          <div className="hospital-title-row">
-            <h3 className="hospital-name">{org.name}</h3>
-            {org.emergency_available && (
-              <span className="emergency-status-chip">
-                <AlertTriangle size={11} />
-                <span>24×7 Emergency</span>
-              </span>
-            )}
-          </div>
+          <h3 className="hospital-name">{org.name}</h3>
           <p className="hospital-branches">
             <MapPin size={13} className="loc-icon" />
             <span>{formatPatientLocation(org)}</span>
@@ -104,7 +96,6 @@ export default function MarketplacePage() {
   usePageStyles(marketplacePageCss);
   useDocumentTitle('Federico — Hospital Directory');
   const [query, setQuery] = useState('');
-  const [emergencyOnly, setEmergencyOnly] = useState(false);
 
   const { data, error, loading } = useApi(async () => {
     try {
@@ -116,20 +107,16 @@ export default function MarketplacePage() {
   }, []);
 
   const filtered = useMemo(
-    () =>
-      (data || []).filter((org) => {
-        if (emergencyOnly && !org.emergency_available) return false;
-        return matchesSearch(org, query.trim());
-      }),
-    [data, query, emergencyOnly],
+    () => (data || []).filter((org) => matchesSearch(org, query.trim())),
+    [data, query],
   );
 
   return (
     <div className="marketplace-root">
-      {/* 1. Atmospheric Hospital Background (heartbeat ECG removed per request) */}
+      {/* 1. Atmospheric Hospital Background */}
       <HospitalBackground showEcg={false} />
 
-      {/* 2. Frosted Glass Top Navigation - ONLY brand logo, no buttons */}
+      {/* 2. Frosted Glass Top Navigation */}
       <header className="marketplace-topbar">
         <div className="marketplace-topbar-content">
           <Link className="marketplace-brand" to="/landing/landing-page.html">
@@ -143,7 +130,7 @@ export default function MarketplacePage() {
 
       {/* 3. Main Content Container */}
       <main className="marketplace-main">
-        {/* Hero Section (lead text removed per request) */}
+        {/* Hero Section */}
         <section className="marketplace-hero">
           <span className="section-pill-tag">Verified Hospital Directory</span>
           <h1 className="marketplace-heading">
@@ -151,8 +138,8 @@ export default function MarketplacePage() {
           </h1>
         </section>
 
-        {/* Search & Filter Control Bar */}
-        <section className="marketplace-control-bar" aria-label="Search and filter organizations">
+        {/* Search Control Bar */}
+        <section className="marketplace-control-bar" aria-label="Search organizations">
           <div className="search-input-wrap">
             <Search size={17} className="search-icon" />
             <input
@@ -175,18 +162,6 @@ export default function MarketplacePage() {
               </button>
             )}
           </div>
-
-          <div className="filter-divider" aria-hidden="true" />
-
-          <button
-            type="button"
-            className={`emergency-toggle-btn ${emergencyOnly ? 'active' : ''}`}
-            onClick={() => setEmergencyOnly(!emergencyOnly)}
-            aria-pressed={emergencyOnly}
-          >
-            <AlertTriangle size={14} />
-            <span>24×7 Emergency Only</span>
-          </button>
         </section>
 
         {/* Results Metadata */}
@@ -237,20 +212,15 @@ export default function MarketplacePage() {
               </div>
               <h3 className="empty-title">No matching hospitals found</h3>
               <p className="empty-desc">
-                {emergencyOnly
-                  ? 'No hospitals currently match both your query and the 24×7 emergency requirement.'
-                  : `No hospitals matched "${query}". Try searching for cardiology, emergency, or general campus.`}
+                {`No hospitals matched "${query}". Try searching for cardiology, emergency, or general campus.`}
               </p>
               <button
                 type="button"
                 className="btn-hospital-secondary"
                 style={{ marginTop: '12px' }}
-                onClick={() => {
-                  setQuery('');
-                  setEmergencyOnly(false);
-                }}
+                onClick={() => setQuery('')}
               >
-                Clear all filters
+                Clear search
               </button>
             </div>
           ) : (

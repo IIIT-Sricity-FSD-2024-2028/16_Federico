@@ -38,7 +38,6 @@ export default function LandingNavbar() {
         <div className="landing-brand" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} role="button" tabIndex={0}>
           <div className="brand-emblem">
             <span className="brand-letter">F</span>
-            <span className="brand-live-pulse" title="Cloud Core Active" />
           </div>
           <div className="brand-info">
             <span className="brand-name">Federico</span>

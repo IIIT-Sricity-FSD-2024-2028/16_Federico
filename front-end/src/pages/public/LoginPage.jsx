@@ -2,18 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  Mail,
-  Lock,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Building2,
-  Sparkles,
-  ShieldCheck,
-  AlertCircle,
-  Info,
-} from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { api } from '../../api/index.js';
 import { useSession } from '../../auth/useSession.js';
 import { useSearchParam } from '../../hooks/useSearchParam.js';
@@ -23,15 +12,12 @@ import { toast } from '../../components/feedback/feedback.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import loginPageCss from '../../styles/login/login-page.css?inline';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
-import HospitalBackground from '../../components/landing/HospitalBackground.jsx';
 
 const REMEMBER_KEY = 'FedericoRememberMe';
-// How long the email must sit still before the portal chip reacts.
-const IDENTITY_SETTLE_MS = 300;
+const IDENTITY_SETTLE_MS = 250;
 const DEMO_ROLE_ORDER = ['Admin', 'HOM', 'PRE', 'FA', 'Patient'];
 const PLATFORM_DEMO_TAB = 'platform';
 
-/** The Remember Me entry, or null when absent or corrupt. */
 function readRemembered() {
   try {
     const saved = localStorage.getItem(REMEMBER_KEY);
@@ -42,19 +28,18 @@ function readRemembered() {
 }
 
 /**
- * Unified Apple-style sign-in page for every healthcare actor.
- * Demonstrates clean hospital visual language, side-by-side demo credentials,
- * capsule controls, and zero emojis.
+ * Minimal, readable login page for healthcare staff and patients.
+ * Clean two-column layout with 1-click demo accounts directory.
  */
 export default function LoginPage() {
   usePageStyles(loginPageCss);
-  useDocumentTitle('Federico — Secure Portal Sign In');
+  useDocumentTitle('Sign In — Federico');
   const navigate = useNavigate();
   const { authenticate, getLastAuthError, isPlatformUser } = useSession();
   const preselectOrg = useSearchParam('org');
 
   const [remembered] = useState(readRemembered);
-  const [organizations, setOrganizations] = useState(null); // null = loading
+  const [organizations, setOrganizations] = useState(null);
   const [demoData, setDemoData] = useState(null);
   const [orgId, setOrgId] = useState('');
   const [orgTouched, setOrgTouched] = useState(false);
@@ -68,7 +53,6 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [demoTab, setDemoTab] = useState(null);
 
-  // Already signed in as platform super user?
   useEffect(() => {
     if (isPlatformUser) navigate(getActorHome('PLATFORM'), { replace: true });
   }, [isPlatformUser, navigate]);
@@ -78,7 +62,6 @@ export default function LoginPage() {
     return () => clearTimeout(t);
   }, [email]);
 
-  // Load public organizations and dynamic demo credentials from backend.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -117,7 +100,6 @@ export default function LoginPage() {
     () => resolveLoginIdentity(settledEmail, organizations),
     [settledEmail, organizations],
   );
-  const isPatient = identity?.actor === 'Patient';
 
   const demoOrgTabs = useMemo(() => {
     if (demoData?.organizations) {
@@ -141,8 +123,7 @@ export default function LoginPage() {
       const platAccount = demoData?.platform || {
         email: 'super.platform@federico.com',
         password: 'Federico@Platform123',
-        displayName: 'Platform Super User',
-        purpose: 'Super Admin — Tenant provisioning, subscription tiers, and system metrics',
+        displayName: 'Platform Admin',
       };
       return [{ role: 'Platform', account: platAccount }];
     }
@@ -156,11 +137,11 @@ export default function LoginPage() {
   const handleLogin = useCallback(async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
-      setError('Please provide both your registered email and password.');
+      setError('Please enter your email and password.');
       return;
     }
     if (organizations === null) {
-      setError('System initializing, please try again in a few moments.');
+      setError('Connecting to service. Please retry in a moment.');
       return;
     }
 
@@ -183,7 +164,7 @@ export default function LoginPage() {
     try {
       const authResult = await authenticate(target.actor, trimmedEmail, password, organizationId);
       if (!authResult) {
-        setError(getLastAuthError() || 'Invalid credentials. Please verify and try again.');
+        setError(getLastAuthError() || 'Invalid email or password.');
         setSubmitting(false);
         return;
       }
@@ -214,7 +195,7 @@ export default function LoginPage() {
           localStorage.removeItem(REMEMBER_KEY);
         }
       } catch {
-        /* storage unavailable; login still succeeded */
+        /* storage unavailable */
       }
 
       navigate(getActorHome(authResult.actor));
@@ -237,166 +218,137 @@ export default function LoginPage() {
     }
     setMultiOrgs(null);
     setError('');
-    toast(`Credentials for ${account.displayName} copied to sign-in form`, 'info');
+    toast(`Filled credentials for ${account.displayName}`, 'info');
   }
 
-  let portalChip;
-  if (!identity) {
-    portalChip = (
-      <span className="portal-chip-idle">
-        Staff: name.role@hospital-domain · Patients: your personal email
-      </span>
-    );
-  } else if (identity.actor === 'PLATFORM') {
-    portalChip = (
-      <span className="portal-chip-capsule">
-        <span>Target:</span>
-        <strong>{PORTAL_LABEL.PLATFORM}</strong>
-      </span>
-    );
-  } else if (isPatient) {
-    portalChip = (
-      <span className="portal-chip-capsule">
-        <span>Target:</span>
-        <strong>{PORTAL_LABEL.Patient}</strong>
-        {multiOrgs ? ' · Multiple hospital records found' : ''}
-      </span>
-    );
-  } else {
-    portalChip = (
-      <span className="portal-chip-capsule">
-        <span>Target:</span>
-        <strong>{identity.org.name}</strong> · {PORTAL_LABEL[identity.actor]}
-      </span>
-    );
+  let portalChip = null;
+  if (identity) {
+    if (identity.actor === 'PLATFORM') {
+      portalChip = <span className="portal-chip platform">Platform</span>;
+    } else if (identity.actor === 'Patient') {
+      portalChip = (
+        <span className="portal-chip patient">
+          Patient{multiOrgs ? ' · Multiple Hospitals' : ''}
+        </span>
+      );
+    } else {
+      portalChip = (
+        <span className="portal-chip staff">
+          {identity.org.name} · {PORTAL_LABEL[identity.actor] || identity.actor}
+        </span>
+      );
+    }
   }
 
   return (
-    <div className="login-page-root">
-      {/* 1. Atmospheric Hospital Background (ECG telemetry + clinical grid) */}
-      <HospitalBackground />
-
-      {/* 2. Frosted Topbar Navigation */}
-      <header className="login-topbar">
-        <div className="login-topbar-content">
-          <Link to="/landing/landing-page.html" className="login-brand" title="Back to Home">
-            <div className="login-brand-icon">
-              <span>+</span>
+    <div className="login-root">
+      {/* Top Header */}
+      <header className="login-header">
+        <div className="login-header-inner">
+          <Link to="/landing/landing-page.html" className="landing-brand" title="Back to Home">
+            <div className="brand-emblem">
+              <span className="brand-letter">F</span>
             </div>
-            <div className="login-brand-info">
-              <span className="login-brand-name">Federico</span>
-              <span className="login-brand-sub">Healthcare Cloud</span>
+            <div className="brand-info">
+              <span className="brand-name">Federico</span>
+              <span className="brand-tagline">Clinical Cloud</span>
             </div>
           </Link>
-
-          <div className="login-topbar-badge">
-            <ShieldCheck size={14} className="badge-shield-icon" />
-            <span>End-to-End Encrypted Access</span>
-          </div>
+          <Link to="/landing/landing-page.html" className="header-back-link">
+            Back to Home
+          </Link>
         </div>
       </header>
 
-      {/* 3. Main Stage: Two-column Side-by-Side Apple Layout */}
-      <main className="login-main-stage">
-        <div className="login-split-container">
-          {/* Column A: Sign In Card */}
-          <section className="login-card-apple" aria-labelledby="signin-heading">
-            <div className="login-card-header">
-              <div className="login-eyebrow-pill">
-                <span className="live-pulse-dot" />
-                <span>Unified Clinical Access</span>
-              </div>
+      {/* Main Content */}
+      <main className="login-main">
+        <div className="login-container">
+          {/* Left Column: Sign In Form */}
+          <section className="login-box" aria-labelledby="signin-heading">
+            <div className="login-box-header">
               <h1 id="signin-heading" className="login-title">
-                Sign in to your portal
+                Sign In
               </h1>
               <p className="login-subtitle">
-                Access your designated healthcare workspace, patient dashboard, or clinical
-                operations suite.
+                Access your healthcare workspace or patient portal.
               </p>
             </div>
 
             <form
               id="login-form"
-              className="login-apple-form"
+              className="login-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 handleLogin();
               }}
             >
               {error && (
-                <div className="login-error-pill" role="alert">
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span>{error}</span>
+                <div className="form-error" role="alert">
+                  {error}
                 </div>
               )}
 
-              {/* Email Input */}
-              <div className="apple-input-group">
-                <label htmlFor="email" className="apple-input-label">
-                  Email Address
-                </label>
-                <div className="apple-input-wrapper">
-                  <Mail size={18} className="apple-input-icon" />
-                  <input
-                    id="email"
-                    type="email"
-                    className="apple-text-input"
-                    placeholder="name@hospital.com or patient email"
-                    autoComplete="username"
-                    required
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setMultiOrgs(null);
-                      setDemoTab(null);
-                    }}
-                    onBlur={() => setSettledEmail(email)}
-                  />
-                </div>
-                <div className="portal-detector-row" aria-live="polite">
+              {/* Email */}
+              <div className="form-group">
+                <div className="label-row">
+                  <label htmlFor="email" className="form-label">
+                    Email
+                  </label>
                   {portalChip}
                 </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  className="form-input"
+                  placeholder="name@hospital.com or patient email"
+                  autoComplete="username"
+                  spellCheck="false"
+                  required
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setMultiOrgs(null);
+                    setDemoTab(null);
+                  }}
+                  onBlur={() => setSettledEmail(email)}
+                />
               </div>
 
-              {/* Multi-hospital Facility Selector */}
+              {/* Multi-hospital selection if account belongs to multiple orgs */}
               {multiOrgs && (
-                <div className="apple-input-group md-fade-in">
-                  <label htmlFor="organization" className="apple-input-label">
-                    Select Hospital Facility
+                <div className="form-group">
+                  <label htmlFor="organization" className="form-label">
+                    Hospital Facility
                   </label>
-                  <div className="apple-input-wrapper">
-                    <Building2 size={18} className="apple-input-icon" />
-                    <select
-                      id="organization"
-                      className="apple-select-input"
-                      value={orgId}
-                      onChange={(e) => {
-                        setOrgId(e.target.value);
-                        setOrgTouched(true);
-                      }}
-                    >
-                      {multiOrgs.map((org) => (
-                        <option key={org.organization_id} value={String(org.organization_id)}>
-                          {org.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <span className="apple-input-hint">
-                    This account is active across multiple medical facilities. Choose your session target.
-                  </span>
+                  <select
+                    id="organization"
+                    name="organization"
+                    className="form-select"
+                    value={orgId}
+                    onChange={(e) => {
+                      setOrgId(e.target.value);
+                      setOrgTouched(true);
+                    }}
+                  >
+                    {multiOrgs.map((org) => (
+                      <option key={org.organization_id} value={String(org.organization_id)}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
-              {/* Password Input */}
-              <div className="apple-input-group">
-                <div className="password-label-row">
-                  <label htmlFor="password" className="apple-input-label">
+              {/* Password */}
+              <div className="form-group">
+                <div className="label-row">
+                  <label htmlFor="password" className="form-label">
                     Password
                   </label>
                   <button
                     type="button"
-                    className="forgot-link-btn"
+                    className="forgot-btn"
                     onClick={() =>
                       toast(
                         'Please contact your hospital facility IT administration for password resets.',
@@ -404,16 +356,16 @@ export default function LoginPage() {
                       )
                     }
                   >
-                    Forgot Password?
+                    Forgot?
                   </button>
                 </div>
-                <div className="apple-input-wrapper">
-                  <Lock size={18} className="apple-input-icon" />
+                <div className="password-wrap">
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
-                    className="apple-text-input"
-                    placeholder="Enter account password"
+                    className="form-input password-input"
+                    placeholder="Password"
                     autoComplete="current-password"
                     required
                     value={password}
@@ -421,7 +373,7 @@ export default function LoginPage() {
                   />
                   <button
                     type="button"
-                    className="password-toggle-btn"
+                    className="pwd-toggle-btn"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -430,65 +382,54 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Workstation Remember Options */}
-              <div className="apple-form-options">
-                <label className="apple-checkbox-label">
+              {/* Options */}
+              <div className="form-options">
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
                     id="remember-me"
                     checked={remember}
                     onChange={(e) => setRemember(e.target.checked)}
-                    className="apple-checkbox"
                   />
-                  <span>Remember this workstation</span>
+                  <span>Remember me</span>
                 </label>
               </div>
 
-              {/* Hospital Blood Red Primary Submit Button */}
+              {/* Submit */}
               <button
-                className="btn-hospital-submit"
+                className="btn-submit"
                 type="submit"
                 disabled={submitting}
               >
-                <span>
-                  {submitting
-                    ? 'Authenticating…'
-                    : multiOrgs
-                      ? 'Continue to Hospital'
-                      : 'Sign In'}
-                </span>
-                <ArrowRight size={16} />
+                {submitting
+                  ? 'Signing in…'
+                  : multiOrgs
+                    ? 'Continue to Hospital'
+                    : 'Sign In'}
               </button>
             </form>
 
-            <div className="login-card-foot">
-              <span>Looking to register as a patient? </span>
-              <Link to="/signup/signup-page.html" className="foot-link">
+            <div className="login-box-footer">
+              <span>New patient? </span>
+              <Link to="/signup/signup-page.html" className="footer-link">
                 Register here
               </Link>
             </div>
           </section>
 
-          {/* Column B: Demo Credentials Side Panel */}
-          <aside className="demo-side-panel" aria-labelledby="demo-heading">
-            <div className="demo-panel-header">
-              <div className="demo-header-top">
-                <div className="demo-pill-badge">
-                  <Sparkles size={13} />
-                  <span>Developer Sandbox</span>
-                </div>
-                <span className="demo-header-hint">Instant 1-Click Fill</span>
-              </div>
+          {/* Right Column: Demo Accounts Directory */}
+          <aside className="demo-box" aria-labelledby="demo-heading">
+            <div className="demo-box-header">
               <h2 id="demo-heading" className="demo-title">
-                Demo Directory
+                Demo Accounts
               </h2>
-              <p className="demo-desc">
-                Select a tenant or platform tier to inspect and test role-based clinical permissions.
+              <p className="demo-subtitle">
+                Select an account to autofill credentials.
               </p>
             </div>
 
-            {/* Apple Segmented Capsule Switcher */}
-            <div className="demo-segmented-tabs" role="tablist">
+            {/* Tenant Tabs */}
+            <div className="demo-tabs" role="tablist">
               {demoOrgTabs.map((org) => (
                 <button
                   key={org.organization_id}
@@ -516,62 +457,34 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Scrollable Demo Accounts List */}
-            <div className="demo-accounts-scroll">
+            {/* Accounts List */}
+            <div className="demo-list">
               {demoRows.map(({ role, account }) => (
-                <div
+                <button
                   key={account.email}
-                  className="demo-account-card"
+                  type="button"
+                  className="demo-card"
                   onClick={() => fillDemo(account, activeDemoTab)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      fillDemo(account, activeDemoTab);
-                    }
-                  }}
-                  title="Click to autofill credentials"
+                  title={`Click to fill credentials for ${account.displayName}`}
                 >
-                  <div className="account-card-top">
-                    <div className="account-title-wrap">
-                      <span className={`role-badge role-${role.toLowerCase()}`}>
-                        {role}
-                      </span>
-                      <span className="account-name">{account.displayName}</span>
-                    </div>
-                    <span className="autofill-action-pill">
-                      <span>Autofill</span>
-                    </span>
+                  <div className="demo-card-top">
+                    <span className="role-badge">{role}</span>
+                    <span className="demo-name">{account.displayName}</span>
                   </div>
-
-                  {account.purpose && (
-                    <p className="account-purpose">{account.purpose}</p>
-                  )}
-
-                  <div className="account-creds-strip">
-                    <span className="account-email">{account.email}</span>
-                    <span className="account-pwd-pill">
-                      <Lock size={12} style={{ color: '#00897B', flexShrink: 0 }} />
-                      <code>{account.password}</code>
-                    </span>
+                  <div className="demo-card-bottom">
+                    <span className="demo-email">{account.email}</span>
+                    <span className="demo-pwd">{account.password}</span>
                   </div>
-                </div>
+                </button>
               ))}
-            </div>
-
-            <div className="demo-panel-footer">
-              <Info size={13} style={{ flexShrink: 0 }} />
-              <span>Clicking any card automatically populates the sign-in form.</span>
             </div>
           </aside>
         </div>
       </main>
 
-      {/* 4. Minimalist Plain Single-Line Footer */}
-      <footer className="login-footer-apple">
-        <p className="login-footer-text">
-          © 2026 Federico Cloud Platform. Built with care for hospitals &amp; patients worldwide.
-        </p>
+      {/* Minimal Footer */}
+      <footer className="login-footer">
+        <p>© 2026 Federico Cloud Platform</p>
       </footer>
     </div>
   );

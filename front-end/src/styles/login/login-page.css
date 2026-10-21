@@ -1,66 +1,59 @@
 /* ==========================================================================
-   login-page.css — Apple & Hospital SDE3 Visual Redesign
-   Features:
-   - Hospital atmospheric backdrop with animated ECG telemetry
-   - Two-column side-by-side Apple layout (Sign In + Demo Directory)
-   - Hospital Red Cross (+) blood red capsule buttons (#D80027) with smooth hover
-   - Apple HIG frosted glassmorphism & typography
-   - Capsule inputs, segmented tabs, and role pills
-   - Strictly NO emojis
-   - Minimal single-line footer
+   login-page.css — Clean, Minimal Sign In with Hospital Red Accents
+   - Red theme accents (#DC2626 / #B91C1C) across all key actions and focus states
+   - Monochrome, neutral role badges for all demo accounts (zero colorful badges)
+   - High contrast, crisp typography, and uncluttered layout
    ========================================================================== */
 
-/* 1. Page Root & Reset */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-.login-page-root {
+/* 1. Page Root & Layout */
+.login-root {
   min-height: 100vh;
-  position: relative;
-  background: #FAFAFC;
-  color: #1C1B1F;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Google Sans', system-ui, sans-serif;
-  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  background-color: #F8F9FA;
+  color: #1F2937;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 2. Topbar Navigation */
-.login-topbar {
+/* 2. Top Header (matching landing page navbar) */
+.login-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  padding: 14px 28px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 12px 24px;
 }
 
-.login-topbar-content {
-  max-width: 1200px;
+.login-header-inner {
+  max-width: 1000px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.login-brand {
-  display: inline-flex;
+.landing-brand {
+  display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
   text-decoration: none;
-  color: inherit;
-  transition: transform 0.25s ease;
+  user-select: none;
+  transition: opacity 0.15s ease;
 }
 
-.login-brand:hover {
-  transform: scale(1.02);
+.landing-brand:hover {
+  opacity: 0.92;
 }
 
-.login-brand-icon {
+.brand-emblem {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 12px;
@@ -68,770 +61,478 @@
   color: #FFFFFF;
   display: grid;
   place-items: center;
+  box-shadow: 0 4px 12px rgba(103, 80, 164, 0.28);
+}
+
+.brand-letter {
+  font-family: var(--font-heading, inherit);
   font-weight: 800;
-  font-size: 20px;
-  box-shadow: 0 4px 12px rgba(103, 80, 164, 0.25);
-  position: relative;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
 }
 
-.login-brand-icon::after {
-  content: '';
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #00A389;
-  border: 2px solid #FFFFFF;
-}
-
-.login-brand-info {
+.brand-info {
   display: flex;
   flex-direction: column;
 }
 
-.login-brand-name {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+.brand-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: #1C1B1F;
   line-height: 1.1;
 }
 
-.login-brand-sub {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #6750A4;
-  margin-top: 2px;
-}
-
-.login-topbar-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  background: rgba(0, 163, 137, 0.08);
-  border: 1px solid rgba(0, 163, 137, 0.2);
-  color: #00897B;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.badge-shield-icon {
-  color: #00A389;
-}
-
-/* 3. Main Stage Container */
-.login-main-stage {
-  position: relative;
-  z-index: 2;
-  padding: 40px 24px 60px;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-}
-
-.login-split-container {
-  display: grid;
-  grid-template-columns: minmax(360px, 450px) minmax(420px, 560px);
-  gap: 36px;
-  width: 100%;
-  align-items: start;
-  justify-content: center;
-}
-
-/* 4. Column A: Sign In Card (Apple HIG Frosted Glass) */
-.login-card-apple {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 28px;
-  padding: 36px 34px 32px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 22px;
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.login-card-apple:hover {
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03);
-}
-
-.login-card-header {
-  display: flex;
-  flex-direction: column;
-}
-
-.login-eyebrow-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 9999px;
+.brand-tagline {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(216, 0, 39, 0.08);
-  color: #D80027;
-  border: 1px solid rgba(216, 0, 39, 0.18);
-  align-self: flex-start;
-  margin-bottom: 12px;
+  letter-spacing: 0.06em;
+  color: #6750A4;
 }
 
-.live-pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #D80027;
-  box-shadow: 0 0 6px rgba(216, 0, 39, 0.6);
-  animation: pulseDot 2s infinite;
+.header-back-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4B5563;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
 }
 
-@keyframes pulseDot {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.6; }
-  100% { transform: scale(1); opacity: 1; }
+.header-back-link:hover {
+  color: #DC2626;
+}
+
+/* 3. Main Stage & Split Container */
+.login-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* 4. Column A: Sign In Card */
+.login-box {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.login-box-header {
+  margin-bottom: 24px;
 }
 
 .login-title {
-  font-size: clamp(24px, 2.5vw, 28px);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  color: #1C1B1F;
-  margin: 0 0 6px;
-  line-height: 1.2;
+  margin: 0 0 6px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
 }
 
 .login-subtitle {
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: #49454F;
   margin: 0;
+  font-size: 14px;
+  color: #6B7280;
+  line-height: 1.5;
 }
 
-/* Error Banner */
-.login-error-pill {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(216, 0, 39, 0.08);
-  border: 1px solid rgba(216, 0, 39, 0.25);
-  color: #D80027;
-  padding: 10px 16px;
-  border-radius: 14px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-/* Form Groups & Inputs */
-.login-apple-form {
+/* Form Styles */
+.login-form {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.apple-input-group {
+.form-error {
+  padding: 10px 14px;
+  border-radius: 6px;
+  background-color: #FEF2F2;
+  border: 1px solid #F87171;
+  color: #B91C1C;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.apple-input-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #49454F;
-  text-transform: uppercase;
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.apple-input-wrapper {
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.forgot-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12.5px;
+  color: #DC2626;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.forgot-btn:hover {
+  color: #B91C1C;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  font-size: 14.5px;
+  color: #111827;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: #DC2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.form-input::placeholder {
+  color: #9CA3AF;
+}
+
+/* Password with Toggle */
+.password-wrap {
   position: relative;
   display: flex;
   align-items: center;
-  background: #F6F5F9;
-  border: 1.5px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
-  padding: 0 14px;
-  height: 50px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.apple-input-wrapper:focus-within {
-  border-color: #D80027;
-  background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(216, 0, 39, 0.12);
+.password-input {
+  padding-right: 40px;
 }
 
-.apple-input-icon {
-  color: #79747E;
-  margin-right: 10px;
-  flex-shrink: 0;
-}
-
-.apple-text-input {
-  flex: 1;
+.pwd-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
   border: none;
-  background: transparent;
-  outline: none;
-  font-size: 14px;
-  color: #1C1B1F;
-  font-weight: 500;
-  font-family: inherit;
-  width: 100%;
-}
-
-.apple-text-input::placeholder {
-  color: #9E9AA3;
-  font-weight: 400;
-}
-
-.apple-select-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 14px;
-  color: #1C1B1F;
-  font-weight: 500;
-  font-family: inherit;
-  width: 100%;
+  padding: 6px;
   cursor: pointer;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
 }
 
-.password-toggle-btn {
-  background: transparent;
-  border: none;
-  color: #79747E;
-  cursor: pointer;
-  padding: 4px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  transition: color 0.2s ease;
+.pwd-toggle-btn:hover {
+  color: #DC2626;
 }
 
-.password-toggle-btn:hover {
-  color: #1C1B1F;
+/* Portal Target Chip */
+.portal-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
 }
 
-.password-label-row {
+/* Checkbox Option */
+.form-options {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.forgot-link-btn {
-  background: transparent;
-  border: none;
-  padding: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6750A4;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  font-family: inherit;
-}
-
-.forgot-link-btn:hover {
-  color: #D80027;
-  text-decoration: underline;
-}
-
-.apple-input-hint {
-  font-size: 12px;
-  color: #79747E;
-  line-height: 1.4;
-  margin-top: 2px;
-}
-
-/* Detected Portal Chip */
-.portal-detector-row {
-  min-height: 24px;
-  margin-top: 4px;
-}
-
-.portal-chip-capsule {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(103, 80, 164, 0.08);
-  color: #6750A4;
-  border: 1px solid rgba(103, 80, 164, 0.18);
-  line-height: 1.35;
-}
-
-.portal-chip-capsule strong {
-  color: #1C1B1F;
-  font-weight: 700;
-}
-
-.portal-chip-idle {
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: #79747E;
-  font-weight: 500;
-  font-size: 12px;
-}
-
-/* Form Options */
-.apple-form-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: -2px;
-}
-
-.apple-checkbox-label {
+.checkbox-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  color: #49454F;
-  font-weight: 500;
+  font-size: 13.5px;
+  color: #4B5563;
   cursor: pointer;
   user-select: none;
 }
 
-.apple-checkbox {
-  accent-color: #D80027;
+.checkbox-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
+  accent-color: #DC2626;
   cursor: pointer;
-  border-radius: 4px;
 }
 
-/* Hospital Blood Red Primary Button (Capsule Shape) */
-.btn-hospital-submit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+/* Red Submit Button */
+.btn-submit {
   width: 100%;
-  height: 50px;
-  border-radius: 9999px;
-  background: #D80027;
+  height: 44px;
+  background-color: #DC2626;
   color: #FFFFFF;
-  border: 1.5px solid transparent;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(216, 0, 39, 0.25);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: none;
+  border-radius: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
   cursor: pointer;
-  font-family: inherit;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
   margin-top: 4px;
 }
 
-.btn-hospital-submit:hover:not(:disabled) {
-  background: #B71C1C;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(216, 0, 39, 0.42);
+.btn-submit:hover:not(:disabled) {
+  background-color: #B91C1C;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
 
-.btn-hospital-submit:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
+.btn-submit:active:not(:disabled) {
+  background-color: #991B1B;
 }
 
-.btn-hospital-submit:disabled {
-  opacity: 0.65;
+.btn-submit:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.login-card-foot {
-  text-align: center;
+.login-box-footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #F3F4F6;
   font-size: 13.5px;
-  color: #79747E;
-  margin-top: 4px;
+  color: #6B7280;
+  text-align: center;
 }
 
-.foot-link {
-  color: #D80027;
-  font-weight: 700;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.foot-link:hover {
-  text-decoration: underline;
-  color: #B71C1C;
-}
-
-/* 5. Column B: Demo Credentials Side Panel */
-.demo-side-panel {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 28px;
-  padding: 34px 30px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 18px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.demo-side-panel:hover {
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03);
-}
-
-.demo-panel-header {
-  display: flex;
-  flex-direction: column;
-}
-
-.demo-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.demo-pill-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(0, 163, 137, 0.08);
-  color: #00897B;
-  border: 1px solid rgba(0, 163, 137, 0.2);
-}
-
-.demo-header-hint {
-  font-size: 12px;
+.footer-link {
+  color: #DC2626;
   font-weight: 600;
-  color: #79747E;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: #B91C1C;
+}
+
+/* 5. Column B: Demo Directory Card */
+.demo-box {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.demo-box-header {
+  margin-bottom: 18px;
 }
 
 .demo-title {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #1C1B1F;
-  margin: 0 0 4px;
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
 }
 
-.demo-desc {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #49454F;
+.demo-subtitle {
   margin: 0;
+  font-size: 13.5px;
+  color: #6B7280;
 }
 
-/* Apple Segmented Capsule Tabs */
-.demo-segmented-tabs {
+/* Segmented Tabs */
+.demo-tabs {
   display: flex;
-  background: #EFEFF4;
-  border-radius: 9999px;
-  padding: 4px;
-  gap: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  background-color: #F3F4F6;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 3px;
+  margin-bottom: 16px;
 }
 
 .demo-tab-btn {
   flex: 1;
-  padding: 8px 14px;
-  border-radius: 9999px;
-  border: none;
   background: transparent;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #49454F;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4B5563;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s ease;
   text-align: center;
-  font-family: inherit;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.demo-tab-btn:hover {
-  color: #1C1B1F;
+.demo-tab-btn:hover:not(.active) {
+  color: #DC2626;
 }
 
 .demo-tab-btn.active {
-  background: #FFFFFF;
-  color: #1C1B1F;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #FFFFFF;
+  color: #DC2626;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Scrollable Demo Accounts List */
-.demo-accounts-scroll {
-  max-height: 380px;
-  overflow-y: auto;
+/* Demo Accounts List */
+.demo-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
   padding-right: 4px;
 }
 
-.demo-accounts-scroll::-webkit-scrollbar {
+.demo-list::-webkit-scrollbar {
   width: 5px;
 }
 
-.demo-accounts-scroll::-webkit-scrollbar-track {
-  background: transparent;
+.demo-list::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 4px;
 }
 
-.demo-accounts-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
-}
-
-.demo-accounts-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.22);
-}
-
-/* Individual Demo Account Card */
-.demo-account-card {
-  background: #FFFFFF;
-  border: 1.5px solid rgba(0, 0, 0, 0.06);
-  border-radius: 18px;
-  padding: 13px 16px;
+.demo-card {
+  width: 100%;
+  text-align: left;
+  background-color: #FAFAFA;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 10px 12px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.demo-account-card:hover {
-  border-color: rgba(216, 0, 39, 0.35);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-  background: #FFFDFC;
-}
-
-.demo-account-card:active {
-  transform: translateY(0);
-}
-
-.account-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.account-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.role-badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 9999px;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.role-admin {
-  background: rgba(103, 80, 164, 0.1);
-  color: #6750A4;
-  border: 1px solid rgba(103, 80, 164, 0.2);
-}
-
-.role-hom {
-  background: rgba(0, 163, 137, 0.1);
-  color: #00897B;
-  border: 1px solid rgba(0, 163, 137, 0.2);
-}
-
-.role-pre {
-  background: rgba(2, 136, 209, 0.1);
-  color: #0288D1;
-  border: 1px solid rgba(2, 136, 209, 0.2);
-}
-
-.role-fa {
-  background: rgba(230, 81, 0, 0.1);
-  color: #E65100;
-  border: 1px solid rgba(230, 81, 0, 0.2);
-}
-
-.role-patient {
-  background: rgba(67, 160, 71, 0.1);
-  color: #2E7D32;
-  border: 1px solid rgba(67, 160, 71, 0.2);
-}
-
-.role-platform {
-  background: rgba(216, 0, 39, 0.1);
-  color: #D80027;
-  border: 1px solid rgba(216, 0, 39, 0.2);
-}
-
-.account-name {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #1C1B1F;
-}
-
-.autofill-action-pill {
-  display: inline-flex;
-  align-items: center;
   gap: 4px;
-  padding: 3px 10px;
-  border-radius: 9999px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.demo-card:hover {
+  background-color: #FFFFFF;
+  border-color: #F87171;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.08);
+}
+
+.demo-card:focus-visible {
+  outline: 2px solid #DC2626;
+  outline-offset: 1px;
+}
+
+.demo-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Neutral, Monochrome Role Badge (Zero Colors on Role) */
+.role-badge {
   font-size: 11px;
-  font-weight: 700;
-  background: #F4F3F7;
-  color: #49454F;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #F3F4F6;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.demo-account-card:hover .autofill-action-pill {
-  background: #D80027;
-  color: #FFFFFF;
-  border-color: #D80027;
+.demo-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
 }
 
-.account-purpose {
-  font-size: 11.5px;
-  line-height: 1.4;
-  color: #49454F;
-  margin: 0;
-}
-
-.account-creds-strip {
+.demo-card-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 4px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 12px;
 }
 
-.account-email {
-  font-size: 12px;
-  color: #49454F;
+.demo-email {
+  color: #6B7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-pwd {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.account-pwd-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  background: #F0EFF4;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  color: #1C1B1F;
-  font-size: 12px;
+  color: #991B1B;
+  background-color: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11.5px;
   flex-shrink: 0;
 }
 
-.account-pwd-pill code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-weight: 600;
-}
-
-.demo-panel-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  font-size: 12px;
-  color: #79747E;
-}
-
-/* 6. Minimal Plain Footer */
-.login-footer-apple {
-  margin-top: auto;
-  position: relative;
-  z-index: 2;
-  background: #F5F5F7;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  padding: 24px 24px;
+/* 6. Footer */
+.login-footer {
+  padding: 20px;
   text-align: center;
-}
-
-.login-footer-text {
-  margin: 0;
   font-size: 13px;
-  color: #6e6e73;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.5;
+  color: #9CA3AF;
 }
 
-/* 7. Responsive Breakpoints */
-@media (max-width: 960px) {
-  .login-split-container {
+.login-footer p {
+  margin: 0;
+}
+
+/* 7. Responsive Breakpoint */
+@media (max-width: 820px) {
+  .login-container {
     grid-template-columns: 1fr;
-    max-width: 520px;
-    margin: 0 auto;
-  }
-  
-  .demo-accounts-scroll {
-    max-height: 320px;
-  }
-}
-
-@media (max-width: 640px) {
-  .login-topbar {
-    padding: 12px 18px;
-  }
-  
-  .login-topbar-badge {
-    display: none;
+    gap: 24px;
+    max-width: 480px;
   }
 
-  .login-main-stage {
-    padding: 24px 16px 40px;
-  }
-
-  .login-card-apple,
-  .demo-side-panel {
-    padding: 24px 20px;
-    border-radius: 22px;
-  }
-
-  .demo-segmented-tabs {
-    flex-wrap: wrap;
-    border-radius: 16px;
-  }
-  
-  .demo-tab-btn {
-    border-radius: 12px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+  .login-box,
+  .demo-box {
+    padding: 24px;
   }
 }
