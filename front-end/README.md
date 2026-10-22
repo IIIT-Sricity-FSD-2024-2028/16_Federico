@@ -1,8 +1,6 @@
 # Federico Hospital Platform — Frontend
 
-A React + Vite single-page application covering all eight role portals. It
-replaces the previous vanilla-JS multi-page frontend (111 files, no build step);
-the migration is recorded in `../react-migration-plan.md`.
+A React + Vite single-page application for the Federico role portals.
 
 The backend it talks to is unchanged: `../back-end`, Express on port 3000.
 

@@ -19,7 +19,16 @@ export default [
       },
     },
     rules: {
-      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // The existing backend has mixed formatter output; keep this lint command
+      // read-only and focused on actionable ESLint diagnostics.
+      'prettier/prettier': 'off',
+    },
+  },
+  {
+    files: ['src/test/frontend_shared.spec.js'],
+    languageOptions: {
+      globals: globals.browser,
     },
   },
 ];

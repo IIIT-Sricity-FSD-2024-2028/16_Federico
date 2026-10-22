@@ -99,18 +99,19 @@ describe('Backend Data Storage, Coercion & Schema Invariants', () => {
     it('coerces string item_id and request_id in inventoryService', () => {
       const item = dataStore.inventoryItems[0];
       expect(item).toBeDefined();
-      const origCost = item.unit_cost;
-      const updated = inventoryService.updateItem(String(item.item_id), { unit_cost: 99.9 });
+      const originalStock = item.stock_quantity;
+      const updated = inventoryService.updateItem(String(item.item_id), { stock_quantity: originalStock + 1 });
       expect(updated).not.toBeNull();
-      expect(updated.unit_cost).toBe(99.9);
-      // Revert
-      inventoryService.updateItem(item.item_id, { unit_cost: origCost });
+      expect(updated.stock_quantity).toBe(originalStock + 1);
+      inventoryService.updateItem(item.item_id, { stock_quantity: originalStock });
 
       const req = dataStore.purchaseRequests[0];
       if (req) {
-        const updatedReq = inventoryService.updateRequest(String(req.request_id), { priority: 'URGENT' });
+        const originalStatus = req.status;
+        const updatedReq = inventoryService.updateRequest(String(req.request_id), { status: 'APPROVED' });
         expect(updatedReq).not.toBeNull();
-        expect(updatedReq.priority).toBe('URGENT');
+        expect(updatedReq.status).toBe('APPROVED');
+        inventoryService.updateRequest(req.request_id, { status: originalStatus });
       }
     });
 
@@ -196,11 +197,14 @@ describe('Backend Data Storage, Coercion & Schema Invariants', () => {
     });
 
     it('title-cases billing payment mode strings consistently', () => {
-      const ledger = dataStore.ledgers[0];
+      const admission = admissionService.create({ patient_id: 201, organization_id: 1, hospital_id: 1 });
+      const ledger = billingService.createLedger({ admission_id: admission.admission_id, organization_id: 1, hospital_id: 1 });
+      billingService.addLedgerEntry({ ledger_id: ledger.ledger_id, service_id: 1, quantity: 1, unit_price: 100, amount: 100 });
       const p1 = billingService.createPayment({
         ledger_id: ledger.ledger_id,
         amount_paid: 10,
         payment_mode: 'cash',
+        idempotency_key: 'phase5-mode-cash',
         organization_id: 1,
       });
       expect(p1.payment_mode).toBe('Cash');
@@ -209,6 +213,7 @@ describe('Backend Data Storage, Coercion & Schema Invariants', () => {
         ledger_id: ledger.ledger_id,
         amount_paid: 10,
         payment_mode: 'CARD',
+        idempotency_key: 'phase5-mode-card',
         organization_id: 1,
       });
       expect(p2.payment_mode).toBe('Card');
@@ -217,6 +222,7 @@ describe('Backend Data Storage, Coercion & Schema Invariants', () => {
         ledger_id: ledger.ledger_id,
         amount_paid: 10,
         payment_mode: 'upi',
+        idempotency_key: 'phase5-mode-upi',
         organization_id: 1,
       });
       expect(p3.payment_mode).toBe('UPI');

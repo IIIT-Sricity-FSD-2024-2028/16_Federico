@@ -42,7 +42,12 @@ function findOne(req, res) {
 // Registering a new patient record is a staff (HOM/PRE) action.
 function create(req, res) {
   if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
-  const result = patientService.create(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  if (payload.user_id) {
+    const user = dataStore.users.find((item) => Number(item.user_id) === Number(payload.user_id));
+    if (!belongsToOrg(user, req)) return res.status(404).json({ message: 'User not found in this organization', error: 'Not Found', statusCode: 404 });
+  }
+  const result = patientService.create(payload);
   logger.log(
     `✅ REGISTERED  patient_id=${result.patient_id}  name="${result.name}"`,
   );
@@ -52,6 +57,10 @@ function create(req, res) {
 function update(req, res) {
   const existing = patientService.findOne(req.params.id);
   if (isForbiddenPatient(existing, req)) return res.status(403).json(FORBIDDEN);
+  if (req.body.user_id) {
+    const user = dataStore.users.find((item) => Number(item.user_id) === Number(req.body.user_id));
+    if (!belongsToOrg(user, req)) return res.status(404).json({ message: 'User not found in this organization', error: 'Not Found', statusCode: 404 });
+  }
   sendResult(res, patientService.update(req.params.id, req.body), 200);
 }
 
@@ -110,6 +119,8 @@ function createInsurance(req, res) {
   if (forbidsOtherPatient(req, req.body.patient_id)) {
     return res.status(403).json(FORBIDDEN);
   }
+  const patient = patientService.findOne(req.body.patient_id);
+  if (!belongsToOrg(patient, req)) return res.status(404).json({ message: 'Patient not found in this organization', error: 'Not Found', statusCode: 404 });
   const result = patientService.createInsurance(withTenant(req, req.body));
   logger.log(
     `✅ INSURANCE ADDED  insurance_id=${result.insurance_id}  patient_id=${result.patient_id}`,

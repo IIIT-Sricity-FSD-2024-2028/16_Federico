@@ -91,7 +91,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       const patient = patientService.create({
         name: 'FK Test Patient',
         organization_id: tenantOrg.organization_id,
-        hospital_id: 1,
+        hospital_id: tenantOrg.hospital_id,
       });
 
       const res = await request(app)
@@ -148,7 +148,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
         dob: '1990-01-01',
         phone: '+919876543210',
         organization_id: tenantOrg.organization_id,
-        hospital_id: 1,
+        hospital_id: tenantOrg.hospital_id,
       });
 
       const res = await request(app)

@@ -77,7 +77,9 @@ function unitPriceFor(moduleCode, resourceCode) {
     if (dataStore && dataStore.platformRates && dataStore.platformRates.rates && dataStore.platformRates.rates[rCode] !== undefined) {
       return Number(dataStore.platformRates.rates[rCode]) || 0;
     }
-  } catch (_) {}
+  } catch {
+    // The catalog's local defaults remain usable during partial bootstrap.
+  }
   const def = resourceTypeDef(moduleCode, resourceCode);
   return def ? Number(def.unit_price) || 0 : 0;
 }

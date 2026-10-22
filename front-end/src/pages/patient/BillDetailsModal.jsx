@@ -13,6 +13,8 @@ export default function BillDetailsModal({ open, onClose, bill, onPay, onPrint }
   const isPaid = bill.status === 'paid';
   const statusText = isPaid
     ? 'PAID'
+    : bill.status === 'partial'
+      ? 'PARTIALLY PAID'
     : bill.hasDischargeSummary
       ? 'PENDING PAYMENT (DISCHARGED)'
       : 'INTERIM EOD STATEMENT';
@@ -131,9 +133,25 @@ export default function BillDetailsModal({ open, onClose, bill, onPay, onPrint }
             <tr className="total-row">
               <td colSpan="3">Net Patient Share (You Pay)</td>
               <td style={{ textAlign: 'right' }} id="modal-net-payable">
-                {formatINR(bill.youPay)}
+                {formatINR(bill.patientShare ?? bill.youPay)}
               </td>
             </tr>
+            {bill.paidAmount > 0 ? (
+              <tr>
+                <td colSpan="3">Payments Received</td>
+                <td style={{ textAlign: 'right' }} id="modal-paid-amount">
+                  -{formatINR(bill.paidAmount)}
+                </td>
+              </tr>
+            ) : null}
+            {bill.paidAmount > 0 ? (
+              <tr className="total-row">
+                <td colSpan="3">Balance Due</td>
+                <td style={{ textAlign: 'right' }} id="modal-balance-due">
+                  {formatINR(bill.youPay)}
+                </td>
+              </tr>
+            ) : null}
           </tfoot>
         </table>
       </div>

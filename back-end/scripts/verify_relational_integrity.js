@@ -863,11 +863,7 @@ class RelationalIntegrityAuditor {
     // 10. payments ⇄ ledgers
     for (const pmt of d.payments) {
       const l = d.ledgers.find((led) => led.ledger_id === pmt.ledger_id);
-      checkOrgMatch(pmmtOrg(pmt, l), l, 'payments -> ledgers');
-    }
-
-    function pmmtOrg(pmt, l) {
-      return pmt;
+      checkOrgMatch(pmt, l, 'payments -> ledgers');
     }
 
     // 11. receipts ⇄ payments, ledgers, admissions, patients

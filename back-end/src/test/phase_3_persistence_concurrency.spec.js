@@ -34,8 +34,10 @@ describe('State Persistence, Concurrency & Data Durability', () => {
       }, 5);
 
       await persist.writeAtomicAsync();
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(persist.isStateDirty()).toBe(false);
+      expect(timerFired).toBe(true);
       expect(fs.existsSync(persist.DB_PATH)).toBe(true);
     });
   });

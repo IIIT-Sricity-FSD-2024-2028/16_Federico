@@ -83,6 +83,7 @@ CREATE TABLE hospitals (
     is_primary BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    UNIQUE KEY uq_hospital_tenant (hospital_id, organization_id),
     INDEX idx_hospital_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -131,7 +132,7 @@ CREATE TABLE users (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (role_id) REFERENCES roles(role_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id) ON DELETE SET NULL,
+    CONSTRAINT fk_users_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_user_org (organization_id),
     INDEX idx_user_role (role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -237,7 +238,7 @@ CREATE TABLE doctors (
     organization_id INT NOT NULL,
     hospital_id INT NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_doctors_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_doctor_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -253,7 +254,7 @@ CREATE TABLE doctor_availabilities (
     hospital_id INT NULL,
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id) ON DELETE CASCADE,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_doctor_availabilities_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_avail_doc (doctor_id, available_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -266,7 +267,7 @@ CREATE TABLE wards (
     organization_id INT NOT NULL,
     hospital_id INT NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_wards_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_ward_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -280,7 +281,7 @@ CREATE TABLE beds (
     hospital_id INT NULL,
     FOREIGN KEY (ward_id) REFERENCES wards(ward_id) ON DELETE CASCADE,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_beds_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     UNIQUE KEY uq_ward_bed (ward_id, bed_number),
     INDEX idx_bed_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -293,7 +294,7 @@ CREATE TABLE services (
     organization_id INT NOT NULL,
     hospital_id INT NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_services_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_svc_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -319,7 +320,7 @@ CREATE TABLE patients (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_patients_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_patient_uhid (uhid),
     INDEX idx_patient_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -343,7 +344,7 @@ CREATE TABLE patient_insurances (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_patient_insurances_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_ins_patient (patient_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -365,7 +366,7 @@ CREATE TABLE appointments (
     FOREIGN KEY (availability_id) REFERENCES doctor_availabilities(availability_id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(user_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_appointments_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     UNIQUE KEY uq_doctor_slot (doctor_id, scheduled_datetime),
     INDEX idx_apt_patient (patient_id),
     INDEX idx_apt_datetime (scheduled_datetime)
@@ -391,7 +392,7 @@ CREATE TABLE admissions (
     FOREIGN KEY (bed_id) REFERENCES beds(bed_id) ON DELETE SET NULL,
     FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE SET NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_admissions_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_adm_patient (patient_id),
     INDEX idx_adm_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -411,7 +412,7 @@ CREATE TABLE discharge_summaries (
     FOREIGN KEY (admission_id) REFERENCES admissions(admission_id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_discharge_summaries_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_summary_adm (admission_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -430,7 +431,7 @@ CREATE TABLE ledgers (
     hospital_id INT NULL,
     FOREIGN KEY (admission_id) REFERENCES admissions(admission_id) ON DELETE CASCADE,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_ledgers_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_ledger_adm (admission_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -449,7 +450,7 @@ CREATE TABLE ledger_entries (
     FOREIGN KEY (ledger_id) REFERENCES ledgers(ledger_id) ON DELETE CASCADE,
     FOREIGN KEY (service_id) REFERENCES services(service_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_ledger_entries_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_entry_ledger (ledger_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -459,12 +460,13 @@ CREATE TABLE payments (
     ledger_id INT NOT NULL,
     amount_paid DECIMAL(10,2) NOT NULL,
     payment_mode VARCHAR(50) NOT NULL,
+    idempotency_key VARCHAR(128) NULL UNIQUE,
     payment_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     organization_id INT NOT NULL,
     hospital_id INT NULL,
     FOREIGN KEY (ledger_id) REFERENCES ledgers(ledger_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_payments_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_payment_ledger (ledger_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -485,7 +487,7 @@ CREATE TABLE receipts (
     FOREIGN KEY (admission_id) REFERENCES admissions(admission_id),
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_receipts_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_receipt_payment (payment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -508,7 +510,7 @@ CREATE TABLE leaders (
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
     FOREIGN KEY (service_id) REFERENCES services(service_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+    CONSTRAINT fk_leaders_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================================
@@ -527,7 +529,7 @@ CREATE TABLE inventory_items (
     hospital_id INT NULL,
     FOREIGN KEY (service_id) REFERENCES services(service_id) ON DELETE SET NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_inventory_items_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_inv_item_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -544,7 +546,7 @@ CREATE TABLE purchase_requests (
     FOREIGN KEY (item_id) REFERENCES inventory_items(item_id),
     FOREIGN KEY (requested_by) REFERENCES users(user_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_purchase_requests_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_purch_req_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -575,7 +577,7 @@ CREATE TABLE pre_requests (
     FOREIGN KEY (bed_id) REFERENCES beds(bed_id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(user_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_pre_requests_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_pre_req_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -599,7 +601,7 @@ CREATE TABLE bed_requests (
     FOREIGN KEY (bed_id) REFERENCES beds(bed_id) ON DELETE SET NULL,
     FOREIGN KEY (requested_by) REFERENCES users(user_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_bed_requests_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_bed_req_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -618,7 +620,7 @@ CREATE TABLE emergency_notifications (
     FOREIGN KEY (bed_id) REFERENCES beds(bed_id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(user_id),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_emergency_notifications_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_emerg_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -632,7 +634,7 @@ CREATE TABLE activity_log (
     hospital_id INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
-    FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id),
+    CONSTRAINT fk_activity_log_hospital_org FOREIGN KEY (hospital_id, organization_id) REFERENCES hospitals(hospital_id, organization_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_act_org (organization_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1041,28 +1043,30 @@ INSERT INTO admissions (admission_id, patient_id, bed_id, appointment_id, admit_
 (718, 225, 62, 607, '2026-08-17 17:19:41', NULL, 'DISCHARGED', TRUE, 1, 1),
 (719, 229, 77, NULL, '2026-08-18 11:39:52', NULL, 'ADMITTED', FALSE, 2, 2);
 
--- Data for discharge_summaries (7 rows)
-INSERT INTO discharge_summaries (summary_id, admission_id, patient_id, notes, final_amount, gross_amount, insurance_deduction, generated_at, organization_id, hospital_id) VALUES
-(1, 713, 219, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 16300, NULL, NULL, '2026-08-17 17:19:41', 1, 1),
-(2, 714, 206, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 33300, NULL, NULL, '2026-08-17 17:19:41', 1, 1),
-(3, 715, 215, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 8300, NULL, NULL, '2026-08-17 17:19:41', 1, 1),
-(4, 716, 208, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 41400, NULL, NULL, '2026-08-17 17:19:41', 1, 1),
-(5, 717, 216, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 32050, NULL, NULL, '2026-08-17 17:19:41', 1, 1),
-(6, 718, 225, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 22750, NULL, NULL, '2026-08-17 17:19:41', 1, 1),
-(7, 712, 201, 'Patient responded well to cardiology care. Stable vitals upon discharge.', 48000, NULL, NULL, '2026-08-21 11:00:00', 1, 1);
+-- Data for discharge_summaries (9 rows)
+INSERT INTO discharge_summaries (summary_id, admission_id, patient_id, discharge_notes, final_amount, gross_amount, insurance_deduction, generated_at, organization_id, hospital_id) VALUES
+(1, 713, 219, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 16300, 16300, 0, '2026-08-17 17:19:41', 1, 1),
+(2, 714, 206, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 33300, 33300, 0, '2026-08-17 17:19:41', 1, 1),
+(3, 715, 215, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 8300, 8300, 0, '2026-08-17 17:19:41', 1, 1),
+(4, 716, 208, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 41400, 41400, 0, '2026-08-17 17:19:41', 1, 1),
+(5, 717, 216, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 32050, 32050, 0, '2026-08-17 17:19:41', 1, 1),
+(6, 718, 225, 'Patient treated and stabilized for the condition requiring admission; discharged in stable condition with follow-up advice.', 22750, 22750, 0, '2026-08-17 17:19:41', 1, 1),
+(7, 712, 201, 'Patient responded well to cardiology care. Stable vitals upon discharge.', 48000, 48000, 0, '2026-08-21 11:00:00', 1, 1),
+(8, 703, 220, 'Discharged in stable condition.', 22000, 22000, 0, '2026-08-17 17:19:41', 1, 1),
+(9, 711, 212, 'Routine post-operative recovery complete.', 28200, 28200, 0, '2026-08-17 17:19:41', 1, 1);
 
--- Data for ledgers (18 rows)
+-- Data for ledgers (19 rows)
 INSERT INTO ledgers (ledger_id, admission_id, status, created_at, dispatched_at, organization_id, hospital_id) VALUES
 (801, 701, 'OPEN', '2026-08-17 17:19:41', NULL, 1, 1),
 (802, 702, 'OPEN', '2026-08-17 17:19:41', NULL, 1, 1),
-(803, 703, 'DISPATCHED', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
+(803, 703, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
 (804, 704, 'OPEN', '2026-08-17 17:19:41', NULL, 1, 1),
 (805, 706, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
 (806, 707, 'OPEN', '2026-08-17 17:19:41', NULL, 1, 1),
 (807, 709, 'OPEN', '2026-08-17 17:19:41', NULL, 1, 1),
 (808, 710, 'OPEN', '2026-08-17 17:19:41', NULL, 1, 1),
-(809, 712, 'DISPATCHED', '2026-08-17 17:19:41', '2026-08-20 10:00:00', 1, 1),
-(810, 711, 'DISPATCHED', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
+(809, 712, 'PAID', '2026-08-17 17:19:41', '2026-08-20 10:00:00', 1, 1),
+(810, 711, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
 (811, 713, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
 (812, 714, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
 (813, 715, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
@@ -1070,7 +1074,8 @@ INSERT INTO ledgers (ledger_id, admission_id, status, created_at, dispatched_at,
 (815, 717, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
 (816, 718, 'PAID', '2026-08-17 17:19:41', '2026-08-17 17:19:41', 1, 1),
 (817, 719, 'OPEN', '2026-08-18 11:39:52', NULL, 2, 2),
-(812, 708, 'OPEN', '2026-08-19 11:00:00', NULL, 1, 1);
+(818, 708, 'OPEN', '2026-08-19 11:00:00', NULL, 1, 1),
+(819, 705, 'OPEN', '2026-08-17 17:19:41', NULL, 1, 1);
 
 -- Data for ledger_entries (71 rows)
 INSERT INTO ledger_entries (ledger_id, entry_id, service_id, quantity, unit_price, amount, entry_time, organization_id, hospital_id) VALUES
@@ -1147,7 +1152,7 @@ INSERT INTO ledger_entries (ledger_id, entry_id, service_id, quantity, unit_pric
 (817, 2, 15, 1, 1800, 1800, '2026-08-18 11:39:52', 2, 2),
 (817, 3, 16, 1, 900, 900, '2026-08-18 11:39:52', 2, 2);
 
--- Data for payments (8 rows)
+-- Data for payments (11 rows)
 INSERT INTO payments (payment_id, ledger_id, amount_paid, payment_mode, payment_time, organization_id, hospital_id) VALUES
 (901, 805, 8800, 'CASH', '2026-08-17 17:19:41', 1, 1),
 (902, 811, 16300, 'NETBANKING', '2026-08-17 17:19:41', 1, 1),
@@ -1156,9 +1161,12 @@ INSERT INTO payments (payment_id, ledger_id, amount_paid, payment_mode, payment_
 (905, 814, 41400, 'CASH', '2026-08-17 17:19:41', 1, 1),
 (906, 815, 32050, 'CARD', '2026-08-17 17:19:41', 1, 1),
 (907, 816, 22750, 'UPI', '2026-08-17 17:19:41', 1, 1),
-(990, 809, 500, 'UPI', '2026-08-18 14:30:00', 1, 1);
+(990, 809, 500, 'UPI', '2026-08-18 14:30:00', 1, 1),
+(908, 803, 22000, 'Card', '2026-08-17 17:19:41', 1, 1),
+(909, 810, 28200, 'UPI', '2026-08-17 17:19:41', 1, 1),
+(991, 809, 47500, 'UPI', '2026-08-21 11:00:00', 1, 1);
 
--- Data for receipts (8 rows)
+-- Data for receipts (11 rows)
 INSERT INTO receipts (receipt_id, payment_id, ledger_id, admission_id, patient_id, amount, payment_mode, generated_at, organization_id, hospital_id) VALUES
 (1, 901, 805, 706, 211, 8800, 'CASH', '2026-08-17 17:19:41', 1, 1),
 (2, 902, 811, 713, 219, 16300, 'NETBANKING', '2026-08-17 17:19:41', 1, 1),
@@ -1167,7 +1175,10 @@ INSERT INTO receipts (receipt_id, payment_id, ledger_id, admission_id, patient_i
 (5, 905, 814, 716, 208, 41400, 'CASH', '2026-08-17 17:19:41', 1, 1),
 (6, 906, 815, 717, 216, 32050, 'CARD', '2026-08-17 17:19:41', 1, 1),
 (7, 907, 816, 718, 225, 22750, 'UPI', '2026-08-17 17:19:41', 1, 1),
-(8, 990, 809, 712, 201, 500, 'UPI', '2026-08-18 14:30:00', 1, 1);
+(8, 990, 809, 712, 201, 500, 'UPI', '2026-08-18 14:30:00', 1, 1),
+(9, 908, 803, 703, 220, 22000, 'Card', '2026-08-17 17:19:41', 1, 1),
+(10, 909, 810, 711, 212, 28200, 'UPI', '2026-08-17 17:19:41', 1, 1),
+(11, 991, 809, 712, 201, 47500, 'UPI', '2026-08-21 11:00:00', 1, 1);
 
 -- Data for inventory_items (17 rows)
 INSERT INTO inventory_items (item_id, item_name, category, stock_quantity, reorder_level, service_id, organization_id, hospital_id) VALUES

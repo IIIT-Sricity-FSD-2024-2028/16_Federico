@@ -22,7 +22,7 @@ const createLedgerEntryRules = [
 
 const createPaymentRules = [
   { field: 'ledger_id', checks: ['isNotEmpty', 'isInt'] },
-  { field: 'amount_paid', checks: ['isNumber'] },
+  { field: 'amount_paid', checks: ['isPositiveNumber'] },
   { field: 'payment_mode', checks: ['isNotEmpty', 'isString'] },
 ];
 

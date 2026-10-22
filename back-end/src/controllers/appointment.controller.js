@@ -56,7 +56,18 @@ function findOne(req, res) {
 }
 
 function create(req, res) {
-  const result = appointmentService.create(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  const patient = dataStore.patients.find((p) => Number(p.patient_id) === Number(payload.patient_id));
+  if (patient && !belongsToOrg(patient, req)) return res.status(404).json({ message: 'Patient not found in this organization', error: 'Not Found', statusCode: 404 });
+  if (payload.doctor_id) {
+    const doctor = dataStore.doctors.find((d) => Number(d.doctor_id) === Number(payload.doctor_id));
+    if (doctor && !belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+  }
+  if (payload.availability_id) {
+    const availability = dataStore.doctorAvailabilities.find((a) => Number(a.availability_id) === Number(payload.availability_id));
+    if (availability && (!belongsToOrg(availability, req) || (payload.doctor_id && Number(availability.doctor_id) !== Number(payload.doctor_id)))) return res.status(404).json({ message: 'Availability not found for this doctor in this organization', error: 'Not Found', statusCode: 404 });
+  }
+  const result = appointmentService.create(payload);
   logger.log(
     `✅ CREATED APPOINTMENT  id=${result.appointment_id}  patient=${result.patient_id}`,
   );
@@ -67,6 +78,19 @@ function update(req, res) {
   const existing = appointmentService.findOne(Number(req.params.id));
   if (existing && !belongsToOrg(existing, req)) {
     return res.status(403).json(FORBIDDEN);
+  }
+  const patientId = req.body.patient_id ?? existing?.patient_id;
+  const patient = dataStore.patients.find((item) => Number(item.patient_id) === Number(patientId));
+  if (patientId != null && !belongsToOrg(patient, req)) return res.status(404).json({ message: 'Patient not found in this organization', error: 'Not Found', statusCode: 404 });
+  const doctorId = req.body.doctor_id ?? existing?.doctor_id;
+  if (doctorId) {
+    const doctor = dataStore.doctors.find((item) => Number(item.doctor_id) === Number(doctorId));
+    if (!belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+  }
+  const availabilityId = req.body.availability_id ?? existing?.availability_id;
+  if (availabilityId) {
+    const availability = dataStore.doctorAvailabilities.find((item) => Number(item.availability_id) === Number(availabilityId));
+    if (!belongsToOrg(availability, req) || (doctorId && Number(availability.doctor_id) !== Number(doctorId))) return res.status(404).json({ message: 'Availability not found for this doctor in this organization', error: 'Not Found', statusCode: 404 });
   }
   const result = appointmentService.update(Number(req.params.id), req.body);
   sendResult(res, result, 200);

@@ -427,7 +427,7 @@ export function openInvoiceDigitalCopy(bill, profile) {
           <h1>${escapeHtml(hospitalName.toUpperCase())}</h1>
           <span>Healthcare Excellence · Certified Hospital Inpatient &amp; Outpatient Billing</span>
         </div>
-        <span class="badge">${bill.status === 'paid' ? 'PAID IN FULL' : 'PENDING PAYMENT'}</span>
+        <span class="badge">${bill.status === 'paid' ? 'PAID IN FULL' : bill.status === 'partial' ? 'PARTIALLY PAID' : 'PENDING PAYMENT'}</span>
       </div>
       <div class="meta-grid">
         <div>
@@ -457,7 +457,9 @@ export function openInvoiceDigitalCopy(bill, profile) {
       <div class="totals">
         <div class="row"><span>Gross Amount:</span><span>₹${Number(bill.total || 0).toLocaleString('en-IN')}</span></div>
         <div class="row" style="color:#15803D;"><span>Insurance Deduction:</span><span>-₹${Number(bill.insuranceCovered || 0).toLocaleString('en-IN')}</span></div>
-        <div class="row net"><span>Net Payable:</span><span>₹${Number(bill.youPay || 0).toLocaleString('en-IN')}</span></div>
+        <div class="row"><span>Net Patient Share:</span><span>₹${Number(bill.patientShare ?? bill.youPay ?? 0).toLocaleString('en-IN')}</span></div>
+        ${bill.paidAmount > 0 ? `<div class="row"><span>Payments Received:</span><span>-₹${Number(bill.paidAmount).toLocaleString('en-IN')}</span></div>` : ''}
+        <div class="row net"><span>Balance Due:</span><span>₹${Number(bill.youPay || 0).toLocaleString('en-IN')}</span></div>
       </div>
       <div class="footer">
         <p>This is a computer-generated tax invoice and receipt. No physical signature is required.</p>

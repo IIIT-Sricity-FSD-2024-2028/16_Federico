@@ -474,7 +474,6 @@ class ChallengerAuditEngine {
     const ledOrg = new Map(d.ledgers.map((l) => [l.ledger_id, l.organization_id]));
     const pmtOrg = new Map(d.payments.map((p) => [p.payment_id, p.organization_id]));
     const svcOrg = new Map(d.services.map((s) => [s.service_id, s.organization_id]));
-    const itemOrg = new Map(d.inventoryItems.map((i) => [i.item_id, i.organization_id]));
     const preOrg = new Map(d.preRequests.map((pr) => [pr.pre_request_id, pr.organization_id]));
     const customRoleOrg = new Map(d.customRoles.map((c) => [c.custom_role_id, c.organization_id]));
 

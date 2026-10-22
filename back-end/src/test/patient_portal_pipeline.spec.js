@@ -8,7 +8,6 @@ const patientService = require('../services/patient.service');
 describe('Patient Portal End-to-End Data Pipeline Integration Suite', () => {
   let app;
   let patientToken;
-  let patientSession;
   let patientId;
   let snapshot;
 
@@ -30,7 +29,6 @@ describe('Patient Portal End-to-End Data Pipeline Integration Suite', () => {
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.token).toBeDefined();
     patientToken = loginRes.body.token;
-    patientSession = loginRes.body;
     patientId = loginRes.body.patient.patient_id;
     expect(patientId).toBe(201);
   });

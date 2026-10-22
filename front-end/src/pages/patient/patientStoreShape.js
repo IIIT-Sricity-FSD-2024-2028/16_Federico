@@ -318,20 +318,36 @@ export function buildBillsAndDocuments(bundles = [], servicesById = {}, receipts
   const rList = Array.isArray(receipts) ? receipts : [];
   const dList = Array.isArray(dischargeSummaries) ? dischargeSummaries : [];
 
-  bList.forEach(({ admission, ledger, entries }) => {
+  bList.forEach(({ admission, ledger, entries, dischargeSummary: bundleSummary }) => {
     if (!ledger || !admission) return;
-    if (!['DISPATCHED', 'PAID'].includes(ledger.status)) return;
+    if (!['DISPATCHED', 'PARTIALLY_PAID', 'PAID'].includes(ledger.status)) return;
 
     const safeEntries = Array.isArray(entries) ? entries : [];
-    const total = safeEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const ledgerTotal = safeEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const serviceNames = safeEntries.map((e) => (sById[e.service_id] || {}).service_name).filter(Boolean);
-    const share = computePatientShare(total, insurancePolicy, serviceNames);
+    const dischargeSummary = bundleSummary || dList.find((item) => item && Number(item.admission_id) === Number(admission.admission_id));
+    const hasDischarge = Boolean(dischargeSummary);
+    const isFinanciallyFinal = hasDischarge || ledger.status === 'PAID';
+    const finalizedGross = Number(dischargeSummary?.gross_amount);
+    const finalizedDeduction = Number(dischargeSummary?.insurance_deduction);
+    const finalizedAmount = Number(dischargeSummary?.final_amount);
+    const total = hasDischarge && Number.isFinite(finalizedGross) ? finalizedGross : ledgerTotal;
+    const share = hasDischarge && Number.isFinite(finalizedAmount)
+      ? {
+          coveredAmount: Number.isFinite(finalizedDeduction) ? finalizedDeduction : Math.max(0, total - finalizedAmount),
+          patientShare: finalizedAmount,
+        }
+      : isFinanciallyFinal
+        ? { coveredAmount: 0, patientShare: total }
+        : computePatientShare(total, insurancePolicy, serviceNames);
+    const paidAmount = rList
+      .filter((receipt) => Number(receipt?.ledger_id) === Number(ledger.ledger_id))
+      .reduce((sum, receipt) => sum + (Number(receipt.amount) || 0), 0);
+    const balanceDue = Math.max(0, Math.round((share.patientShare - paidAmount) * 100) / 100);
 
     const createdAt = new Date(ledger.dispatched_at || ledger.created_at || Date.now()).getTime() || Date.now();
     const dueAt = createdAt + 7 * 24 * 60 * 60 * 1000;
     const isPaid = ledger.status === 'PAID';
-    const hasDischarge = dList.some((s) => s && s.admission_id === admission.admission_id);
-
     bills.push({
       id: 'LEDGER-' + ledger.ledger_id,
       billNo: '#' + ledger.ledger_id,
@@ -340,10 +356,12 @@ export function buildBillsAndDocuments(bundles = [], servicesById = {}, receipts
       description: 'Admission #' + admission.admission_id + ' billing',
       total,
       insuranceCovered: share.coveredAmount,
-      youPay: share.patientShare,
+      patientShare: share.patientShare,
+      paidAmount,
+      youPay: balanceDue,
       dueDate: formatFullDate(dueAt),
       dueDateISO: toIsoDate(dueAt),
-      status: isPaid ? 'paid' : 'pending',
+      status: isPaid ? 'paid' : paidAmount > 0 ? 'partial' : 'pending',
       disputed: false,
       ledgerId: ledger.ledger_id,
       admissionId: admission.admission_id,

@@ -80,6 +80,7 @@ describe('services/billing.service', () => {
       ledger_id: ledger.ledger_id,
       amount_paid: 500,
       payment_mode: 'CASH',
+      idempotency_key: 'billing-service-full-payment',
       organization_id: 1,
       hospital_id: 1,
     });
@@ -99,6 +100,48 @@ describe('services/billing.service', () => {
     );
     expect(receipt.organization_id).toBe(1);
     expect(receipt.patient_id).toBe(admission.patient_id);
+  });
+
+  it('rejects zero, negative, and over-balance payments without changing billing state', () => {
+    const admission = makeAdmission();
+    const ledger = billingService.createLedger({ admission_id: admission.admission_id, organization_id: 1 });
+    billingService.addLedgerEntry({ ledger_id: ledger.ledger_id, service_id: 1, quantity: 1, unit_price: 100, amount: 100 });
+    const receiptsBefore = dataStore.receipts.length;
+    const paymentsBefore = dataStore.payments.length;
+    for (const amount of [0, -1, 101]) {
+      expect(() => billingService.createPayment({
+        ledger_id: ledger.ledger_id,
+        amount_paid: amount,
+        payment_mode: 'UPI',
+        idempotency_key: `invalid-${amount}`,
+      })).toThrow();
+    }
+    expect(dataStore.payments).toHaveLength(paymentsBefore);
+    expect(dataStore.receipts).toHaveLength(receiptsBefore);
+    expect(ledger.status).toBe('OPEN');
+  });
+
+  it('returns the original payment for an identical retry and rejects key reuse with a different payload', () => {
+    const admission = makeAdmission();
+    const ledger = billingService.createLedger({ admission_id: admission.admission_id, organization_id: 1 });
+    billingService.addLedgerEntry({ ledger_id: ledger.ledger_id, service_id: 1, quantity: 1, unit_price: 100, amount: 100 });
+    const payload = { ledger_id: ledger.ledger_id, amount_paid: 40, payment_mode: 'UPI', idempotency_key: 'retry-payment-1' };
+    const first = billingService.createPayment(payload);
+    const receiptsAfterFirst = dataStore.receipts.length;
+    const retry = billingService.createPayment(payload);
+    expect(retry.payment_id).toBe(first.payment_id);
+    expect(dataStore.receipts).toHaveLength(receiptsAfterFirst);
+    expect(() => billingService.createPayment({ ...payload, amount_paid: 41 })).toThrow(/already used/i);
+    expect(billingService.createPayment({ ...payload, idempotency_key: 'second-partial', amount_paid: 60 }).amount_paid).toBe(60);
+    expect(ledger.status).toBe('PAID');
+  });
+
+  it('requires discharge summary patient to match admission and enforces one summary per admission', () => {
+    const admission = makeAdmission();
+    expect(() => billingService.createDischargeSummary({ admission_id: admission.admission_id, patient_id: 202 })).toThrow(/must match/i);
+    const summary = billingService.createDischargeSummary({ admission_id: admission.admission_id, patient_id: admission.patient_id });
+    expect(summary.patient_id).toBe(admission.patient_id);
+    expect(() => billingService.createDischargeSummary({ admission_id: admission.admission_id, patient_id: admission.patient_id })).toThrow(/already exists/i);
   });
 
   it('dispatchLedger() moves status to DISPATCHED and stamps dispatched_at; unknown ledger returns null', () => {

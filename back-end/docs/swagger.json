@@ -565,10 +565,22 @@
         "tags": [
           "Billing"
         ],
-        "summary": "Create a new payment",
+        "summary": "Create a payment; requires an Idempotency-Key header",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Stable key reused when retrying the same payment request."
           }
         ],
         "responses": {

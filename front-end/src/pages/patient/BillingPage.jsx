@@ -226,6 +226,8 @@ export default function BillingPage() {
                           <strong>Invoice {bill.billNo || '#' + bill.ledgerId}</strong>
                           {isPaid ? (
                             <span className="status paid">Paid</span>
+                          ) : bill.status === 'partial' ? (
+                            <span className="status pending">Partially paid</span>
                           ) : bill.hasDischargeSummary ? (
                             <span className="status pending">Payable</span>
                           ) : (

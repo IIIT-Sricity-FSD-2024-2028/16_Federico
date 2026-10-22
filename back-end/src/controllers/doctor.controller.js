@@ -65,7 +65,10 @@ function findAvailabilityByDoctor(req, res) {
 }
 
 function createAvailability(req, res) {
-  const result = doctorService.createAvailability(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  const doctor = doctorService.findDoctorById(payload.doctor_id);
+  if (doctor && !belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+  const result = doctorService.createAvailability(payload);
   logger.log(
     `✅ CREATED AVAILABILITY  id=${result.availability_id}  doctor_id=${result.doctor_id}`,
   );

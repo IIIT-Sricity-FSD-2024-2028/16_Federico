@@ -43,6 +43,7 @@ function unwrap(data) {
 export async function request(method, path, body, opts = {}) {
   const session = getSession();
   const headers = { 'Content-Type': 'application/json' };
+  if (opts.headers) Object.assign(headers, opts.headers);
   if (session && session.token && opts.auth !== false) {
     headers.Authorization = 'Bearer ' + session.token;
   }

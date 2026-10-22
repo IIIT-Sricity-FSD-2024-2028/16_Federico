@@ -253,7 +253,7 @@ describe('services/patient.service', () => {
     });
 
     it('findCurrentInsurance returns the newest policy with highest insurance_id', () => {
-      const ins1 = patientService.createInsurance({
+      patientService.createInsurance({
         patient_id: samplePatient.patient_id,
         provider_name: 'Old Insurance',
         policy_number: 'POL-OLD',

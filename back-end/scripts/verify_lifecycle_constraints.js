@@ -559,7 +559,7 @@ class LifecycleConstraintVerifier {
   // -------------------------------------------------------------------------
   verifyAdversarialStressScenarios() {
     console.log(`--- Adversarial Stress & Edge Case Scenarios ---`);
-    const { beds, admissions, preRequests, ledgers, ledgerEntries, dischargeSummaries, payments, receipts, appointments, doctorAvailabilities } = this.data;
+    const { beds, admissions, preRequests, ledgers, ledgerEntries, dischargeSummaries, payments, receipts } = this.data;
 
     // 1. Stress: Check if any admission has bed_id pointing to a nonexistent bed
     const bedIdSet = new Set(beds.map((b) => b.bed_id));

@@ -40,7 +40,7 @@ const ROUTES = [
   ['Billing', 'post', '/billing/ledger/entry', 'Add a ledger entry'],
   ['Billing', 'put', '/billing/ledger/{id}/dispatch', 'Dispatch a ledger bill to the patient'],
   ['Billing', 'get', '/billing/payments', 'Get all payments'],
-  ['Billing', 'post', '/billing/payments', 'Create a new payment'],
+  ['Billing', 'post', '/billing/payments', 'Create a payment; requires an Idempotency-Key header'],
   ['Billing', 'post', '/billing/discharge-summary', 'Create a discharge summary'],
   ['Billing', 'get', '/billing/discharge-summary/{admissionId}', 'Get discharge summary by admission ID'],
   ['Billing', 'get', '/billing/patient/{patientId}/bills', 'Get published bills for a patient'],
@@ -167,6 +167,15 @@ function buildDocument() {
       required: true,
       schema: { type: 'string' },
     }));
+    if (route === '/billing/payments' && method === 'post') {
+      parameters.push({
+        name: 'Idempotency-Key',
+        in: 'header',
+        required: true,
+        schema: { type: 'string', maxLength: 128 },
+        description: 'Stable key reused when retrying the same payment request.',
+      });
+    }
     paths[route][method] = {
       tags: [tag],
       summary,

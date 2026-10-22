@@ -89,7 +89,10 @@ function findBedsByWard(req, res) {
 }
 
 function createBed(req, res) {
-  const result = wardService.createBed(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  const ward = wardService.findAllWards().find((item) => Number(item.ward_id) === Number(payload.ward_id));
+  if (!belongsToOrg(ward, req)) return res.status(404).json({ message: 'Ward not found in this organization', error: 'Not Found', statusCode: 404 });
+  const result = wardService.createBed(payload);
   logger.log(
     `✅ CREATED BED  id=${result.bed_id}  ward_id=${result.ward_id}  number=${result.bed_number}`,
   );
@@ -112,8 +115,19 @@ function findAllBedRequests(req, res) {
 
 function createBedRequest(req, res) {
   const requestedBy = req.session ? req.session.userId : null;
+  const payload = withTenant(req, req.body);
+  const patient = dataStore.patients.find((item) => Number(item.patient_id) === Number(payload.patient_id));
+  if (!belongsToOrg(patient, req)) return res.status(404).json({ message: 'Patient not found in this organization', error: 'Not Found', statusCode: 404 });
+  if (payload.ward_id) {
+    const ward = wardService.findAllWards().find((item) => Number(item.ward_id) === Number(payload.ward_id));
+    if (!belongsToOrg(ward, req)) return res.status(404).json({ message: 'Ward not found in this organization', error: 'Not Found', statusCode: 404 });
+  }
+  if (payload.pre_request_id) {
+    const preRequest = preRequestService.findOne(payload.pre_request_id);
+    if (!belongsToOrg(preRequest, req) || Number(preRequest.patient_id) !== Number(payload.patient_id)) return res.status(404).json({ message: 'Pre-request not found for this patient in this organization', error: 'Not Found', statusCode: 404 });
+  }
   const result = wardService.createBedRequest(
-    withTenant(req, req.body),
+    payload,
     requestedBy,
   );
   logger.log(
@@ -144,6 +158,11 @@ function updateBedRequest(req, res, next) {
     .find((r) => r.bed_request_id === +req.params.id);
   if (existing && !belongsToOrg(existing, req))
     return res.status(403).json(FORBIDDEN);
+
+  if (req.body.bed_id) {
+    const bed = wardService.findAllBeds().find((item) => Number(item.bed_id) === Number(req.body.bed_id));
+    if (!belongsToOrg(bed, req) || Number(bed.ward_id) !== Number(existing?.ward_id)) return res.status(404).json({ message: 'Bed not found in the requested ward and organization', error: 'Not Found', statusCode: 404 });
+  }
 
   const result = wardService.updateBedRequest(+req.params.id, req.body);
 

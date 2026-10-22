@@ -172,7 +172,8 @@ function createBedRequest(payload, requestedBy) {
 
   const wardId = payload.ward_id
     ? Number(payload.ward_id)
-    : (dataStore.wards.find((w) => Number(w.organization_id) === orgId)?.ward_id || 1);
+    : (dataStore.wards.find((w) => Number(w.organization_id) === orgId &&
+      (!payload.hospital_id || Number(w.hospital_id) === Number(payload.hospital_id)))?.ward_id || 1);
 
   const requestedByNum = requestedBy
     ? (typeof requestedBy === 'number' ? requestedBy : Number(requestedBy) || 102)

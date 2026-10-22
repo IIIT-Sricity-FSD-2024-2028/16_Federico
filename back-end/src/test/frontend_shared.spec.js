@@ -539,7 +539,7 @@ describe('Frontend Shared & Patient Helpers', () => {
           policy_number: 'NB-77210',
           member_id: 'M-990',
           coverage_limit: 150000,
-          copay_percentage: 10,
+          copay_percentage: 100,
         },
         doctors: [
           { doctor_id: 401, name: 'Dr. Jane Smith', specialization: 'Cardiology', department: 'Cardiology' },
@@ -573,7 +573,7 @@ describe('Frontend Shared & Patient Helpers', () => {
         bundles: [
           {
             admission: { admission_id: 701, patient_id: 201, bed_id: 46, admit_time: '2026-08-01T08:00:00.000Z' },
-            ledger: { ledger_id: 801, admission_id: 701, status: 'DISPATCHED', created_at: '2026-08-05T10:00:00.000Z' },
+            ledger: { ledger_id: 801, admission_id: 701, status: 'PARTIALLY_PAID', created_at: '2026-08-05T10:00:00.000Z' },
             entries: [
               { entry_id: 1, ledger_id: 801, service_id: 501, quantity: 1, unit_price: 500, amount: 500 },
             ],
@@ -591,8 +591,9 @@ describe('Frontend Shared & Patient Helpers', () => {
         receipts: [
           {
             receipt_id: 1,
+            ledger_id: 801,
             patient_id: 201,
-            amount: 450,
+            amount: 100,
             payment_mode: 'UPI',
             generated_at: '2026-08-06T14:00:00.000Z',
           },
@@ -630,6 +631,11 @@ describe('Frontend Shared & Patient Helpers', () => {
       expect(shaped.bills.length).toBe(1);
       expect(shaped.bills[0].id).toBe('LEDGER-801');
       expect(shaped.bills[0].total).toBe(500);
+      expect(shaped.bills[0].insuranceCovered).toBe(50);
+      expect(shaped.bills[0].patientShare).toBe(450);
+      expect(shaped.bills[0].paidAmount).toBe(100);
+      expect(shaped.bills[0].youPay).toBe(350);
+      expect(shaped.bills[0].status).toBe('partial');
       expect(shaped.bills[0].items[0].name).toBe('General Consultation');
       expect(shaped.bills[0].hasDischargeSummary).toBe(true);
 

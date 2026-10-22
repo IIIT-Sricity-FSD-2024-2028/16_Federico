@@ -2,9 +2,6 @@
 
 const request = require('supertest');
 const { createApp } = require('../app');
-const dataStore = require('../store/dataStore');
-const subscriptionService = require('./subscription.service');
-const organizationService = require('./organization.service');
 const serviceCatalog = require('../config/serviceCatalog');
 
 describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () => {
