@@ -36,12 +36,12 @@ npm install
 npm run start:dev
 ```
 
-The API runs at `http://localhost:3000` by default.
+The API runs at [http://localhost:3000](http://localhost:3000) by default. Its root route currently returns the legacy `Hello World!` response; use the health and documentation endpoints below when checking the running service.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /health` | Health check |
-| `/api` | Interactive Swagger documentation |
+| [http://localhost:3000/health](http://localhost:3000/health) | Health check |
+| [http://localhost:3000/api](http://localhost:3000/api) | Interactive Swagger documentation |
 | [`back-end/docs/swagger.json`](back-end/docs/swagger.json) | OpenAPI specification |
 
 To restore the JSON snapshot from the canonical seed, run `npm run db:reset` from `back-end`. This replaces local runtime data with the default mock dataset.
@@ -54,7 +54,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The frontend uses `http://localhost:3000` as its default API URL. To use another API host, copy `front-end/.env.example` to `front-end/.env` and set `VITE_API_URL`.
+Open [http://localhost:5173](http://localhost:5173). The frontend uses `http://localhost:3000` as its default API URL. To use another API host, copy `front-end/.env.example` to `front-end/.env` and set `VITE_API_URL`.
 
 ### Backend configuration
 
