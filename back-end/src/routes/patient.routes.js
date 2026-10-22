@@ -25,6 +25,29 @@ router.get(
   controller.getPortalSummary,
 );
 
+// Insurance routes (must precede /:id)
+router.get(
+  '/insurance/all',
+  authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
+  controller.findAllInsurances,
+);
+router.get(
+  '/insurance',
+  authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
+  controller.findInsurance,
+);
+router.get(
+  '/:id/insurance',
+  authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
+  controller.findInsuranceByPatient,
+);
+router.post(
+  '/insurance',
+  authorize(['SUPER_USER'], 'patient', 'write'),
+  validateBody(createPatientInsuranceRules),
+  controller.createInsurance,
+);
+
 router.get(
   '/:id',
   authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
@@ -46,24 +69,6 @@ router.delete(
   '/:id',
   authorize(['SUPER_USER'], 'patient', 'write'),
   controller.remove,
-);
-
-// Insurance routes
-router.get(
-  '/insurance/all',
-  authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
-  controller.findAllInsurances,
-);
-router.get(
-  '/:id/insurance',
-  authorize(['ADMIN', 'SUPER_USER'], 'patient', 'read'),
-  controller.findInsuranceByPatient,
-);
-router.post(
-  '/insurance',
-  authorize(['SUPER_USER'], 'patient', 'write'),
-  validateBody(createPatientInsuranceRules),
-  controller.createInsurance,
 );
 
 module.exports = router;

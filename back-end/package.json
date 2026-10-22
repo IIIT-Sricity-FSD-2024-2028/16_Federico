@@ -11,7 +11,7 @@
     "start:dev": "nodemon server.js",
     "start:prod": "node server.js",
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
-    "lint": "eslint \"src/**/*.js\" \"test/**/*.js\" --fix",
+    "lint": "eslint \"server.js\" \"src/**/*.js\" \"test/**/*.js\" \"scripts/**/*.js\"",
     "db:reset": "node scripts/reset-database.js",
     "test": "jest",
     "test:watch": "jest --watch",

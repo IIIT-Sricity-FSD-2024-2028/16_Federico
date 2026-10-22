@@ -5,7 +5,7 @@
 The Federico Hospital Operations Management (HMS) platform operates on a multi-tenant, SaaS-ready relational architecture. The schema enforces strict data isolation, referential integrity, physical resource invariants, and financial accounting double-entry consistency.
 
 ### Key Architectural Tenets:
-1. **Multi-Tenancy Isolation**: Every tenant entity is explicitly scoped with `organization_id INT NOT NULL REFERENCES organizations(organization_id)` and optional multi-facility branch scoping with `hospital_id INT REFERENCES hospitals(hospital_id)`.
+1. **Multi-Tenancy Isolation**: Every tenant entity is explicitly scoped with `organization_id INT NOT NULL REFERENCES organizations(organization_id)` and optional multi-facility branch scoping with nullable `hospital_id`. When `hospital_id` is set, a composite foreign key `(hospital_id, organization_id) -> hospitals(hospital_id, organization_id)` guarantees that the selected hospital belongs to the same organization. Referenced hospitals cannot be deleted until their scoped rows are reassigned or removed.
 2. **Referential Integrity & Cascades**: 
    - Root deletions cascade down to tenant-specific child entities (`ON DELETE CASCADE`).
    - Critical audit and transactional records (payments, receipts, admissions) restrict orphan creation (`ON DELETE RESTRICT` or `ON DELETE SET NULL`).
@@ -23,92 +23,146 @@ The Federico Hospital Operations Management (HMS) platform operates on a multi-t
 ## 2. Entity-Relationship (ER) Architecture
 
 ```mermaid
-graph TD
-    subgraph Tier 0: Root Catalogs
-        ORGS[organizations]
-        ROLES[roles]
-        PLANS[subscription_plans]
-        PERMS[permissions]
-        PLAT_USERS[platform_super_users]
-    end
-
-    subgraph Tier 1: Organization Scoped
-        HOSPS[hospitals]
-        USERS[users]
-        SUBS[subscriptions]
-        QUOTAS[resource_quotas]
-        RESOURCES[organization_resources]
-        KEYS[api_keys]
-        ROLES_C[custom_roles]
-        DOCS[doctors]
-        WARDS[wards]
-        SVCS[services]
-    end
-
-    subgraph Tier 2: Staff & Infrastructure
-        ROLE_PERMS[role_permissions]
-        STAFF_ASSIGN[staff_role_assignments]
-        PATS[patients]
-        AVAIL[doctor_availabilities]
-        BEDS[beds]
-        ITEMS[inventory_items]
-    end
-
-    subgraph Tier 3: Appointments & Pre-Intake
-        INS[patient_insurances]
-        APTS[appointments]
-        PURCHASE[purchase_requests]
-        PRE[pre_requests]
-        EMERG[emergency_notifications]
-    end
-
-    subgraph Tier 4: Inpatient Admissions
-        BED_REQ[bed_requests]
-        ADMS[admissions]
-    end
-
-    subgraph Tier 5: Financial Ledgers & Discharge
-        SUMM[discharge_summaries]
-        LEDGERS[ledgers]
-        LEADERS[leaders]
-    end
-
-    subgraph Tier 6: Ledger Entries, Payments & Receipts
-        ENTRIES[ledger_entries]
-        PMTS[payments]
-        RCPTS[receipts]
-        ACT_LOG[activity_log]
-        PLAT_ACT_LOG[platform_activity_log]
-    end
-
-    ORGS --> HOSPS
-    ORGS --> USERS
-    ROLES --> USERS
-    ORGS --> DOCS
-    ORGS --> WARDS
-    ORGS --> SVCS
-    USERS --> PATS
-    DOCS --> AVAIL
-    WARDS --> BEDS
-    SVCS --> ITEMS
-    PATS --> APTS
-    DOCS --> APTS
-    AVAIL --> APTS
-    PATS --> PRE
-    DOCS --> PRE
-    PRE --> BED_REQ
-    WARDS --> BED_REQ
-    PATS --> ADMS
-    BEDS --> ADMS
-    APTS -.-> ADMS
-    ADMS --> LEDGERS
-    ADMS --> SUMM
-    LEDGERS --> ENTRIES
-    SVCS --> ENTRIES
-    LEDGERS --> PMTS
-    PMTS --> RCPTS
-    LEDGERS --> RCPTS
+flowchart LR
+    T_ORGANIZATIONS["organizations<br/>PK: organization_id"]
+    T_HOSPITALS["hospitals<br/>PK: hospital_id"]
+    T_ROLES["roles<br/>PK: role_id"]
+    T_SUBSCRIPTION_PLANS["subscription_plans<br/>PK: plan_id"]
+    T_PLATFORM_SUPER_USERS["platform_super_users<br/>PK: platform_user_id"]
+    T_USERS["users<br/>PK: user_id"]
+    T_SUBSCRIPTIONS["subscriptions<br/>PK: subscription_id"]
+    T_RESOURCE_QUOTAS["resource_quotas<br/>PK: organization_id"]
+    T_ORGANIZATION_RESOURCES["organization_resources<br/>PK: organization_id, module_code, resource_code"]
+    T_API_KEYS["api_keys<br/>PK: api_key_id"]
+    T_CUSTOM_ROLES["custom_roles<br/>PK: custom_role_id"]
+    T_PERMISSIONS["permissions<br/>PK: permission_id"]
+    T_ROLE_PERMISSIONS["role_permissions<br/>PK: custom_role_id, permission_id"]
+    T_STAFF_ROLE_ASSIGNMENTS["staff_role_assignments<br/>PK: user_id, custom_role_id"]
+    T_DOCTORS["doctors<br/>PK: doctor_id"]
+    T_DOCTOR_AVAILABILITIES["doctor_availabilities<br/>PK: availability_id"]
+    T_WARDS["wards<br/>PK: ward_id"]
+    T_BEDS["beds<br/>PK: bed_id"]
+    T_SERVICES["services<br/>PK: service_id"]
+    T_PATIENTS["patients<br/>PK: patient_id"]
+    T_PATIENT_INSURANCES["patient_insurances<br/>PK: insurance_id"]
+    T_APPOINTMENTS["appointments<br/>PK: appointment_id"]
+    T_ADMISSIONS["admissions<br/>PK: admission_id"]
+    T_DISCHARGE_SUMMARIES["discharge_summaries<br/>PK: summary_id"]
+    T_LEDGERS["ledgers<br/>PK: ledger_id"]
+    T_LEDGER_ENTRIES["ledger_entries<br/>PK: ledger_id, entry_id"]
+    T_PAYMENTS["payments<br/>PK: payment_id"]
+    T_RECEIPTS["receipts<br/>PK: receipt_id"]
+    T_LEADERS["leaders<br/>PK: leader_id"]
+    T_INVENTORY_ITEMS["inventory_items<br/>PK: item_id"]
+    T_PURCHASE_REQUESTS["purchase_requests<br/>PK: request_id"]
+    T_PRE_REQUESTS["pre_requests<br/>PK: pre_request_id"]
+    T_BED_REQUESTS["bed_requests<br/>PK: bed_request_id"]
+    T_EMERGENCY_NOTIFICATIONS["emergency_notifications<br/>PK: emergency_id"]
+    T_ACTIVITY_LOG["activity_log<br/>PK: id"]
+    T_PROVISIONING_LOG["provisioning_log<br/>PK: id"]
+    T_PLATFORM_ACTIVITY_LOG["platform_activity_log<br/>PK: id"]
+    T_ORGANIZATIONS -->|organization_id| T_HOSPITALS
+    T_ROLES -->|role_id| T_USERS
+    T_ORGANIZATIONS -->|organization_id| T_USERS
+    T_HOSPITALS -->|hospital_id, organization_id| T_USERS
+    T_ORGANIZATIONS -->|organization_id| T_SUBSCRIPTIONS
+    T_SUBSCRIPTION_PLANS -->|plan_id| T_SUBSCRIPTIONS
+    T_ORGANIZATIONS -->|organization_id| T_RESOURCE_QUOTAS
+    T_ORGANIZATIONS -->|organization_id| T_ORGANIZATION_RESOURCES
+    T_ORGANIZATIONS -->|organization_id| T_API_KEYS
+    T_ORGANIZATIONS -->|organization_id| T_CUSTOM_ROLES
+    T_CUSTOM_ROLES -->|custom_role_id| T_ROLE_PERMISSIONS
+    T_PERMISSIONS -->|permission_id| T_ROLE_PERMISSIONS
+    T_USERS -->|user_id| T_STAFF_ROLE_ASSIGNMENTS
+    T_CUSTOM_ROLES -->|custom_role_id| T_STAFF_ROLE_ASSIGNMENTS
+    T_ORGANIZATIONS -->|organization_id| T_DOCTORS
+    T_HOSPITALS -->|hospital_id, organization_id| T_DOCTORS
+    T_DOCTORS -->|doctor_id| T_DOCTOR_AVAILABILITIES
+    T_ORGANIZATIONS -->|organization_id| T_DOCTOR_AVAILABILITIES
+    T_HOSPITALS -->|hospital_id, organization_id| T_DOCTOR_AVAILABILITIES
+    T_ORGANIZATIONS -->|organization_id| T_WARDS
+    T_HOSPITALS -->|hospital_id, organization_id| T_WARDS
+    T_WARDS -->|ward_id| T_BEDS
+    T_ORGANIZATIONS -->|organization_id| T_BEDS
+    T_HOSPITALS -->|hospital_id, organization_id| T_BEDS
+    T_ORGANIZATIONS -->|organization_id| T_SERVICES
+    T_HOSPITALS -->|hospital_id, organization_id| T_SERVICES
+    T_USERS -->|user_id| T_PATIENTS
+    T_ORGANIZATIONS -->|organization_id| T_PATIENTS
+    T_HOSPITALS -->|hospital_id, organization_id| T_PATIENTS
+    T_PATIENTS -->|patient_id| T_PATIENT_INSURANCES
+    T_ORGANIZATIONS -->|organization_id| T_PATIENT_INSURANCES
+    T_HOSPITALS -->|hospital_id, organization_id| T_PATIENT_INSURANCES
+    T_PATIENTS -->|patient_id| T_APPOINTMENTS
+    T_DOCTORS -->|doctor_id| T_APPOINTMENTS
+    T_DOCTOR_AVAILABILITIES -->|availability_id| T_APPOINTMENTS
+    T_USERS -->|created_by| T_APPOINTMENTS
+    T_ORGANIZATIONS -->|organization_id| T_APPOINTMENTS
+    T_HOSPITALS -->|hospital_id, organization_id| T_APPOINTMENTS
+    T_PATIENTS -->|patient_id| T_ADMISSIONS
+    T_BEDS -->|bed_id| T_ADMISSIONS
+    T_APPOINTMENTS -->|appointment_id| T_ADMISSIONS
+    T_ORGANIZATIONS -->|organization_id| T_ADMISSIONS
+    T_HOSPITALS -->|hospital_id, organization_id| T_ADMISSIONS
+    T_ADMISSIONS -->|admission_id| T_DISCHARGE_SUMMARIES
+    T_PATIENTS -->|patient_id| T_DISCHARGE_SUMMARIES
+    T_ORGANIZATIONS -->|organization_id| T_DISCHARGE_SUMMARIES
+    T_HOSPITALS -->|hospital_id, organization_id| T_DISCHARGE_SUMMARIES
+    T_ADMISSIONS -->|admission_id| T_LEDGERS
+    T_ORGANIZATIONS -->|organization_id| T_LEDGERS
+    T_HOSPITALS -->|hospital_id, organization_id| T_LEDGERS
+    T_LEDGERS -->|ledger_id| T_LEDGER_ENTRIES
+    T_SERVICES -->|service_id| T_LEDGER_ENTRIES
+    T_ORGANIZATIONS -->|organization_id| T_LEDGER_ENTRIES
+    T_HOSPITALS -->|hospital_id, organization_id| T_LEDGER_ENTRIES
+    T_LEDGERS -->|ledger_id| T_PAYMENTS
+    T_ORGANIZATIONS -->|organization_id| T_PAYMENTS
+    T_HOSPITALS -->|hospital_id, organization_id| T_PAYMENTS
+    T_PAYMENTS -->|payment_id| T_RECEIPTS
+    T_LEDGERS -->|ledger_id| T_RECEIPTS
+    T_ADMISSIONS -->|admission_id| T_RECEIPTS
+    T_PATIENTS -->|patient_id| T_RECEIPTS
+    T_ORGANIZATIONS -->|organization_id| T_RECEIPTS
+    T_HOSPITALS -->|hospital_id, organization_id| T_RECEIPTS
+    T_ADMISSIONS -->|admission_id| T_LEADERS
+    T_PATIENTS -->|patient_id| T_LEADERS
+    T_SERVICES -->|service_id| T_LEADERS
+    T_ORGANIZATIONS -->|organization_id| T_LEADERS
+    T_HOSPITALS -->|hospital_id, organization_id| T_LEADERS
+    T_SERVICES -->|service_id| T_INVENTORY_ITEMS
+    T_ORGANIZATIONS -->|organization_id| T_INVENTORY_ITEMS
+    T_HOSPITALS -->|hospital_id, organization_id| T_INVENTORY_ITEMS
+    T_INVENTORY_ITEMS -->|item_id| T_PURCHASE_REQUESTS
+    T_USERS -->|requested_by| T_PURCHASE_REQUESTS
+    T_ORGANIZATIONS -->|organization_id| T_PURCHASE_REQUESTS
+    T_HOSPITALS -->|hospital_id, organization_id| T_PURCHASE_REQUESTS
+    T_PATIENTS -->|patient_id| T_PRE_REQUESTS
+    T_APPOINTMENTS -->|appointment_id| T_PRE_REQUESTS
+    T_DOCTORS -->|doctor_id| T_PRE_REQUESTS
+    T_BEDS -->|bed_id| T_PRE_REQUESTS
+    T_USERS -->|created_by| T_PRE_REQUESTS
+    T_ORGANIZATIONS -->|organization_id| T_PRE_REQUESTS
+    T_HOSPITALS -->|hospital_id, organization_id| T_PRE_REQUESTS
+    T_PRE_REQUESTS -->|pre_request_id| T_BED_REQUESTS
+    T_PATIENTS -->|patient_id| T_BED_REQUESTS
+    T_WARDS -->|ward_id| T_BED_REQUESTS
+    T_BEDS -->|bed_id| T_BED_REQUESTS
+    T_USERS -->|requested_by| T_BED_REQUESTS
+    T_ORGANIZATIONS -->|organization_id| T_BED_REQUESTS
+    T_HOSPITALS -->|hospital_id, organization_id| T_BED_REQUESTS
+    T_PATIENTS -->|patient_id| T_EMERGENCY_NOTIFICATIONS
+    T_BEDS -->|bed_id| T_EMERGENCY_NOTIFICATIONS
+    T_USERS -->|created_by| T_EMERGENCY_NOTIFICATIONS
+    T_ORGANIZATIONS -->|organization_id| T_EMERGENCY_NOTIFICATIONS
+    T_HOSPITALS -->|hospital_id, organization_id| T_EMERGENCY_NOTIFICATIONS
+    T_ORGANIZATIONS -->|organization_id| T_ACTIVITY_LOG
+    T_HOSPITALS -->|hospital_id, organization_id| T_ACTIVITY_LOG
+    T_ORGANIZATIONS -->|organization_id| T_PROVISIONING_LOG
+    T_PLATFORM_SUPER_USERS -->|platform_user_id| T_PLATFORM_ACTIVITY_LOG
+    T_ORGANIZATIONS -->|target_organization_id| T_PLATFORM_ACTIVITY_LOG
 ```
+
+The generated SQL adds `UNIQUE KEY uq_hospital_tenant (hospital_id, organization_id)` and composite tenant foreign keys to every table that stores both `hospital_id` and `organization_id`. `hospital_id = NULL` remains valid for organization-wide records.
 
 ---
 
@@ -133,6 +187,8 @@ Stores tenant organizations (hospital networks or independent facilities).
 #### 2. `hospitals`
 Stores individual physical hospital campuses/facilities within an organization.
 - `hospital_id` (INT, PRIMARY KEY, AUTO_INCREMENT)
+- `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
+- UNIQUE KEY `uq_hospital_tenant` (`hospital_id`, `organization_id`) � Composite target for tenant-scoped hospital references
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id` ON DELETE CASCADE)
 - `name` (VARCHAR(255), NOT NULL) — Branch/campus name
 - `city` (VARCHAR(100), NULL)
@@ -158,7 +214,7 @@ Authenticated user accounts (staff and portal-registered patients).
 - `password_hash` (VARCHAR(255), NOT NULL) — bcrypt hashed password
 - `role_id` (INT, NOT NULL, FK -> `roles.role_id`)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id` ON DELETE CASCADE)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id` ON DELETE SET NULL)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 
 #### 5. `custom_roles`
@@ -214,7 +270,7 @@ Medical patient directory including both portal users and walk-in clinical recor
 - `emergency_contact_name` (VARCHAR(255), NULL)
 - `emergency_contact_phone` (VARCHAR(50), NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 
 #### 11. `patient_insurances`
@@ -232,7 +288,7 @@ Insurance policies covering patient healthcare costs.
 - `card_front_url` (VARCHAR(500), NULL)
 - `card_back_url` (VARCHAR(500), NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 
 #### 12. `doctors`
@@ -243,7 +299,7 @@ Medical specialists and attending physicians.
 - `phone` (VARCHAR(50), NULL)
 - `email` (VARCHAR(255), NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 13. `doctor_availabilities`
 Doctor consultation schedule windows and slot definitions.
@@ -254,7 +310,7 @@ Doctor consultation schedule windows and slot definitions.
 - `end_time` (TIME, NOT NULL)
 - `status` (VARCHAR(50), NOT NULL DEFAULT 'Available') — `Available`, `Booked`, `Cancelled`
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 14. `appointments`
 Outpatient bookings and consultations.
@@ -267,7 +323,7 @@ Outpatient bookings and consultations.
 - `status` (VARCHAR(50), NOT NULL DEFAULT 'CONFIRMED') — `CONFIRMED`, `COMPLETED`, `CANCELLED`
 - `created_by` (INT, NOT NULL, FK -> `users.user_id`)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - *UNIQUE CONSTRAINT*: `UNIQUE KEY uq_doctor_slot (doctor_id, scheduled_datetime)`
 
@@ -282,7 +338,7 @@ Physical hospital wings and clinical departments.
 - `total_beds` (INT, NOT NULL) — Physical capacity
 - `description` (TEXT, NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 16. `beds`
 Individual physical beds assigned to wards.
@@ -291,7 +347,7 @@ Individual physical beds assigned to wards.
 - `bed_number` (VARCHAR(50), NOT NULL)
 - `status` (VARCHAR(50), NOT NULL DEFAULT 'AVAILABLE') — `AVAILABLE`, `OCCUPIED`, `MAINTENANCE`
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 - *UNIQUE CONSTRAINT*: `UNIQUE KEY uq_ward_bed (ward_id, bed_number)`
 
 #### 17. `admissions`
@@ -305,7 +361,7 @@ Inpatient hospital admission stays.
 - `status` (VARCHAR(50), NOT NULL DEFAULT 'ADMITTED') — `ADMITTED`, `DISCHARGED`
 - `receipt_sent_to_hom` (BOOLEAN, NOT NULL DEFAULT FALSE)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 18. `discharge_summaries`
 Clinical and financial discharge records generated upon inpatient release.
@@ -318,7 +374,7 @@ Clinical and financial discharge records generated upon inpatient release.
 - `insurance_deduction` (DECIMAL(12,2), NOT NULL DEFAULT 0.00)
 - `generated_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 ---
 
@@ -330,7 +386,7 @@ Chargeable medical catalog items and procedures.
 - `service_name` (VARCHAR(255), NOT NULL)
 - `base_cost` (DECIMAL(10,2), NOT NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 20. `ledgers`
 Master financial invoice container for an inpatient admission.
@@ -340,7 +396,7 @@ Master financial invoice container for an inpatient admission.
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `dispatched_at` (DATETIME, NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 21. `ledger_entries`
 Line-item charges recorded against an inpatient ledger.
@@ -352,7 +408,7 @@ Line-item charges recorded against an inpatient ledger.
 - `amount` (DECIMAL(10,2), NOT NULL)
 - `entry_time` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 - *PRIMARY KEY*: `(ledger_id, entry_id)`
 
 #### 22. `payments`
@@ -361,9 +417,10 @@ Recorded financial settlements.
 - `ledger_id` (INT, NOT NULL, FK -> `ledgers.ledger_id`)
 - `amount_paid` (DECIMAL(10,2), NOT NULL)
 - `payment_mode` (VARCHAR(50), NOT NULL) — `Cash`, `Card`, `UPI`, `Insurance`
+- `idempotency_key` (VARCHAR(128), NULL, UNIQUE) — prevents duplicate payment creation when a client retries a request
 - `payment_time` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 23. `receipts`
 Official issued payment receipts and invoices.
@@ -376,7 +433,7 @@ Official issued payment receipts and invoices.
 - `payment_mode` (VARCHAR(50), NOT NULL)
 - `generated_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 24. `leaders`
 Charge request and approval workflow entries pending inclusion into billing ledgers.
@@ -392,7 +449,7 @@ Charge request and approval workflow entries pending inclusion into billing ledg
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `approved_at` (DATETIME, NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 ---
 
@@ -407,7 +464,7 @@ Hospital supplies, pharmaceuticals, and equipment stock.
 - `reorder_level` (INT, NOT NULL DEFAULT 10)
 - `service_id` (INT, NULL, FK -> `services.service_id` ON DELETE SET NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 26. `purchase_requests`
 Stock replenishment orders submitted by department staff.
@@ -418,7 +475,7 @@ Stock replenishment orders submitted by department staff.
 - `requested_by` (INT, NOT NULL, FK -> `users.user_id`)
 - `requested_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 27. `pre_requests`
 Pre-intake and triage requests initiated by front-desk or portal patients.
@@ -440,7 +497,7 @@ Pre-intake and triage requests initiated by front-desk or portal patients.
 - `updated_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 - `decided_at` (DATETIME, NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 28. `bed_requests`
 Inpatient bed allocation requests dispatched to Head of Medicine (HOM).
@@ -455,7 +512,7 @@ Inpatient bed allocation requests dispatched to Head of Medicine (HOM).
 - `requested_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `decided_at` (DATETIME, NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 #### 29. `emergency_notifications`
 Real-time emergency walk-in alerts broadcast to clinical departments.
@@ -467,7 +524,7 @@ Real-time emergency walk-in alerts broadcast to clinical departments.
 - `created_by` (INT, NOT NULL, FK -> `users.user_id`)
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 
 ---
 
@@ -497,7 +554,7 @@ Tenant subscriptions bound to commercial plans.
 - `updated_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 
 
-#### 33. `resource_quotas`
+#### 32. `resource_quotas`
 Hard ceilings enforced across platform resources.
 - `organization_id` (INT, PRIMARY KEY, FK -> `organizations.organization_id` ON DELETE CASCADE)
 - `max_beds` (INT, NOT NULL)
@@ -507,7 +564,7 @@ Hard ceilings enforced across platform resources.
 - `api_rate_limit` (INT, NOT NULL)
 - `updated_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 
-#### 34. `organization_resources`
+#### 33. `organization_resources`
 Granular purchased quota add-ons per module.
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id` ON DELETE CASCADE)
 - `module_code` (VARCHAR(100), NOT NULL)
@@ -517,7 +574,7 @@ Granular purchased quota add-ons per module.
 - `updated_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 - *PRIMARY KEY*: `(organization_id, module_code, resource_code)`
 
-#### 35. `api_keys`
+#### 34. `api_keys`
 Cryptographic API keys issued for tenant external integrations.
 - `api_key_id` (INT, PRIMARY KEY, AUTO_INCREMENT)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id` ON DELETE CASCADE)
@@ -526,17 +583,17 @@ Cryptographic API keys issued for tenant external integrations.
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 - `revoked_at` (DATETIME, NULL)
 
-#### 36. `activity_log`
+#### 35. `activity_log`
 Tenant-scoped operational event stream.
 - `id` (INT, PRIMARY KEY, AUTO_INCREMENT)
 - `type` (VARCHAR(50), NOT NULL) — `ADMISSION_CREATED`, `PAYMENT_RECEIVED`, `BED_ALLOCATED`, etc.
 - `text` (TEXT, NOT NULL)
 - `meta` (JSON, NULL)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id`)
-- `hospital_id` (INT, NULL, FK -> `hospitals.hospital_id`)
+- `hospital_id` (INT, NULL, part of composite FK (`hospital_id`, `organization_id`) -> `hospitals` (`hospital_id`, `organization_id`), ON DELETE RESTRICT)
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 
-#### 37. `provisioning_log`
+#### 36. `provisioning_log`
 Automated tenant provisioning audit records.
 - `id` (INT, PRIMARY KEY, AUTO_INCREMENT)
 - `organization_id` (INT, NOT NULL, FK -> `organizations.organization_id` ON DELETE CASCADE)
@@ -545,7 +602,7 @@ Automated tenant provisioning audit records.
 - `message` (TEXT, NULL)
 - `created_at` (DATETIME, NOT NULL, DEFAULT CURRENT_TIMESTAMP)
 
-#### 38. `platform_activity_log`
+#### 37. `platform_activity_log`
 Global audit log recording actions taken by Platform Super Users.
 - `id` (INT, PRIMARY KEY, AUTO_INCREMENT)
 - `platform_user_id` (INT, NULL, FK -> `platform_super_users.platform_user_id` ON DELETE SET NULL)

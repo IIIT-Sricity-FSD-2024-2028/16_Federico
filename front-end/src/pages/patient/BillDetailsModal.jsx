@@ -2,110 +2,27 @@
 
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
-import { forRole } from '../../lib/sanitizer.js';
-import { BillStatusBadge } from './patientDashboardHelpers.jsx';
-import { getEffectiveStatus } from './patientDashboardUtils.js';
+import { formatINR } from './patientStoreShape.js';
 
 /**
- * The patient's two bill dialogs:
- *
- *  - BillDetailsModal (default)  the itemized invoice for one bill, on the
- *                                Billing page.
- *  - BillSummaryModal            the dashboard's "View All" list of bills
- *                                (formerly BillsModal.jsx). Clicking a bill
- *                                opens its itemized invoice directly.
- *
- * The legacy invoice reconfigured the Pay button's text, opacity, cursor,
- * disabled flag and onclick imperatively in openBillModal; here the same
- * three states are conditional JSX.
+ * Itemized invoice modal for one bill.
  */
-export function BillSummaryModal({ open, onClose, bills, onOpenBill, onGoToBilling }) {
-  const unpaid = bills.filter((b) => getEffectiveStatus(b) !== 'paid');
-  const totalOwed = unpaid.reduce((sum, b) => sum + b.youPay, 0);
-
-  return (
-    <DialogShell
-      open={open}
-      onClose={onClose}
-      size="lg"
-      title="Bill Summary"
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div className="modal-bill-total" style={{ margin: 0 }}>
-            <span style={{ marginRight: 8 }}>Total Outstanding:</span>
-            <strong>₹{totalOwed.toLocaleString('en-IN')}</strong>
-          </div>
-          <button className="btn-primary" type="button" id="modal-go-bills" onClick={onGoToBilling}>
-            View Full Billing Page →
-          </button>
-        </div>
-      }
-    >
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Bill No</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Due Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bills.length === 0 ? (
-              <EmptyState asTableRow colSpan={5} title="No bills found." />
-            ) : (
-              bills.map((bill) => {
-                // The row text comes from the sanitised copy; the amount is
-                // read off the original, exactly as the legacy code did.
-                const safeBill = forRole(bill, 'PATIENT');
-                return (
-                  <tr
-                    key={bill.id}
-                    style={{ cursor: 'pointer' }}
-                    tabIndex={0}
-                    title="View itemized invoice"
-                    onClick={() => onOpenBill(bill)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') onOpenBill(bill);
-                    }}
-                  >
-                    <td className="bill-id-cell">{safeBill.billNo}</td>
-                    <td>{safeBill.description}</td>
-                    <td>
-                      <strong>₹{bill.youPay.toLocaleString('en-IN')}</strong>
-                    </td>
-                    <td>{safeBill.dueDate}</td>
-                    <td>
-                      <BillStatusBadge status={getEffectiveStatus(bill)} />
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    </DialogShell>
-  );
-}
-
 export default function BillDetailsModal({ open, onClose, bill, onPay, onPrint }) {
   if (!bill) return null;
 
-  const statusText =
-    bill.status === 'paid'
-      ? 'PAID'
-      : bill.hasDischargeSummary
-        ? 'PENDING PAYMENT (DISCHARGED)'
-        : 'INTERIM EOD STATEMENT';
-  const statusColor =
-    bill.status === 'paid'
-      ? 'var(--success)'
-      : bill.hasDischargeSummary
-        ? 'var(--warn)'
-        : 'var(--muted)';
+  const isPaid = bill.status === 'paid';
+  const statusText = isPaid
+    ? 'PAID'
+    : bill.status === 'partial'
+      ? 'PARTIALLY PAID'
+    : bill.hasDischargeSummary
+      ? 'PENDING PAYMENT (DISCHARGED)'
+      : 'INTERIM EOD STATEMENT';
+  const statusColor = isPaid
+    ? 'var(--success)'
+    : bill.hasDischargeSummary
+      ? 'var(--warn)'
+      : 'var(--muted)';
 
   return (
     <DialogShell
@@ -124,7 +41,7 @@ export default function BillDetailsModal({ open, onClose, bill, onPay, onPrint }
           >
             Print / Download
           </button>
-          {bill.status === 'paid' ? null : !bill.hasDischargeSummary ? (
+          {isPaid ? null : !bill.hasDischargeSummary ? (
             <button
               className="btn-primary"
               type="button"
@@ -189,10 +106,10 @@ export default function BillDetailsModal({ open, onClose, bill, onPay, onPrint }
                   </td>
                   <td style={{ textAlign: 'center' }}>{item.qty || 1}</td>
                   <td style={{ textAlign: 'right' }}>
-                    ₹{Number(item.unitPrice || 0).toLocaleString('en-IN')}
+                    {formatINR(item.unitPrice)}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    ₹{Number(item.total || 0).toLocaleString('en-IN')}
+                    {formatINR(item.total)}
                   </td>
                 </tr>
               ))
@@ -204,21 +121,37 @@ export default function BillDetailsModal({ open, onClose, bill, onPay, onPrint }
             <tr>
               <td colSpan="3">Gross Total</td>
               <td style={{ textAlign: 'right' }} id="modal-gross-total">
-                ₹{Number(bill.total || 0).toLocaleString('en-IN')}
+                {formatINR(bill.total)}
               </td>
             </tr>
             <tr className="ins-row">
               <td colSpan="3">Insurance Covered Amount</td>
               <td style={{ textAlign: 'right' }} id="modal-ins-deduction">
-                -₹{Number(bill.insuranceCovered || 0).toLocaleString('en-IN')}
+                -{formatINR(bill.insuranceCovered)}
               </td>
             </tr>
             <tr className="total-row">
               <td colSpan="3">Net Patient Share (You Pay)</td>
               <td style={{ textAlign: 'right' }} id="modal-net-payable">
-                ₹{Number(bill.youPay || 0).toLocaleString('en-IN')}
+                {formatINR(bill.patientShare ?? bill.youPay)}
               </td>
             </tr>
+            {bill.paidAmount > 0 ? (
+              <tr>
+                <td colSpan="3">Payments Received</td>
+                <td style={{ textAlign: 'right' }} id="modal-paid-amount">
+                  -{formatINR(bill.paidAmount)}
+                </td>
+              </tr>
+            ) : null}
+            {bill.paidAmount > 0 ? (
+              <tr className="total-row">
+                <td colSpan="3">Balance Due</td>
+                <td style={{ textAlign: 'right' }} id="modal-balance-due">
+                  {formatINR(bill.youPay)}
+                </td>
+              </tr>
+            ) : null}
           </tfoot>
         </table>
       </div>

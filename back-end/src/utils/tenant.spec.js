@@ -15,10 +15,10 @@ describe('utils/tenant', () => {
       expect(result).toEqual({ name: 'X', organization_id: 5, hospital_id: 9 });
     });
 
-    it('lets an explicit hospital_id in the payload win over the session default', () => {
+    it('does not allow a payload to override the session hospital', () => {
       const req = { tenant: { organizationId: 5, hospitalId: 9 } };
       const result = withTenant(req, { name: 'X', hospital_id: 42 });
-      expect(result.hospital_id).toBe(42);
+      expect(result.hospital_id).toBe(9);
     });
 
     it('stamps null when there is no tenant at all', () => {
@@ -44,12 +44,24 @@ describe('utils/tenant', () => {
       expect(scopeToOrg(list, { tenant: {} })).toEqual([]);
       expect(scopeToOrg(list, {})).toEqual([]);
     });
+
+    it('keeps records from other hospitals in the same organization out of a hospital-scoped list', () => {
+      const hospitalList = [
+        { id: 1, organization_id: 1, hospital_id: 9 },
+        { id: 2, organization_id: 1, hospital_id: 10 },
+        { id: 3, organization_id: 1, hospital_id: null },
+      ];
+      expect(scopeToOrg(hospitalList, { tenant: { organizationId: 1, hospitalId: 9 } }).map((record) => record.id)).toEqual([1, 3]);
+    });
   });
 
   describe('belongsToOrg', () => {
     it('is true only for a record matching the caller organization', () => {
       const req = { tenant: { organizationId: 1 } };
       expect(belongsToOrg({ organization_id: 1 }, req)).toBe(true);
+      expect(belongsToOrg({ organization_id: '1' }, req)).toBe(true);
+      expect(belongsToOrg({ organization_id: 1, hospital_id: '9' }, { tenant: { organizationId: 1, hospitalId: 9 } })).toBe(true);
+      expect(belongsToOrg({ organization_id: 1, hospital_id: 10 }, { tenant: { organizationId: 1, hospitalId: 9 } })).toBe(false);
       expect(belongsToOrg({ organization_id: 2 }, req)).toBe(false);
     });
 

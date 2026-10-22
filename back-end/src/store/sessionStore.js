@@ -1,13 +1,50 @@
 'use strict';
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
-/**
- * In-memory session token store (Phase 2 real auth). Consistent with the
- * rest of this app's architecture — no database — sessions simply don't
- * survive a server restart, same as every other in-memory resource here.
- */
 const sessions = new Map();
+const SESSIONS_FILE = path.resolve(
+  process.env.SESSION_STORE_PATH || path.resolve(__dirname, '../../data/.sessions.json'),
+);
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+function saveSessions() {
+  try {
+    const list = Array.from(sessions.entries());
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(list), 'utf8');
+  } catch {
+    // Fail silently in read-only or restricted environments
+  }
+}
+
+function loadSessions() {
+  try {
+    if (fs.existsSync(SESSIONS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+      if (Array.isArray(data)) {
+        for (const [k, v] of data) {
+          if (k && v && !isExpired(v)) sessions.set(k, v);
+        }
+        saveSessions();
+      }
+    }
+  } catch {
+    // Fall back to clean empty state on malformed cache
+  }
+}
+
+loadSessions();
+
+function isExpired(session, now = Date.now()) {
+  const expiresAt = session && session.expiresAt
+    ? new Date(session.expiresAt).getTime()
+    : session && session.createdAt
+      ? new Date(session.createdAt).getTime() + SESSION_TTL_MS
+      : NaN;
+  return !Number.isFinite(expiresAt) || expiresAt <= now;
+}
 
 function createSession({
   userId,
@@ -18,6 +55,7 @@ function createSession({
   isPlatformUser,
 }) {
   const token = crypto.randomBytes(24).toString('hex');
+  const createdAt = new Date().toISOString();
   sessions.set(token, {
     token,
     userId,
@@ -26,17 +64,28 @@ function createSession({
     organizationId: organizationId || null,
     hospitalId: hospitalId || null,
     isPlatformUser: Boolean(isPlatformUser),
-    createdAt: new Date().toISOString(),
+    createdAt,
+    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
   });
+  saveSessions();
   return token;
 }
 
 function getSession(token) {
-  return sessions.get(token) || null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (isExpired(session)) {
+    sessions.delete(token);
+    saveSessions();
+    return null;
+  }
+  return session;
 }
 
 function destroySession(token) {
-  return sessions.delete(token);
+  const res = sessions.delete(token);
+  saveSessions();
+  return res;
 }
 
 /**
@@ -52,7 +101,8 @@ function destroySessionsForUser(userId) {
       removed++;
     }
   });
+  if (removed > 0) saveSessions();
   return removed;
 }
 
-module.exports = { createSession, getSession, destroySession, destroySessionsForUser };
+module.exports = { createSession, getSession, destroySession, destroySessionsForUser, SESSION_TTL_MS };

@@ -29,6 +29,7 @@ const CHECKS = {
   isString: (v) => typeof v === 'string',
   isInt: (v) => typeof v === 'number' && Number.isInteger(v),
   isNumber: (v) => typeof v === 'number' && Number.isFinite(v),
+  isPositiveNumber: (v) => typeof v === 'number' && Number.isFinite(v) && v > 0,
   isBoolean: (v) => typeof v === 'boolean',
   isArray: (v) => Array.isArray(v),
   isEmail: (v) => typeof v === 'string' && validator.isEmail(v),
@@ -50,6 +51,7 @@ const MESSAGES = {
   isInt: (field) => `${field} must be an integer number`,
   isNumber: (field) =>
     `${field} must be a number conforming to the specified constraints`,
+  isPositiveNumber: (field) => `${field} must be greater than zero`,
   isBoolean: (field) => `${field} must be a boolean value`,
   isArray: (field) => `${field} must be an array`,
   isEmail: (field) => `${field} must be an email`,

@@ -232,6 +232,7 @@ describe('E2E Hospital Patient Lifecycle & Multi-Tenancy Pipeline', () => {
       ledger_id: ledgerId,
       amount_paid: 5000,
       payment_mode: 'UPI',
+      idempotency_key: 'e2e-hospital-payment',
       organization_id: tenantOrg.organization_id,
     });
 

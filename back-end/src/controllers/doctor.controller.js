@@ -12,14 +12,22 @@ const FORBIDDEN = {
   statusCode: 403,
 };
 
+function enrichDoctor(doc) {
+  if (!doc) return doc;
+  if (!doc.department && doc.specialization) {
+    doc.department = doc.specialization;
+  }
+  return doc;
+}
+
 function findAllDoctors(req, res) {
-  sendResult(res, scopeToOrg(doctorService.findAllDoctors(), req), 200);
+  sendResult(res, scopeToOrg(doctorService.findAllDoctors(), req).map(enrichDoctor), 200);
 }
 
 function findDoctor(req, res) {
   const doctor = doctorService.findDoctorById(+req.params.id);
   if (doctor && !belongsToOrg(doctor, req)) return sendResult(res, null, 200);
-  sendResult(res, doctor, 200);
+  sendResult(res, enrichDoctor(doctor), 200);
 }
 
 function createDoctor(req, res) {
@@ -57,7 +65,10 @@ function findAvailabilityByDoctor(req, res) {
 }
 
 function createAvailability(req, res) {
-  const result = doctorService.createAvailability(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  const doctor = doctorService.findDoctorById(payload.doctor_id);
+  if (doctor && !belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+  const result = doctorService.createAvailability(payload);
   logger.log(
     `✅ CREATED AVAILABILITY  id=${result.availability_id}  doctor_id=${result.doctor_id}`,
   );
@@ -73,6 +84,7 @@ function deleteAvailability(req, res) {
 }
 
 module.exports = {
+  enrichDoctor,
   findAllDoctors,
   findDoctor,
   createDoctor,

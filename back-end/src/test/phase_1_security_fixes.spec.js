@@ -6,10 +6,9 @@ const dataStore = require('../store/dataStore');
 const doctorService = require('../services/doctor.service');
 const patientService = require('../services/patient.service');
 const admissionService = require('../services/admission.service');
-const platformAuthService = require('../services/platformAuth.service');
 const { maxId } = require('../utils/maxId');
 
-describe('Phase 1 Security & Invariant Hardening Specs (SEC-01 to SEC-05)', () => {
+describe('Security & Multi-Tenant Isolation Specifications', () => {
   const app = createApp();
 
   async function login(email, password) {
@@ -20,22 +19,22 @@ describe('Phase 1 Security & Invariant Hardening Specs (SEC-01 to SEC-05)', () =
     return res.body;
   }
 
-  describe('SEC-01: Eradication of x-role header auth bypass', () => {
-    it('strictly rejects any request relying only on x-role: ADMIN (403)', async () => {
+  describe('Role-Based Access Control & Header Bypass Protection', () => {
+    it('strictly rejects unauthorized requests relying only on x-role: ADMIN with 403 Forbidden', async () => {
       await request(app)
         .get('/doctor')
         .set('x-role', 'ADMIN')
         .expect(403);
     });
 
-    it('strictly rejects any request relying only on x-role: SUPER_USER (403)', async () => {
+    it('strictly rejects unauthorized requests relying only on x-role: SUPER_USER with 403 Forbidden', async () => {
       await request(app)
         .get('/admission')
         .set('x-role', 'SUPER_USER')
         .expect(403);
     });
 
-    it('allows access when authenticated with a valid session Bearer token', async () => {
+    it('grants access when authenticated with a valid session Bearer token', async () => {
       const admin = await login('owner.admin@citygen.com', 'Owner@123');
       const res = await request(app)
         .get('/doctor')
@@ -45,25 +44,21 @@ describe('Phase 1 Security & Invariant Hardening Specs (SEC-01 to SEC-05)', () =
     });
   });
 
-  describe('SEC-02: Tenant boundary enforcement on doctor availability deletion', () => {
-    it('forbids deleting an availability belonging to another organization (403)', async () => {
-      // Find an availability belonging to org 1
+  describe('Multi-Tenant Boundary Enforcement on Doctor Availability', () => {
+    it('forbids deleting a doctor availability belonging to another organization with 403 Forbidden', async () => {
       const org1Availability = dataStore.doctorAvailabilities.find((a) => a.organization_id === 1);
       expect(org1Availability).toBeDefined();
 
-      // Log in as an actor from org 2 (Apollo Hospitals)
       const apolloHom = await login('admin.hom@apollo.com', 'Apollo@123');
       expect(apolloHom.tenant.organization_id).toBe(2);
 
-      // Attempt to delete Org 1 availability as Org 2 user
       await request(app)
         .delete(`/doctor/availability/${org1Availability.availability_id}`)
         .set('Authorization', `Bearer ${apolloHom.token}`)
         .expect(403);
     });
 
-    it('allows deleting an availability belonging to the callers own organization', async () => {
-      // Create a temporary availability in Org 1
+    it('allows deleting a doctor availability belonging to the caller organization', async () => {
       const created = doctorService.createAvailability({
         doctor_id: 401,
         day_of_week: 'Monday',
@@ -83,8 +78,8 @@ describe('Phase 1 Security & Invariant Hardening Specs (SEC-01 to SEC-05)', () =
     });
   });
 
-  describe('SEC-03: Mass-assignment protection in domain update services', () => {
-    it('updateDoctor ignores tampering with doctor_id and organization_id', () => {
+  describe('Mass-Assignment Protection in Domain Update Services', () => {
+    it('doctorService.updateDoctor ignores tampering with doctor_id and organization_id', () => {
       const doc = doctorService.findDoctorById(401);
       const originalOrgId = doc.organization_id;
       const originalDocId = doc.doctor_id;
@@ -140,16 +135,16 @@ describe('Phase 1 Security & Invariant Hardening Specs (SEC-01 to SEC-05)', () =
     });
   });
 
-  describe('SEC-04: platformAuth.service maxId call stack safety', () => {
-    it('correctly uses maxId utility without call-stack spread overflow', () => {
+  describe('Platform Authentication ID Generation Call Stack Safety', () => {
+    it('calculates maximum IDs using maxId without call-stack spread overflow', () => {
       const highestId = maxId(dataStore.platformSuperUsers, 'platform_user_id');
       expect(typeof highestId).toBe('number');
       expect(highestId).toBeGreaterThan(0);
     });
   });
 
-  describe('SEC-05: env.js session secret configuration', () => {
-    it('exports SESSION_SECRET and validates env constants', () => {
+  describe('Session Configuration & Environment Secret Invariants', () => {
+    it('exports and validates configured SESSION_SECRET constant', () => {
       const env = require('../config/env');
       expect(env.SESSION_SECRET).toBeDefined();
       expect(typeof env.SESSION_SECRET).toBe('string');

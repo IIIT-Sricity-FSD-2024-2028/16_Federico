@@ -10,8 +10,8 @@ const inventoryService = require('../services/inventory.service');
 const { createAdmissionRules } = require('../validators/admission.validators');
 const { validateBody } = require('../validators/engine');
 
-describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
-  describe('CLN-01: Zero Doctor Double-Bookings', () => {
+describe('Database Relational Integrity & Operational Constraints', () => {
+  describe('Doctor Appointment Double-Booking Guards', () => {
     it('ensures no doctor has multiple appointments at the exact same scheduled datetime', () => {
       const doctorSlots = new Map();
       for (const apt of dataStore.appointments) {
@@ -31,7 +31,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('CLN-02: Single-Occupancy Inpatient Stays (Zero Concurrent Active Admissions)', () => {
+  describe('Single-Occupancy Inpatient Admission Enforcement', () => {
     it('ensures no patient has more than one admission with status ADMITTED', () => {
       const activePatientIds = new Set();
       for (const adm of dataStore.admissions) {
@@ -55,7 +55,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('DB-01: Appointment created_by Referential Integrity', () => {
+  describe('Appointment User Referential Integrity', () => {
     it('ensures every appointment created_by references a valid user_id in users collection', () => {
       const userIds = new Set(dataStore.users.map((u) => u.user_id));
       for (const apt of dataStore.appointments) {
@@ -64,7 +64,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('DB-02: Receipt payment_id Referential Integrity', () => {
+  describe('Receipt & Payment Referential Integrity', () => {
     it('ensures every receipt payment_id references a valid payment in payments collection', () => {
       const paymentIds = new Set(dataStore.payments.map((p) => p.payment_id));
       for (const receipt of dataStore.receipts) {
@@ -80,7 +80,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('DB-04 & DB-03: Elective Admissions and Admission Validation', () => {
+  describe('Elective and Emergency Admission Workflows', () => {
     it('links elective admissions to their corresponding appointments', () => {
       const electiveAdmissions = [705, 707, 710, 712, 717, 718];
       for (const admId of electiveAdmissions) {
@@ -91,7 +91,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
       }
     });
 
-    it('allows emergency walk-in admission without appointment_id in validator', () => {
+    it('allows emergency walk-in admission without appointment_id in admission validator', () => {
       const emergencyPayload = {
         patient_id: 201,
         bed_id: 11,
@@ -108,7 +108,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('DB-05: Ward Physical Bed Capacity Invariant', () => {
+  describe('Ward Physical Bed Capacity Invariant', () => {
     it('verifies total_beds declared on each ward equals actual count of physical beds in beds collection', () => {
       for (const ward of dataStore.wards) {
         const physicalBeds = dataStore.beds.filter((b) => b.ward_id === ward.ward_id);
@@ -117,7 +117,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('DB-07: Per-Ledger Entry Indexing in preRequestService', () => {
+  describe('Per-Ledger Entry Indexing in OPD Check-in Workflow', () => {
     it('checks in OPD pre-request and ensures generated ledger entry follows per-ledger 1-based indexing', () => {
       const preReq = preRequestService.create({
         patient_id: 201,
@@ -131,7 +131,6 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
       const checkedIn = preRequestService.checkIn(preReq.pre_request_id, { visit_type: 'OPD' });
       expect(checkedIn.preRequest.status).toBe('CONSULTATION_DONE');
 
-      // The new ledger created for this admission must have entry_id = 1
       const createdAdmission = checkedIn.admission;
       expect(createdAdmission).toBeDefined();
 
@@ -151,9 +150,8 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('DB-08: Protected Inpatient Deletion (Referential Invariant)', () => {
+  describe('Protected Patient Deletion with Active Admission Guard', () => {
     it('throws HTTP 409 Conflict when attempting to delete a patient with an active admission', () => {
-      // Find a patient who currently has an active admission
       const activeAdm = dataStore.admissions.find((a) => a.status === 'ADMITTED');
       expect(activeAdm).toBeDefined();
 
@@ -170,7 +168,6 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
 
     it('allows deleting a patient who has no active admission', () => {
-      // Create a transient patient without admissions
       const tempPatient = patientService.create({
         name: 'Transient Patient',
         phone: '9999999999',
@@ -184,7 +181,7 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
     });
   });
 
-  describe('Data Creation Formatting Invariants', () => {
+  describe('Entity Creation Type & Timestamp Invariants', () => {
     it('creates appointment with proper number IDs, valid ISO datetime, and valid created_by', () => {
       const apt = appointmentService.create({
         patient_id: '201',
@@ -204,7 +201,6 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
       expect(apt.visit_type).toBe('Consultation');
       expect(apt.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
-      // Clean up
       dataStore.appointments = dataStore.appointments.filter((a) => a.appointment_id !== apt.appointment_id);
     });
 
@@ -228,12 +224,10 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
       expect(typeof p.hospital_id).toBe('number');
       expect(p.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
-      // Clean up
       dataStore.patients = dataStore.patients.filter((item) => item.patient_id !== p.patient_id);
     });
 
     it('adds ledger entries with proper numeric types, per-ledger sequence, and ISO entry_time', () => {
-      // Find an open ledger
       const ledger = dataStore.ledgers.find((l) => l.status === 'OPEN');
       expect(ledger).toBeDefined();
 
@@ -257,9 +251,8 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
       expect(typeof entry.hospital_id).toBe('number');
       expect(entry.entry_time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
-      // Clean up
       dataStore.ledgerEntries = dataStore.ledgerEntries.filter(
-        (e) => !(e.ledger_id === entry.ledger_id && e.entry_id === entry.entry_id)
+        (e) => !(e.ledger_id === entry.ledger_id && e.entry_id === entry.entry_id),
       );
     });
 
@@ -289,9 +282,8 @@ describe('Phase 2: Clinical & Database Relational Invariant Fixes', () => {
       expect(typeof pr.hospital_id).toBe('number');
       expect(pr.requested_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
-      // Clean up
       dataStore.purchaseRequests = dataStore.purchaseRequests.filter(
-        (r) => r.request_id !== pr.request_id
+        (r) => r.request_id !== pr.request_id,
       );
     });
   });

@@ -7,7 +7,7 @@ const dataService = require('../services/data.service');
 const platformActivityService = require('../services/platformActivity.service');
 const billingService = require('../services/billing.service');
 
-describe('Phase 7: Dead Code, Deprecated Routes & Redundant Aliases (CLN-03 – CLN-06)', () => {
+describe('Route Deprecation & Dead Code Elimination Specifications', () => {
   let app;
   let adminToken;
 
@@ -19,15 +19,15 @@ describe('Phase 7: Dead Code, Deprecated Routes & Redundant Aliases (CLN-03 – 
     adminToken = res.body.token;
   });
 
-  describe('CLN-03: Redundant Request Alias Decommissioning', () => {
-    it('returns 404 for decommissioned /request routes', async () => {
+  describe('Redundant Route Deprecations', () => {
+    it('returns 404 Not Found for decommissioned /request route aliases', async () => {
       const res = await request(app)
         .get('/request')
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(404);
     });
 
-    it('canonical /appointment routes remain operational', async () => {
+    it('confirms canonical /appointment routes remain fully operational', async () => {
       const res = await request(app)
         .get('/appointment')
         .set('Authorization', `Bearer ${adminToken}`);
@@ -36,13 +36,13 @@ describe('Phase 7: Dead Code, Deprecated Routes & Redundant Aliases (CLN-03 – 
     });
   });
 
-  describe('CLN-04: Dead Collections Removal from dataStore & dataService', () => {
-    it('dataStore no longer defines dead collections patientInsuranceDocuments and insurances', () => {
+  describe('Dead Collections Removal from Datastore & Services', () => {
+    it('confirms dead collections patientInsuranceDocuments and insurances are removed from dataStore', () => {
       expect(dataStore.patientInsuranceDocuments).toBeUndefined();
       expect(dataStore.insurances).toBeUndefined();
     });
 
-    it('dataService.getFullState() does not expose dead keys', () => {
+    it('confirms dataService.getFullState() does not expose deprecated or dead keys', () => {
       const state = dataService.getFullState();
       expect(state.patientInsuranceDocuments).toBeUndefined();
       expect(state.insurances).toBeUndefined();
@@ -51,7 +51,7 @@ describe('Phase 7: Dead Code, Deprecated Routes & Redundant Aliases (CLN-03 – 
       expect(Array.isArray(state.patients)).toBe(true);
     });
 
-    it('live runtime collection platformActivityLog remains operational', () => {
+    it('verifies live runtime collection platformActivityLog remains operational', () => {
       expect(Array.isArray(dataStore.platformActivityLog)).toBe(true);
       const entry = platformActivityService.log(1, 'TEST_AUDIT_ACTION', 1, 'Phase 7 verification');
       expect(entry).toBeDefined();
@@ -59,7 +59,7 @@ describe('Phase 7: Dead Code, Deprecated Routes & Redundant Aliases (CLN-03 – 
       expect(dataStore.platformActivityLog[0].action).toBe('TEST_AUDIT_ACTION');
     });
 
-    it('live runtime collection leaders remains operational', () => {
+    it('verifies live runtime collection leaders remains operational', () => {
       expect(Array.isArray(dataStore.leaders)).toBe(true);
       const initialCount = dataStore.leaders.length;
       const leader = billingService.createLeader({

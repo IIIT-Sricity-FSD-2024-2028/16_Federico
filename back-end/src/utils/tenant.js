@@ -67,24 +67,35 @@ function withTenant(req, payload) {
   return {
     ...payload,
     organization_id: tenant.organizationId ?? null,
-    hospital_id: (payload && payload.hospital_id) || tenant.hospitalId || null,
+    hospital_id: tenant.hospitalId ?? null,
   };
 }
 
 /** Filters a list down to the caller's organization. No tenant -> empty list (fail closed, never leak cross-org). */
 function scopeToOrg(list, req) {
   const organizationId = req.tenant && req.tenant.organizationId;
+  const hospitalId = req.tenant && req.tenant.hospitalId;
   if (!organizationId) return [];
   return (list || []).filter(
-    (record) => record.organization_id === organizationId,
+    (record) => record.organization_id != null &&
+      Number(record.organization_id) === Number(organizationId) &&
+      (hospitalId == null || record.hospital_id == null || Number(record.hospital_id) === Number(hospitalId)),
   );
 }
 
 /** True if a single record belongs to the caller's organization. */
 function belongsToOrg(record, req) {
   const organizationId = req.tenant && req.tenant.organizationId;
+  const hospitalId = req.tenant && req.tenant.hospitalId;
+  const recordOrganizationId = record && record.organization_id;
   return Boolean(
-    record && organizationId && record.organization_id === organizationId,
+    record &&
+      organizationId != null &&
+      recordOrganizationId != null &&
+      Number.isFinite(Number(organizationId)) &&
+      Number.isFinite(Number(recordOrganizationId)) &&
+      Number(recordOrganizationId) === Number(organizationId) &&
+      (hospitalId == null || record.hospital_id == null || Number(record.hospital_id) === Number(hospitalId)),
   );
 }
 

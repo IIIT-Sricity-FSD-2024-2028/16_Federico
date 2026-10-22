@@ -125,23 +125,61 @@ function createPayment(payment) {
     throw err;
   }
 
-  if (ledger.status === 'PAID') {
-    const existingPayment = dataStore.payments.find((p) => p.ledger_id === ledgerId);
-    if (existingPayment) {
-      return existingPayment;
-    }
-  }
-
   const modeMap = { cash: 'Cash', card: 'Card', upi: 'UPI', cheque: 'Card', bank: 'Card' };
   const rawMode = String(payment.payment_mode || 'Cash').trim();
   const normalizedMode = modeMap[rawMode.toLowerCase()] || (rawMode.charAt(0).toUpperCase() + rawMode.slice(1).toLowerCase());
+  const amountPaid = Number(payment.amount_paid);
+  const idempotencyKey = payment.idempotency_key ? String(payment.idempotency_key).trim() : '';
+  if (!Number.isFinite(amountPaid) || amountPaid <= 0) {
+    const err = new Error('Payment amount must be greater than zero');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!idempotencyKey || idempotencyKey.length > 128) {
+    const err = new Error('A valid Idempotency-Key is required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const priorPayment = dataStore.payments.find((p) => p.idempotency_key === idempotencyKey);
+  if (priorPayment) {
+    if (Number(priorPayment.ledger_id) !== ledgerId || Number(priorPayment.amount_paid) !== amountPaid || priorPayment.payment_mode !== normalizedMode) {
+      const err = new Error('Idempotency-Key was already used for a different payment');
+      err.statusCode = 409;
+      throw err;
+    }
+    return priorPayment;
+  }
+  if (ledger.status === 'PAID') {
+    const err = new Error(`Ledger #${ledgerId} is already paid`);
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const entries = findLedgerEntries(ledgerId);
+  const grossTotal = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const admission = dataStore.admissions.find((a) => a.admission_id === ledger.admission_id);
+  const dischargeSummary = admission ? findDischargeSummaryByAdmission(admission.admission_id) : null;
+  const netDue = dischargeSummary ? Number(dischargeSummary.final_amount) : grossTotal;
+  const totalPreviouslyPaid = dataStore.payments
+    .filter((p) => Number(p.ledger_id) === ledgerId)
+    .reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
+  const outstanding = Math.max(0, Math.round((netDue - totalPreviouslyPaid) * 100) / 100);
+  if (outstanding <= 0 || amountPaid > outstanding) {
+    const err = new Error(outstanding <= 0
+      ? 'There is no outstanding balance for this ledger'
+      : `Payment exceeds the outstanding balance of ${outstanding.toFixed(2)}`);
+    err.statusCode = 400;
+    throw err;
+  }
 
   const newPayment = {
     payment_id:
       maxId(dataStore.payments, 'payment_id', 901) + 1,
     ledger_id: ledgerId,
-    amount_paid: Number(payment.amount_paid),
+    amount_paid: amountPaid,
     payment_mode: normalizedMode,
+    idempotency_key: idempotencyKey,
     payment_time: new Date().toISOString(),
     organization_id: payment.organization_id ? Number(payment.organization_id) : (ledger.organization_id ? Number(ledger.organization_id) : null),
     hospital_id: payment.hospital_id ? Number(payment.hospital_id) : (ledger.hospital_id ? Number(ledger.hospital_id) : null),
@@ -149,16 +187,8 @@ function createPayment(payment) {
   dataStore.payments.push(newPayment);
 
   // Compute cumulative payments for this ledger
-  const allLedgerPayments = dataStore.payments.filter((p) => p.ledger_id === ledgerId);
+  const allLedgerPayments = dataStore.payments.filter((p) => Number(p.ledger_id) === ledgerId);
   const totalPaid = allLedgerPayments.reduce((s, p) => s + Number(p.amount_paid || 0), 0);
-  const entries = findLedgerEntries(ledgerId);
-  const grossTotal = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
-
-  const admission = dataStore.admissions.find(
-    (a) => a.admission_id === ledger.admission_id,
-  );
-  const dischargeSummary = admission ? findDischargeSummaryByAdmission(admission.admission_id) : null;
-  const netDue = dischargeSummary ? Number(dischargeSummary.final_amount) : grossTotal;
 
   // Generate receipt for this payment transaction
   const newReceipt = {
@@ -176,7 +206,7 @@ function createPayment(payment) {
   };
   dataStore.receipts.push(newReceipt);
 
-  if (totalPaid >= netDue || payment.amount_paid >= grossTotal || grossTotal === 0) {
+  if (Math.round(totalPaid * 100) >= Math.round(netDue * 100)) {
     ledger.status = 'PAID';
     ledger.cleared_at = new Date().toISOString();
 
@@ -243,7 +273,8 @@ function findPatientBills(patient_id) {
   return admissions.map((admission) => {
     const ledger = findLedgerByAdmission(admission.admission_id);
     const entries = ledger ? findLedgerEntries(ledger.ledger_id) : [];
-    return { admission, ledger, entries };
+    const dischargeSummary = findDischargeSummaryByAdmission(admission.admission_id) || null;
+    return { admission, ledger, entries, dischargeSummary };
   });
 }
 
@@ -298,6 +329,16 @@ function createDischargeSummary(summary) {
   if (!admission) {
     const err = new Error(`Admission #${summary.admission_id} not found`);
     err.statusCode = 404;
+    throw err;
+  }
+  if (summary.patient_id != null && Number(summary.patient_id) !== Number(admission.patient_id)) {
+    const err = new Error('Discharge summary patient must match the admission patient');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (dataStore.dischargeSummaries.some((item) => Number(item.admission_id) === admissionId)) {
+    const err = new Error(`A discharge summary already exists for admission #${admissionId}`);
+    err.statusCode = 409;
     throw err;
   }
 
@@ -370,7 +411,7 @@ function createLeader(payload) {
     leader_id:
       maxId(dataStore.leaders, 'leader_id', 1) + 1,
     admission_id: admissionId,
-    patient_id: payload.patient_id ? Number(payload.patient_id) : admission.patient_id,
+    patient_id: admission.patient_id,
     service_id: serviceId,
     quantity: qty,
     unit_price,
@@ -418,8 +459,6 @@ function approveLeader(leader_id) {
     return { error: 'LEDGER_SETTLED', message: `Cannot approve charges into settled PAID ledger #${ledger.ledger_id}` };
   }
 
-  // Check to prevent duplicate entry of the exact same leader into ledger
-  const existingEntries = findLedgerEntries(ledger.ledger_id);
   // Add entry to ledger
   const ledgerEntry = addLedgerEntry({
     ledger_id: ledger.ledger_id,

@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 /**
- * Every route in this app keeps the legacy `.html` suffix (DEC-1 in
- * react-migration-plan.md) — e.g. /HOM/screen-02-bed-management.html. Vite's
+ * Every route in this app keeps the legacy `.html` suffix — e.g.
+ * /HOM/screen-02-bed-management.html. Vite's
  * built-in SPA history fallback deliberately ignores request paths whose last
  * segment contains a dot, because it assumes those are files. That makes every
  * one of our routes 404 on a hard reload or a pasted deep link.

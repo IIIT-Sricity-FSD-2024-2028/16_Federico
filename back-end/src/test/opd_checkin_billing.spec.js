@@ -103,6 +103,7 @@ describe('Outpatient (OPD) Check-in & Automated Ledger Creation', () => {
       ledger_id: ledger.ledger_id,
       amount_paid: totalAmount,
       payment_mode: 'UPI',
+      idempotency_key: 'opd-payment-settlement',
       organization_id: tenantOrg.organization_id,
       hospital_id: tenantOrg.hospital_id,
     });

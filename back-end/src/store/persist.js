@@ -110,7 +110,9 @@ async function writeAtomicAsync() {
           const failPath = `${TMP_PATH}.failed.${Date.now()}`;
           try {
             await fsp.rename(TMP_PATH, failPath);
-          } catch (_) {}
+          } catch {
+            // Keep the original persistence failure as the reported error.
+          }
           // Retain dirty state so subsequent cycles retry
           isDirty = true;
           return;
@@ -166,7 +168,9 @@ function writeAtomicSync() {
       }
       // Small sync micro-pause only during synchronous teardown
       const delayUntil = Date.now() + attempts * 10;
-      while (Date.now() < delayUntil) {}
+      while (Date.now() < delayUntil) {
+        // Briefly wait before retrying the atomic rename.
+      }
     }
   }
 }

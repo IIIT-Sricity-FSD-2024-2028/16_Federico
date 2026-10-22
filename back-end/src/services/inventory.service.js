@@ -3,6 +3,28 @@
 const dataStore = require('../store/dataStore');
 const { maxId } = require('../utils/maxId');
 
+const ITEM_UPDATE_FIELDS = new Set([
+  'item_name',
+  'category',
+  'stock_quantity',
+  'reorder_level',
+  'service_id',
+]);
+const REQUEST_UPDATE_FIELDS = new Set([
+  'status',
+  'quantity_requested',
+  'invoice_url',
+]);
+
+function assertAllowedFields(patch, allowedFields) {
+  const forbidden = Object.keys(patch || {}).filter((field) => !allowedFields.has(field));
+  if (forbidden.length > 0) {
+    const err = new Error(`Fields cannot be updated: ${forbidden.join(', ')}`);
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
 // INVENTORY_ITEM
 function findAllItems() {
   return dataStore.inventoryItems;
@@ -25,10 +47,15 @@ function createItem(item) {
 }
 
 function updateItem(item_id, patch) {
+  assertAllowedFields(patch, ITEM_UPDATE_FIELDS);
   const numId = Number(item_id);
   const item = dataStore.inventoryItems.find((i) => Number(i.item_id) === numId);
   if (!item) return null;
-  Object.assign(item, patch);
+  const safePatch = { ...patch };
+  if (Object.hasOwn(safePatch, 'service_id')) {
+    safePatch.service_id = safePatch.service_id == null ? null : Number(safePatch.service_id);
+  }
+  Object.assign(item, safePatch);
   return item;
 }
 
@@ -76,12 +103,24 @@ function createRequest(request) {
 }
 
 function updateRequest(request_id, patch) {
+  assertAllowedFields(patch, REQUEST_UPDATE_FIELDS);
   const numId = Number(request_id);
   const req = dataStore.purchaseRequests.find(
     (r) => Number(r.request_id) === numId,
   );
   if (!req) return null;
-  Object.assign(req, patch);
+  const safePatch = { ...patch };
+  if (Object.hasOwn(safePatch, 'quantity_requested')) {
+    const quantity = Number(safePatch.quantity_requested);
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      const err = new Error('quantity_requested must be a positive integer');
+      err.statusCode = 400;
+      throw err;
+    }
+    safePatch.quantity_requested = quantity;
+    safePatch.quantity = quantity;
+  }
+  Object.assign(req, safePatch);
   return req;
 }
 

@@ -81,10 +81,27 @@ describe('Discharge is gated on Finance clearing the bill', () => {
     await request(app)
       .put(`/billing/ledger/${ledger.body.ledger_id}/dispatch`)
       .set('Authorization', `Bearer ${faTok}`);
+    const paymentPayload = { ledger_id: ledger.body.ledger_id, amount_paid: 6000, payment_mode: 'UPI' };
+    const paymentKey = 'discharge-gate-payment';
+    const receiptCountBeforePayment = dataStore.receipts.length;
+    const missingKey = await request(app)
+      .post('/billing/payments')
+      .set('Authorization', `Bearer ${faTok}`)
+      .send(paymentPayload);
+    expect(missingKey.status).toBe(400);
+    expect(dataStore.receipts).toHaveLength(receiptCountBeforePayment);
     await request(app)
       .post('/billing/payments')
       .set('Authorization', `Bearer ${faTok}`)
-      .send({ ledger_id: ledger.body.ledger_id, amount_paid: 6000, payment_mode: 'UPI' });
+      .set('Idempotency-Key', paymentKey)
+      .send(paymentPayload);
+    const retriedPayment = await request(app)
+      .post('/billing/payments')
+      .set('Authorization', `Bearer ${faTok}`)
+      .set('Idempotency-Key', paymentKey)
+      .send(paymentPayload);
+    expect(retriedPayment.status).toBe(201);
+    expect(dataStore.receipts).toHaveLength(receiptCountBeforePayment + 1);
 
     const ok = await request(app)
       .put(`/pre-requests/${preRequest.pre_request_id}`)

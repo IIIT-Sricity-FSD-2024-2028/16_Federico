@@ -23,11 +23,45 @@ const createPurchaseRequestRules = [
   { field: 'invoice_url', checks: ['isString'], optional: true },
 ];
 
-const updatePurchaseRequestRules = partial(createPurchaseRequestRules);
+const updatePurchaseRequestRules = partial([
+  { field: 'quantity_requested', checks: ['isInt'] },
+  { field: 'status', checks: ['isNotEmpty', 'isString'] },
+  { field: 'invoice_url', checks: ['isString'] },
+]);
+
+function allowOnlyFields(fields) {
+  const allowed = new Set(fields);
+  return function rejectUnexpectedFields(req, res, next) {
+    const unexpected = Object.keys(req.body || {}).filter((field) => !allowed.has(field));
+    if (unexpected.length > 0) {
+      return res.status(400).json({
+        message: unexpected.map((field) => `${field} is not an allowed field`),
+        error: 'Bad Request',
+        statusCode: 400,
+      });
+    }
+    return next();
+  };
+}
+
+const allowInventoryItemUpdateFields = allowOnlyFields([
+  'item_name',
+  'category',
+  'stock_quantity',
+  'reorder_level',
+  'service_id',
+]);
+const allowPurchaseRequestUpdateFields = allowOnlyFields([
+  'quantity_requested',
+  'status',
+  'invoice_url',
+]);
 
 module.exports = {
   createInventoryItemRules,
   updateInventoryItemRules,
   createPurchaseRequestRules,
   updatePurchaseRequestRules,
+  allowInventoryItemUpdateFields,
+  allowPurchaseRequestUpdateFields,
 };

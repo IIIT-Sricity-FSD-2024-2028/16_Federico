@@ -1,7 +1,6 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 const dataStore = require('../store/dataStore');
 const persist = require('../store/persist');
 const { runBootReconciliation } = require('../bootstrap');
@@ -10,18 +9,16 @@ const doctorService = require('../services/doctor.service');
 const wardService = require('../services/ward.service');
 const preRequestService = require('../services/preRequest.service');
 
-describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () => {
-  describe('PST-01 & PST-02: Non-Blocking Persistence & Dirty-State Tracking', () => {
-    it('verifies dirty-state tracking skips disk writes when clean', () => {
-      // Ensure dirty is initially false
+describe('State Persistence, Concurrency & Data Durability', () => {
+  describe('Non-Blocking Persistence & Dirty-State Tracking', () => {
+    it('skips disk writes when state is clean', () => {
       expect(persist.isStateDirty()).toBe(false);
 
-      // Calling save when clean does nothing
       persist.save();
       expect(persist.isStateDirty()).toBe(false);
     });
 
-    it('verifies markDirty sets dirty flag and saveImmediate flushes and clears it', () => {
+    it('sets dirty flag with markDirty and flushes state with saveImmediate', () => {
       persist.markDirty();
       expect(persist.isStateDirty()).toBe(true);
 
@@ -29,7 +26,7 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
       expect(persist.isStateDirty()).toBe(false);
     });
 
-    it('verifies writeAtomicAsync executes asynchronously without blocking the event loop', async () => {
+    it('executes writeAtomicAsync asynchronously without blocking the event loop', async () => {
       persist.markDirty();
       let timerFired = false;
       setTimeout(() => {
@@ -37,21 +34,22 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
       }, 5);
 
       await persist.writeAtomicAsync();
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Confirm event loop tick allowed timer to fire
       expect(persist.isStateDirty()).toBe(false);
+      expect(timerFired).toBe(true);
       expect(fs.existsSync(persist.DB_PATH)).toBe(true);
     });
   });
 
-  describe('PST-03: Boot Reconciliation Durability', () => {
+  describe('Boot Reconciliation Durability', () => {
     it('runs boot reconciliation and flushes state durably', () => {
       expect(() => runBootReconciliation()).not.toThrow();
       expect(persist.isStateDirty()).toBe(false);
     });
   });
 
-  describe('DEF-LEDGER-SEQ & RACE-03: Composite Key Monotonicity in Billing', () => {
+  describe('Ledger Entry Monotonicity & Key Sequencing', () => {
     it('generates strictly sequential, non-colliding entry_ids even with string ledger_id', () => {
       const targetLedger = dataStore.ledgers.find((l) => l.status === 'OPEN') || dataStore.ledgers[0];
       const ledgerIdStr = String(targetLedger.ledger_id);
@@ -77,13 +75,11 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
     });
   });
 
-  describe('RACE-01: Atomic Bed Allocation Concurrency Guard', () => {
+  describe('Atomic Bed Allocation Concurrency Guard', () => {
     it('prevents allocating an already OCCUPIED bed by throwing 409 Conflict', () => {
-      // Find an occupied bed
       const occupiedBed = dataStore.beds.find((b) => b.status === 'OCCUPIED');
       expect(occupiedBed).toBeDefined();
 
-      // Create a test bed request
       const testBedReq = wardService.createBedRequest(
         {
           patient_id: 201,
@@ -95,7 +91,6 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
         105,
       );
 
-      // Attempting to allocate occupied bed must throw 409 Conflict
       expect(() => {
         wardService.updateBedRequest(testBedReq.bed_request_id, {
           bed_id: occupiedBed.bed_id,
@@ -128,13 +123,12 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
     });
   });
 
-  describe('RACE-04 & D72: Doctor Reschedule Self-Conflict Guard', () => {
-    it('does not falsely self-conflict when excludeId is passed as a string or number', () => {
+  describe('Doctor Appointment Rescheduling Self-Conflict Guard', () => {
+    it('does not falsely self-conflict when excludeId is passed as string or number', () => {
       const apt = dataStore.appointments[0];
       const timeStr = apt.appointment_time || String(apt.scheduled_datetime || '').slice(11, 16);
       const dateStr = apt.appointment_date || String(apt.scheduled_datetime || '').slice(0, 10);
 
-      // With string excludeId (as received from HTTP route params)
       const conflictWithString = doctorService.findConflictingAppointment(
         apt.doctor_id,
         dateStr,
@@ -143,7 +137,6 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
       );
       expect(conflictWithString).toBeNull();
 
-      // With numeric excludeId
       const conflictWithNumber = doctorService.findConflictingAppointment(
         apt.doctor_id,
         dateStr,
@@ -154,7 +147,7 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
     });
   });
 
-  describe('PST-04 & RACE-02: Staged Multi-Entity OPD Check-In Atomic Commit', () => {
+  describe('Staged Multi-Entity OPD Check-In Atomic Commit', () => {
     it('creates staged admission, ledger, and entry atomically with synchronized IDs', () => {
       const patient = dataStore.patients[0];
       const preReq = preRequestService.create(
@@ -182,7 +175,6 @@ describe('Phase 3: State Persistence, Concurrency & Crash Durability Fixes', () 
       expect(typeof checkInResult.ledger.ledger_id).toBe('number');
       expect(checkInResult.ledger.admission_id).toBe(checkInResult.admission.admission_id);
 
-      // Verify ledger entries contain the consultation fee entry
       const entries = billingService.findLedgerEntries(checkInResult.ledger.ledger_id);
       expect(entries.length).toBeGreaterThanOrEqual(1);
       expect(entries[0].ledger_id).toBe(checkInResult.ledger.ledger_id);

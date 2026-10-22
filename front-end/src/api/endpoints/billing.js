@@ -47,8 +47,33 @@ export const billing = {
     list() {
       return request('GET', '/billing/payments');
     },
-    create(payload) {
-      return request('POST', '/billing/payments', payload);
+    async create(payload) {
+      const signature = [payload?.ledger_id, payload?.amount_paid, payload?.payment_mode || 'Cash'].join(':');
+      const storageKey = 'billing-payment:' + signature;
+      const memory = paymentKeys;
+      let idempotencyKey;
+      try {
+        idempotencyKey = sessionStorage.getItem(storageKey);
+        if (!idempotencyKey) {
+          idempotencyKey = makeIdempotencyKey();
+          sessionStorage.setItem(storageKey, idempotencyKey);
+        }
+      } catch {
+        idempotencyKey = memory.get(storageKey);
+        if (!idempotencyKey) {
+          idempotencyKey = makeIdempotencyKey();
+          memory.set(storageKey, idempotencyKey);
+        }
+      }
+      const result = await request('POST', '/billing/payments', payload, {
+        headers: { 'Idempotency-Key': idempotencyKey },
+      });
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch {
+        memory.delete(storageKey);
+      }
+      return result;
     },
   },
 
@@ -80,4 +105,10 @@ export const billing = {
     },
   },
 };
+
+const paymentKeys = new Map();
+function makeIdempotencyKey() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return 'pay-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+}
 

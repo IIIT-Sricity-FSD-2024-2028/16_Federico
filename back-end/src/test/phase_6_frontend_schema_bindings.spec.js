@@ -10,12 +10,11 @@ const inventoryService = require('../services/inventory.service');
 const patientService = require('../services/patient.service');
 const preRequestService = require('../services/preRequest.service');
 
-describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignment', () => {
+describe('Frontend Schema Binding & Domain Alignment Specifications', () => {
   const app = createApp();
 
-  describe('Doctor Availability Deletion (Obs-A2)', () => {
-    it('DELETE /doctor/availability/:id deletes availability record', async () => {
-      // Create a test availability
+  describe('Doctor Availability Deletion via API', () => {
+    it('deletes doctor availability record via DELETE /doctor/availability/:id', async () => {
       const avail = doctorService.createAvailability({
         doctor_id: dataStore.doctors[0].doctor_id,
         available_date: '2029-07-01',
@@ -25,7 +24,6 @@ describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignmen
       });
       expect(avail.availability_id).toBeDefined();
 
-      // Login as Super User
       const loginRes = await request(app)
         .post('/auth/login/hom')
         .send({ email: 'admin.hom@citygen.com', password: 'Hom@123' });
@@ -41,8 +39,8 @@ describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignmen
     });
   });
 
-  describe('Pre-Request Note and Time Mapping (DISC-01, DISC-02)', () => {
-    it('preRequestService.create persists clinical note and requested_time', () => {
+  describe('Pre-Request Clinical Note & Time Mapping', () => {
+    it('persists clinical note and requested_time via preRequestService.create', () => {
       const created = preRequestService.create({
         patient_id: dataStore.patients[0].patient_id,
         department: 'Cardiology',
@@ -59,8 +57,8 @@ describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignmen
     });
   });
 
-  describe('Bed Request Priority with CRITICAL and URGENT (DISC-03)', () => {
-    it('wardService.createBedRequest supports CRITICAL and URGENT priority', () => {
+  describe('Bed Request Priority Support', () => {
+    it('supports CRITICAL and URGENT priority levels in wardService.createBedRequest', () => {
       const urgentReq = wardService.createBedRequest({
         patient_id: dataStore.patients[0].patient_id,
         ward_id: dataStore.wards[0].ward_id,
@@ -79,8 +77,8 @@ describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignmen
     });
   });
 
-  describe('Discharge Summary Gross Amount and Insurance Deduction (DISC-09)', () => {
-    it('billingService.createDischargeSummary persists gross_amount and insurance_deduction', () => {
+  describe('Discharge Summary Gross Amount & Insurance Deduction', () => {
+    it('persists gross_amount and insurance_deduction in billingService.createDischargeSummary', () => {
       const admission = dataStore.admissions[0];
       const summary = billingService.createDischargeSummary({
         admission_id: admission.admission_id,
@@ -99,8 +97,8 @@ describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignmen
     });
   });
 
-  describe('Patient Insurance Copay Percentage (DISC-14)', () => {
-    it('patientService.createInsurance stores copay_percentage', () => {
+  describe('Patient Insurance Copay Percentage', () => {
+    it('stores copay_percentage in patientService.createInsurance', () => {
       const ins = patientService.createInsurance({
         patient_id: dataStore.patients[0].patient_id,
         provider_name: 'Max Bupa Health',
@@ -115,8 +113,8 @@ describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignmen
     });
   });
 
-  describe('Inventory Purchase Request Supplier, Priority and Notes (DISC-16)', () => {
-    it('inventoryService.createRequest persists supplier, priority, and notes', () => {
+  describe('Inventory Purchase Request Supplier, Priority & Notes', () => {
+    it('persists supplier, priority, and notes in inventoryService.createRequest', () => {
       const req = inventoryService.createRequest({
         item_id: dataStore.inventoryItems[0].item_id,
         quantity_requested: 25,
@@ -133,8 +131,8 @@ describe('Phase 6: Frontend Attribute Binding, Payload Mapping & Schema Alignmen
     });
   });
 
-  describe('Leader Service Posting with Patient ID (DISC-17)', () => {
-    it('billingService.createLeader stores patient_id', () => {
+  describe('Leader Service Posting with Patient Association', () => {
+    it('stores associated patient_id in billingService.createLeader', () => {
       const admission = dataStore.admissions[0];
       const leader = billingService.createLeader({
         admission_id: admission.admission_id,

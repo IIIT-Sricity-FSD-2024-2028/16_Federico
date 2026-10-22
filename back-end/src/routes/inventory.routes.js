@@ -9,6 +9,8 @@ const {
   updateInventoryItemRules,
   createPurchaseRequestRules,
   updatePurchaseRequestRules,
+  allowInventoryItemUpdateFields,
+  allowPurchaseRequestUpdateFields,
 } = require('../validators/inventory.validators');
 
 const router = Router();
@@ -28,6 +30,7 @@ router.put(
   '/items/:id',
   authorize(['SUPER_USER'], 'inventory', 'write'),
   validateBody(updateInventoryItemRules),
+  allowInventoryItemUpdateFields,
   controller.updateItem,
 );
 router.delete(
@@ -51,6 +54,7 @@ router.put(
   '/requests/:id',
   authorize(['SUPER_USER'], 'inventory', 'write'),
   validateBody(updatePurchaseRequestRules),
+  allowPurchaseRequestUpdateFields,
   controller.updateRequest,
 );
 

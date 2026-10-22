@@ -94,7 +94,15 @@ function update(id, patch) {
   const numId = Number(id);
   const appointment = findOne(numId);
   if (!appointment) return null;
-  Object.assign(appointment, patch);
+  const {
+    appointment_id: _appointmentId,
+    organization_id: _organizationId,
+    hospital_id: _hospitalId,
+    created_by: _createdBy,
+    created_at: _createdAt,
+    ...safePatch
+  } = patch;
+  Object.assign(appointment, safePatch);
 
   // If there's an associated preRequest, sync requested_date and requested_time as well!
   const preRequest = dataStore.preRequests.find((pr) => Number(pr.appointment_id) === numId);

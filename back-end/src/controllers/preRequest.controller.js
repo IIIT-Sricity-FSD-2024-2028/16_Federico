@@ -70,6 +70,18 @@ function create(req, res) {
   // `status` is not stripped by the validator, so drop it explicitly.
   if (isPatientSession(req)) delete payload.status;
 
+  const tenantPayload = withTenant(req, payload);
+  const patient = dataStore.patients.find((item) => Number(item.patient_id) === Number(tenantPayload.patient_id));
+  if (!belongsToOrg(patient, req)) return res.status(404).json({ message: 'Patient not found in this organization', error: 'Not Found', statusCode: 404 });
+  if (tenantPayload.doctor_id) {
+    const doctor = dataStore.doctors.find((item) => Number(item.doctor_id) === Number(tenantPayload.doctor_id));
+    if (!belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+  }
+  if (tenantPayload.appointment_id) {
+    const appointment = dataStore.appointments.find((item) => Number(item.appointment_id) === Number(tenantPayload.appointment_id));
+    if (!belongsToOrg(appointment, req) || Number(appointment.patient_id) !== Number(tenantPayload.patient_id)) return res.status(404).json({ message: 'Appointment not found for this patient in this organization', error: 'Not Found', statusCode: 404 });
+  }
+
   // Patient booking horizon constraint: appointments cannot be scheduled in the past
   // or more than MAX_ADVANCE_BOOKING_DAYS (default 14 days) in advance.
   const isPatientBooking =
@@ -110,7 +122,7 @@ function create(req, res) {
   const createdBy = req.session ? req.session.userId : null;
   sendResult(
     res,
-    preRequestService.create(withTenant(req, payload), createdBy),
+    preRequestService.create(tenantPayload, createdBy),
     201,
   );
 }
@@ -151,6 +163,11 @@ function update(req, res) {
   )
     return res.status(403).json(FORBIDDEN);
 
+  if (req.body.doctor_id !== undefined) {
+    const doctor = doctorService.findDoctorById(req.body.doctor_id);
+    if (!belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+  }
+
   const requestedStatus = req.body.status;
 
   if (requestedStatus !== undefined) {
@@ -178,6 +195,10 @@ function update(req, res) {
 
     if (requestedStatus === 'APPROVED') {
       const doctorId = req.body.doctor_id || existing.doctor_id;
+      if (doctorId) {
+        const doctor = doctorService.findDoctorById(doctorId);
+        if (!belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+      }
       const requestedDate = req.body.requested_date || existing.requested_date;
       const requestedTime = req.body.requested_time || existing.requested_time;
       const availability = doctorService.isDoctorAvailableAt(

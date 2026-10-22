@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/index.js';
 import { useSession } from '../../auth/useSession.js';
 import {
-  buildProfile, buildAppointments, buildVisits, buildBillsAndDocuments, buildNotifications, indexBy,
+  shapePatientStoreData,
 } from './patientStoreShape.js';
+import { getUpcomingAppointments } from './patientDashboardUtils.js';
 import { PatientStoreContext } from './usePatientStore.js';
 
 const EMPTY = {
@@ -14,20 +15,13 @@ const EMPTY = {
   visits: [],
   bills: [],
   documents: [],
+  patientDocuments: { all: [], discharge: [], uploaded: [], admissions: [], appointments: [], insurance: [] },
   billingSections: { receipts: [], discharge: [], eod: [] },
   notifications: [],
   docIndex: {},
   raw: null,
 };
 
-/**
- * Replaces Patient/js/patient-store.js - a mutable module singleton (AppStore)
- * plus an onStoreReady callback queue and a `patientStoreUpdated` window event.
- *
- * All four Patient pages read this. The writers (addAppointment, updateProfile,
- * updateInsurance, payBill, cancelAppointment) each refresh afterwards, exactly
- * as the original did.
- */
 export function PatientStoreProvider({ children }) {
   const { session } = useSession();
   const patientId = session?.patientId;
@@ -41,39 +35,9 @@ export function PatientStoreProvider({ children }) {
     let shaped;
     try {
       const summary = await api.patients.portalSummary(patientId);
-      const insurance = summary.insurance;
-      const bundles = summary.bundles || [];
-      const preRequests = summary.preRequests || [];
-      const doctorsById = indexBy(summary.doctors || [], 'doctor_id');
-      const bedsById = indexBy(summary.beds || [], 'bed_id');
-      const servicesById = indexBy(summary.services || [], 'service_id');
-      const dischargeSummaries = bundles.map((b) => b.dischargeSummary).filter(Boolean);
-
-      const { bills, documents, billingSections, docIndex } = buildBillsAndDocuments(
-        bundles, servicesById, summary.receipts || [], dischargeSummaries, insurance,
-      );
-
-      shaped = {
-        patient: buildProfile(
-          summary.patient,
-          {
-            email: session?.email,
-            orgName: session?.orgName,
-            hospitalName: session?.tenant?.name || session?.orgName,
-          },
-          insurance,
-        ),
-        appointments: buildAppointments(preRequests, doctorsById, summary.appointments || []),
-        visits: buildVisits(bundles, bedsById, preRequests),
-        bills, documents, billingSections, docIndex,
-        notifications: buildNotifications(preRequests),
-        specialties: summary.specialties || session?.tenant?.specialties || [],
-        raw: { bundles, preRequests, doctorsById, bedsById, servicesById, insurance, appointments: summary.appointments || [], specialties: summary.specialties || session?.tenant?.specialties || [] },
-      };
+      shaped = shapePatientStoreData(summary, session);
     } catch (err) {
-      // Fallback path, ported verbatim: assemble the same shape from the
-      // individual endpoints when the composite summary is unavailable.
-      console.warn('[PatientStore] Failed to load portal summary, attempting individual fetch fallback:', err);
+      console.warn('[PatientStore] Portal summary unavailable, falling back to individual calls:', err);
 
       const [me, insuranceList, bundles, receipts, doctors, beds, services] = await Promise.all([
         api.auth.me().catch(() => ({ patient: null, user: null })),
@@ -85,41 +49,42 @@ export function PatientStoreProvider({ children }) {
         api.billing.services.list().catch(() => []),
       ]);
 
-      const preRequests = (await api.preRequests.list().catch(() => [])).filter((pr) => pr.patient_id === patientId);
+      const [preRequests, apts] = await Promise.all([
+        api.preRequests.list().catch(() => []),
+        api.appointments.list().catch(() => []),
+      ]);
+      const patientPreRequests = preRequests.filter((pr) => pr.patient_id === patientId);
+      const patientAppointments = apts.filter((a) => a.patient_id === patientId);
+      const patientRecord = me.patient || (await api.patients.get(patientId).catch(() => null));
       const dischargeSummaries = await Promise.all(
-        bundles.map(({ admission }) => api.billing.dischargeSummary.getByAdmission(admission.admission_id).catch(() => null)),
+        bundles
+          .filter((b) => b && b.admission && b.admission.admission_id)
+          .map(({ admission }) =>
+            api.billing.dischargeSummary.getByAdmission(admission.admission_id).catch(() => null),
+          ),
       );
 
-      const doctorsById = indexBy(doctors, 'doctor_id');
-      const bedsById = indexBy(beds, 'bed_id');
-      const servicesById = indexBy(services, 'service_id');
-      // createInsurance appends rather than updating in place, so the newest
-      // row wins - same rule the backend controller applies.
-      const insurance = insuranceList && insuranceList.length
-        ? insuranceList.reduce((latest, ins) => (ins.insurance_id > latest.insurance_id ? ins : latest))
-        : null;
+      const latestInsurance =
+        insuranceList && insuranceList.length
+          ? insuranceList.reduce((latest, ins) => (ins && (!latest || ins.insurance_id > latest.insurance_id) ? ins : latest), null)
+          : null;
 
-      const { bills, documents, billingSections, docIndex } = buildBillsAndDocuments(
-        bundles, servicesById, receipts, dischargeSummaries, insurance,
+      shaped = shapePatientStoreData(
+        {
+          patient: patientRecord,
+          user: me.user,
+          insurance: latestInsurance,
+          bundles,
+          receipts,
+          doctors,
+          beds,
+          services,
+          preRequests: patientPreRequests,
+          dischargeSummaries,
+          appointments: patientAppointments,
+        },
+        session,
       );
-
-      shaped = {
-        patient: buildProfile(
-          me.patient || {},
-          {
-            ...(me.user || {}),
-            orgName: session?.orgName || me.tenant?.name,
-            hospitalName: session?.tenant?.name || session?.orgName || me.tenant?.name,
-          },
-          insurance,
-        ),
-        appointments: buildAppointments(preRequests, doctorsById, []),
-        visits: buildVisits(bundles, bedsById, preRequests),
-        bills, documents, billingSections, docIndex,
-        notifications: buildNotifications(preRequests),
-        specialties: session?.tenant?.specialties || [],
-        raw: { bundles, preRequests, doctorsById, bedsById, servicesById, insurance, specialties: session?.tenant?.specialties || [] },
-      };
     }
 
     setState(shaped);
@@ -135,112 +100,157 @@ export function PatientStoreProvider({ children }) {
       }
       if (!cancelled) setLoaded(true);
     })();
-    return () => { cancelled = true; };
-  }, [refresh]);
-
-  const addAppointment = useCallback(async (data) => {
-    if (!state.patient) return null;
-    const payload = {
-      patient_id: state.patient.patientId,
-      department: data.department,
-      visit_type: ['Admit', 'Critical', 'Consultation'].includes(data.type) ? data.type : 'Consultation',
-      requested_date: data.date || undefined,
-      requested_time: data.time || undefined,
+    return () => {
+      cancelled = true;
     };
-    if (data.doctorId) payload.doctor_id = Number(data.doctorId);
-    if (data.note) payload.note = data.note;
-    if (Array.isArray(data.documents) && data.documents.length) payload.document_urls = data.documents;
-
-    const result = await api.preRequests.create(payload);
-    await refresh();
-    return result.pre_request_id;
-  }, [state.patient, refresh]);
-
-  const cancelAppointment = useCallback(async (id) => {
-    await api.preRequests.update(id, { status: 'REJECTED', reject_reason: 'Cancelled by patient' });
-    await refresh();
-    return true;
   }, [refresh]);
 
-  const updateProfile = useCallback(async (fields) => {
-    if (!state.patient) return false;
-    const patch = {};
-    if (fields.name !== undefined) patch.name = fields.name;
-    if (fields.dob !== undefined) patch.dob = fields.dob;
-    if (fields.gender !== undefined) patch.gender = fields.gender;
-    if (fields.bloodGroup !== undefined) patch.blood_group = fields.bloodGroup;
-    if (fields.phone !== undefined) patch.phone = fields.phone;
-    if (fields.altPhone !== undefined) patch.alternate_phone = fields.altPhone;
-    if (fields.address !== undefined) patch.address = fields.address;
+  const addAppointment = useCallback(
+    async (data) => {
+      const pid = state.patient?.patientId || session?.patientId;
+      if (!pid) return null;
+      const cleanNote = String(data.note || '').trim();
+      const payload = {
+        patient_id: Number(pid),
+        doctor_id: data.doctorId ? Number(data.doctorId) : null,
+        department: String(data.department || 'General Medicine').trim(),
+        visit_type: ['Admit', 'Critical', 'Consultation'].includes(data.type) ? data.type : 'Consultation',
+        requested_date: data.date ? String(data.date).trim() : undefined,
+        requested_time: data.time ? String(data.time).trim() : undefined,
+        note: cleanNote.length > 0 ? cleanNote : null,
+        document_urls: Array.isArray(data.documents) ? data.documents.filter(Boolean) : [],
+      };
 
-    await api.patients.update(state.patient.patientId, patch);
-    await refresh();
-    return true;
-  }, [state.patient, refresh]);
+      const result = await api.preRequests.create(payload);
+      await refresh();
+      return result.pre_request_id;
+    },
+    [state.patient, session, refresh],
+  );
 
-  const updateInsurance = useCallback(async (fields) => {
-    if (!state.patient) return false;
-    const existing = state.patient.insurance || {};
-    await api.patients.createInsurance({
-      patient_id: state.patient.patientId,
-      provider_name: fields.provider || 'Self Pay',
-      policy_number: fields.policyNumber || 'POL-' + state.patient.uhid,
-      member_id: fields.memberId || 'MEM-' + state.patient.patientId,
-      coverage_type: fields.coverageType || 'Individual',
-      valid_from: fields.validFrom || new Date().toISOString().split('T')[0],
-      valid_to: fields.validTo || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      coverage_limit: fields.coverage || 0,
-      copay_percentage:
+  const cancelAppointment = useCallback(
+    async (id) => {
+      if (!id) return false;
+      await api.preRequests.update(Number(id), { status: 'REJECTED', reject_reason: 'Cancelled by patient' });
+      await refresh();
+      return true;
+    },
+    [refresh],
+  );
+
+  const updateProfile = useCallback(
+    async (fields) => {
+      const pid = state.patient?.patientId || session?.patientId;
+      if (!pid) return false;
+      const keyMap = {
+        name: 'name',
+        dob: 'dob',
+        gender: 'gender',
+        bloodGroup: 'blood_group',
+        email: 'email',
+        phone: 'phone',
+        altPhone: 'alternate_phone',
+        address: 'address',
+      };
+      const patch = {};
+      for (const [k, v] of Object.entries(fields)) {
+        if (v !== undefined && keyMap[k]) {
+          patch[keyMap[k]] = typeof v === 'string' && v.trim() === '' ? null : v;
+        }
+      }
+      if (!patch.name && (fields.firstName || fields.lastName)) {
+        patch.name = [fields.firstName, fields.lastName].filter(Boolean).join(' ');
+      }
+
+      await api.patients.update(Number(pid), patch);
+      await refresh();
+      return true;
+    },
+    [state.patient, session, refresh],
+  );
+
+  const updateInsurance = useCallback(
+    async (fields) => {
+      const pid = state.patient?.patientId || session?.patientId;
+      if (!pid) return false;
+      const existing = state.patient?.insurance || {};
+      const todayIso = new Date().toISOString().split('T')[0];
+      const nextYearIso = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const cleanCoverage = Math.max(
+        0,
+        Number(String(fields.coverage !== undefined ? fields.coverage : existing.coverage || 0).replace(/[^0-9.]/g, '')) || 0,
+      );
+      const rawCopay =
         fields.copayPercentage !== undefined
-          ? Number(fields.copayPercentage)
+          ? fields.copayPercentage
           : existing.copayPercentage !== undefined
-            ? Number(existing.copayPercentage)
-            : 0,
-      // Whatever the patient already uploaded survives a save that does not
-      // explicitly replace it.
-      card_front_url: fields.cardFrontUrl !== undefined ? fields.cardFrontUrl : existing.cardFrontUrl || null,
-      card_back_url: fields.cardBackUrl !== undefined ? fields.cardBackUrl : existing.cardBackUrl || null,
-    });
-    await refresh();
-    return true;
-  }, [state.patient, refresh]);
+            ? existing.copayPercentage
+            : 0;
+      const cleanCopay = Math.min(100, Math.max(0, Number(rawCopay) || 0));
 
-  const payBill = useCallback(async (bill, paymentMode) => {
-    if (!bill || !bill.ledgerId || bill.status === 'paid') return false;
-    await api.billing.payments.create({
-      ledger_id: bill.ledgerId,
-      amount_paid: bill.youPay,
-      payment_mode: paymentMode || 'UPI',
-    });
-    await refresh();
-    return true;
-  }, [refresh]);
+      await api.patients.createInsurance({
+        patient_id: Number(pid),
+        provider_name: fields.provider ? String(fields.provider).trim() : 'Self Pay',
+        policy_number: fields.policyNumber ? String(fields.policyNumber).trim() : 'POL-' + (state.patient?.uhid || pid),
+        member_id: fields.memberId ? String(fields.memberId).trim() : 'MEM-' + pid,
+        coverage_type: fields.coverageType || 'Individual',
+        valid_from: fields.validFrom || todayIso,
+        valid_to: fields.validTo || nextYearIso,
+        coverage_limit: cleanCoverage,
+        copay_percentage: cleanCopay,
+        card_front_url: fields.cardFrontUrl !== undefined ? (fields.cardFrontUrl ? String(fields.cardFrontUrl).trim() : null) : existing.cardFrontUrl || null,
+        card_back_url: fields.cardBackUrl !== undefined ? (fields.cardBackUrl ? String(fields.cardBackUrl).trim() : null) : existing.cardBackUrl || null,
+      });
+      await refresh();
+      return true;
+    },
+    [state.patient, session, refresh],
+  );
 
-  const value = useMemo(() => ({
-    loaded,
-    profile: state.patient,
-    bills: state.bills,
-    appointments: state.appointments,
-    visits: state.visits,
-    documents: state.documents,
-    billingSections: state.billingSections,
-    notifications: state.notifications,
-    specialties: state.specialties || session?.tenant?.specialties || [],
-    raw: state.raw,
-    doctors: state.raw ? Object.values(state.raw.doctorsById) : [],
-    upcomingAppointments: state.appointments
-      .filter((a) => !['Cancelled', 'Completed'].includes(a.status))
-      .sort((l, r) => (l.date || '').localeCompare(r.date || '')),
-    totalOutstanding: state.bills.filter((b) => b.status !== 'paid').reduce((sum, b) => sum + b.youPay, 0),
-    getBillingDocumentByRef: (sourceType, sourceId) => state.docIndex[sourceType + ':' + sourceId] || null,
-    refresh,
-    addAppointment,
-    cancelAppointment,
-    updateProfile,
-    updateInsurance,
-    payBill,
-  }), [loaded, state, session, refresh, addAppointment, cancelAppointment, updateProfile, updateInsurance, payBill]);
+  const payBill = useCallback(
+    async (bill, paymentMode) => {
+      if (!bill || !bill.ledgerId || bill.status === 'paid' || Number(bill.youPay || 0) <= 0) return false;
+      await api.billing.payments.create({
+        ledger_id: Number(bill.ledgerId),
+        amount_paid: Number(bill.youPay || 0),
+        payment_mode: paymentMode || 'UPI',
+      });
+      await refresh();
+      return true;
+    },
+    [refresh],
+  );
+
+  const value = useMemo(
+    () => ({
+      loaded,
+      profile: state.patient,
+      bills: state.bills,
+      appointments: state.appointments,
+      visits: state.visits,
+      documents: state.documents,
+      patientDocuments: state.patientDocuments || EMPTY.patientDocuments,
+      billingSections: state.billingSections,
+      notifications: state.notifications,
+      specialties: state.specialties || session?.tenant?.specialties || [],
+      raw: state.raw,
+      doctors: state.raw ? Object.values(state.raw.doctorsById || {}) : [],
+      upcomingAppointments: getUpcomingAppointments(state.appointments || []),
+      totalOutstanding: (state.bills || [])
+        .filter((b) => b.status !== 'paid')
+        .reduce((sum, b) => sum + (Number(b?.youPay) || 0), 0),
+      getBillingDocumentByRef: (sourceType, sourceId) =>
+        (state.docIndex && state.docIndex[sourceType + ':' + sourceId]) || null,
+      refresh,
+      addAppointment,
+      cancelAppointment,
+      updateProfile,
+      updateInsurance,
+      payBill,
+    }),
+    [loaded, state, session, refresh, addAppointment, cancelAppointment, updateProfile, updateInsurance, payBill],
+  );
 
   return <PatientStoreContext.Provider value={value}>{children}</PatientStoreContext.Provider>;
 }
-

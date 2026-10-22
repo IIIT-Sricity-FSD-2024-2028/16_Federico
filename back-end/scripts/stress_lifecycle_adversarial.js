@@ -19,7 +19,6 @@ const db = JSON.parse(fs.readFileSync(DB_JSON_PATH, 'utf8'));
 
 // Require services for logic validation
 const doctorService = require('../src/services/doctor.service');
-const wardService = require('../src/services/ward.service');
 
 function toMinutes(value) {
   if (!value) return null;

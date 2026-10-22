@@ -45,7 +45,10 @@ function findAllLedgers(req, res) {
 }
 
 function createLedger(req, res) {
-  const result = billingService.createLedger(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  const admission = dataStore.admissions.find((a) => Number(a.admission_id) === Number(payload.admission_id));
+  if (!belongsToOrg(admission, req)) return res.status(404).json({ message: 'Admission not found in this organization', error: 'Not Found', statusCode: 404 });
+  const result = billingService.createLedger(payload);
   logger.log(
     `📔 LEDGER CREATED  id=${result.ledger_id}  admission_id=${result.admission_id}`,
   );
@@ -60,7 +63,11 @@ function findLedgerEntries(req, res) {
 }
 
 function addLedgerEntry(req, res) {
-  const result = billingService.addLedgerEntry(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  const ledger = billingService.findLedgerById(payload.ledger_id);
+  const service = dataStore.services.find((s) => Number(s.service_id) === Number(payload.service_id));
+  if (!belongsToOrg(ledger, req) || !belongsToOrg(service, req)) return res.status(404).json({ message: 'Ledger or service not found in this organization', error: 'Not Found', statusCode: 404 });
+  const result = billingService.addLedgerEntry(payload);
   logger.log(
     `➕ LEDGER ENTRY ADDED  ledger_id=${result.ledger_id}  service_id=${result.service_id}  amount=${result.amount}`,
   );
@@ -92,7 +99,14 @@ function createPayment(req, res) {
   if (ledger && !belongsToOrg(ledger, req))
     return res.status(403).json(FORBIDDEN);
 
-  const result = billingService.createPayment(withTenant(req, req.body));
+  const idempotencyKey = String(req.get('Idempotency-Key') || '').trim();
+  if (!idempotencyKey || idempotencyKey.length > 128) {
+    return res.status(400).json({ message: 'A valid Idempotency-Key header is required', error: 'Bad Request', statusCode: 400 });
+  }
+  const result = billingService.createPayment({
+    ...withTenant(req, req.body),
+    idempotency_key: idempotencyKey,
+  });
   logger.log(
     `💳 PAYMENT CREATED  id=${result.payment_id}  ledger_id=${result.ledger_id}  amount=${result.amount_paid}`,
   );
@@ -100,9 +114,10 @@ function createPayment(req, res) {
 }
 
 function createSummary(req, res) {
-  const result = billingService.createDischargeSummary(
-    withTenant(req, req.body),
-  );
+  const payload = withTenant(req, req.body);
+  const admission = dataStore.admissions.find((a) => Number(a.admission_id) === Number(payload.admission_id));
+  if (!belongsToOrg(admission, req) || Number(admission.patient_id) !== Number(payload.patient_id)) return res.status(404).json({ message: 'Admission and patient do not match this organization', error: 'Not Found', statusCode: 404 });
+  const result = billingService.createDischargeSummary(payload);
   logger.log(
     `📄 DISCHARGE SUMMARY CREATED  id=${result.summary_id}  admission_id=${result.admission_id}`,
   );
@@ -170,7 +185,12 @@ function findAllLeaders(req, res) {
 }
 
 function createLeader(req, res) {
-  const result = billingService.createLeader(withTenant(req, req.body));
+  const payload = withTenant(req, req.body);
+  const admission = dataStore.admissions.find((a) => Number(a.admission_id) === Number(payload.admission_id));
+  const service = dataStore.services.find((s) => Number(s.service_id) === Number(payload.service_id));
+  if (admission && !belongsToOrg(admission, req)) return res.status(404).json({ message: 'Admission not found in this organization', error: 'Not Found', statusCode: 404 });
+  if (admission && service && !belongsToOrg(service, req)) return res.status(404).json({ message: 'Service not found in this organization', error: 'Not Found', statusCode: 404 });
+  const result = billingService.createLeader(payload);
   logger.log(
     `⭐ LEADER CREATED  id=${result.leader_id}  admission_id=${result.admission_id}  service_id=${result.service_id}`,
   );
@@ -194,7 +214,21 @@ function approveLeader(req, res) {
   sendResult(res, result, 200);
 }
 
+function getBillingRoot(req, res) {
+  const rawPatientId = req.query.patient_id || req.query.patientId;
+  const patientId = rawPatientId ? Number(rawPatientId) : null;
+  if (patientId) {
+    if (targetPatientForbidden(req, patientId)) return res.status(403).json(FORBIDDEN);
+    return sendResult(res, billingService.findPatientBills(patientId), 200);
+  }
+  if (isPatientSession(req)) {
+    return sendResult(res, billingService.findPatientBills(req.session.patientId), 200);
+  }
+  sendResult(res, scopeToOrg(billingService.findAllLedgers(), req), 200);
+}
+
 module.exports = {
+  getBillingRoot,
   findAllServices,
   createService,
   findLedgerByAdmission,
