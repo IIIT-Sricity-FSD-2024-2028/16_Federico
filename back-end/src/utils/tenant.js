@@ -76,7 +76,7 @@ function scopeToOrg(list, req) {
   const organizationId = req.tenant && req.tenant.organizationId;
   if (!organizationId) return [];
   return (list || []).filter(
-    (record) => record.organization_id === organizationId,
+    (record) => record.organization_id != null && Number(record.organization_id) === Number(organizationId),
   );
 }
 

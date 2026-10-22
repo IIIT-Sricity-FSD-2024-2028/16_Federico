@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * The visit list markup, shared by the dashboard's "Recent Visits" panel (first
- * three, 11px department line) and the full-history modal (all of them, 12px).
+ * Renders the visit history list item markup for the dashboard's "Recent Visits" panel
+ * and the full-history modal.
  */
-export default function VisitItems({ visits, emptyMessage, departmentFontSize }) {
-  if (visits.length === 0) {
+export default function VisitItems({ visits = [], emptyMessage = 'No visits recorded yet.', departmentFontSize = '11px' }) {
+  if (!visits || visits.length === 0) {
     return (
       <div className="visit-item">
         <span style={{ color: 'var(--muted)' }}>{emptyMessage}</span>
@@ -28,4 +28,3 @@ export default function VisitItems({ visits, emptyMessage, departmentFontSize })
     </div>
   ));
 }
-

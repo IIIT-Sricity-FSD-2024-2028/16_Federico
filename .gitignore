@@ -53,3 +53,7 @@ GEMINI.md
 Thumbs.db
 .vscode/
 .idea/
+
+# Runtime Session Cache
+data/.sessions.json
+back-end/data/.sessions.json

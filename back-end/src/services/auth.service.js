@@ -45,8 +45,7 @@ function findUsersByEmail(email) {
 }
 
 function findPatientForUser(userId) {
-  const uid = Number(userId);
-  return dataStore.patients.find((p) => p.user_id === uid) || null;
+  return patientService.findByUserId(userId);
 }
 
 function toPublicUser(user) {

@@ -16,7 +16,6 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
   beforeAll(async () => {
     app = createApp();
 
-    // 1. Provision an organization with an Admin user
     const provisionResult = provisioningService.provision({
       name: 'Integrity Hospital',
       plan_id: 1,
@@ -31,14 +30,12 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
 
     tenantOrg = provisionResult.organization;
 
-    // Login as Admin
     const adminLoginRes = await request(app)
       .post('/auth/login')
       .send({ email: 'owner.admin@integrity.com', password: 'Password@123' });
 
     adminToken = adminLoginRes.body.token;
 
-    // Create HOM and PRE staff users (name.<role>@<hospital domain>)
     rbacService.createStaffUser(tenantOrg.organization_id, {
       name: 'HOM Manager',
       email: 'manager.hom@integrity.com',
@@ -63,8 +60,8 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
     preToken = preLoginRes.body.token;
   });
 
-  describe('1. Health Check Endpoint', () => {
-    it('GET /health returns 200 with UP status and uptime', async () => {
+  describe('Service Health Check Endpoint', () => {
+    it('returns 200 with UP status, uptime, and service name on GET /health', async () => {
       const res = await request(app).get('/health');
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('UP');
@@ -73,8 +70,8 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
     });
   });
 
-  describe('2. Relational Foreign Key Integrity', () => {
-    it('rejects appointment creation with non-existent patient_id', async () => {
+  describe('Relational Foreign Key Integrity Enforcement', () => {
+    it('rejects appointment creation with non-existent patient_id with 404 Not Found', async () => {
       const res = await request(app)
         .post('/appointment')
         .set('Authorization', `Bearer ${preToken}`)
@@ -90,8 +87,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       expect(res.body.message).toContain('Patient #999999 not found');
     });
 
-    it('rejects appointment creation with non-existent doctor_id', async () => {
-      // Create valid patient
+    it('rejects appointment creation with non-existent doctor_id with 404 Not Found', async () => {
       const patient = patientService.create({
         name: 'FK Test Patient',
         organization_id: tenantOrg.organization_id,
@@ -114,7 +110,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       expect(res.body.message).toContain('Doctor #888888 not found');
     });
 
-    it('rejects billing leader charge creation with non-existent admission_id', async () => {
+    it('rejects billing leader charge creation with non-existent admission_id with 404 Not Found', async () => {
       const res = await request(app)
         .post('/billing/leaders')
         .set('Authorization', `Bearer ${homToken}`)
@@ -128,7 +124,7 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
       expect(res.body.message).toContain('Admission #777777 not found');
     });
 
-    it('rejects doctor availability creation with non-existent doctor_id', async () => {
+    it('rejects doctor availability creation with non-existent doctor_id with 404 Not Found', async () => {
       const res = await request(app)
         .post('/doctor/availability')
         .set('Authorization', `Bearer ${homToken}`)
@@ -144,9 +140,8 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
     });
   });
 
-  describe('3. Composite Patient Portal Summary Endpoint', () => {
-    it('GET /patient/portal/summary returns consolidated summary in 1 call', async () => {
-      // Create patient in the tenant
+  describe('Composite Patient Portal Summary Endpoint', () => {
+    it('returns consolidated patient summary payload in a single roundtrip on GET /patient/portal/summary/:id', async () => {
       const patient = patientService.create({
         name: 'Portal Test Patient',
         uhid: 'UHID-PORTAL1',
@@ -162,6 +157,9 @@ describe('Data Integrity, Foreign Key Validation & Composite Endpoint Tests', ()
 
       expect(res.status).toBe(200);
       expect(res.body.patient.patient_id).toBe(patient.patient_id);
+      expect(res.body).toHaveProperty('insurance');
+      expect(res.body).toHaveProperty('specialties');
+      expect(Array.isArray(res.body.specialties)).toBe(true);
       expect(Array.isArray(res.body.preRequests)).toBe(true);
       expect(Array.isArray(res.body.appointments)).toBe(true);
       expect(Array.isArray(res.body.bundles)).toBe(true);

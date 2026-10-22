@@ -243,7 +243,8 @@ function findPatientBills(patient_id) {
   return admissions.map((admission) => {
     const ledger = findLedgerByAdmission(admission.admission_id);
     const entries = ledger ? findLedgerEntries(ledger.ledger_id) : [];
-    return { admission, ledger, entries };
+    const dischargeSummary = findDischargeSummaryByAdmission(admission.admission_id) || null;
+    return { admission, ledger, entries, dischargeSummary };
   });
 }
 

@@ -9,27 +9,22 @@ import PageHeader from '../../components/layout/PageHeader.jsx';
 import StatCard from '../../components/ui/StatCard.jsx';
 import TabNav from '../../components/ui/TabNav.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
-import DocumentRow from './DocumentRow.jsx';
 import BillDetailsModal from './BillDetailsModal.jsx';
-import { openInvoiceDigitalCopy, openBillingDigitalCopy } from './patientInvoiceCopy.js';
+import { openInvoiceDigitalCopy, openBillingDigitalCopy } from './patientDocumentCopy.js';
+import { formatINR, formatDDMMYYYY } from './patientStoreShape.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientBillingCss from '../../styles/patient/patient-billing.css?inline';
 
 const TABS = [
   { id: 'invoices', label: 'Itemized Invoices' },
   { id: 'receipts', label: 'Payment Receipts' },
-  { id: 'discharge', label: 'Discharge Summaries' },
-  { id: 'eod', label: 'EOD Bills' },
+  { id: 'insurance', label: 'Insurance & Co-Pay' },
 ];
-
-function EmptySection({ message }) {
-  return <EmptyState icon={null} title={message} />;
-}
 
 export default function BillingPage() {
   usePageStyles(patientBillingCss);
   useDocumentTitle('My Bills & Receipts – Federico Hospital Portal');
-  const { profile, bills, visits, billingSections, getBillingDocumentByRef, payBill } =
+  const { profile, bills, visits, appointments, billingSections, getBillingDocumentByRef, payBill } =
     usePatientStore();
   const ins = profile?.insurance;
 
@@ -37,9 +32,10 @@ export default function BillingPage() {
   const [detailBill, setDetailBill] = useState(null);
   const [payingLedger, setPayingLedger] = useState(null);
 
-  // ?bill=<id> (from the dashboard's Bill Summary) opens that invoice directly.
+  // ?bill=<id> opens invoice directly from dashboard
   const [searchParams, setSearchParams] = useSearchParams();
-  const linkedBill = bills.find((b) => b.id === searchParams.get('bill')) || null;
+  const billList = Array.isArray(bills) ? bills : [];
+  const linkedBill = billList.find((b) => b.id === searchParams.get('bill')) || null;
   const shownBill = detailBill || linkedBill;
 
   function closeDetail() {
@@ -47,21 +43,27 @@ export default function BillingPage() {
     if (searchParams.has('bill')) setSearchParams({}, { replace: true });
   }
 
-  const receipts = billingSections.receipts || [];
-  const discharge = billingSections.discharge || [];
-  const eod = billingSections.eod || [];
+  const receipts = billingSections?.receipts || [];
 
-  const totalBilled = bills.reduce((sum, b) => sum + Number(b.total || 0), 0);
-  const paidTotal = bills
+  const totalBilled = billList.reduce((sum, b) => sum + Number(b.total || 0), 0);
+  const totalCovered = billList.reduce((sum, b) => sum + Number(b.insuranceCovered || 0), 0);
+  const paidTotal = billList
     .filter((b) => b.status === 'paid')
     .reduce((sum, b) => sum + Number(b.youPay || 0), 0);
-  const pendingTotal = bills
-    .filter((b) => b.status !== 'paid')
-    .reduce((sum, b) => sum + Number(b.youPay || 0), 0);
+  const pendingBills = billList.filter((b) => b.status !== 'paid');
+  const pendingTotal = pendingBills.reduce((sum, b) => sum + Number(b.youPay || 0), 0);
+
+  const completedVisitsCount = (visits || []).length;
+  const concludedApptsCount = (appointments || []).filter(
+    (a) =>
+      ['completed', 'discharged'].includes(String(a.status || '').toLowerCase()) ||
+      ['COMPLETED', 'DISCHARGED', 'CONSULTATION_DONE'].includes(String(a.rawStatus || '').toUpperCase()),
+  ).length;
+  const careInteractionsCount = completedVisitsCount + concludedApptsCount;
 
   async function selectPaymentMethod(amount) {
     return selectOne({
-      title: 'Pay ₹' + Number(amount || 0).toLocaleString('en-IN'),
+      title: 'Pay ' + formatINR(amount),
       options: ['UPI', 'CARD', 'NETBANKING', 'CASH'],
     });
   }
@@ -74,6 +76,7 @@ export default function BillingPage() {
     try {
       await payBill(bill, method);
       toast('Payment successful! Receipt has been generated.', 'success');
+      setActiveTab('receipts');
     } catch (err) {
       toast(err?.message || 'Payment processing failed.', 'warning');
     } finally {
@@ -87,21 +90,19 @@ export default function BillingPage() {
     }
   }
 
-  function viewDocument(row) {
-    const sourceType = row.sourceType || '';
+  function viewReceipt(row) {
+    const sourceType = row.sourceType || 'RECEIPT';
     const sourceId = String(row.sourceId || '');
-    if (!sourceType || !sourceId) {
-      toast('Document source not available.', 'warning');
-      return;
-    }
     const record = getBillingDocumentByRef(sourceType, sourceId);
-    if (!record) {
-      toast('Unable to open digital copy.', 'warning');
-      return;
-    }
     const opened = openBillingDigitalCopy(
-      record,
-      { rowType: row.type || '', rowTitle: row.title || 'Digital Copy', sourceType, sourceId },
+      record || {
+        gross_amount: row.amount,
+        amount: row.amount,
+        payment_mode: row.mode || 'UPI',
+        status: 'PAID',
+        sourceId: row.sourceId,
+      },
+      { rowType: 'RECEIPT', rowTitle: row.title || `Receipt #${row.sourceId}`, sourceType, sourceId },
       profile,
     );
     if (!opened) toast('Please allow popups to view digital copy.', 'warning');
@@ -111,32 +112,40 @@ export default function BillingPage() {
     <>
       <main className="billing-page">
         <PageHeader
-          title="My Bills & Invoices"
-          subtitle="Review your itemized hospital bills, make secure online payments, track official receipts, and access discharge financial records."
+          title="My Bills & Receipts"
+          subtitle="Review your itemized hospital bills, make secure online payments, track official receipts, and access insurance coverage details."
         />
 
         <section className="kpi-grid">
           <StatCard
             label="Total Billed"
-            value={`₹${totalBilled.toLocaleString('en-IN')}`}
-            sub={`${bills.length} itemized invoices`}
+            value={formatINR(totalBilled)}
+            sub={
+              totalCovered > 0
+                ? `${formatINR(totalCovered)} covered by insurance`
+                : `${billList.length} itemized invoice${billList.length !== 1 ? 's' : ''}`
+            }
           />
           <StatCard
             label="Paid Amount"
-            value={`₹${paidTotal.toLocaleString('en-IN')}`}
-            sub={`${receipts.filter((row) => row.type === 'RECEIPT').length} receipts`}
+            value={formatINR(paidTotal)}
+            sub={`${receipts.length} payment receipt${receipts.length !== 1 ? 's' : ''}`}
             variant="success"
           />
           <StatCard
             label="Outstanding Balance"
-            value={`₹${pendingTotal.toLocaleString('en-IN')}`}
-            sub={`${bills.filter((b) => b.status !== 'paid').length} pending payments`}
-            variant="error"
+            value={formatINR(pendingTotal)}
+            sub={`${pendingBills.length} pending payment${pendingBills.length !== 1 ? 's' : ''}`}
+            variant={pendingTotal > 0 ? 'error' : 'success'}
           />
           <StatCard
             label="Care Interactions"
-            value={String((visits || []).length || bills.length || 0)}
-            sub="Visits & admissions"
+            value={String(careInteractionsCount)}
+            sub={
+              careInteractionsCount === 0
+                ? 'No past encounters'
+                : `${completedVisitsCount} stay${completedVisitsCount !== 1 ? 's' : ''}, ${concludedApptsCount} consultation${concludedApptsCount !== 1 ? 's' : ''}`
+            }
             variant="primary"
           />
         </section>
@@ -176,13 +185,13 @@ export default function BillingPage() {
             <div className="ins-item">
               <span>Coverage Limit</span>
               <strong id="ins-coverage-limit">
-                {ins?.hasInsurance ? `₹${Number(ins.coverage || 0).toLocaleString('en-IN')}` : '₹0'}
+                {ins?.hasInsurance ? formatINR(ins.coverage) : '₹0'}
               </strong>
             </div>
             <div className="ins-item">
               <span>Valid Till</span>
               <strong id="ins-valid-till">
-                {ins?.hasInsurance ? (ins.validTo || 'N/A') : 'N/A'}
+                {ins?.hasInsurance ? ins.validTo || 'N/A' : 'N/A'}
               </strong>
             </div>
           </div>
@@ -190,7 +199,7 @@ export default function BillingPage() {
 
         <section className="bills-section">
           <div className="bills-header">
-            <h2>Financial Documents</h2>
+            <h2>Financial Hub</h2>
             <TabNav
               tabs={TABS}
               activeTab={activeTab}
@@ -199,48 +208,138 @@ export default function BillingPage() {
             />
           </div>
 
-          <div
-            id="section-invoices"
-            className={
-              'billing-section' +
-              (bills.length ? ' billing-list' : '') +
-              (activeTab === 'invoices' ? '' : ' hidden')
-            }
-          >
-            {bills.length === 0 ? (
-              <EmptySection message="No hospital invoices generated yet." />
-            ) : (
-              bills.map((bill) => {
-                const isPaid = bill.status === 'paid';
-                return (
-                  <div className="billing-row" key={bill.id}>
+          {/* TAB 1: Itemized Invoices */}
+          {activeTab === 'invoices' ? (
+            <div id="section-invoices" className="billing-section billing-list">
+              {bills.length === 0 ? (
+                <EmptyState
+                  title="No hospital invoices generated yet"
+                  message="Active or discharged hospital bills will appear here."
+                />
+              ) : (
+                bills.map((bill) => {
+                  const isPaid = bill.status === 'paid';
+                  return (
+                    <div className="billing-row" key={bill.id}>
+                      <div className="billing-row-main">
+                        <div className="billing-row-title">
+                          <strong>Invoice {bill.billNo || '#' + bill.ledgerId}</strong>
+                          {isPaid ? (
+                            <span className="status paid">Paid</span>
+                          ) : bill.hasDischargeSummary ? (
+                            <span className="status pending">Payable</span>
+                          ) : (
+                            <span className="status info">Interim Statement</span>
+                          )}
+                        </div>
+                        <span className="billing-row-date">
+                          {bill.date || 'N/A'} · {bill.description || 'Hospital Care'}
+                        </span>
+                        <small style={{ color: 'var(--muted)', fontSize: '11px' }}>
+                          {bill.items ? bill.items.length + ' itemized services' : ''} (Gross: {formatINR(bill.total)}
+                          {bill.insuranceCovered
+                            ? ' · Ins. Covered: ' + formatINR(bill.insuranceCovered)
+                            : ''}
+                          )
+                        </small>
+                        {!isPaid && !bill.hasDischargeSummary ? (
+                          <div style={{ color: 'var(--primary)', fontSize: '11px', marginTop: '2px' }}>
+                            Daily interim statement · Final payment clears after discharge
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="billing-row-meta">
+                        <div style={{ textAlign: 'right' }}>
+                          <small
+                            style={{
+                              display: 'block',
+                              fontSize: '10px',
+                              color: 'var(--muted)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            Net Payable
+                          </small>
+                          <strong className="billing-row-amount">
+                            {formatINR(bill.youPay)}
+                          </strong>
+                        </div>
+                        <div className="billing-row-actions">
+                          <button className="btn-view" type="button" onClick={() => setDetailBill(bill)}>
+                            View Details
+                          </button>
+                          {isPaid ? (
+                            <>
+                              <button
+                                className="btn-download"
+                                type="button"
+                                onClick={() => printInvoice(bill)}
+                              >
+                                Download Invoice
+                              </button>
+                              <button
+                                className="btn-view"
+                                type="button"
+                                onClick={() => setActiveTab('receipts')}
+                              >
+                                View Receipt
+                              </button>
+                            </>
+                          ) : bill.hasDischargeSummary ? (
+                            <button
+                              className="btn-view"
+                              type="button"
+                              disabled={payingLedger === bill.ledgerId}
+                              onClick={() => payNow(bill)}
+                            >
+                              {payingLedger === bill.ledgerId ? 'Processing...' : 'Pay Now'}
+                            </button>
+                          ) : (
+                            <button
+                              className="btn-view"
+                              type="button"
+                              disabled
+                              style={{
+                                opacity: 0.6,
+                                cursor: 'not-allowed',
+                                background: 'var(--muted)',
+                              }}
+                              title="Daily interim statement. Online payment unlocks when the hospital issues the final discharge summary."
+                            >
+                              Interim Bill
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+
+          {/* TAB 2: Payment Receipts */}
+          {activeTab === 'receipts' ? (
+            <div id="section-receipts" className="billing-section billing-list">
+              {receipts.length === 0 ? (
+                <EmptyState
+                  title="No payment receipts found"
+                  message="Receipts are generated immediately after a successful bill payment."
+                />
+              ) : (
+                receipts.map((row) => (
+                  <div className="billing-row" key={row.id}>
                     <div className="billing-row-main">
                       <div className="billing-row-title">
-                        <strong>Invoice {bill.billNo || '#' + bill.ledgerId}</strong>
-                        {isPaid ? (
-                          <span className="status paid">Paid</span>
-                        ) : bill.hasDischargeSummary ? (
-                          <span className="status pending">Payable</span>
-                        ) : (
-                          <span className="status info">Interim EOD</span>
-                        )}
+                        <strong>{row.title || `Receipt #${row.sourceId}`}</strong>
+                        <span className="status paid">Paid &amp; Cleared</span>
                       </div>
                       <span className="billing-row-date">
-                        {bill.date || 'N/A'} · {bill.description || 'Hospital Care'}
+                        {formatDDMMYYYY(row.createdAt)} · Payment via {String(row.mode || 'UPI').toUpperCase()}
                       </span>
                       <small style={{ color: 'var(--muted)', fontSize: '11px' }}>
-                        {bill.items ? bill.items.length + ' itemized services' : ''} (Gross: ₹
-                        {Number(bill.total || 0).toLocaleString('en-IN')}
-                        {bill.insuranceCovered
-                          ? ' · Ins. Covered: ₹' + Number(bill.insuranceCovered).toLocaleString('en-IN')
-                          : ''}
-                        )
+                        Official Hospital Payment Voucher · Reference: REC-{row.sourceId}
                       </small>
-                      {!isPaid && !bill.hasDischargeSummary ? (
-                        <div style={{ color: 'var(--primary)', fontSize: '11px', marginTop: '2px' }}>
-                          Daily interim statement · Payment opens upon final discharge summary
-                        </div>
-                      ) : null}
                     </div>
                     <div className="billing-row-meta">
                       <div style={{ textAlign: 'right' }}>
@@ -252,121 +351,145 @@ export default function BillingPage() {
                             textTransform: 'uppercase',
                           }}
                         >
-                          Net Payable
+                          Paid Amount
                         </small>
-                        <strong className="billing-row-amount">
-                          ₹{Number(bill.youPay || 0).toLocaleString('en-IN')}
+                        <strong className="billing-row-amount" style={{ color: '#16a34a' }}>
+                          {formatINR(row.amount)}
                         </strong>
                       </div>
                       <div className="billing-row-actions">
-                        <button className="btn-view" type="button" onClick={() => setDetailBill(bill)}>
-                          View Details
+                        <button className="btn-download" type="button" onClick={() => viewReceipt(row)}>
+                          View Receipt
                         </button>
-                        {isPaid ? (
-                          <button
-                            className="btn-download"
-                            type="button"
-                            onClick={() => printInvoice(bill)}
-                          >
-                            Digital Copy
-                          </button>
-                        ) : bill.hasDischargeSummary ? (
-                          <button
-                            className="btn-view"
-                            type="button"
-                            disabled={payingLedger === bill.ledgerId}
-                            onClick={() => payNow(bill)}
-                          >
-                            Pay Now
-                          </button>
-                        ) : (
-                          <button
-                            className="btn-view"
-                            type="button"
-                            disabled
-                            style={{
-                              opacity: 0.6,
-                              cursor: 'not-allowed',
-                              background: 'var(--muted)',
-                            }}
-                            title="Daily interim statement. Online payment unlocks when the hospital sends the final Discharge Summary."
-                          >
-                            Interim Bill
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
+                ))
+              )}
+            </div>
+          ) : null}
 
-          <div
-            id="section-receipts"
-            className={
-              'billing-section' +
-              (receipts.length ? ' billing-list' : '') +
-              (activeTab === 'receipts' ? '' : ' hidden')
-            }
-          >
-            {receipts.length === 0 ? (
-              <EmptySection message="No payment receipts available." />
-            ) : (
-              receipts.map((row) => (
-                <DocumentRow
-                  key={row.id}
-                  row={row}
-                  statusChip={<span className="status confirmed">Receipt</span>}
-                  onView={viewDocument}
-                />
-              ))
-            )}
-          </div>
+          {/* TAB 3: Insurance & Co-Pay Breakdown */}
+          {activeTab === 'insurance' ? (
+            <div id="section-insurance" className="billing-section">
+              <div
+                style={{
+                  background: 'var(--surface, #ffffff)',
+                  border: '1px solid var(--border, #e2e8f0)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    borderBottom: '1px solid var(--border, #e2e8f0)',
+                    paddingBottom: '16px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main, #0f172a)' }}>
+                      Health Insurance Coverage &amp; Co-Pay Policy
+                    </h3>
+                    <p style={{ fontSize: '12px', color: 'var(--muted, #64748b)', marginTop: '2px' }}>
+                      Detailed policy coverage, patient co-pay percentage, and cashless settlement terms.
+                    </p>
+                  </div>
+                  <span
+                    className="ins-badge"
+                    style={{
+                      background: ins?.hasInsurance ? '#ecfdf5' : '#f1f5f9',
+                      color: ins?.hasInsurance ? '#065f46' : '#64748b',
+                      border: ins?.hasInsurance ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
+                      borderRadius: '9999px',
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {ins?.hasInsurance ? (ins.verified ? 'Verified Active Policy' : 'Active Policy') : 'Self Pay'}
+                  </span>
+                </div>
 
-          <div
-            id="section-discharge"
-            className={
-              'billing-section' +
-              (discharge.length ? ' billing-list' : '') +
-              (activeTab === 'discharge' ? '' : ' hidden')
-            }
-          >
-            {discharge.length === 0 ? (
-              <EmptySection message="No discharge summaries available." />
-            ) : (
-              discharge.map((row) => (
-                <DocumentRow
-                  key={row.id}
-                  row={row}
-                  statusChip={<span className="status confirmed">Completed</span>}
-                  onView={viewDocument}
-                />
-              ))
-            )}
-          </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '16px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                      Insurance Provider
+                    </span>
+                    <strong style={{ display: 'block', fontSize: '14px', color: '#0f172a', marginTop: '2px' }}>
+                      {ins?.hasInsurance ? ins.provider : 'Self Pay'}
+                    </strong>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                      Policy Number
+                    </span>
+                    <strong style={{ display: 'block', fontSize: '14px', color: '#0f172a', marginTop: '2px' }}>
+                      {ins?.policyNumber || 'N/A'}
+                    </strong>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                      Member ID
+                    </span>
+                    <strong style={{ display: 'block', fontSize: '14px', color: '#0f172a', marginTop: '2px' }}>
+                      {ins?.memberId || 'N/A'}
+                    </strong>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                      Coverage Limit
+                    </span>
+                    <strong style={{ display: 'block', fontSize: '14px', color: '#0f172a', marginTop: '2px' }}>
+                      {ins?.hasInsurance ? formatINR(ins.coverage) : '₹0'}
+                    </strong>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                      Patient Co-Pay
+                    </span>
+                    <strong style={{ display: 'block', fontSize: '14px', color: '#0f172a', marginTop: '2px' }}>
+                      {ins?.hasInsurance ? `${ins.copayPercentage || 0}%` : '100% (Self)'}
+                    </strong>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                      Valid Till
+                    </span>
+                    <strong style={{ display: 'block', fontSize: '14px', color: '#0f172a', marginTop: '2px' }}>
+                      {ins?.validTo || 'N/A'}
+                    </strong>
+                  </div>
+                </div>
 
-          <div
-            id="section-eod"
-            className={
-              'billing-section' +
-              (eod.length ? ' billing-list' : '') +
-              (activeTab === 'eod' ? '' : ' hidden')
-            }
-          >
-            {eod.length === 0 ? (
-              <EmptySection message="No EOD bills available." />
-            ) : (
-              eod.map((row) => (
-                <DocumentRow
-                  key={row.id}
-                  row={row}
-                  statusChip={<span className="status confirmed">Statement</span>}
-                  onView={viewDocument}
-                />
-              ))
-            )}
-          </div>
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    fontSize: '12.5px',
+                    color: '#166534',
+                  }}
+                >
+                  {ins?.hasInsurance
+                    ? 'Your insurance covers approved inpatient and consultation charges. Co-pay deductions are calculated automatically at checkout.'
+                    : 'No health insurance is registered. You can add or update your health insurance policy anytime from your Profile.'}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
       </main>
 
@@ -376,8 +499,6 @@ export default function BillingPage() {
         onClose={closeDetail}
         onPrint={printInvoice}
         onPay={(bill) => {
-          // openBillModal()'s Pay handler closes the dialog before asking for
-          // the payment method.
           closeDetail();
           payNow(bill);
         }}

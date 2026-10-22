@@ -1,0 +1,232 @@
+/* Patient Documents Page Styling — Minimal, Calm, and Modern */
+
+.documents-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.documents-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.documents-controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.documents-search-wrap {
+  position: relative;
+  min-width: 260px;
+  max-width: 380px;
+  flex: 1;
+}
+
+.documents-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 14px 8px 38px;
+  font-size: 13.5px;
+  color: var(--text-main, #0f172a);
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: var(--radius-sm, 8px);
+  outline: none;
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.documents-search-input:focus {
+  border-color: var(--primary, #0f766e);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #0f766e) 15%, transparent);
+}
+
+.documents-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted, #64748b);
+  pointer-events: none;
+}
+
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.document-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  padding: 20px 24px;
+  transition: all var(--duration-fast, 150ms) ease;
+}
+
+.document-item-card:hover {
+  border-color: color-mix(in srgb, var(--primary, #0f766e) 30%, var(--border, #e2e8f0));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.document-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.document-item-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.document-item-icon-wrap.badge-discharge {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.document-item-icon-wrap.badge-uploaded {
+  background: #ecfeff;
+  color: #0891b2;
+}
+
+.document-item-icon-wrap.badge-admission {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.document-item-icon-wrap.badge-appointment {
+  background: #f0f9ff;
+  color: #0284c7;
+}
+
+.document-item-icon-wrap.badge-insurance {
+  background: #faf5ff;
+  color: #7e22ce;
+}
+
+.document-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.document-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.document-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main, #0f172a);
+  margin: 0;
+}
+
+.document-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted, #64748b);
+  flex-wrap: wrap;
+}
+
+.dot-sep {
+  color: #cbd5e1;
+  font-weight: bold;
+}
+
+.document-item-preview-text {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.45;
+  background: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border-left: 2px solid #cbd5e1;
+}
+
+.document-item-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.doc-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) ease;
+  white-space: nowrap;
+}
+
+.doc-action-btn.primary {
+  color: #ffffff;
+  background: #0f766e;
+  border: 1px solid #0f766e;
+}
+
+.doc-action-btn.primary:hover {
+  background: #0d5f58;
+  border-color: #0d5f58;
+}
+
+.doc-action-btn.outline {
+  color: #0f766e;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.doc-action-btn.outline:hover {
+  background: #f0fdfa;
+  border-color: #0f766e;
+}
+
+@media (max-width: 640px) {
+  .document-item-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .document-item-actions {
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border, #e2e8f0);
+  }
+  .doc-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

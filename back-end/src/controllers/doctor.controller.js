@@ -12,14 +12,22 @@ const FORBIDDEN = {
   statusCode: 403,
 };
 
+function enrichDoctor(doc) {
+  if (!doc) return doc;
+  if (!doc.department && doc.specialization) {
+    doc.department = doc.specialization;
+  }
+  return doc;
+}
+
 function findAllDoctors(req, res) {
-  sendResult(res, scopeToOrg(doctorService.findAllDoctors(), req), 200);
+  sendResult(res, scopeToOrg(doctorService.findAllDoctors(), req).map(enrichDoctor), 200);
 }
 
 function findDoctor(req, res) {
   const doctor = doctorService.findDoctorById(+req.params.id);
   if (doctor && !belongsToOrg(doctor, req)) return sendResult(res, null, 200);
-  sendResult(res, doctor, 200);
+  sendResult(res, enrichDoctor(doctor), 200);
 }
 
 function createDoctor(req, res) {
@@ -73,6 +81,7 @@ function deleteAvailability(req, res) {
 }
 
 module.exports = {
+  enrichDoctor,
   findAllDoctors,
   findDoctor,
   createDoctor,

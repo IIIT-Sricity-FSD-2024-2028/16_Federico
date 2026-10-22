@@ -6,6 +6,7 @@ const admissionService = require('../services/admission.service');
 const { createLogger } = require('../utils/logger');
 const { sendResult } = require('../utils/sendResult');
 const { withTenant, scopeToOrg, belongsToOrg } = require('../utils/tenant');
+const dataStore = require('../store/dataStore');
 
 const logger = createLogger('🏨 Wards');
 const FORBIDDEN = {
@@ -64,8 +65,17 @@ function deleteWard(req, res) {
   sendResult(res, result, 200);
 }
 
+function enrichBed(bed) {
+  if (!bed) return bed;
+  if (!bed.ward_name && bed.ward_id) {
+    const ward = dataStore.wards.find((w) => w.ward_id === bed.ward_id);
+    if (ward) bed.ward_name = ward.ward_name;
+  }
+  return bed;
+}
+
 function findAllBeds(req, res) {
-  sendResult(res, scopeToOrg(wardService.findAllBeds(), req), 200);
+  sendResult(res, scopeToOrg(wardService.findAllBeds(), req).map(enrichBed), 200);
 }
 
 function findBedsByWard(req, res) {
@@ -75,7 +85,7 @@ function findBedsByWard(req, res) {
   if (existing && !belongsToOrg(existing, req))
     return res.status(403).json(FORBIDDEN);
 
-  sendResult(res, wardService.findBedsByWard(+req.params.id), 200);
+  sendResult(res, wardService.findBedsByWard(+req.params.id).map(enrichBed), 200);
 }
 
 function createBed(req, res) {
@@ -199,12 +209,21 @@ function updateBedRequest(req, res, next) {
   sendResult(res, result, 200);
 }
 
+function findBedById(req, res) {
+  const bedId = Number(req.params.id);
+  const bed = wardService.findAllBeds().find((b) => Number(b.bed_id) === bedId);
+  if (bed && !belongsToOrg(bed, req)) return sendResult(res, null, 200);
+  sendResult(res, bed ? enrichBed(bed) : null, 200);
+}
+
 module.exports = {
+  enrichBed,
   findAllWards,
   createWard,
   updateWard,
   deleteWard,
   findAllBeds,
+  findBedById,
   findBedsByWard,
   createBed,
   updateBedStatus,

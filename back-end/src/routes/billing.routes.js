@@ -15,6 +15,12 @@ const {
 
 const router = Router();
 
+router.get(
+  '/',
+  authorize(['ADMIN', 'SUPER_USER'], 'billing', 'read'),
+  controller.getBillingRoot,
+);
+
 // Services
 router.get(
   '/services',

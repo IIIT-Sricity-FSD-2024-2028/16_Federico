@@ -194,7 +194,21 @@ function approveLeader(req, res) {
   sendResult(res, result, 200);
 }
 
+function getBillingRoot(req, res) {
+  const rawPatientId = req.query.patient_id || req.query.patientId;
+  const patientId = rawPatientId ? Number(rawPatientId) : null;
+  if (patientId) {
+    if (targetPatientForbidden(req, patientId)) return res.status(403).json(FORBIDDEN);
+    return sendResult(res, billingService.findPatientBills(patientId), 200);
+  }
+  if (isPatientSession(req)) {
+    return sendResult(res, billingService.findPatientBills(req.session.patientId), 200);
+  }
+  sendResult(res, scopeToOrg(billingService.findAllLedgers(), req), 200);
+}
+
 module.exports = {
+  getBillingRoot,
   findAllServices,
   createService,
   findLedgerByAdmission,

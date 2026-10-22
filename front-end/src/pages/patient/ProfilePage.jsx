@@ -5,6 +5,7 @@ import { usePatientStore } from './usePatientStore.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { api } from '../../api/index.js';
 import { toast } from '../../components/feedback/feedback.js';
+import { normalizePhone } from '../../lib/phone.js';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import EyeField from './EyeField.jsx';
 import InsuranceCardUpload from './InsuranceCardUpload.jsx';
@@ -12,8 +13,11 @@ import {
   SECTION_FIELDS,
   READONLY_FIELDS,
   valuesFromProfile,
-  parseCoverage,
   capitalize,
+  validatePersonal,
+  validateContact,
+  validatePassword,
+  validateInsurance,
 } from './profileFields.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientProfileCss from '../../styles/patient/patient-profile.css?inline';
@@ -21,12 +25,8 @@ import patientProfileCss from '../../styles/patient/patient-profile.css?inline';
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
 /**
- * patient-profile.js populated every field with `input.value = ...`. For a
- * <select> that is load-bearing: assigning a value no <option> carries leaves
- * the control showing nothing (selectedIndex -1), which is what a patient whose
- * stored coverage_type is, say, "Full" actually sees. A React controlled select
- * would instead snap to the first option, so the assignment is reproduced on
- * the node rather than driven through the `value` prop.
+ * NativeSelect ensures custom or non-standard stored values do not
+ * prematurely snap to the first <option>.
  */
 function NativeSelect({ id, value, onChange, disabled, children }) {
   const ref = useRef(null);
@@ -34,7 +34,7 @@ function NativeSelect({ id, value, onChange, disabled, children }) {
     if (ref.current) ref.current.value = value ?? '';
   }, [value]);
   return (
-    <select id={id} ref={ref} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+    <select id={id} ref={ref} value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
       {children}
     </select>
   );
@@ -86,46 +86,46 @@ export default function ProfilePage() {
   useDocumentTitle('Patient Profile');
   const { profile, updateProfile, updateInsurance } = usePatientStore();
 
-  const [values, setValues] = useState({});
-  const [snapshot, setSnapshot] = useState({});
+  const [values, setValues] = useState(() => valuesFromProfile(profile));
+  const [snapshot, setSnapshot] = useState(() => valuesFromProfile(profile));
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [passwordHint, setPasswordHint] = useState({ text: '', variant: '' });
 
-  // Insurance card scan URLs, seeded from the loaded profile so an existing
-  // scan isn't dropped by an unrelated save, and updated in place as soon as a
-  // new file finishes uploading. `undefined` means "not seeded yet", exactly as
-  // the module-level uploadedCardUrls object used it.
-  const [cardUrlState, setCardUrlState] = useState({ front: undefined, back: undefined });
+  // Insurance card scan URLs, seeded from profile and updated when new file uploads.
+  const [cardUrlState, setCardUrlState] = useState(() => ({
+    front: profile?.insurance?.cardFrontUrl || null,
+    back: profile?.insurance?.cardBackUrl || null,
+  }));
   const [uploadingName, setUploadingName] = useState({ front: '', back: '' });
 
-  /**
-   * populateProfileForm(): re-seeds every field from the store. The legacy page
-   * ran this on load and again on every `patientStoreUpdated`, so a background
-   * refresh would overwrite an in-progress edit; that is preserved here.
-   *
-   * Done while rendering when the store hands over a new profile object
-   * (React's "adjust state when a prop changes" pattern) rather than in an
-   * effect, which rendered once with stale fields first.
-   */
-  const [seededFrom, setSeededFrom] = useState(null);
-  if (profile && profile !== seededFrom) {
-    setSeededFrom(profile);
+  // Synchronize values, snapshot, and card URLs whenever profile reference changes.
+  const [prevProfile, setPrevProfile] = useState(profile);
+  if (profile !== prevProfile) {
+    setPrevProfile(profile);
     const next = valuesFromProfile(profile);
-    setValues(next);
     setSnapshot(next);
-    setCardUrlState((s) => ({
-      front: s.front === undefined ? profile.insurance?.cardFrontUrl || null : s.front,
-      back: s.back === undefined ? profile.insurance?.cardBackUrl || null : s.back,
-    }));
+    setValues((current) => {
+      if (editing) {
+        const activeFields = SECTION_FIELDS[editing] || [];
+        const merged = { ...next };
+        activeFields.forEach((id) => {
+          if (current[id] !== undefined) merged[id] = current[id];
+        });
+        return merged;
+      }
+      return next;
+    });
+    if (editing !== 'insurance') {
+      setCardUrlState({
+        front: profile?.insurance?.cardFrontUrl || null,
+        back: profile?.insurance?.cardBackUrl || null,
+      });
+    }
   }
 
   function setValue(id, value) {
     setValues((v) => ({ ...v, [id]: value }));
-  }
-
-  function valueOf(id) {
-    return String(values[id] ?? '').trim();
   }
 
   function fieldDisabled(section, id) {
@@ -166,20 +166,29 @@ export default function ProfilePage() {
   async function onSave(section) {
     setSaving(true);
     try {
-      if (section === 'password') {
-        const nextPassword = values['new-password'] || '';
-        const confirmPassword = values['confirm-password'] || '';
-        const currentPassword = values['current-password'] || '';
-        if (!nextPassword || nextPassword !== confirmPassword) {
-          setPasswordHint({ text: 'Passwords do not match.', variant: 'no-match' });
+      if (section === 'personal') {
+        const res = validatePersonal(values);
+        if (!res.valid) {
+          toast(res.error, 'warning');
           return;
         }
-        if (nextPassword.length < 6) {
-          setPasswordHint({ text: 'Password must be at least 6 characters.', variant: 'no-match' });
+        await updateProfile(res.payload);
+      } else if (section === 'contact') {
+        const res = validateContact(values, normalizePhone);
+        if (!res.valid) {
+          toast(res.error, 'warning');
+          return;
+        }
+        await updateProfile(res.payload);
+      } else if (section === 'password') {
+        const res = validatePassword(values);
+        if (!res.valid) {
+          setPasswordHint({ text: res.error, variant: 'no-match' });
+          toast(res.error, 'warning');
           return;
         }
         try {
-          await api.auth.changePassword(nextPassword, currentPassword);
+          await api.auth.changePassword(values['new-password'], values['current-password']);
           setPasswordHint({ text: 'Password updated successfully.', variant: 'match' });
           commitSnapshot('password');
           setEditing(null);
@@ -189,47 +198,28 @@ export default function ProfilePage() {
           toast(err?.message || 'Failed to update password.', 'warning');
         }
         return;
-      }
-
-      if (section === 'personal') {
-        const fullName = [valueOf('first-name'), valueOf('last-name')].filter(Boolean).join(' ');
-        await updateProfile({
-          name: fullName,
-          dob: valueOf('dob'),
-          gender: valueOf('gender'),
-          bloodGroup: valueOf('blood-group'),
-        });
-      }
-
-      if (section === 'contact') {
-        await updateProfile({
-          phone: valueOf('phone'),
-          altPhone: valueOf('alt-phone'),
-          address: valueOf('address'),
-        });
-      }
-
-      if (section === 'insurance') {
+      } else if (section === 'insurance') {
+        const res = validateInsurance(values);
+        if (!res.valid) {
+          toast(res.error, 'warning');
+          return;
+        }
         await updateInsurance({
-          provider: valueOf('ins-provider'),
-          coverageType: valueOf('ins-coverage'),
-          policyNumber: valueOf('policy-number'),
-          memberId: valueOf('member-id'),
-          validFrom: valueOf('valid-from'),
-          validTo: valueOf('valid-to'),
-          coverage: parseCoverage(valueOf('coverage-amount')),
+          ...res.payload,
           cardFrontUrl: cardUrlState.front ?? null,
           cardBackUrl: cardUrlState.back ?? null,
         });
       }
 
-      // The store refresh re-seeds every field through the effect above, which
-      // is what populateProfileForm() did at this point.
       commitSnapshot(section);
       setEditing(null);
       toast(capitalize(section) + ' details saved.', 'success');
     } catch (err) {
-      toast(err?.message || 'Could not save changes.', 'warning');
+      if (err?.status === 401 || (err?.status === 403 && err?.message === 'Forbidden resource')) {
+        toast('Your session has expired. Please sign out and sign back in.', 'warning');
+      } else {
+        toast(err?.message || 'Could not save changes.', 'warning');
+      }
     } finally {
       setSaving(false);
     }
@@ -312,9 +302,20 @@ export default function ProfilePage() {
               value={values['ins-coverage']}
               onChange={(v) => setValue('ins-coverage', v)}
             >
-              <option>Individual</option>
-              <option>Family</option>
-              <option>Corporate</option>
+              <option value="" disabled>
+                Select coverage
+              </option>
+              <option value="Comprehensive">Comprehensive</option>
+              <option value="Full">Full</option>
+              <option value="Partial">Partial</option>
+              <option value="Individual">Individual</option>
+              <option value="Family">Family</option>
+              <option value="Corporate">Corporate</option>
+              <option value="Self">Self</option>
+              {values['ins-coverage'] &&
+                !['Comprehensive', 'Full', 'Partial', 'Individual', 'Family', 'Corporate', 'Self', ''].includes(
+                  values['ins-coverage'],
+                ) && <option value={values['ins-coverage']}>{values['ins-coverage']}</option>}
             </NativeSelect>
           </div>
         </div>
@@ -481,9 +482,12 @@ export default function ProfilePage() {
                     <option value="" disabled>
                       Select gender
                     </option>
-                    <option>Male</option>
-                    <option>Female</option>
-                    <option>Other</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    {values.gender && !['Male', 'Female', 'Other', ''].includes(values.gender) && (
+                      <option value={values.gender}>{values.gender}</option>
+                    )}
                   </NativeSelect>
                 </div>
               </div>
@@ -500,8 +504,11 @@ export default function ProfilePage() {
                       Select group
                     </option>
                     {BLOOD_GROUPS.map((g) => (
-                      <option key={g}>{g}</option>
+                      <option key={g} value={g}>{g}</option>
                     ))}
+                    {values['blood-group'] && !BLOOD_GROUPS.includes(values['blood-group']) && (
+                      <option value={values['blood-group']}>{values['blood-group']}</option>
+                    )}
                   </NativeSelect>
                 </div>
                 <div className="form-group">
@@ -588,7 +595,8 @@ export default function ProfilePage() {
               <div className="form-group full">
                 <label htmlFor="current-password">Current Password</label>
                 <div className="input-eye">
-                  <EyeFieldInner
+                  <EyeField
+                    bare
                     id="current-password"
                     placeholder="Enter current password"
                     disabled={fieldDisabled('password', 'current-password')}
@@ -632,15 +640,13 @@ export default function ProfilePage() {
           <section className="panel side-card">
             <div className="avatar-block">
               <div className="big-avatar">{profile ? profile.initials || 'P' : '--'}</div>
-              <strong>{profile ? profile.name || '' : 'Loading...'}</strong>
+              <strong>{profile ? profile.name || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || '' : 'Loading...'}</strong>
               <span>UHID: {profile ? profile.uhid || '' : '--'}</span>
               <span className="patient-tag">Patient</span>
             </div>
 
             <hr />
 
-            {/* The legacy page wrote these six values by index into
-                `.side-info .side-row strong`; they are explicit here. */}
             <div className="side-info">
               <div className="side-row">
                 <span>Age / Gender</span>
@@ -675,45 +681,5 @@ export default function ProfilePage() {
         </aside>
       </div>
     </main>
-  );
-}
-
-/**
- * The current-password field has the same eye button but sits in a full-width
- * .form-group rather than the two-column grid, so it reuses only the input.
- */
-function EyeFieldInner({ id, placeholder, disabled, value, onChange }) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <>
-      <input
-        id={id}
-        type={visible ? 'text' : 'password'}
-        placeholder={placeholder}
-        disabled={disabled}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <button
-        className="eye-btn"
-        type="button"
-        aria-label="Toggle password visibility"
-        data-target={id}
-        onClick={() => setVisible((v) => !v)}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          aria-hidden="true"
-        >
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      </button>
-    </>
   );
 }

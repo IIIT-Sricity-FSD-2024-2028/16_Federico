@@ -45,6 +45,16 @@ router.get(
   controller.findAllBeds,
 );
 router.get(
+  '/bed',
+  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
+  controller.findAllBeds,
+);
+router.get(
+  '/bed/:id',
+  authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
+  controller.findBedById,
+);
+router.get(
   '/:id/beds',
   authorize(['ADMIN', 'SUPER_USER'], 'ward', 'read'),
   controller.findBedsByWard,

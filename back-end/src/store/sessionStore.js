@@ -1,13 +1,37 @@
 'use strict';
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
-/**
- * In-memory session token store (Phase 2 real auth). Consistent with the
- * rest of this app's architecture — no database — sessions simply don't
- * survive a server restart, same as every other in-memory resource here.
- */
 const sessions = new Map();
+const SESSIONS_FILE = path.resolve(__dirname, '../../data/.sessions.json');
+
+function saveSessions() {
+  try {
+    const list = Array.from(sessions.entries());
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(list), 'utf8');
+  } catch {
+    // Fail silently in read-only or restricted environments
+  }
+}
+
+function loadSessions() {
+  try {
+    if (fs.existsSync(SESSIONS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+      if (Array.isArray(data)) {
+        for (const [k, v] of data) {
+          if (k && v) sessions.set(k, v);
+        }
+      }
+    }
+  } catch {
+    // Fall back to clean empty state on malformed cache
+  }
+}
+
+loadSessions();
 
 function createSession({
   userId,
@@ -28,6 +52,7 @@ function createSession({
     isPlatformUser: Boolean(isPlatformUser),
     createdAt: new Date().toISOString(),
   });
+  saveSessions();
   return token;
 }
 
@@ -36,7 +61,9 @@ function getSession(token) {
 }
 
 function destroySession(token) {
-  return sessions.delete(token);
+  const res = sessions.delete(token);
+  saveSessions();
+  return res;
 }
 
 /**
@@ -52,6 +79,7 @@ function destroySessionsForUser(userId) {
       removed++;
     }
   });
+  if (removed > 0) saveSessions();
   return removed;
 }
 

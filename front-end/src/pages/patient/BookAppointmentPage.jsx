@@ -11,22 +11,23 @@ import DepartmentSelect from '../../components/forms/DepartmentSelect.jsx';
 import {
   ALLOWED_UPLOAD_EXT,
   MAX_UPLOAD_BYTES,
-  DUTY_START,
   DUTY_END,
   DUTY_HOURS_LABEL,
   TIME_WINDOWS,
   MAX_ADVANCE_BOOKING_DAYS,
   getBookingDateBounds,
+  getMinTimeForDate,
   validateBookingDateString,
   windowFor,
   dutyHoursError,
   formatSlotDate,
   normalizeSlotTime,
+  getLocalDateIso,
 } from './slotHelpers.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientBookAppointmentCss from '../../styles/patient/patient-book-appointment.css?inline';
 
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = getLocalDateIso();
 
 const DEFAULT_ERRORS = {
   dept: 'Please select a department.',
@@ -34,13 +35,34 @@ const DEFAULT_ERRORS = {
   time: 'Please select a preferred time.',
 };
 
-/**
- * The booking form collects a preference - department, date, time and the
- * reason for the visit - and submits it as a pending request. PRE reviews it,
- * allocates an on-duty doctor and confirms the slot, so there is no per-slot
- * capacity matrix here: the backend's availability check at confirmation is
- * the single source of truth for whether a doctor is free.
- */
+function matchesDoctorDept(doc, target) {
+  if (!target) return false;
+  const dept = (doc?.department || '').toLowerCase();
+  const spec = (doc?.specialization || '').toLowerCase();
+  const t = target.toLowerCase();
+  return dept === t || spec === t || dept.includes(t) || spec.includes(t);
+}
+
+function UploadLabelContent({ files }) {
+  if (files.length === 0) {
+    return <strong id="upload-label-text">Choose files or drag &amp; drop here</strong>;
+  }
+  const names = files.map((f) => f.name).join(', ');
+  if (files.length === 1) {
+    return (
+      <strong id="upload-label-text">
+        Attached: <span style={{ color: 'var(--primary)' }}>{names}</span> (
+        {(files[0].size / 1024).toFixed(0)} KB)
+      </strong>
+    );
+  }
+  return (
+    <strong id="upload-label-text">
+      Attached {files.length} files: <span style={{ color: 'var(--primary)' }}>{names}</span>
+    </strong>
+  );
+}
+
 export default function BookAppointmentPage() {
   usePageStyles(patientBookAppointmentCss);
   useDocumentTitle('Book Appointment – Federico Cloud');
@@ -48,7 +70,6 @@ export default function BookAppointmentPage() {
   const { profile, doctors, specialties, addAppointment } = usePatientStore();
   const { tenant } = useSession();
 
-  // Organization-scoped clinical departments
   const orgDepartments = useMemo(() => {
     if (specialties && specialties.length > 0) return specialties;
     if (tenant?.specialties && tenant.specialties.length > 0) return tenant.specialties;
@@ -59,10 +80,8 @@ export default function BookAppointmentPage() {
 
   const dateBounds = useMemo(() => getBookingDateBounds(TODAY), []);
 
-  // The time panel's caption keeps its default until the date or department
-  // actually changes.
   const [selectedDate, setSelectedDate] = useState(TODAY);
-  const [selectedTime, setSelectedTime] = useState(''); // 24-hour "HH:MM" from <input type="time">
+  const [selectedTime, setSelectedTime] = useState('');
   const [selectedDept, setSelectedDept] = useState(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState(null);
   const [selectedDoctorName, setSelectedDoctorName] = useState('Any Specialist');
@@ -72,7 +91,10 @@ export default function BookAppointmentPage() {
   const [submitLabel, setSubmitLabel] = useState('Confirm Booking');
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(false);
-  const [note, setNote] = useState('');
+
+  const clearError = (field) => {
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  };
 
   const matchingDoctors = useMemo(() => {
     const orgDoctors = doctors || [];
@@ -88,25 +110,15 @@ export default function BookAppointmentPage() {
       }
       return orgDoctors;
     }
-    const target = selectedDept.toLowerCase();
-    return orgDoctors.filter((d) => {
-      const docDept = (d.department || '').toLowerCase();
-      const docSpec = (d.specialization || '').toLowerCase();
-      return (
-        docDept === target || docSpec === target || docSpec.includes(target) || docDept.includes(target)
-      );
-    });
+    return orgDoctors.filter((d) => matchesDoctorDept(d, selectedDept));
   }, [doctors, selectedDept, orgDepartments]);
 
   function onDepartmentChange(value) {
     setSelectedDept(value || null);
-    setErrors((e) => ({ ...e, dept: undefined }));
+    clearError('dept');
     if (selectedDoctorId) {
       const currentDoc = (doctors || []).find((d) => d.doctor_id === selectedDoctorId);
-      const target = (value || '').toLowerCase();
-      const docDept = (currentDoc?.department || '').toLowerCase();
-      const docSpec = (currentDoc?.specialization || '').toLowerCase();
-      if (!target || !(docDept === target || docSpec === target || docSpec.includes(target) || docDept.includes(target))) {
+      if (!matchesDoctorDept(currentDoc, value)) {
         setSelectedDoctorId(null);
         setSelectedDoctorName('Any Specialist');
       }
@@ -120,13 +132,12 @@ export default function BookAppointmentPage() {
     if (id) {
       const doc = (doctors || []).find((d) => d.doctor_id === id);
       setSelectedDoctorName(doc ? (doc.name.startsWith('Dr.') ? doc.name : 'Dr. ' + doc.name) : 'Any Specialist');
-      // If no department was selected yet, auto-select the doctor's department
       if (!selectedDept && doc) {
         const docDept = doc.specialization || doc.department;
         const matched = orgDepartments.find((d) => d.toLowerCase() === (docDept || '').toLowerCase()) || docDept;
         if (matched) {
           setSelectedDept(matched);
-          setErrors((e) => ({ ...e, dept: undefined }));
+          clearError('dept');
           setSlotMetaTouched(true);
         }
       }
@@ -143,12 +154,11 @@ export default function BookAppointmentPage() {
 
   function onTimeChange(value) {
     setSelectedTime(value || '');
-    setErrors((e) => ({ ...e, time: undefined }));
+    clearError('time');
   }
 
   function onFilesChange(event) {
     const files = Array.from(event.target.files || []);
-
     if (files.length === 0) {
       setAttachedFiles([]);
       return;
@@ -171,24 +181,25 @@ export default function BookAppointmentPage() {
     rejected.forEach((msg) => toast(msg, 'warning'));
     setAttachedFiles(accepted);
 
-    if (accepted.length === 0) return;
-
-    const names = accepted.map((f) => f.name).join(', ');
-    toast(
-      accepted.length === 1
-        ? 'File "' + names + '" attached to appointment.'
-        : accepted.length + ' files attached to appointment.',
-      'success',
-    );
+    if (accepted.length > 0) {
+      const names = accepted.map((f) => f.name).join(', ');
+      toast(
+        accepted.length === 1
+          ? 'File "' + names + '" attached to appointment.'
+          : accepted.length + ' files attached to appointment.',
+        'success',
+      );
+    }
   }
 
   function validateForm() {
     const next = {};
-    if (!selectedDept || selectedDept === 'none') next.dept = 'Please select a department.';
+    if (!selectedDept || selectedDept === 'none') next.dept = DEFAULT_ERRORS.dept;
     const dateError = validateBookingDateString(selectedDate, dateBounds);
     if (dateError) next.date = dateError;
-    if (!selectedTime) next.time = 'Please select a preferred time.';
-    if (selectedDate && selectedTime && !next.date) {
+    if (!selectedTime) {
+      next.time = DEFAULT_ERRORS.time;
+    } else if (selectedDate && !next.date) {
       const dutyError = dutyHoursError(selectedDate, selectedTime);
       if (dutyError) next.time = dutyError;
     }
@@ -203,11 +214,6 @@ export default function BookAppointmentPage() {
     setSubmitLabel('Submitting Request…');
 
     try {
-      const noteText = note.trim();
-
-      // Upload any attached medical documents first; abort the booking if an
-      // upload fails so we never create a request that references files that
-      // aren't actually stored.
       const documentUrls = [];
       if (attachedFiles.length > 0) {
         setSubmitLabel(
@@ -226,12 +232,11 @@ export default function BookAppointmentPage() {
       const newRequestId = await addAppointment({
         date: selectedDate,
         displayDate: formatSlotDate(selectedDate),
-        // Stored in the same "hh:mm AM" form PRE and the dashboards display.
         time: normalizeSlotTime(selectedTime),
         department: selectedDept,
         doctorId: selectedDoctorId,
         type: 'Consultation',
-        note: noteText || (attachedNames ? 'Attached: ' + attachedNames : undefined),
+        note: attachedNames ? 'Attached: ' + attachedNames : undefined,
         documents: documentUrls,
       });
 
@@ -263,23 +268,7 @@ export default function BookAppointmentPage() {
       (selectedDept && selectedDept !== 'none' ? selectedDept : 'No department')
     : 'Select department and date above';
 
-  const uploadLabel = (() => {
-    if (attachedFiles.length === 0) return <strong id="upload-label-text">Choose files or drag &amp; drop here</strong>;
-    const names = attachedFiles.map((f) => f.name).join(', ');
-    if (attachedFiles.length === 1) {
-      return (
-        <strong id="upload-label-text">
-          Attached: <span style={{ color: 'var(--primary)' }}>{names}</span> (
-          {(attachedFiles[0].size / 1024).toFixed(0)} KB)
-        </strong>
-      );
-    }
-    return (
-      <strong id="upload-label-text">
-        Attached {attachedFiles.length} files: <span style={{ color: 'var(--primary)' }}>{names}</span>
-      </strong>
-    );
-  })();
+  const minTimeForSelectedDate = getMinTimeForDate(selectedDate);
 
   return (
     <main className="page">
@@ -385,7 +374,7 @@ export default function BookAppointmentPage() {
                 <input
                   id="appointment-time"
                   type="time"
-                  min={DUTY_START}
+                  min={minTimeForSelectedDate}
                   max={DUTY_END}
                   step="900"
                   value={selectedTime}
@@ -424,13 +413,13 @@ export default function BookAppointmentPage() {
 
           <section className="panel">
             <div className="panel-head">
-              <h2>3. Symptoms &amp; Medical Documents</h2>
+              <h2>3. Medical Documents</h2>
               <span className="muted-tag">Optional</span>
             </div>
             <div className="file-section">
               <label className="section-label">Upload Previous Prescriptions / Lab Reports</label>
               <label className="upload-box" htmlFor="file-upload" id="upload-label">
-                {uploadLabel}
+                <UploadLabelContent files={attachedFiles} />
                 <small>
                   Attach previous prescriptions, discharge notes, or lab test reports (PDF, JPG, PNG up
                   to 5 MB)
@@ -444,17 +433,6 @@ export default function BookAppointmentPage() {
                   onChange={onFilesChange}
                 />
               </label>
-
-              <div className="form-group note-group">
-                <label htmlFor="short-note">Describe Symptoms / Reason for Visit</label>
-                <textarea
-                  id="short-note"
-                  rows="3"
-                  placeholder="e.g. Mild chest discomfort, routine follow-up, viral fever symptoms..."
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </div>
             </div>
           </section>
         </div>

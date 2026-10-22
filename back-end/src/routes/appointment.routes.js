@@ -16,6 +16,11 @@ router.get(
   authorize(['ADMIN', 'SUPER_USER'], 'appointment', 'read'),
   controller.findAll,
 );
+router.get(
+  '/:id',
+  authorize(['ADMIN', 'SUPER_USER'], 'appointment', 'read'),
+  controller.findOne,
+);
 router.post(
   '/',
   authorize(['SUPER_USER'], 'appointment', 'write'),

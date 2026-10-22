@@ -37,6 +37,7 @@ const PatientLayout = lazy(() => import('./pages/patient/PatientLayout.jsx'));
 const PatientDashboardPage = lazy(() => import('./pages/patient/DashboardPage.jsx'));
 const PatientBookAppointmentPage = lazy(() => import('./pages/patient/BookAppointmentPage.jsx'));
 const PatientBillingPage = lazy(() => import('./pages/patient/BillingPage.jsx'));
+const PatientDocumentsPage = lazy(() => import('./pages/patient/DocumentsPage.jsx'));
 const PatientProfilePage = lazy(() => import('./pages/patient/ProfilePage.jsx'));
 
 const FaLayout = lazy(() => import('./pages/fa/FaLayout.jsx'));
@@ -160,6 +161,8 @@ const router = createBrowserRouter([
             element: L(<PatientBookAppointmentPage />),
           },
           { path: '/Patient/patient-billing.html', element: L(<PatientBillingPage />) },
+          { path: '/Patient/documents', element: L(<PatientDocumentsPage />) },
+          { path: '/Patient/patient-documents.html', element: L(<PatientDocumentsPage />) },
           { path: '/Patient/patient-profile.html', element: L(<PatientProfilePage />) },
         ],
       },

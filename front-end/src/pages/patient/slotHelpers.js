@@ -12,6 +12,45 @@ export const MAX_ADVANCE_BOOKING_DAYS = 14;
 export const MIN_ADVANCE_BOOKING_DAYS = 0;
 
 /**
+ * Standard doctor duty roster: Monday to Friday, 09:00 - 17:00.
+ */
+export const DUTY_START = '09:00';
+export const DUTY_END = '17:00';
+export const DUTY_HOURS_LABEL = 'Monday – Friday, 09:00 AM – 05:00 PM';
+
+/** Quick picks that pre-fill the time input. */
+export const TIME_WINDOWS = [
+  { id: 'morning', label: 'Morning (09:00 AM – 12:00 PM)', start: '09:00', end: '12:00', pick: '10:00' },
+  { id: 'afternoon', label: 'Afternoon (12:00 PM – 05:00 PM)', start: '12:00', end: '17:00', pick: '14:00' },
+];
+
+/** Current time in 24-hour "HH:MM" format. */
+export function getCurrentTime24() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+/** Current local date formatted as YYYY-MM-DD. */
+export function getLocalDateIso(dateObj = new Date()) {
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** Minimum bookable time for a given ISO date (YYYY-MM-DD). */
+export function getMinTimeForDate(dateIso, todayIso = getLocalDateIso()) {
+  const dateOnly = String(dateIso || '').split('T')[0];
+  if (dateOnly === todayIso) {
+    const current = getCurrentTime24();
+    return current > DUTY_START ? current : DUTY_START;
+  }
+  return DUTY_START;
+}
+
+/**
  * Returns UTC-based date strings { minDate, maxDate, maxDays, minDays } formatted as YYYY-MM-DD.
  */
 export function getBookingDateBounds(
@@ -19,7 +58,7 @@ export function getBookingDateBounds(
   maxDays = MAX_ADVANCE_BOOKING_DAYS,
   minDays = MIN_ADVANCE_BOOKING_DAYS,
 ) {
-  const base = baseIsoDate || new Date().toISOString().split('T')[0];
+  const base = (baseIsoDate || new Date().toISOString().split('T')[0]).split('T')[0];
   const [year, month, day] = base.split('-').map(Number);
 
   const min = new Date(Date.UTC(year, month - 1, day));
@@ -37,31 +76,21 @@ export function getBookingDateBounds(
  * Validates a user-selected date against the allowed booking horizon bounds.
  * Returns an error message string or null if valid.
  */
-export function validateBookingDateString(dateIso, bounds) {
+export function validateBookingDateString(dateIso, bounds, todayIso = getLocalDateIso()) {
   if (!dateIso) return 'Please select a preferred date.';
-  if (bounds && bounds.minDate && dateIso < bounds.minDate) {
+  const dateOnly = String(dateIso).split('T')[0];
+  if (bounds && bounds.minDate && dateOnly < bounds.minDate) {
     return 'Please choose today or a future date.';
   }
-  if (bounds && bounds.maxDate && dateIso > bounds.maxDate) {
+  if (bounds && bounds.maxDate && dateOnly > bounds.maxDate) {
     return `Appointments cannot be scheduled more than ${bounds.maxDays} days in advance.`;
+  }
+  // If selected date is today, check if duty hours have already completely ended
+  if (dateOnly === todayIso && getCurrentTime24() >= DUTY_END) {
+    return 'Duty hours for today have closed (after 05:00 PM). Please select a future weekday.';
   }
   return null;
 }
-
-/**
- * Standard doctor duty roster (mirrors back-end doctor.service.js): Monday to
- * Friday, 09:00 - 17:00. A preferred time outside it can never be confirmed by
- * PRE for a doctor without explicit calendar rows, so the form rejects it.
- */
-export const DUTY_START = '09:00';
-export const DUTY_END = '17:00';
-export const DUTY_HOURS_LABEL = 'Monday – Friday, 09:00 AM – 05:00 PM';
-
-/** Quick picks that pre-fill the time input. */
-export const TIME_WINDOWS = [
-  { id: 'morning', label: 'Morning (09:00 AM – 12:00 PM)', start: '09:00', end: '12:00', pick: '10:00' },
-  { id: 'afternoon', label: 'Afternoon (12:00 PM – 05:00 PM)', start: '12:00', end: '17:00', pick: '14:00' },
-];
 
 /** The window a 24-hour "HH:MM" falls in, or '' when outside duty hours. */
 export function windowFor(time24) {
@@ -71,15 +100,23 @@ export function windowFor(time24) {
 
 /**
  * Why a preferred date + 24-hour time can't be booked, or null if it can.
- * Dates are compared as plain YYYY-MM-DD strings, so no timezone shifts.
+ * Validates duty hours (Mon-Fri 09:00-17:00) and ensures time hasn't already passed for today.
  */
-export function dutyHoursError(dateIso, time24) {
-  const day = new Date(dateIso + 'T00:00:00').getDay();
+export function dutyHoursError(dateIso, time24, todayIso = getLocalDateIso()) {
+  const dateOnly = String(dateIso || '').split('T')[0];
+  const day = new Date(dateOnly + 'T00:00:00').getDay();
   if (day === 0 || day === 6) {
     return 'Doctors are on duty ' + DUTY_HOURS_LABEL + '. Please choose a weekday.';
   }
   if (time24 < DUTY_START || time24 >= DUTY_END) {
     return 'Please choose a time between 09:00 AM and 05:00 PM.';
+  }
+  // If booking for today, time cannot be in the past
+  if (dateOnly === todayIso) {
+    const current = getCurrentTime24();
+    if (time24 <= current) {
+      return 'Please choose a future time (after current time).';
+    }
   }
   return null;
 }
@@ -100,9 +137,14 @@ export function normalizeSlotTime(t) {
   return clean;
 }
 
-/** The page's own date formatter - not lib/formatters.js#formatDate. */
+/** Formats date strictly as DD-MM-YYYY. */
 export function formatSlotDate(iso) {
   if (!iso) return '—';
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const clean = String(iso).includes('T') ? String(iso) : `${iso}T00:00:00`;
+  const d = new Date(clean);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
 }

@@ -1,20 +1,17 @@
 'use strict';
 
+const { belongsToOrg } = require('./tenant');
+
 /**
  * Centralized ownership check for every patient-scoped endpoint (patient
  * record, insurance, pre-requests, billing views). A Patient session may
  * only ever touch records tied to their own patient_id — HOM/PRE/FA are
- * unrestricted. Previously this exact check was copy-pasted separately in
- * patient.controller.js and billing.controller.js (and about to be a
- * third copy in preRequest.controller.js); centralizing it here means
- * there's exactly one place to get this right, and one place to audit.
+ * unrestricted.
  */
 function forbidsOtherPatient(req, patientId) {
-  return Boolean(
-    req.session &&
-    req.session.role === 'Patient' &&
-    req.session.patientId !== patientId,
-  );
+  if (!req.session || req.session.role !== 'Patient') return false;
+  if (patientId == null || req.session.patientId == null) return true;
+  return Number(req.session.patientId) !== Number(patientId);
 }
 
 /**
@@ -22,11 +19,23 @@ function forbidsOtherPatient(req, patientId) {
  * list-all-payments, a ledger looked up by raw id with no ownership
  * check possible) — these must never be reachable by a Patient session
  * at all, even though the resource's coarse read/write gate includes
- * 'Patient' for the sibling single-record endpoints. Use this instead of
- * forbidsOtherPatient when there's no single patientId to check against.
+ * 'Patient' for the sibling single-record endpoints.
  */
 function isPatientSession(req) {
   return Boolean(req.session && req.session.role === 'Patient');
 }
 
-module.exports = { forbidsOtherPatient, isPatientSession };
+/**
+ * Unified patient access guard combining actor ownership and tenant org isolation.
+ * Returns true if the requesting session is forbidden from accessing the patient record.
+ */
+function isForbiddenPatient(patient, req) {
+  if (!patient) return false;
+  return forbidsOtherPatient(req, patient.patient_id) || !belongsToOrg(patient, req);
+}
+
+module.exports = {
+  forbidsOtherPatient,
+  isPatientSession,
+  isForbiddenPatient,
+};

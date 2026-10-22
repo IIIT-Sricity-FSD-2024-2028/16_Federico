@@ -8,7 +8,7 @@ const ACTOR_ACCESS = {
     read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
     write: ['HOM', 'PRE', 'Patient', 'Admin'],
   },
-  ward: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'Admin'] },
+  ward: { read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'], write: ['HOM', 'Admin'] },
   inventory: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'Admin'] },
   wardAdmin: { read: ['Admin', 'HOM'], write: ['Admin', 'HOM'], delete: ['Admin', 'HOM'] },
   inventoryCatalog: { read: ['Admin', 'HOM'], write: ['Admin', 'HOM'], delete: ['Admin', 'HOM'] },
@@ -16,7 +16,7 @@ const ACTOR_ACCESS = {
   leader: { read: ['HOM', 'FA', 'Admin'], write: ['HOM', 'FA', 'Admin'] },
   payment: { read: ['FA', 'Patient', 'Admin'], write: ['FA', 'Patient', 'Admin'] },
   ledgerEntry: { read: ['HOM', 'FA', 'Patient', 'Admin'], write: ['FA', 'Admin'] },
-  appointment: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['PRE', 'Admin'] },
+  appointment: { read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'], write: ['PRE', 'Admin'] },
   admission: { read: ['HOM', 'PRE', 'FA', 'Admin'], write: ['HOM', 'PRE', 'Admin'] },
   preRequest: {
     read: ['HOM', 'PRE', 'FA', 'Patient', 'Admin'],
