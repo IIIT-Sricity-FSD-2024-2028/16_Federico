@@ -3,19 +3,27 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { subscribe, getSnapshot } from '../api/session.js';
 
+import admissionsReducer from './slices/admissionsSlice.js';
+import appointmentsReducer from './slices/appointmentsSlice.js';
 import authReducer, { sessionSynced } from './slices/authSlice.js';
 import billingReducer from './slices/billingSlice.js';
+import doctorsReducer from './slices/doctorsSlice.js';
 import patientsReducer from './slices/patientsSlice.js';
 import preRequestsReducer from './slices/preRequestsSlice.js';
 import uploadsReducer, { uploadDocument } from './slices/uploadsSlice.js';
+import wardsReducer from './slices/wardsSlice.js';
 import uiReducer from './slices/uiSlice.js';
 
 const appReducer = combineReducers({
+  admissions: admissionsReducer,
+  appointments: appointmentsReducer,
   auth: authReducer,
   billing: billingReducer,
+  doctors: doctorsReducer,
   patients: patientsReducer,
   preRequests: preRequestsReducer,
   uploads: uploadsReducer,
+  wards: wardsReducer,
   ui: uiReducer,
 });
 
