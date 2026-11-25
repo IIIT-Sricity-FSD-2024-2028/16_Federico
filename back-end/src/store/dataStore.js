@@ -3,6 +3,50 @@
 const dataStore = {
   "activityLog": [
     {
+      "id": 159,
+      "type": "info",
+      "text": "Admin login: Shams bukhari",
+      "meta": {
+        "userId": 115
+      },
+      "organization_id": 4,
+      "hospital_id": null,
+      "created_at": "2026-11-25T18:48:36.078Z"
+    },
+    {
+      "id": 158,
+      "type": "info",
+      "text": "Admin login: Dr. Priya Nair",
+      "meta": {
+        "userId": 114
+      },
+      "organization_id": 3,
+      "hospital_id": null,
+      "created_at": "2026-11-25T18:42:16.650Z"
+    },
+    {
+      "id": 157,
+      "type": "info",
+      "text": "Patient login: Arjun Kapoor",
+      "meta": {
+        "userId": 102
+      },
+      "organization_id": 1,
+      "hospital_id": null,
+      "created_at": "2026-11-25T18:05:44.595Z"
+    },
+    {
+      "id": 156,
+      "type": "info",
+      "text": "Patient login: Rohan Mehta",
+      "meta": {
+        "userId": 104
+      },
+      "organization_id": 1,
+      "hospital_id": null,
+      "created_at": "2026-11-25T17:58:47.782Z"
+    },
+    {
       "id": 155,
       "type": "success",
       "text": "Pre-request #29 moved ADMITTED",
@@ -2011,6 +2055,22 @@ const dataStore = {
       "key": "fed_live_6f1f43972c28f2078112b2a6b439a7c06ae5",
       "created_at": "2026-08-18T11:39:52.382Z",
       "revoked_at": null
+    },
+    {
+      "api_key_id": 2,
+      "organization_id": 3,
+      "label": "Provisioning default key",
+      "key": "fed_live_2732321758e798a614fbddb0aa68eda15b3a",
+      "created_at": "2026-11-25T18:42:16.547Z",
+      "revoked_at": null
+    },
+    {
+      "api_key_id": 3,
+      "organization_id": 4,
+      "label": "Provisioning default key",
+      "key": "fed_live_60833127843a636048dd414c36010033f411",
+      "created_at": "2026-11-25T18:48:36.006Z",
+      "revoked_at": null
     }
   ],
   "appointments": [
@@ -2053,7 +2113,9 @@ const dataStore = {
       "organization_id": 1,
       "hospital_id": 1,
       "appointment_date": "2026-08-20",
-      "appointment_time": "09:00:00"
+      "appointment_time": "09:00:00",
+      "doctor_name": "Dr. Vikram Singh",
+      "department": "Orthopedics"
     },
     {
       "appointment_id": 604,
@@ -2133,7 +2195,9 @@ const dataStore = {
       "organization_id": 1,
       "hospital_id": 1,
       "appointment_date": "2026-08-18",
-      "appointment_time": "15:00:00"
+      "appointment_time": "15:00:00",
+      "doctor_name": "Dr. Farhan Ahmed",
+      "department": "Surgery"
     },
     {
       "appointment_id": 610,
@@ -2439,7 +2503,8 @@ const dataStore = {
       "bed_number": "G-101",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 22,
@@ -2447,7 +2512,8 @@ const dataStore = {
       "bed_number": "ICU-05",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 23,
@@ -2455,7 +2521,8 @@ const dataStore = {
       "bed_number": "GB-01",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 24,
@@ -2463,7 +2530,8 @@ const dataStore = {
       "bed_number": "GB-02",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 25,
@@ -2471,7 +2539,8 @@ const dataStore = {
       "bed_number": "GB-03",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 26,
@@ -2479,7 +2548,8 @@ const dataStore = {
       "bed_number": "GB-04",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 27,
@@ -2487,7 +2557,8 @@ const dataStore = {
       "bed_number": "GB-05",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 28,
@@ -2495,7 +2566,8 @@ const dataStore = {
       "bed_number": "GB-06",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 29,
@@ -2503,7 +2575,8 @@ const dataStore = {
       "bed_number": "GB-07",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 30,
@@ -2511,7 +2584,8 @@ const dataStore = {
       "bed_number": "GB-08",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 31,
@@ -2519,7 +2593,8 @@ const dataStore = {
       "bed_number": "GB-09",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 32,
@@ -2527,7 +2602,8 @@ const dataStore = {
       "bed_number": "GB-10",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 33,
@@ -2535,7 +2611,8 @@ const dataStore = {
       "bed_number": "GB-11",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 34,
@@ -2543,7 +2620,8 @@ const dataStore = {
       "bed_number": "GB-12",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 35,
@@ -2551,7 +2629,8 @@ const dataStore = {
       "bed_number": "GB-13",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 36,
@@ -2559,7 +2638,8 @@ const dataStore = {
       "bed_number": "GB-14",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward B"
     },
     {
       "bed_id": 37,
@@ -2567,7 +2647,8 @@ const dataStore = {
       "bed_number": "ICU2-01",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 02"
     },
     {
       "bed_id": 38,
@@ -2575,7 +2656,8 @@ const dataStore = {
       "bed_number": "ICU2-02",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 02"
     },
     {
       "bed_id": 39,
@@ -2583,7 +2665,8 @@ const dataStore = {
       "bed_number": "ICU2-03",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 02"
     },
     {
       "bed_id": 40,
@@ -2591,7 +2674,8 @@ const dataStore = {
       "bed_number": "ICU2-04",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 02"
     },
     {
       "bed_id": 41,
@@ -2599,7 +2683,8 @@ const dataStore = {
       "bed_number": "ICU2-05",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 02"
     },
     {
       "bed_id": 42,
@@ -2607,7 +2692,8 @@ const dataStore = {
       "bed_number": "ICU2-06",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 02"
     },
     {
       "bed_id": 43,
@@ -2615,7 +2701,8 @@ const dataStore = {
       "bed_number": "PED-01",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 44,
@@ -2623,7 +2710,8 @@ const dataStore = {
       "bed_number": "PED-02",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 45,
@@ -2631,7 +2719,8 @@ const dataStore = {
       "bed_number": "PED-03",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 46,
@@ -2639,7 +2728,8 @@ const dataStore = {
       "bed_number": "PED-04",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 47,
@@ -2647,7 +2737,8 @@ const dataStore = {
       "bed_number": "PED-05",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 48,
@@ -2655,7 +2746,8 @@ const dataStore = {
       "bed_number": "PED-06",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 49,
@@ -2663,7 +2755,8 @@ const dataStore = {
       "bed_number": "PED-07",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 50,
@@ -2671,7 +2764,8 @@ const dataStore = {
       "bed_number": "PED-08",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 51,
@@ -2679,7 +2773,8 @@ const dataStore = {
       "bed_number": "PED-09",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 52,
@@ -2687,7 +2782,8 @@ const dataStore = {
       "bed_number": "PED-10",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Pediatric Ward"
     },
     {
       "bed_id": 53,
@@ -2695,7 +2791,8 @@ const dataStore = {
       "bed_number": "MAT-01",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 54,
@@ -2703,7 +2800,8 @@ const dataStore = {
       "bed_number": "MAT-02",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 55,
@@ -2711,7 +2809,8 @@ const dataStore = {
       "bed_number": "MAT-03",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 56,
@@ -2719,7 +2818,8 @@ const dataStore = {
       "bed_number": "MAT-04",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 57,
@@ -2727,7 +2827,8 @@ const dataStore = {
       "bed_number": "MAT-05",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 58,
@@ -2735,7 +2836,8 @@ const dataStore = {
       "bed_number": "MAT-06",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 59,
@@ -2743,7 +2845,8 @@ const dataStore = {
       "bed_number": "MAT-07",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 60,
@@ -2751,7 +2854,8 @@ const dataStore = {
       "bed_number": "MAT-08",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "Maternity Ward"
     },
     {
       "bed_id": 61,
@@ -2759,7 +2863,8 @@ const dataStore = {
       "bed_number": "G-102",
       "status": "OCCUPIED",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 62,
@@ -2767,7 +2872,8 @@ const dataStore = {
       "bed_number": "G-103",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 63,
@@ -2775,7 +2881,8 @@ const dataStore = {
       "bed_number": "G-104",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 64,
@@ -2783,7 +2890,8 @@ const dataStore = {
       "bed_number": "G-105",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 65,
@@ -2791,7 +2899,8 @@ const dataStore = {
       "bed_number": "G-106",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 66,
@@ -2799,7 +2908,8 @@ const dataStore = {
       "bed_number": "G-107",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 67,
@@ -2807,7 +2917,8 @@ const dataStore = {
       "bed_number": "G-108",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 68,
@@ -2815,7 +2926,8 @@ const dataStore = {
       "bed_number": "G-109",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 69,
@@ -2823,7 +2935,8 @@ const dataStore = {
       "bed_number": "G-110",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 70,
@@ -2831,7 +2944,8 @@ const dataStore = {
       "bed_number": "G-111",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 71,
@@ -2839,7 +2953,8 @@ const dataStore = {
       "bed_number": "G-112",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 72,
@@ -2847,7 +2962,8 @@ const dataStore = {
       "bed_number": "G-113",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 73,
@@ -2855,7 +2971,8 @@ const dataStore = {
       "bed_number": "G-114",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 74,
@@ -2863,7 +2980,8 @@ const dataStore = {
       "bed_number": "ICU-06",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 75,
@@ -2871,7 +2989,8 @@ const dataStore = {
       "bed_number": "ICU-07",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 76,
@@ -2879,7 +2998,8 @@ const dataStore = {
       "bed_number": "ICU-08",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 77,
@@ -2951,7 +3071,8 @@ const dataStore = {
       "bed_number": "G-115",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 86,
@@ -2959,7 +3080,8 @@ const dataStore = {
       "bed_number": "G-116",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 87,
@@ -2967,7 +3089,8 @@ const dataStore = {
       "bed_number": "G-117",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 88,
@@ -2975,7 +3098,8 @@ const dataStore = {
       "bed_number": "G-118",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 89,
@@ -2983,7 +3107,8 @@ const dataStore = {
       "bed_number": "G-119",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 90,
@@ -2991,7 +3116,8 @@ const dataStore = {
       "bed_number": "G-120",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "General Ward A"
     },
     {
       "bed_id": 91,
@@ -2999,7 +3125,8 @@ const dataStore = {
       "bed_number": "ICU-01",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 92,
@@ -3007,7 +3134,8 @@ const dataStore = {
       "bed_number": "ICU-02",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 93,
@@ -3015,7 +3143,8 @@ const dataStore = {
       "bed_number": "ICU-03",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 94,
@@ -3023,7 +3152,8 @@ const dataStore = {
       "bed_number": "ICU-04",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 95,
@@ -3031,7 +3161,8 @@ const dataStore = {
       "bed_number": "ICU-09",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
     },
     {
       "bed_id": 96,
@@ -3039,7 +3170,232 @@ const dataStore = {
       "bed_number": "ICU-10",
       "status": "AVAILABLE",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "ward_name": "ICU - 01"
+    },
+    {
+      "bed_id": 97,
+      "ward_id": 8,
+      "bed_number": "GENE-01",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 98,
+      "ward_id": 8,
+      "bed_number": "GENE-02",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 99,
+      "ward_id": 8,
+      "bed_number": "GENE-03",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 100,
+      "ward_id": 8,
+      "bed_number": "GENE-04",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 101,
+      "ward_id": 8,
+      "bed_number": "GENE-05",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 102,
+      "ward_id": 8,
+      "bed_number": "GENE-06",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 103,
+      "ward_id": 8,
+      "bed_number": "GENE-07",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 104,
+      "ward_id": 8,
+      "bed_number": "GENE-08",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 105,
+      "ward_id": 8,
+      "bed_number": "GENE-09",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 106,
+      "ward_id": 8,
+      "bed_number": "GENE-10",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 107,
+      "ward_id": 9,
+      "bed_number": "ICU-01",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 108,
+      "ward_id": 9,
+      "bed_number": "ICU-02",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 109,
+      "ward_id": 9,
+      "bed_number": "ICU-03",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 110,
+      "ward_id": 9,
+      "bed_number": "ICU-04",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 111,
+      "ward_id": 9,
+      "bed_number": "ICU-05",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 112,
+      "ward_id": 10,
+      "bed_number": "PRIV-01",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 113,
+      "ward_id": 10,
+      "bed_number": "PRIV-02",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 114,
+      "ward_id": 10,
+      "bed_number": "PRIV-03",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 115,
+      "ward_id": 10,
+      "bed_number": "PRIV-04",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 116,
+      "ward_id": 10,
+      "bed_number": "PRIV-05",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 117,
+      "ward_id": 10,
+      "bed_number": "PRIV-06",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 118,
+      "ward_id": 10,
+      "bed_number": "PRIV-07",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 119,
+      "ward_id": 10,
+      "bed_number": "PRIV-08",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 120,
+      "ward_id": 10,
+      "bed_number": "PRIV-09",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 121,
+      "ward_id": 10,
+      "bed_number": "PRIV-10",
+      "status": "AVAILABLE",
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "bed_id": 122,
+      "ward_id": 11,
+      "bed_number": "GENE-01",
+      "status": "AVAILABLE",
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "bed_id": 123,
+      "ward_id": 12,
+      "bed_number": "ICU-01",
+      "status": "AVAILABLE",
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "bed_id": 124,
+      "ward_id": 13,
+      "bed_number": "PRIV-01",
+      "status": "AVAILABLE",
+      "organization_id": 4,
+      "hospital_id": 5
     }
   ],
   "customRoles": [
@@ -3661,7 +4017,8 @@ const dataStore = {
       "phone": "8881112222",
       "email": "arjun.m@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Cardiology"
     },
     {
       "doctor_id": 402,
@@ -3670,7 +4027,8 @@ const dataStore = {
       "phone": "8883334444",
       "email": "sneha.r@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Neurology"
     },
     {
       "doctor_id": 403,
@@ -3679,7 +4037,8 @@ const dataStore = {
       "phone": "8885556666",
       "email": "priya.s@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Pediatrics"
     },
     {
       "doctor_id": 404,
@@ -3688,7 +4047,8 @@ const dataStore = {
       "phone": "8887778888",
       "email": "vikram.s@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Orthopedics"
     },
     {
       "doctor_id": 405,
@@ -3697,7 +4057,8 @@ const dataStore = {
       "phone": "8889990000",
       "email": "anjali.g@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Dermatology"
     },
     {
       "doctor_id": 406,
@@ -3706,7 +4067,8 @@ const dataStore = {
       "phone": "8881113333",
       "email": "rajesh.k@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Oncology"
     },
     {
       "doctor_id": 407,
@@ -3715,7 +4077,8 @@ const dataStore = {
       "phone": "8882224444",
       "email": "suresh.i@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Gastroenterology"
     },
     {
       "doctor_id": 408,
@@ -3724,7 +4087,8 @@ const dataStore = {
       "phone": "8883335555",
       "email": "meena.k@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Gynecology"
     },
     {
       "doctor_id": 409,
@@ -3733,7 +4097,8 @@ const dataStore = {
       "phone": "+91-8884440001",
       "email": "kavita.rao@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "General Medicine"
     },
     {
       "doctor_id": 410,
@@ -3742,7 +4107,8 @@ const dataStore = {
       "phone": "+91-8884440002",
       "email": "farhan.ahmed@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Surgery"
     },
     {
       "doctor_id": 411,
@@ -3751,7 +4117,8 @@ const dataStore = {
       "phone": "+91-8884440003",
       "email": "neha.joshi@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Critical Care"
     },
     {
       "doctor_id": 412,
@@ -3760,7 +4127,8 @@ const dataStore = {
       "phone": "+91-8884440004",
       "email": "rohan.kapoor@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Pulmonology"
     },
     {
       "doctor_id": 413,
@@ -3769,7 +4137,8 @@ const dataStore = {
       "phone": "+91-8884440005",
       "email": "ayesha.khan@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "ENT"
     },
     {
       "doctor_id": 414,
@@ -3778,7 +4147,8 @@ const dataStore = {
       "phone": "+91-8884440006",
       "email": "manoj.pillai@hosp.com",
       "organization_id": 1,
-      "hospital_id": 1
+      "hospital_id": 1,
+      "department": "Psychiatry"
     },
     {
       "doctor_id": 415,
@@ -3884,6 +4254,26 @@ const dataStore = {
       "phone": "+91-4000000001",
       "is_primary": false,
       "created_at": "2026-08-18T11:39:52.382Z"
+    },
+    {
+      "hospital_id": 4,
+      "organization_id": 3,
+      "name": "Apex Care Hospital — Main Campus",
+      "city": "Mumbai",
+      "address": null,
+      "phone": "+919876543210",
+      "is_primary": true,
+      "created_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "hospital_id": 5,
+      "organization_id": 4,
+      "name": "123Hamiz hospital — Main Campus",
+      "city": "Hyderabad",
+      "address": "Attapur ,pillar no : 150",
+      "phone": "+91 9999999999",
+      "is_primary": true,
+      "created_at": "2026-11-25T18:48:35.917Z"
     }
   ],
   "inventoryItems": [
@@ -4056,6 +4446,286 @@ const dataStore = {
       "service_id": 22,
       "organization_id": 1,
       "hospital_id": 1
+    },
+    {
+      "item_id": 36,
+      "item_name": "Paracetamol 500mg",
+      "category": "Medicine",
+      "stock_quantity": 1000,
+      "reorder_level": 200,
+      "service_id": 30,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 37,
+      "item_name": "Amoxicillin 500mg",
+      "category": "Medicine",
+      "stock_quantity": 500,
+      "reorder_level": 100,
+      "service_id": 30,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 38,
+      "item_name": "Insulin Vial",
+      "category": "Medicine",
+      "stock_quantity": 150,
+      "reorder_level": 40,
+      "service_id": 30,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 39,
+      "item_name": "IV Normal Saline 500ml",
+      "category": "Consumable",
+      "stock_quantity": 300,
+      "reorder_level": 60,
+      "service_id": 31,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 40,
+      "item_name": "IV Cannula Set",
+      "category": "Consumable",
+      "stock_quantity": 250,
+      "reorder_level": 60,
+      "service_id": 31,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 41,
+      "item_name": "Surgical Gloves (Box of 100)",
+      "category": "Consumable",
+      "stock_quantity": 200,
+      "reorder_level": 50,
+      "service_id": 32,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 42,
+      "item_name": "Syringe 5ml",
+      "category": "Consumable",
+      "stock_quantity": 500,
+      "reorder_level": 100,
+      "service_id": 32,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 43,
+      "item_name": "Catheter Set",
+      "category": "Consumable",
+      "stock_quantity": 120,
+      "reorder_level": 40,
+      "service_id": 32,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 44,
+      "item_name": "Gauze Roll",
+      "category": "Consumable",
+      "stock_quantity": 300,
+      "reorder_level": 75,
+      "service_id": 34,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 45,
+      "item_name": "N95 Mask",
+      "category": "Consumable",
+      "stock_quantity": 1000,
+      "reorder_level": 200,
+      "service_id": 32,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 46,
+      "item_name": "Oxygen Mask",
+      "category": "Consumable",
+      "stock_quantity": 200,
+      "reorder_level": 50,
+      "service_id": 33,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 47,
+      "item_name": "Digital Thermometer",
+      "category": "Equipment",
+      "stock_quantity": 30,
+      "reorder_level": 10,
+      "service_id": null,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 48,
+      "item_name": "Blood Pressure Monitor",
+      "category": "Equipment",
+      "stock_quantity": 20,
+      "reorder_level": 5,
+      "service_id": null,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 49,
+      "item_name": "Oxygen Cylinder",
+      "category": "Equipment",
+      "stock_quantity": 15,
+      "reorder_level": 5,
+      "service_id": null,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "item_id": 50,
+      "item_name": "Paracetamol 500mg",
+      "category": "Medicine",
+      "stock_quantity": 1000,
+      "reorder_level": 200,
+      "service_id": 49,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 51,
+      "item_name": "Amoxicillin 500mg",
+      "category": "Medicine",
+      "stock_quantity": 500,
+      "reorder_level": 100,
+      "service_id": 49,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 52,
+      "item_name": "Insulin Vial",
+      "category": "Medicine",
+      "stock_quantity": 150,
+      "reorder_level": 40,
+      "service_id": 49,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 53,
+      "item_name": "IV Normal Saline 500ml",
+      "category": "Consumable",
+      "stock_quantity": 300,
+      "reorder_level": 60,
+      "service_id": 50,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 54,
+      "item_name": "IV Cannula Set",
+      "category": "Consumable",
+      "stock_quantity": 250,
+      "reorder_level": 60,
+      "service_id": 50,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 55,
+      "item_name": "Surgical Gloves (Box of 100)",
+      "category": "Consumable",
+      "stock_quantity": 200,
+      "reorder_level": 50,
+      "service_id": 51,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 56,
+      "item_name": "Syringe 5ml",
+      "category": "Consumable",
+      "stock_quantity": 500,
+      "reorder_level": 100,
+      "service_id": 51,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 57,
+      "item_name": "Catheter Set",
+      "category": "Consumable",
+      "stock_quantity": 120,
+      "reorder_level": 40,
+      "service_id": 51,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 58,
+      "item_name": "Gauze Roll",
+      "category": "Consumable",
+      "stock_quantity": 300,
+      "reorder_level": 75,
+      "service_id": 53,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 59,
+      "item_name": "N95 Mask",
+      "category": "Consumable",
+      "stock_quantity": 1000,
+      "reorder_level": 200,
+      "service_id": 51,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 60,
+      "item_name": "Oxygen Mask",
+      "category": "Consumable",
+      "stock_quantity": 200,
+      "reorder_level": 50,
+      "service_id": 52,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 61,
+      "item_name": "Digital Thermometer",
+      "category": "Equipment",
+      "stock_quantity": 30,
+      "reorder_level": 10,
+      "service_id": null,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 62,
+      "item_name": "Blood Pressure Monitor",
+      "category": "Equipment",
+      "stock_quantity": 20,
+      "reorder_level": 5,
+      "service_id": null,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "item_id": 63,
+      "item_name": "Oxygen Cylinder",
+      "category": "Equipment",
+      "stock_quantity": 15,
+      "reorder_level": 5,
+      "service_id": null,
+      "organization_id": 4,
+      "hospital_id": 5
     }
   ],
   "leaders": [],
@@ -5023,7 +5693,7 @@ const dataStore = {
       "organization_id": 1,
       "module_code": "ADMISSIONS",
       "resource_code": "GENERAL_BEDS",
-      "quantity": 50,
+      "quantity": 52,
       "unit_price_at_purchase": 150,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
@@ -5031,49 +5701,225 @@ const dataStore = {
       "organization_id": 1,
       "module_code": "ADMISSIONS",
       "resource_code": "ICU_BEDS",
-      "quantity": 10,
+      "quantity": 16,
       "unit_price_at_purchase": 600,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
       "organization_id": 1,
-      "module_code": "ADMISSIONS",
-      "resource_code": "PRIVATE_BEDS",
-      "quantity": 20,
-      "unit_price_at_purchase": 400,
+      "module_code": "DOCTOR",
+      "resource_code": "DOCTOR_SEATS",
+      "quantity": 14,
+      "unit_price_at_purchase": 150,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
       "organization_id": 1,
       "module_code": "BILLING",
-      "resource_code": "BILLING_USERS",
-      "quantity": 5,
-      "unit_price_at_purchase": 350,
+      "resource_code": "STAFF_SEATS",
+      "quantity": 4,
+      "unit_price_at_purchase": 200,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "BILLING",
+      "resource_code": "BILLING_TERMINALS",
+      "quantity": 2,
+      "unit_price_at_purchase": 500,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
       "organization_id": 1,
       "module_code": "INVENTORY",
-      "resource_code": "STORAGE_UNITS",
-      "quantity": 3,
-      "unit_price_at_purchase": 200,
+      "resource_code": "WAREHOUSES",
+      "quantity": 1,
+      "unit_price_at_purchase": 1000,
+      "updated_at": "2026-08-18T11:39:52.251Z"
+    },
+    {
+      "organization_id": 1,
+      "module_code": "PATIENT",
+      "resource_code": "PATIENT_ADMISSIONS",
+      "quantity": 18,
+      "unit_price_at_purchase": 10,
       "updated_at": "2026-08-18T11:39:52.251Z"
     },
     {
       "organization_id": 2,
       "module_code": "ADMISSIONS",
-      "resource_code": "GENERAL_BEDS",
-      "quantity": 20,
+      "resource_code": "ICU_BEDS",
+      "quantity": 8,
+      "unit_price_at_purchase": 600,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "DOCTOR",
+      "resource_code": "DOCTOR_SEATS",
+      "quantity": 3,
       "unit_price_at_purchase": 150,
       "updated_at": "2026-08-18T11:39:52.322Z"
     },
     {
       "organization_id": 2,
+      "module_code": "BILLING",
+      "resource_code": "STAFF_SEATS",
+      "quantity": 3,
+      "unit_price_at_purchase": 200,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "BILLING",
+      "resource_code": "BILLING_TERMINALS",
+      "quantity": 1,
+      "unit_price_at_purchase": 500,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "INVENTORY",
+      "resource_code": "WAREHOUSES",
+      "quantity": 1,
+      "unit_price_at_purchase": 1000,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 2,
+      "module_code": "PATIENT",
+      "resource_code": "PATIENT_ADMISSIONS",
+      "quantity": 1,
+      "unit_price_at_purchase": 10,
+      "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 3,
+      "module_code": "ADMISSIONS",
+      "resource_code": "GENERAL_BEDS",
+      "quantity": 10,
+      "unit_price_at_purchase": 150,
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 3,
       "module_code": "ADMISSIONS",
       "resource_code": "ICU_BEDS",
-      "quantity": 4,
+      "quantity": 5,
       "unit_price_at_purchase": 600,
-      "updated_at": "2026-08-18T11:39:52.322Z"
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 3,
+      "module_code": "ADMISSIONS",
+      "resource_code": "PRIVATE_BEDS",
+      "quantity": 10,
+      "unit_price_at_purchase": 350,
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 3,
+      "module_code": "DOCTOR",
+      "resource_code": "DOCTOR_SEATS",
+      "quantity": 10,
+      "unit_price_at_purchase": 150,
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 3,
+      "module_code": "BILLING",
+      "resource_code": "BILLING_TERMINALS",
+      "quantity": 2,
+      "unit_price_at_purchase": 500,
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 3,
+      "module_code": "BILLING",
+      "resource_code": "STAFF_SEATS",
+      "quantity": 6,
+      "unit_price_at_purchase": 200,
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 3,
+      "module_code": "INVENTORY",
+      "resource_code": "WAREHOUSES",
+      "quantity": 1,
+      "unit_price_at_purchase": 1000,
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 3,
+      "module_code": "PATIENT",
+      "resource_code": "PATIENT_ADMISSIONS",
+      "quantity": 50,
+      "unit_price_at_purchase": 10,
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "ADMISSIONS",
+      "resource_code": "GENERAL_BEDS",
+      "quantity": 1,
+      "unit_price_at_purchase": 150,
+      "updated_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "ADMISSIONS",
+      "resource_code": "ICU_BEDS",
+      "quantity": 1,
+      "unit_price_at_purchase": 600,
+      "updated_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "ADMISSIONS",
+      "resource_code": "PRIVATE_BEDS",
+      "quantity": 1,
+      "unit_price_at_purchase": 350,
+      "updated_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "DOCTOR",
+      "resource_code": "DOCTOR_SEATS",
+      "quantity": 1,
+      "unit_price_at_purchase": 150,
+      "updated_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "BILLING",
+      "resource_code": "BILLING_TERMINALS",
+      "quantity": 1,
+      "unit_price_at_purchase": 500,
+      "updated_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "BILLING",
+      "resource_code": "STAFF_SEATS",
+      "quantity": 1,
+      "unit_price_at_purchase": 200,
+      "updated_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "INVENTORY",
+      "resource_code": "WAREHOUSES",
+      "quantity": 1,
+      "unit_price_at_purchase": 1000,
+      "updated_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "organization_id": 4,
+      "module_code": "PATIENT",
+      "resource_code": "PATIENT_ADMISSIONS",
+      "quantity": 1,
+      "unit_price_at_purchase": 10,
+      "updated_at": "2026-11-25T18:48:35.917Z"
     }
   ],
   "organizations": [
@@ -5127,6 +5973,52 @@ const dataStore = {
       "emergency_available": true,
       "created_at": "2026-08-18T11:39:52.322Z",
       "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "organization_id": 3,
+      "name": "Apex Care Hospital",
+      "slug": "apex-care-hospital",
+      "email_domain": "apexcaretest.com",
+      "status": "ACTIVE",
+      "branding": {
+        "initial": "A",
+        "primary_color": "#6750A4"
+      },
+      "contact": {
+        "phone": "+919876543210",
+        "email": "priya.admin@apexcaretest.com",
+        "address": null
+      },
+      "specialties": [
+        "General Medicine"
+      ],
+      "emergency_available": true,
+      "created_at": "2026-11-25T18:42:16.434Z",
+      "updated_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "organization_id": 4,
+      "name": "123Hamiz hospital",
+      "slug": "123hamiz-hospital",
+      "email_domain": "123hamiz.com",
+      "status": "ACTIVE",
+      "branding": {
+        "initial": "1",
+        "primary_color": "#6750A4"
+      },
+      "contact": {
+        "phone": "+91 9999999999",
+        "email": "hamiz.admin@123hamiz.com",
+        "address": "Attapur ,pillar no : 150"
+      },
+      "specialties": [
+        "cardiology",
+        "neurology",
+        "pediatrician"
+      ],
+      "emergency_available": true,
+      "created_at": "2026-11-25T18:48:35.917Z",
+      "updated_at": "2026-11-25T18:48:35.917Z"
     }
   ],
   "patientInsurances": [
@@ -5296,7 +6188,8 @@ const dataStore = {
       "emergency_contact_phone": "+91-9000011111",
       "organization_id": 1,
       "hospital_id": 1,
-      "created_at": "2026-08-17T17:19:41.441Z"
+      "created_at": "2026-08-17T17:19:41.441Z",
+      "email": "arjun.k@hosp.com"
     },
     {
       "patient_id": 202,
@@ -5312,7 +6205,8 @@ const dataStore = {
       "emergency_contact_phone": "+91-9888877777",
       "organization_id": 1,
       "hospital_id": 1,
-      "created_at": "2026-08-17T17:19:41.441Z"
+      "created_at": "2026-08-17T17:19:41.441Z",
+      "email": "priyanka.n@hosp.com"
     },
     {
       "patient_id": 203,
@@ -5328,7 +6222,8 @@ const dataStore = {
       "emergency_contact_phone": "+91-9988776600",
       "organization_id": 1,
       "hospital_id": 1,
-      "created_at": "2026-08-17T17:19:41.441Z"
+      "created_at": "2026-08-17T17:19:41.441Z",
+      "email": "rohan.m@hosp.com"
     },
     {
       "patient_id": 204,
@@ -5744,7 +6639,8 @@ const dataStore = {
       "emergency_contact_phone": "+91-9944556678",
       "organization_id": 2,
       "hospital_id": 2,
-      "created_at": "2026-08-18T11:39:52.504Z"
+      "created_at": "2026-08-18T11:39:52.504Z",
+      "email": "meera@apollo.hosp.com"
     }
   ],
   "payments": [
@@ -6639,6 +7535,166 @@ const dataStore = {
       "status": "DONE",
       "message": "API key generated",
       "created_at": "2026-08-18T11:39:52.382Z"
+    },
+    {
+      "id": 7,
+      "organization_id": 3,
+      "step": "CREATE_ORGANIZATION",
+      "status": "DONE",
+      "message": "Organization \"Apex Care Hospital\" created",
+      "created_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "id": 8,
+      "organization_id": 3,
+      "step": "GENERATE_CONFIGURATION",
+      "status": "DONE",
+      "message": "Primary hospital \"Apex Care Hospital — Main Campus\" created",
+      "created_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "id": 9,
+      "organization_id": 3,
+      "step": "ALLOCATE_QUOTAS",
+      "status": "DONE",
+      "message": "Subscribed to \"Usage-based\" — quotas allocated",
+      "created_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "id": 10,
+      "organization_id": 3,
+      "step": "RECORD_PAYMENT",
+      "status": "DONE",
+      "message": "Checkout recorded (card: PAY_FED_JS8PBMP)",
+      "created_at": "2026-11-25T18:42:16.434Z"
+    },
+    {
+      "id": 11,
+      "organization_id": 3,
+      "step": "ALLOCATE_RESOURCES",
+      "status": "DONE",
+      "message": "Resource entitlements: ADMISSIONS[GENERAL_BEDS:10, ICU_BEDS:5, PRIVATE_BEDS:10]  DOCTOR[DOCTOR_SEATS:10]  BILLING[BILLING_TERMINALS:2, STAFF_SEATS:6]  INVENTORY[WAREHOUSES:1]  PATIENT[PATIENT_ADMISSIONS:50]",
+      "created_at": "2026-11-25T18:42:16.435Z"
+    },
+    {
+      "id": 12,
+      "organization_id": 3,
+      "step": "CREATE_DEFAULT_ADMIN",
+      "status": "DONE",
+      "message": "Default admin account created (priya.admin@apexcaretest.com)",
+      "created_at": "2026-11-25T18:42:16.546Z"
+    },
+    {
+      "id": 13,
+      "organization_id": 3,
+      "step": "SEED_DEFAULT_WARDS",
+      "status": "DONE",
+      "message": "Seeded 3 ward(s) with 25 bed(s)",
+      "created_at": "2026-11-25T18:42:16.547Z"
+    },
+    {
+      "id": 14,
+      "organization_id": 3,
+      "step": "SEED_DEFAULT_SERVICES",
+      "status": "DONE",
+      "message": "Seeded 19 billable clinical services",
+      "created_at": "2026-11-25T18:42:16.547Z"
+    },
+    {
+      "id": 15,
+      "organization_id": 3,
+      "step": "SEED_DEFAULT_INVENTORY",
+      "status": "DONE",
+      "message": "Seeded 14 default inventory items (consumables linked to services)",
+      "created_at": "2026-11-25T18:42:16.547Z"
+    },
+    {
+      "id": 16,
+      "organization_id": 3,
+      "step": "GENERATE_API_KEY",
+      "status": "DONE",
+      "message": "API key generated",
+      "created_at": "2026-11-25T18:42:16.547Z"
+    },
+    {
+      "id": 17,
+      "organization_id": 4,
+      "step": "CREATE_ORGANIZATION",
+      "status": "DONE",
+      "message": "Organization \"123Hamiz hospital\" created",
+      "created_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "id": 18,
+      "organization_id": 4,
+      "step": "GENERATE_CONFIGURATION",
+      "status": "DONE",
+      "message": "Primary hospital \"123Hamiz hospital — Main Campus\" created",
+      "created_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "id": 19,
+      "organization_id": 4,
+      "step": "ALLOCATE_QUOTAS",
+      "status": "DONE",
+      "message": "Subscribed to \"Usage-based\" — quotas allocated",
+      "created_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "id": 20,
+      "organization_id": 4,
+      "step": "RECORD_PAYMENT",
+      "status": "DONE",
+      "message": "Checkout recorded (card: PAY_FED_ZF2WGAM)",
+      "created_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "id": 21,
+      "organization_id": 4,
+      "step": "ALLOCATE_RESOURCES",
+      "status": "DONE",
+      "message": "Resource entitlements: ADMISSIONS[GENERAL_BEDS:1, ICU_BEDS:1, PRIVATE_BEDS:1]  DOCTOR[DOCTOR_SEATS:1]  BILLING[BILLING_TERMINALS:1, STAFF_SEATS:1]  INVENTORY[WAREHOUSES:1]  PATIENT[PATIENT_ADMISSIONS:1]",
+      "created_at": "2026-11-25T18:48:35.917Z"
+    },
+    {
+      "id": 22,
+      "organization_id": 4,
+      "step": "CREATE_DEFAULT_ADMIN",
+      "status": "DONE",
+      "message": "Default admin account created (hamiz.admin@123hamiz.com)",
+      "created_at": "2026-11-25T18:48:36.005Z"
+    },
+    {
+      "id": 23,
+      "organization_id": 4,
+      "step": "SEED_DEFAULT_WARDS",
+      "status": "DONE",
+      "message": "Seeded 3 ward(s) with 3 bed(s)",
+      "created_at": "2026-11-25T18:48:36.006Z"
+    },
+    {
+      "id": 24,
+      "organization_id": 4,
+      "step": "SEED_DEFAULT_SERVICES",
+      "status": "DONE",
+      "message": "Seeded 19 billable clinical services",
+      "created_at": "2026-11-25T18:48:36.006Z"
+    },
+    {
+      "id": 25,
+      "organization_id": 4,
+      "step": "SEED_DEFAULT_INVENTORY",
+      "status": "DONE",
+      "message": "Seeded 14 default inventory items (consumables linked to services)",
+      "created_at": "2026-11-25T18:48:36.006Z"
+    },
+    {
+      "id": 26,
+      "organization_id": 4,
+      "step": "GENERATE_API_KEY",
+      "status": "DONE",
+      "message": "API key generated",
+      "created_at": "2026-11-25T18:48:36.006Z"
     }
   ],
   "purchaseRequests": [
@@ -6810,26 +7866,7 @@ const dataStore = {
       "hospital_id": 1
     }
   ],
-  "resourceQuotas": [
-    {
-      "organization_id": 1,
-      "max_beds": 100,
-      "max_users": 60,
-      "max_hospitals": 3,
-      "storage_gb": 100,
-      "api_rate_limit": 300,
-      "updated_at": "2026-08-18T11:39:52.250Z"
-    },
-    {
-      "organization_id": 2,
-      "max_beds": 25,
-      "max_users": 15,
-      "max_hospitals": 1,
-      "storage_gb": 10,
-      "api_rate_limit": 60,
-      "updated_at": "2026-08-18T11:39:52.322Z"
-    }
-  ],
+  "resourceQuotas": [],
   "rolePermissions": [
     {
       "custom_role_id": 1,
@@ -7033,6 +8070,310 @@ const dataStore = {
       "base_cost": 400,
       "organization_id": 2,
       "hospital_id": 2
+    },
+    {
+      "service_id": 26,
+      "service_name": "Consultation Fee",
+      "category": "Consultation",
+      "base_cost": 500,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 27,
+      "service_name": "Room Rent (per day)",
+      "category": "Accommodation",
+      "base_cost": 3000,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 28,
+      "service_name": "ICU Charges (per day)",
+      "category": "Accommodation",
+      "base_cost": 9500,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 29,
+      "service_name": "Nursing Care (per day)",
+      "category": "Nursing",
+      "base_cost": 1200,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 30,
+      "service_name": "Pharmacy / Medicines",
+      "category": "Pharmacy",
+      "base_cost": 300,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 31,
+      "service_name": "IV Fluids & Infusion",
+      "category": "Pharmacy",
+      "base_cost": 300,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 32,
+      "service_name": "Surgical Consumables",
+      "category": "Consumables",
+      "base_cost": 400,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 33,
+      "service_name": "Oxygen Supply (per hour)",
+      "category": "Consumables",
+      "base_cost": 250,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 34,
+      "service_name": "Dressing / Wound Care",
+      "category": "Procedure",
+      "base_cost": 350,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 35,
+      "service_name": "Minor Procedure",
+      "category": "Procedure",
+      "base_cost": 1500,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 36,
+      "service_name": "Blood Test / Pathology",
+      "category": "Diagnostics",
+      "base_cost": 400,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 37,
+      "service_name": "X-Ray",
+      "category": "Diagnostics",
+      "base_cost": 1500,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 38,
+      "service_name": "CT Scan",
+      "category": "Diagnostics",
+      "base_cost": 6000,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 39,
+      "service_name": "MRI Scan",
+      "category": "Diagnostics",
+      "base_cost": 12000,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 40,
+      "service_name": "ECG",
+      "category": "Diagnostics",
+      "base_cost": 900,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 41,
+      "service_name": "Ultrasound",
+      "category": "Diagnostics",
+      "base_cost": 1800,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 42,
+      "service_name": "Physiotherapy Session",
+      "category": "Therapy",
+      "base_cost": 900,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 43,
+      "service_name": "Dialysis Session",
+      "category": "Therapy",
+      "base_cost": 8000,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 44,
+      "service_name": "Ambulance Service",
+      "category": "Transport",
+      "base_cost": 2000,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "service_id": 45,
+      "service_name": "Consultation Fee",
+      "category": "Consultation",
+      "base_cost": 500,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 46,
+      "service_name": "Room Rent (per day)",
+      "category": "Accommodation",
+      "base_cost": 3000,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 47,
+      "service_name": "ICU Charges (per day)",
+      "category": "Accommodation",
+      "base_cost": 9500,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 48,
+      "service_name": "Nursing Care (per day)",
+      "category": "Nursing",
+      "base_cost": 1200,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 49,
+      "service_name": "Pharmacy / Medicines",
+      "category": "Pharmacy",
+      "base_cost": 300,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 50,
+      "service_name": "IV Fluids & Infusion",
+      "category": "Pharmacy",
+      "base_cost": 300,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 51,
+      "service_name": "Surgical Consumables",
+      "category": "Consumables",
+      "base_cost": 400,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 52,
+      "service_name": "Oxygen Supply (per hour)",
+      "category": "Consumables",
+      "base_cost": 250,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 53,
+      "service_name": "Dressing / Wound Care",
+      "category": "Procedure",
+      "base_cost": 350,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 54,
+      "service_name": "Minor Procedure",
+      "category": "Procedure",
+      "base_cost": 1500,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 55,
+      "service_name": "Blood Test / Pathology",
+      "category": "Diagnostics",
+      "base_cost": 400,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 56,
+      "service_name": "X-Ray",
+      "category": "Diagnostics",
+      "base_cost": 1500,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 57,
+      "service_name": "CT Scan",
+      "category": "Diagnostics",
+      "base_cost": 6000,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 58,
+      "service_name": "MRI Scan",
+      "category": "Diagnostics",
+      "base_cost": 12000,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 59,
+      "service_name": "ECG",
+      "category": "Diagnostics",
+      "base_cost": 900,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 60,
+      "service_name": "Ultrasound",
+      "category": "Diagnostics",
+      "base_cost": 1800,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 61,
+      "service_name": "Physiotherapy Session",
+      "category": "Therapy",
+      "base_cost": 900,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 62,
+      "service_name": "Dialysis Session",
+      "category": "Therapy",
+      "base_cost": 8000,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "service_id": 63,
+      "service_name": "Ambulance Service",
+      "category": "Transport",
+      "base_cost": 2000,
+      "organization_id": 4,
+      "hospital_id": 5
     }
   ],
   "staffRoleAssignments": [
@@ -7084,6 +8425,34 @@ const dataStore = {
       "started_at": "2026-08-18T11:39:52.322Z",
       "renews_at": "2026-09-18T11:39:52.322Z",
       "updated_at": "2026-08-18T11:39:52.322Z"
+    },
+    {
+      "subscription_id": 3,
+      "organization_id": 3,
+      "plan_id": 1,
+      "status": "ACTIVE",
+      "started_at": "2026-11-25T18:42:16.434Z",
+      "renews_at": "2026-12-25T18:42:16.434Z",
+      "updated_at": "2026-11-25T18:42:16.434Z",
+      "payment_reference": "PAY_FED_JS8PBMP",
+      "payment_method": "card",
+      "payment_summary": {
+        "last4": "4242"
+      }
+    },
+    {
+      "subscription_id": 4,
+      "organization_id": 4,
+      "plan_id": 1,
+      "status": "ACTIVE",
+      "started_at": "2026-11-25T18:48:35.917Z",
+      "renews_at": "2026-12-25T18:48:35.917Z",
+      "updated_at": "2026-11-25T18:48:35.917Z",
+      "payment_reference": "PAY_FED_ZF2WGAM",
+      "payment_method": "card",
+      "payment_summary": {
+        "last4": "4242"
+      }
     }
   ],
   "users": [
@@ -7229,6 +8598,28 @@ const dataStore = {
       "created_at": "2026-08-18T11:39:52.700Z",
       "organization_id": 2,
       "hospital_id": 2
+    },
+    {
+      "user_id": 114,
+      "name": "Dr. Priya Nair",
+      "email": "priya.admin@apexcaretest.com",
+      "password_hash": "$2a$10$op9GTjFDw6WD908U/XPQEeymZwwNGiUN/LXNoSbquEnSQAnxgkSc2",
+      "demo_password": "Password@123",
+      "role_id": 5,
+      "organization_id": 3,
+      "hospital_id": 4,
+      "created_at": "2026-11-25T18:42:16.545Z"
+    },
+    {
+      "user_id": 115,
+      "name": "Shams bukhari",
+      "email": "hamiz.admin@123hamiz.com",
+      "password_hash": "$2a$10$jU23TtHkz9Y9LcLmNX1rC.Uo/8zbRzB8eA5gnJxQX/m8GVsqHVKJO",
+      "demo_password": "2TxHhh@h2jCr",
+      "role_id": 5,
+      "organization_id": 4,
+      "hospital_id": 5,
+      "created_at": "2026-11-25T18:48:36.005Z"
     }
   ],
   "wards": [
@@ -7287,6 +8678,54 @@ const dataStore = {
       "description": "Apollo Chennai — Cardiac Care Unit",
       "organization_id": 2,
       "hospital_id": 2
+    },
+    {
+      "ward_id": 8,
+      "ward_name": "General Ward",
+      "description": "General Medicine — configured capacity",
+      "total_beds": 10,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "ward_id": 9,
+      "ward_name": "ICU",
+      "description": "Critical Care — configured capacity",
+      "total_beds": 5,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "ward_id": 10,
+      "ward_name": "Private / Semi-Private Ward",
+      "description": "Private & Semi-Private — configured capacity",
+      "total_beds": 10,
+      "organization_id": 3,
+      "hospital_id": 4
+    },
+    {
+      "ward_id": 11,
+      "ward_name": "General Ward",
+      "description": "General Medicine — configured capacity",
+      "total_beds": 1,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "ward_id": 12,
+      "ward_name": "ICU",
+      "description": "Critical Care — configured capacity",
+      "total_beds": 1,
+      "organization_id": 4,
+      "hospital_id": 5
+    },
+    {
+      "ward_id": 13,
+      "ward_name": "Private / Semi-Private Ward",
+      "description": "Private & Semi-Private — configured capacity",
+      "total_beds": 1,
+      "organization_id": 4,
+      "hospital_id": 5
     }
   ]
 };

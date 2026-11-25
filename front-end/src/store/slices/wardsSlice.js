@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { wards } from '../../api/endpoints/wards.js';
 import { addReadCases, addWriteCases, apiThunk, removeByKey, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 export const fetchWards = apiThunk('wards/fetchAll', () => wards.list(), 'Failed to load wards');
 export const createWard = apiThunk('wards/create', (payload) => wards.create(payload), 'Failed to create ward');
@@ -112,6 +113,10 @@ const wardsSlice = createSlice({
     });
     addWriteCases(builder, denyBedRequest, (state, action) => {
       upsertByKey(state.bedRequests, 'bed_request_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.wards)) state.items = action.payload.wards;
+      if (Array.isArray(action.payload?.beds)) state.beds = action.payload.beds;
     });
   },
 });

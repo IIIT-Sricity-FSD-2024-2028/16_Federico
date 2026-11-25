@@ -66,21 +66,34 @@ function toPublicUser(user) {
  * re-skin itself for this organization, returned alongside every login/
  * signup/me response so no separate round-trip is needed to boot the app.
  */
-function tenantContextFor(user) {
-  const organization = organizationService.findById(user.organization_id);
+function tenantContextForOrg(organizationId, hospitalId = null) {
+  const organization = organizationService.findById(organizationId);
   if (!organization) return null;
+  const branches = organizationService.hospitalsFor(organization.organization_id);
+  const branch =
+    (hospitalId != null
+      ? branches.find((h) => Number(h.hospital_id) === Number(hospitalId))
+      : null) ||
+    organizationService.primaryHospitalFor(organization.organization_id);
   const entitlements = entitlementService.entitlementsFor(
     organization.organization_id,
   );
   return {
     organization_id: organization.organization_id,
-    hospital_id: user.hospital_id || null,
+    hospital_id: (branch && branch.hospital_id) || hospitalId || null,
+    hospital_name: (branch && branch.name) || `${organization.name} — Main Campus`,
+    city: (branch && branch.city) || null,
+    branch_count: branches.length || 1,
     organization_name: organization.name,
     email_domain: organization.email_domain || null,
     branding: organization.branding,
     specialties: organization.specialties || [],
     resources: entitlements.resources,
   };
+}
+
+function tenantContextFor(user) {
+  return tenantContextForOrg(user.organization_id, user.hospital_id);
 }
 
 /**
@@ -420,6 +433,7 @@ module.exports = {
   isReservedStaffEmail,
   roleNameFor,
   tenantContextFor,
+  tenantContextForOrg,
   getDemoAccounts,
   changePassword,
   toPublicUser,

@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { platform } from '../../api/endpoints/platform.js';
 import { addReadCases, addWriteCases, apiThunk, removeByKey, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 /* --------------------------- platform auth realm --------------------------- */
 // Platform sign-in itself is part of authSlice.authenticate (it shares the
@@ -309,6 +310,9 @@ const platformSlice = createSlice({
     // page's own draft, exactly as before.
     addWriteCases(builder, updateRates);
     addWriteCases(builder, platformLogout);
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (action.payload?.rates) state.rates = action.payload.rates;
+    });
   },
 });
 

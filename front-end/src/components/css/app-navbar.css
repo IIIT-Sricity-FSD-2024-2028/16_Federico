@@ -88,19 +88,32 @@
 .app-navbar-links {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
-  justify-content: center;
+  min-width: 0;
   list-style: none;
   margin: 0;
   padding: 0;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.app-navbar-links::-webkit-scrollbar {
+  display: none;
+}
+
+.app-navbar-links > li:first-child {
+  margin-left: auto;
+}
+
+.app-navbar-links > li:last-child {
+  margin-right: auto;
 }
 
 .app-navbar-link {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 7px 10px;
   border-radius: var(--radius-full, 999px);
   font-size: 13px;
   font-weight: 500;

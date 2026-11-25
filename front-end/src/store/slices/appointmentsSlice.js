@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { appointments } from '../../api/endpoints/appointments.js';
 import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 // The backend has no DELETE /appointment; cancelling is a status update, which
 // stays an update.
@@ -27,6 +28,9 @@ const appointmentsSlice = createSlice({
     });
     addWriteCases(builder, updateAppointment, (state, action) => {
       upsertByKey(state.items, 'appointment_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.appointments)) state.items = action.payload.appointments;
     });
   },
 });

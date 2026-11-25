@@ -30,6 +30,7 @@ export const registerOrganization = apiThunk(
         actor: 'Admin',
         role: 'ORG_ADMIN',
         userId: sess.user ? sess.user.user_id : null,
+        name: sess.user ? sess.user.name : payload.admin_name,
         displayName: sess.user ? sess.user.name : payload.admin_name,
         email: sess.user ? sess.user.email : payload.admin_email,
         tenant: sess.tenant || null,

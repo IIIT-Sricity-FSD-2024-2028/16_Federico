@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { admissions } from '../../api/endpoints/admissions.js';
 import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 // The backend has no DELETE /admission.
 export const fetchAdmissions = apiThunk(
@@ -42,6 +43,9 @@ const admissionsSlice = createSlice({
     });
     addWriteCases(builder, updateAdmission, (state, action) => {
       upsertByKey(state.items, 'admission_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.admissions)) state.items = action.payload.admissions;
     });
   },
 });

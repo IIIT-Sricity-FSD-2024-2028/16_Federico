@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { preRequests } from '../../api/endpoints/preRequests.js';
 import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 // The backend has no DELETE /pre-requests; rejecting / cancelling / discharging
 // are status updates and stay updates.
@@ -51,6 +52,9 @@ const preRequestsSlice = createSlice({
     });
     addWriteCases(builder, checkInPreRequest, (state, action) => {
       upsertByKey(state.items, 'pre_request_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.preRequests)) state.items = action.payload.preRequests;
     });
   },
 });

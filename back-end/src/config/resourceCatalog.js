@@ -26,27 +26,20 @@ const RESOURCE_CATALOG = {
   ADMISSIONS: [
     { code: 'GENERAL_BEDS', name: 'General Ward Beds', unit: 'bed', unit_price: 150, default_qty: 0 },
     { code: 'ICU_BEDS', name: 'ICU Beds', unit: 'bed', unit_price: 600, default_qty: 0 },
-    { code: 'PRIVATE_BEDS', name: 'Private Beds', unit: 'bed', unit_price: 350, default_qty: 0 },
-    { code: 'SEMI_PRIVATE_BEDS', name: 'Semi-Private Beds', unit: 'bed', unit_price: 350, default_qty: 0 },
+    { code: 'PRIVATE_BEDS', name: 'Private / Semi-Private Beds', unit: 'bed', unit_price: 350, default_qty: 0 },
   ],
   INVENTORY: [
-    { code: 'WAREHOUSES', name: 'Inventory Warehouses', unit: 'warehouse', unit_price: 1000, default_qty: 0 },
-    { code: 'STORAGE_UNITS', name: 'Storage Units', unit: 'unit', unit_price: 200, default_qty: 0 },
-    { code: 'INVENTORY_USERS', name: 'Inventory Staff Seats', unit: 'seat', unit_price: 200, default_qty: 0 },
+    { code: 'WAREHOUSES', name: 'Central Warehouses', unit: 'warehouse', unit_price: 1000, default_qty: 0 },
   ],
   BILLING: [
     { code: 'BILLING_TERMINALS', name: 'Billing Terminals', unit: 'terminal', unit_price: 500, default_qty: 0 },
     { code: 'STAFF_SEATS', name: 'Staff Accounts (HOM/PRE/FA)', unit: 'seat', unit_price: 200, default_qty: 0 },
-    { code: 'BILLING_USERS', name: 'Billing Users', unit: 'seat', unit_price: 200, default_qty: 0 },
   ],
   DOCTOR: [
     { code: 'DOCTOR_SEATS', name: 'Doctor Directory Seats', unit: 'doctor', unit_price: 150, default_qty: 0 },
   ],
   PATIENT: [
     { code: 'PATIENT_ADMISSIONS', name: 'Patient Admission Volume', unit: 'admission', unit_price: 10, default_qty: 0 },
-  ],
-  APPOINTMENTS: [
-    { code: 'BOOKING_CHANNELS', name: 'Online Booking Channels', unit: 'channel', unit_price: 400, default_qty: 0 },
   ],
 };
 

@@ -55,15 +55,15 @@ describe('Entitlement enforcement (module + resource)', () => {
     expect(res.body.modules).toBeDefined();
     expect(res.body.modules.BILLING).toBe(true);
     expect(res.body.modules.LEADERSHIP).toBe(true);
-    expect(res.body.resources.ADMISSIONS.ICU_BEDS).toBe(10);
+    expect(res.body.resources.ADMISSIONS.ICU_BEDS).toBe(16);
   });
 
   it('assertResourceWithin throws 403 over the purchased quantity', () => {
     expect(() =>
-      entitlementService.assertResourceWithin(1, 'ADMISSIONS', 'ICU_BEDS', 11),
+      entitlementService.assertResourceWithin(1, 'ADMISSIONS', 'ICU_BEDS', 17),
     ).toThrow(/Resource limit reached/);
     expect(() =>
-      entitlementService.assertResourceWithin(1, 'ADMISSIONS', 'ICU_BEDS', 10),
+      entitlementService.assertResourceWithin(1, 'ADMISSIONS', 'ICU_BEDS', 16),
     ).not.toThrow();
   });
 

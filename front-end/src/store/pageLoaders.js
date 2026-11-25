@@ -1,6 +1,7 @@
 'use strict';
 
 import { createLoader, must, soft } from './loaders.js';
+import { fetchAdminDashboard } from './adminThunks.js';
 import { selectBillingOverview } from '../pages/fa/faHelpers.js';
 import { fetchDemoAccounts } from './slices/authSlice.js';
 import { fetchMarketplaceOrganizations } from './slices/marketplaceSlice.js';
@@ -11,7 +12,6 @@ import {
   fetchLedgers,
   fetchLedgerEntries,
   fetchLeaders,
-  fetchPayments,
   fetchReceipts,
   fetchServices,
 } from './slices/billingSlice.js';
@@ -47,25 +47,9 @@ export const loadOrgSignup = createLoader('orgSignup', async (_arg, { dispatch }
 
 /* ----------------------------------- admin ------------------------------------ */
 
-/** Admin dashboard: thirteen reads, each tolerant of failure, then every ledger's entries for its total. */
-export const loadAdminDashboard = createLoader('adminDashboard', async (_arg, { dispatch, getState }) => {
-  await Promise.all([
-    soft(dispatch(fetchWards())),
-    soft(dispatch(fetchBeds())),
-    soft(dispatch(fetchPatients())),
-    soft(dispatch(fetchLedgers())),
-    soft(dispatch(fetchInventoryItems())),
-    soft(dispatch(fetchStaff())),
-    soft(dispatch(fetchPayments())),
-    soft(dispatch(fetchAdmissions())),
-    soft(dispatch(fetchPreRequests())),
-    soft(dispatch(fetchAppointments())),
-    soft(dispatch(fetchDoctors())),
-    soft(dispatch(fetchRates())),
-    soft(dispatch(fetchActivityLog())),
-  ]);
-  const ledgers = getState().billing.ledgers;
-  await Promise.all(ledgers.map((ledger) => soft(dispatch(fetchLedgerEntries(ledger.ledger_id)))));
+/** Admin dashboard: single consolidated org-scoped snapshot eliminating N+1 ledger entry waterfalls. */
+export const loadAdminDashboard = createLoader('adminDashboard', async (_arg, { dispatch }) => {
+  await must(dispatch(fetchAdminDashboard()));
 });
 
 /** Admin departments: wards and beds; a failure of either fails the load. */

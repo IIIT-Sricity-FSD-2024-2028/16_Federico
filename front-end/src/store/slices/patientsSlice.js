@@ -10,6 +10,7 @@ import { preRequests } from '../../api/endpoints/preRequests.js';
 import { appointments } from '../../api/endpoints/appointments.js';
 import { shapePatientStoreData } from '../../pages/patient/patientStoreShape.js';
 import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 import { createPreRequest, updatePreRequest } from './preRequestsSlice.js';
 import { createPayment } from './billingSlice.js';
 
@@ -343,6 +344,9 @@ const patientsSlice = createSlice({
     addWriteCases(builder, updatePortalProfile);
     addWriteCases(builder, updatePortalInsurance);
     addWriteCases(builder, payPortalBill);
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.patients)) state.items = action.payload.patients;
+    });
   },
 });
 

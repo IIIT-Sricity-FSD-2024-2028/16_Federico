@@ -392,9 +392,6 @@ export default function PlatformDashboardPage() {
         return acc;
       }, {}),
     };
-    // The legacy page also mirrored the private-bed rate into
-    // SEMI_PRIVATE_BEDS, which has no input of its own.
-    payload.rates.SEMI_PRIVATE_BEDS = Number(rates.PRIVATE_BEDS) || 350;
 
     try {
       await dispatch(updateRates(payload)).unwrap();

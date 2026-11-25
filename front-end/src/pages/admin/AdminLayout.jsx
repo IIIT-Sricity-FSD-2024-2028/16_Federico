@@ -20,12 +20,22 @@ const LINKS = [
 
 export default function AdminLayout() {
   usePageStyles(adminCss);
-  const { tenant } = useSession();
+  const { session, tenant } = useSession();
+  const brandName = tenant?.organization_name || 'Federico';
+  const brandInitial = tenant?.branding?.initial || brandName.charAt(0).toUpperCase() || 'F';
+  const hospitalName = tenant?.hospital_name || tenant?.city || 'Main Campus';
+
   return (
     <>
       <AppNavbar
         roleName="Admin"
-        brandName={tenant?.organization_name || 'Federico'}
+        brandName={brandName}
+        brandInitial={brandInitial}
+        hospitalName={hospitalName}
+        userProfile={{
+          name: session?.displayName || session?.name || 'Admin',
+          subtitle: 'Admin',
+        }}
         links={LINKS}
       />
       <Outlet />

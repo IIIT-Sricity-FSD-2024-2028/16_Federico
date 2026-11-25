@@ -124,6 +124,84 @@ describe('services/provisioning.service', () => {
     );
     expect(resources.ADMISSIONS.GENERAL_BEDS).toBe(30);
     expect(resources.ADMISSIONS.ICU_BEDS).toBe(5);
+
+    const seededWards = dataStore.wards.filter(
+      (w) => w.organization_id === result.organization.organization_id,
+    );
+    expect(seededWards.map((w) => ({ name: w.ward_name, total_beds: w.total_beds }))).toEqual([
+      { name: 'General Ward', total_beds: 30 },
+      { name: 'ICU', total_beds: 5 },
+    ]);
+    const seededBeds = dataStore.beds.filter(
+      (b) => b.organization_id === result.organization.organization_id,
+    );
+    expect(seededBeds).toHaveLength(35);
+  });
+
+  it('provision() with 1 bed each creates exact 1-bed wards (no 8-bed ICU default)', async () => {
+    const plan = planService.create({
+      name: 'Provisioning Exact Scale Plan',
+      max_beds: 25,
+      max_users: 10,
+      max_hospitals: 1,
+      storage_gb: 10,
+      api_rate_limit: 60,
+      price_monthly: 1000,
+    });
+
+    const result = provisioningService.provision({
+      name: 'Exact Scale Hospital',
+      admin_name: 'Exact Admin',
+      email_domain: 'exactscale.example',
+      admin_email: 'exact.admin@exactscale.example',
+      admin_password: 'ExactAdmin@123',
+      plan_id: plan.plan_id,
+      module_resources: {
+        ADMISSIONS: { GENERAL_BEDS: 1, ICU_BEDS: 1, PRIVATE_BEDS: 1 },
+        DOCTOR: { DOCTOR_SEATS: 1 },
+        BILLING: { BILLING_TERMINALS: 1, STAFF_SEATS: 1 },
+        INVENTORY: { WAREHOUSES: 1 },
+        PATIENT: { PATIENT_ADMISSIONS: 1 },
+      },
+    });
+
+    const seededWards = dataStore.wards.filter(
+      (w) => w.organization_id === result.organization.organization_id,
+    );
+    expect(seededWards).toHaveLength(3);
+    expect(seededWards.find((w) => w.ward_name === 'ICU').total_beds).toBe(1);
+    expect(seededWards.find((w) => w.ward_name === 'General Ward').total_beds).toBe(1);
+    expect(seededWards.find((w) => w.ward_name === 'Private / Semi-Private Ward').total_beds).toBe(1);
+
+    const seededBeds = dataStore.beds.filter(
+      (b) => b.organization_id === result.organization.organization_id,
+    );
+    expect(seededBeds).toHaveLength(3);
+
+    const request = require('supertest');
+    const { createApp } = require('../app');
+    const { createSession } = require('../store/sessionStore');
+    const app = createApp();
+    const token = createSession({
+      userId: result.admin.user_id,
+      role: 'Admin',
+      organizationId: result.organization.organization_id,
+      hospitalId: result.hospital.hospital_id,
+    });
+    const dashRes = await request(app)
+      .get('/data/admin-dashboard')
+      .set('Authorization', `Bearer ${token}`);
+    expect(dashRes.status).toBe(200);
+    expect(dashRes.body.tenant.hospital_name).toBe(result.hospital.name);
+    expect(dashRes.body.tenant.branch_count).toBe(1);
+    expect(dashRes.body.wards).toHaveLength(3);
+    expect(dashRes.body.beds).toHaveLength(3);
+    expect(dashRes.body.summary).toEqual({
+      totalRevenue: 0,
+      collected: 0,
+      outstandingBalance: 0,
+      collectionRate: 0,
+    });
   });
 
   it('provision() with an unknown plan returns an error and creates nothing', () => {

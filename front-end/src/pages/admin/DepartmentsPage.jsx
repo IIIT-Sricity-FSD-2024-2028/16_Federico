@@ -50,7 +50,7 @@ export default function DepartmentsPage() {
     <main className="dashboard-container">
       <PageHeader
         title="Departments & Wards"
-        subtitle="Add, resize, or remove the wards patients get admitted into. Every hospital starts with 6 standard departments — adjust the list to fit yours."
+        subtitle="Add, resize, or remove the clinical wards patients get admitted into. Initial wards are provisioned from your organization's capacity setup."
         actions={
           <Button variant="primary" id="new-ward-btn" onClick={() => setEditingWard(null)}>
             + Add Ward

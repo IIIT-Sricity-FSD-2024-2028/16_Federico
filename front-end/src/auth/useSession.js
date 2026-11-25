@@ -21,9 +21,10 @@ export function useSession() {
   const dispatch = useAppDispatch();
   const store = useAppStore();
   const session = useAppSelector(selectSession);
+  const me = useAppSelector((state) => state.auth.me);
   const lastAuthError = useAppSelector(selectLastAuthError);
 
-  const tenant = (session && session.tenant) || null;
+  const tenant = (me && me.tenant) || (session && session.tenant) || null;
   const actor = (session && session.actor) || '';
 
   /**

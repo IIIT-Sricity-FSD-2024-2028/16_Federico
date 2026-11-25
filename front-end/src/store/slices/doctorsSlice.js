@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { doctors } from '../../api/endpoints/doctors.js';
 import { addReadCases, addWriteCases, apiThunk, removeByKey, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 export const fetchDoctors = apiThunk('doctors/fetchAll', () => doctors.list(), 'Failed to load doctors');
 export const fetchDoctor = apiThunk('doctors/fetchOne', (id) => doctors.get(id), 'Failed to load doctor');
@@ -86,6 +87,9 @@ const doctorsSlice = createSlice({
     });
     addWriteCases(builder, deleteAvailability, (state, action) => {
       state.availabilities = removeByKey(state.availabilities, 'availability_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.doctors)) state.items = action.payload.doctors;
     });
   },
 });

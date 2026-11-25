@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { activityLog } from '../../api/endpoints/activity.js';
 import { addReadCases, apiThunk } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 // The activity log is read-only on the backend.
 export const fetchActivityLog = apiThunk(
@@ -18,6 +19,9 @@ const activitySlice = createSlice({
   extraReducers: (builder) => {
     addReadCases(builder, fetchActivityLog, (state, action) => {
       state.items = Array.isArray(action.payload) ? action.payload : [];
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.activityLog)) state.items = action.payload.activityLog;
     });
   },
 });

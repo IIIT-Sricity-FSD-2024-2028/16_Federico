@@ -6,6 +6,7 @@ import { platform } from '../../api/endpoints/platform.js';
 import { getSnapshot, setSession } from '../../api/session.js';
 import { getProfile } from '../../lib/roleProfiles.js';
 import { apiThunk, errorMessage } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 /**
  * Session / authentication state (was SessionContext). The token itself stays
@@ -155,6 +156,12 @@ const authSlice = createSlice({
   reducers: {
     /** Mirror of api/session.js after any setSession / clearSession / broadcast logout. */
     sessionSynced(state, action) {
+      const prevToken = state.session ? state.session.token : null;
+      const nextToken = action.payload ? action.payload.token : null;
+      if (prevToken !== nextToken) {
+        state.me = null;
+        state.entitlements = null;
+      }
       state.session = action.payload || null;
     },
   },
@@ -194,6 +201,11 @@ const authSlice = createSlice({
       })
       .addCase(fetchDemoAccounts.fulfilled, (state, action) => {
         state.demoAccounts = action.payload || null;
+      })
+      .addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+        if (action.payload && action.payload.tenant) {
+          state.me = { ...(state.me || {}), tenant: action.payload.tenant };
+        }
       });
   },
 });

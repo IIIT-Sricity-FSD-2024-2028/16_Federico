@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { rbac } from '../../api/endpoints/rbac.js';
 import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 export const fetchStaff = apiThunk('rbac/fetchStaff', () => rbac.staff(), 'Failed to load staff');
 export const createStaff = apiThunk('rbac/createStaff', (payload) => rbac.createStaff(payload), 'Failed to create staff');
@@ -33,6 +34,9 @@ const rbacSlice = createSlice({
     });
     addWriteCases(builder, setStaffRole, (state, action) => {
       upsertByKey(state.staff, 'user_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.staff)) state.staff = action.payload.staff;
     });
   },
 });

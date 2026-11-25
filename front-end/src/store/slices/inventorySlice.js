@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { inventory } from '../../api/endpoints/inventory.js';
 import { addReadCases, addWriteCases, apiThunk, removeByKey, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 export const fetchInventoryItems = apiThunk(
   'inventory/fetchItems',
@@ -70,6 +71,9 @@ const inventorySlice = createSlice({
     });
     addWriteCases(builder, updatePurchaseRequest, (state, action) => {
       upsertByKey(state.requests, 'request_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.inventoryItems)) state.items = action.payload.inventoryItems;
     });
   },
 });

@@ -3,6 +3,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { billing } from '../../api/endpoints/billing.js';
 import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { fetchAdminDashboard } from '../adminThunks.js';
 
 /* ------------------------------ services ------------------------------ */
 // The backend has no update/delete for services, ledgers, payments, receipts,
@@ -202,6 +203,10 @@ const billingSlice = createSlice({
     });
     addWriteCases(builder, approveLeader, (state, action) => {
       upsertByKey(state.leaders, 'leader_id', action.payload);
+    });
+    builder.addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload?.ledgers)) state.ledgers = action.payload.ledgers;
+      if (Array.isArray(action.payload?.payments)) state.payments = action.payload.payments;
     });
   },
 });
