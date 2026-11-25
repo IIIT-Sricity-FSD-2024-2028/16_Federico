@@ -10,9 +10,13 @@ import authReducer, { sessionSynced } from './slices/authSlice.js';
 import billingReducer from './slices/billingSlice.js';
 import doctorsReducer from './slices/doctorsSlice.js';
 import inventoryReducer from './slices/inventorySlice.js';
+import marketplaceReducer from './slices/marketplaceSlice.js';
 import patientsReducer from './slices/patientsSlice.js';
+import platformReducer from './slices/platformSlice.js';
 import preRequestsReducer from './slices/preRequestsSlice.js';
+import rbacReducer from './slices/rbacSlice.js';
 import uploadsReducer, {
+  uploadBranding,
   uploadDocument,
   uploadInventoryInvoice,
 } from './slices/uploadsSlice.js';
@@ -27,8 +31,11 @@ const appReducer = combineReducers({
   billing: billingReducer,
   doctors: doctorsReducer,
   inventory: inventoryReducer,
+  marketplace: marketplaceReducer,
   patients: patientsReducer,
+  platform: platformReducer,
   preRequests: preRequestsReducer,
+  rbac: rbacReducer,
   uploads: uploadsReducer,
   wards: wardsReducer,
   ui: uiReducer,
@@ -39,7 +46,7 @@ const appReducer = combineReducers({
  * vanish with its component, so nothing leaked between logins; the store
  * outlives components, so whenever the session's token changes (login, logout,
  * 401, broadcast logout) every domain slice is reset to its initial state.
- * auth (the new session) and ui (mounted forms) stay.
+ * auth (the new session) and ui (toasts, open dialogs, mounted forms) stay.
  */
 function rootReducer(state, action) {
   if (state && action.type === sessionSynced.type) {
@@ -55,7 +62,7 @@ function rootReducer(state, action) {
 // A File handed to an upload thunk travels in that thunk's action (meta.arg) so
 // the existing uploads API can send it; it is never written to state. Those
 // action types are exempted from the serializable-value dev check.
-const UPLOAD_ACTION_TYPES = [uploadDocument, uploadInventoryInvoice].flatMap((thunk) => [
+const UPLOAD_ACTION_TYPES = [uploadDocument, uploadBranding, uploadInventoryInvoice].flatMap((thunk) => [
   thunk.pending.type,
   thunk.fulfilled.type,
   thunk.rejected.type,
