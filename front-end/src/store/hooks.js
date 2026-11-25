@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
-import { clearUiField, setUiField } from './slices/uiSlice.js';
+import { clearLoad, clearUiField, setUiField } from './slices/uiSlice.js';
 
 export const useAppDispatch = useDispatch;
 export const useAppSelector = useSelector;
@@ -57,4 +57,35 @@ export function useUiState(name, initialValue) {
   }, [dispatch, key]);
 
   return [value, set];
+}
+
+/**
+ * Dispatches a page loader (store/loaders.js) on mount and whenever `deps`
+ * change, and reports its status from state.ui.loads. `loading` is true until
+ * the first load has been started and while any load is in flight, exactly as
+ * the old useApi hook behaved; `reload()` dispatches the loader again.
+ */
+export function useLoader(loader, { arg, deps = [] } = {}) {
+  const dispatch = useDispatch();
+  const name = loader.typePrefix.slice('loader/'.length);
+  const entry = useSelector((state) => state.ui.loads[name]);
+
+  const reload = useCallback(() => dispatch(loader(arg)), [dispatch, loader, arg]);
+
+  useEffect(() => {
+    dispatch(loader(arg));
+    return () => {
+      dispatch(clearLoad(name));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, loader, name, ...deps]);
+
+  return {
+    loading: !entry || entry.active.length > 0,
+    // true once a load has succeeded - the old useApi `data` was non-null from
+    // then on, even while a later reload was running.
+    loaded: Boolean(entry && entry.loaded),
+    error: entry ? entry.error : null,
+    reload,
+  };
 }
