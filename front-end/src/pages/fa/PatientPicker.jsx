@@ -1,6 +1,6 @@
 'use strict';
 
-import { useFa } from './FaContext.jsx';
+import { useFa } from './useFa.js';
 
 /**
  * FA/js/app.js#renderPatientPicker. The option labels are load-bearing - they

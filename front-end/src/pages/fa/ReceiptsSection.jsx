@@ -1,13 +1,15 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+
 import { formatCurrency, formatDateTime } from './faHelpers.js';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import * as actions from './faActions.js';
 import * as S from './faStyles.js';
+import { useMemo } from 'react';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadFaReceipts } from '../../store/pageLoaders.js';
+import { selectReceipts } from '../../store/slices/billingSlice.js';
 
 /**
  * Every issued tax receipt, newest first, with search and payment-mode filter
@@ -15,13 +17,15 @@ import * as S from './faStyles.js';
  * billing overview rather than a second load of it.
  */
 export default function ReceiptsSection({ ctx, patientsById }) {
-  const [query, setQuery] = useState('');
-  const [mode, setMode] = useState('ALL');
+  const [query, setQuery] = useUiState('ReceiptsSection.query', '');
+  const [mode, setMode] = useUiState('ReceiptsSection.mode', 'ALL');
 
-  const { data: receipts } = useApi(async () => {
-    const list = await api.billing.receipts.list().catch(() => []);
-    return [...list].sort((a, b) => new Date(b.generated_at) - new Date(a.generated_at));
-  }, [ctx.version]);
+  useLoader(loadFaReceipts, { deps: [ctx.version] });
+  const receiptList = useAppSelector(selectReceipts);
+  const receipts = useMemo(
+    () => [...receiptList].sort((a, b) => new Date(b.generated_at) - new Date(a.generated_at)),
+    [receiptList],
+  );
 
   return (
     <section id="fa-receipts" style={{ marginTop: '32px' }}>
@@ -70,7 +74,7 @@ export default function ReceiptsSection({ ctx, patientsById }) {
             </tr>
           </thead>
           <tbody id="receipts-tbody">
-            <Rows rows={receipts || []} patientsById={patientsById} query={query} mode={mode} />
+            <Rows ctx={ctx} rows={receipts || []} patientsById={patientsById} query={query} mode={mode} />
           </tbody>
         </table>
       </div>
@@ -83,7 +87,7 @@ export default function ReceiptsSection({ ctx, patientsById }) {
  * than removing them, and matched on the row's own data-patient / data-id /
  * data-mode attributes. Both are kept: same attributes, same display toggle.
  */
-function Rows({ rows, patientsById, query, mode }) {
+function Rows({ ctx, rows, patientsById, query, mode }) {
   if (!rows.length) {
     return <EmptyState asTableRow colSpan={6} title="No receipts found." />;
   }
@@ -120,7 +124,7 @@ function Rows({ rows, patientsById, query, mode }) {
           <span className="badge">{rowMode}</span>
         </td>
         <td style={S.td}>
-          <button className="btn-primary" style={S.tinyBtn} onClick={() => actions.printReceipt(r.receipt_id)}>
+          <button className="btn-primary" style={S.tinyBtn} onClick={() => actions.printReceipt(ctx, r.receipt_id)}>
             🖨️ Print
           </button>
         </td>

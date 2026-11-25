@@ -1,6 +1,13 @@
 'use strict';
 
-import { api } from '../../api/index.js';
+import { createSelector } from '@reduxjs/toolkit';
+import { orElse } from '../../store/loaders.js';
+import { fetchAdmissions } from '../../store/slices/admissionsSlice.js';
+import { fetchPatients } from '../../store/slices/patientsSlice.js';
+import { fetchBeds, fetchWards } from '../../store/slices/wardsSlice.js';
+import { fetchPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { fetchDoctors } from '../../store/slices/doctorsSlice.js';
+import { fetchLedgerEntries, fetchLedgers, fetchServices } from '../../store/slices/billingSlice.js';
 import { escapeHtml, formatCurrency } from '../../lib/formatters.js';
 
 /**
@@ -27,24 +34,15 @@ export function formatDateTime(value) {
 }
 
 /**
- * The FA portal's one data load: eight endpoints in parallel, joined into a row
- * per admission. Ported unchanged, including the loose `preRequest` match
- * (same patient, and either the same bed or no bed on the admission) and the
- * `dischargeApproved` derivation that treats every OPD visit as pre-approved.
+ * The FA portal's one join: a row per admission built from eight collections.
+ * Ported unchanged, including the loose `preRequest` match (same patient, and
+ * either the same bed or no bed on the admission) and the `dischargeApproved`
+ * derivation that treats every OPD visit as pre-approved.
+ *
+ * It is pure - the collections come from Redux (see selectBillingOverview) or,
+ * inside an action that needs fresh data, from the fetch thunks' payloads.
  */
-export async function loadBillingOverview() {
-  const [admissions, patients, beds, wards, preRequests, doctors, ledgers, services] =
-    await Promise.all([
-      api.admissions.list(),
-      api.patients.list(),
-      api.wards.beds(),
-      api.wards.list(),
-      api.preRequests.list(),
-      api.doctors.list(),
-      api.billing.ledger.listAll().catch(() => []),
-      api.billing.services.list(),
-    ]);
-
+export function buildBillingOverview({ admissions, patients, beds, wards, preRequests, doctors, ledgers, services }) {
   const patientsById = {};
   (patients || []).forEach((p) => (patientsById[p.patient_id] = p));
   const bedsById = {};
@@ -95,9 +93,105 @@ export async function loadBillingOverview() {
   return { rows, patientsById, bedsById, doctorsById, servicesById, admissionsById, admissions, patients };
 }
 
-export async function loadLedgerEntries(ledgerId) {
+/** The overview, derived (and memoized) from the slices the FA loader fills. */
+export const selectBillingOverview = createSelector(
+  [
+    (state) => state.admissions.items,
+    (state) => state.patients.items,
+    (state) => state.wards.beds,
+    (state) => state.wards.items,
+    (state) => state.preRequests.items,
+    (state) => state.doctors.items,
+    (state) => state.billing.ledgers,
+    (state) => state.billing.services,
+  ],
+  (admissions, patients, beds, wards, preRequests, doctors, ledgers, services) =>
+    buildBillingOverview({ admissions, patients, beds, wards, preRequests, doctors, ledgers, services }),
+);
+
+/**
+ * For actions that need the freshest data: fetches the same eight collections
+ * through their slices' thunks (the ledger list tolerating failure, as before)
+ * and joins the results.
+ */
+export async function loadBillingOverview(dispatch) {
+  const [admissions, patients, beds, wards, preRequests, doctors, ledgers, services] = await Promise.all([
+    dispatch(fetchAdmissions()).unwrap(),
+    dispatch(fetchPatients()).unwrap(),
+    dispatch(fetchBeds()).unwrap(),
+    dispatch(fetchWards()).unwrap(),
+    dispatch(fetchPreRequests()).unwrap(),
+    dispatch(fetchDoctors()).unwrap(),
+    orElse(dispatch(fetchLedgers()), []),
+    dispatch(fetchServices()).unwrap(),
+  ]);
+  return buildBillingOverview({ admissions, patients, beds, wards, preRequests, doctors, ledgers, services });
+}
+
+/** A ledger's entries, or [] when there is no ledger or the fetch fails. */
+export async function loadLedgerEntries(dispatch, ledgerId) {
   if (!ledgerId) return [];
-  return api.billing.ledger.entries(ledgerId).catch(() => []);
+  const result = await orElse(dispatch(fetchLedgerEntries(ledgerId)), null);
+  return result ? result.entries : [];
+}
+
+/**
+ * The Charges table: HOM's pending (staged) charges on top, then the entries
+ * already approved into the ledgers, newest first. Derived from the overview,
+ * the leaders list and the per-ledger entries held in billingSlice.
+ */
+export function buildCharges(overview, leaders, ledgerEntries) {
+  const { rows, servicesById, patientsById, admissionsById } = overview;
+
+  // Pending items submitted by HOM (not yet approved into ledger)
+  const pendingItems = (leaders || [])
+    .filter((l) => l.status === 'PENDING')
+    .map((l) => {
+      const admission = admissionsById[l.admission_id];
+      const patient = l.patient_id
+        ? patientsById[l.patient_id]
+        : admission
+          ? patientsById[admission.patient_id]
+          : null;
+      const service = servicesById[l.service_id];
+      return {
+        id: 'pending-' + l.leader_id,
+        leaderId: l.leader_id,
+        isPending: true,
+        patientId: patient?.patient_id || l.patient_id || '-',
+        patientName: patient?.name || 'Patient',
+        uhid: patient?.uhid || '-',
+        serviceName: service?.service_name || 'Service #' + l.service_id,
+        quantity: l.quantity,
+        amount: l.amount,
+        status: 'Pending',
+        time: new Date(l.created_at || Date.now()),
+      };
+    });
+
+  // Recent ledger entries approved in FA ledger
+  const withLedgers = rows.filter((r) => r.ledger);
+  const recentLedgerItems = withLedgers.flatMap((r) =>
+    (ledgerEntries[r.ledger.ledger_id] || []).map((e) => ({
+      id: 'entry-' + r.ledger.ledger_id + '-' + e.entry_id,
+      isPending: false,
+      patientId: r.patient.patient_id || '-',
+      patientName: r.patient.name,
+      uhid: r.patient.uhid,
+      serviceName: servicesById[e.service_id]?.service_name || 'Service #' + e.service_id,
+      quantity: e.quantity,
+      amount: e.amount,
+      status: 'Approved',
+      time: new Date(e.entry_time || Date.now()),
+    })),
+  );
+
+  // Pending items at the top, then recent approved ledger items by time desc
+  const allCharges = [...pendingItems, ...recentLedgerItems].sort(
+    (a, b) => (b.isPending ? 1 : 0) - (a.isPending ? 1 : 0) || b.time - a.time,
+  );
+
+  return { pendingItems, allCharges };
 }
 
 export function ledgerTotal(entries) {
