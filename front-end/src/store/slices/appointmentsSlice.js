@@ -11,11 +11,6 @@ export const fetchAppointments = apiThunk(
   () => appointments.list(),
   'Failed to load appointments',
 );
-export const createAppointment = apiThunk(
-  'appointments/create',
-  (payload) => appointments.create(payload),
-  'Failed to create appointment',
-);
 export const updateAppointment = apiThunk(
   'appointments/update',
   ({ id, patch }) => appointments.update(id, patch),
@@ -29,9 +24,6 @@ const appointmentsSlice = createSlice({
   extraReducers: (builder) => {
     addReadCases(builder, fetchAppointments, (state, action) => {
       state.items = Array.isArray(action.payload) ? action.payload : [];
-    });
-    addWriteCases(builder, createAppointment, (state, action) => {
-      upsertByKey(state.items, 'appointment_id', action.payload);
     });
     addWriteCases(builder, updateAppointment, (state, action) => {
       upsertByKey(state.items, 'appointment_id', action.payload);

@@ -433,13 +433,6 @@ tr:hover {
   color: #fff;
 }
 
-/*  APPOINTMENT PAGE  */
-.container-appointment {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
 .appointment-grid {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
@@ -452,104 +445,8 @@ tr:hover {
   }
 }
 
-.appointment-card-section {
-  background: var(--md-surface-container-low, #f8fafc);
-  border: 1px solid var(--md-outline-variant, #e2e8f0);
-  border-radius: var(--radius-md, 12px);
-  padding: 24px;
-}
-
-.appointment-section-title {
-  margin: 0 0 16px 0;
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-fg);
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--md-outline-variant, #e2e8f0);
-}
-
 .appointment-form-group {
   margin-bottom: 16px;
-}
-
-.card-appointment {
-  background: var(--md-surface-container);
-  padding: 32px;
-  width: 100%;
-  max-width: 600px;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
-  transition: box-shadow var(--duration-base) var(--ease-standard);
-}
-
-.appointment-patient-picker {
-  position: relative;
-  margin-top: 4px;
-}
-
-.appointment-picker-helper {
-  margin: 6px 0 2px;
-  color: var(--color-muted-fg);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.appointment-picker-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  z-index: 20;
-  max-height: 280px;
-  overflow-y: auto;
-  padding: 8px;
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--md-surface-container-high);
-  box-shadow: var(--shadow-3);
-}
-
-.appointment-picker-option {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
-}
-
-.appointment-picker-option + .appointment-picker-option {
-  margin-top: 8px;
-}
-
-.appointment-picker-option:hover {
-  border-color: var(--md-primary);
-  background: var(--md-surface-container-low);
-}
-
-.appointment-picker-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-}
-
-.appointment-picker-meta {
-  margin-top: 6px;
-  color: var(--color-muted-fg);
-  font-size: 12px;
-}
-
-.appointment-picker-empty {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px;
-  color: var(--color-muted-fg);
-  font-size: 13px;
 }
 
 /* Search */

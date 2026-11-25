@@ -194,6 +194,18 @@ function update(req, res) {
     }
 
     if (requestedStatus === 'APPROVED') {
+      const scheduleError = preRequestService.getApprovalScheduleError(
+        req.body.requested_date || existing.requested_date,
+        req.body.requested_time || existing.requested_time,
+      );
+      if (scheduleError) {
+        return res.status(409).json({
+          message: scheduleError,
+          error: 'Conflict',
+          statusCode: 409,
+        });
+      }
+
       const doctorId = req.body.doctor_id || existing.doctor_id;
       if (doctorId) {
         const doctor = doctorService.findDoctorById(doctorId);

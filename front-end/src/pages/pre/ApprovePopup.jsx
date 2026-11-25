@@ -4,7 +4,7 @@
 import Button from '../../components/ui/Button.jsx';
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import { toast } from '../../components/feedback/feedback.js';
-import { sortDoctorsForDepartment, to12Hour, to24Hour, formatDate } from './preHelpers.js';
+import { sortDoctorsForDepartment, to12Hour, to24Hour, formatDate, getApprovalScheduleError, getLocalDate } from './preHelpers.js';
 import { DoctorOptions } from './PrePopup.jsx';
 import PatientNotesPreview from './PatientNotesPreview.jsx';
 import { useAppDispatch, useUiState } from '../../store/hooks.js';
@@ -121,10 +121,16 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
       time24 = to24Hour(request.requested_time);
     }
 
-    const date = (request.requested_date || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+    const date = (request.requested_date || '').slice(0, 10) || getLocalDate();
 
     if (!time24) {
       setAvailError('Please select a valid appointment time.');
+      return;
+    }
+
+    const scheduleError = getApprovalScheduleError(date, time24);
+    if (scheduleError) {
+      setAvailError(scheduleError);
       return;
     }
 

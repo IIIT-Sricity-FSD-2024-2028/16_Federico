@@ -4,6 +4,7 @@ const request = require('supertest');
 const { createApp } = require('../app');
 const { createSession } = require('../store/sessionStore');
 const dataStore = require('../store/dataStore');
+const preRequestService = require('../services/preRequest.service');
 const {
   extractDatePart,
   getBookingDateBounds,
@@ -234,6 +235,30 @@ describe('Patient Appointment Advance Booking Constraint Suite', () => {
       expect(linkedAppointment).toBeDefined();
       expect(linkedAppointment.note).toBe(symptomsText);
       expect(linkedAppointment.document_urls).toEqual(fileUrls);
+    });
+  });
+
+  describe('PRE approval schedule enforcement', () => {
+    it('rejects approval of a past appointment date through the backend API', async () => {
+      const preTok = createSession({ userId: 105, role: 'PRE', organizationId: 1, hospitalId: 1 });
+      const preRequest = preRequestService.create({
+        patient_id: testPatient.patient_id,
+        department: 'General Medicine',
+        visit_type: 'Consultation',
+        requested_date: '2000-01-01',
+        requested_time: '02:00 PM',
+        organization_id: testPatient.organization_id || 1,
+        hospital_id: testPatient.hospital_id || 1,
+      });
+
+      const res = await request(app)
+        .put(`/pre-requests/${preRequest.pre_request_id}`)
+        .set('Authorization', `Bearer ${preTok}`)
+        .send({ status: 'APPROVED', doctor_id: 401 });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toBe('This appointment request is for a past date and cannot be approved.');
+      expect(preRequest.status).toBe('PENDING');
     });
   });
 });

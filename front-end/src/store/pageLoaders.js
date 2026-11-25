@@ -212,15 +212,6 @@ export const loadPreDoctorRoster = createLoader('preDoctorRoster', async (_arg, 
   await Promise.all([soft(dispatch(fetchDoctors())), soft(dispatch(fetchAllAvailabilities()))]);
 });
 
-/** PRE create-appointment: patients, doctors and availability, each tolerant of failure. */
-export const loadPreAppointment = createLoader('preAppointment', async (_arg, { dispatch }) => {
-  await Promise.all([
-    soft(dispatch(fetchPatients())),
-    soft(dispatch(fetchDoctors())),
-    soft(dispatch(fetchAllAvailabilities())),
-  ]);
-});
-
 /* ------------------------------------ FA -------------------------------------- */
 
 /** The FA portal's one data load: eight collections (the ledger list tolerating failure). */

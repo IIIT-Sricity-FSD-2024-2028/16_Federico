@@ -15,7 +15,6 @@ const LINKS = [
   { href: '/PRE/pages/PRE.html', label: 'Dashboard' },
   { href: '/PRE/pages/patient-records.html', label: 'Patient record', module: 'PATIENT' },
   { href: '/PRE/pages/doctor.html', label: 'Doctor availability', module: 'DOCTOR' },
-  { href: '/PRE/pages/appointment.html', label: 'Create Appointment', module: 'APPOINTMENTS' },
   { href: '/PRE/pages/bed-coordination.html', label: 'Bed Coordination', module: 'ADMISSIONS' },
 ];
 
