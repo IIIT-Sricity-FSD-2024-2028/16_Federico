@@ -474,6 +474,11 @@ select.input {
   color: var(--admin-text-secondary);
 }
 
+.badge-primary {
+  background-color: var(--admin-primary-soft);
+  color: var(--md-on-primary-container, #21005d);
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -542,7 +547,7 @@ select.input {
    ========================================================================== */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }

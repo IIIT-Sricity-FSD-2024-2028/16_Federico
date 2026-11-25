@@ -1,8 +1,7 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
+
 import { usePolling } from '../../hooks/usePolling.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { useSearchParam } from '../../hooks/useSearchParam.js';
@@ -18,6 +17,14 @@ import PatientDetailModal from './PatientDetailModal.jsx';
 import DischargeModal from './DischargeModal.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientFlowCss from '../../styles/hom/patient-flow.css?inline';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadHomPatientFlow } from '../../store/pageLoaders.js';
+import { selectBeds } from '../../store/slices/wardsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
+import { selectAdmissions } from '../../store/slices/admissionsSlice.js';
+import { selectLedgers } from '../../store/slices/billingSlice.js';
 
 const FLOW_STATUSES = ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED', 'DISCHARGED'];
 
@@ -27,54 +34,51 @@ export default function PatientFlowPage() {
   useDocumentTitle('Patient Flow | Federico Hospital HOM');
   const uhidParam = useSearchParam('uhid');
 
-  const [filters, setFilters] = useState({ search: uhidParam || '', department: '', status: '', dateRange: '' });
-  const [detail, setDetail] = useState(null); // { id, tab }
-  const [dischargeId, setDischargeId] = useState(null);
+  const [filters, setFilters] = useUiState('PatientFlowPage.filters', { search: uhidParam || '', department: '', status: '', dateRange: '' });
+  const [detail, setDetail] = useUiState('PatientFlowPage.detail', null); // { id, tab }
+  const [dischargeId, setDischargeId] = useUiState('PatientFlowPage.dischargeId', null);
 
-  const { data, reload } = useApi(async () => {
-    const [preRequests, patients, doctors, beds, admissions, ledgers] = await Promise.all([
-      api.preRequests.list().catch(() => []),
-      api.patients.list().catch(() => []),
-      api.doctors.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-      api.admissions.list().catch(() => []),
-      api.billing.ledger.listAll().catch(() => []),
-    ]);
+  const { reload, loaded } = useLoader(loadHomPatientFlow);
+  const preRequestList = useAppSelector(selectPreRequests);
+  const patientList = useAppSelector(selectPatients);
+  const doctorList = useAppSelector(selectDoctors);
+  const bedList = useAppSelector(selectBeds);
+  const admissionList = useAppSelector(selectAdmissions);
+  const ledgerList = useAppSelector(selectLedgers);
 
+  // The joined flow rows are derived from the slices, not stored.
+  const rows = useMemo(() => {
     const doctorsById = {};
-    (Array.isArray(doctors) ? doctors : []).forEach((d) => (doctorsById[d.doctor_id] = d));
+    (Array.isArray(doctorList) ? doctorList : []).forEach((d) => (doctorsById[d.doctor_id] = d));
     const bedsById = {};
-    (Array.isArray(beds) ? beds : []).forEach((b) => (bedsById[b.bed_id] = b));
+    (Array.isArray(bedList) ? bedList : []).forEach((b) => (bedsById[b.bed_id] = b));
 
     // "Bills cleared" is Finance's signal that the patient is financially clear:
     // their active admission has a PAID ledger. HOM watches it so it knows PRE
     // can safely release the bed.
     const ledgerByAdmission = {};
-    (Array.isArray(ledgers) ? ledgers : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
+    (Array.isArray(ledgerList) ? ledgerList : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
     const billsClearedByPatient = {};
-    (Array.isArray(admissions) ? admissions : []).forEach((a) => {
+    (Array.isArray(admissionList) ? admissionList : []).forEach((a) => {
       const ledger = ledgerByAdmission[a.admission_id];
       if (a.receipt_sent_to_hom || (ledger && ledger.status === 'PAID')) {
         billsClearedByPatient[a.patient_id] = true;
       }
     });
 
-    const rows = joinPreRequestsWithPatients(
-      (Array.isArray(preRequests) ? preRequests : []).filter((r) => FLOW_STATUSES.includes(r.status)),
-      Array.isArray(patients) ? patients : [],
+    return joinPreRequestsWithPatients(
+      (Array.isArray(preRequestList) ? preRequestList : []).filter((r) => FLOW_STATUSES.includes(r.status)),
+      Array.isArray(patientList) ? patientList : [],
       doctorsById,
     ).map((r) => ({
       ...r,
       bedNumber: bedsById[r.bed_id]?.bed_number || '-',
       billsCleared: Boolean(billsClearedByPatient[r.patient_id]),
     }));
-
-    return { rows };
-  }, []);
+  }, [preRequestList, patientList, doctorList, bedList, admissionList, ledgerList]);
 
   usePolling(reload, 15000);
 
-  const rows = data?.rows || [];
   const departments = [...new Set(rows.map((r) => r.department).filter(Boolean))].sort();
 
   function matchesDateRange(row) {
@@ -302,7 +306,7 @@ export default function PatientFlowPage() {
 
           <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--md-surface-container)' }}>
             <p className="text-small" id="patient-flow-count">
-              {data ? 'Showing ' + filtered.length + ' patient' + (filtered.length === 1 ? '' : 's') : 'Loading patients...'}
+              {loaded ? 'Showing ' + filtered.length + ' patient' + (filtered.length === 1 ? '' : 's') : 'Loading patients...'}
             </p>
           </div>
         </div>

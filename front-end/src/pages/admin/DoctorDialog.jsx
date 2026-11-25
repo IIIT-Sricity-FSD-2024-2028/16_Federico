@@ -1,9 +1,10 @@
 'use strict';
 
-import { useState } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import Button from '../../components/ui/Button.jsx';
-import { api } from '../../api/index.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { createDoctor, updateDoctor } from '../../store/slices/doctorsSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 
 const BLANK = { name: '', specialization: '', phone: '', email: '' };
@@ -16,7 +17,8 @@ export default function DoctorDialog({ open, doctor, onClose, onSaved }) {
 }
 
 function DoctorForm({ doctor, onClose, onSaved }) {
-  const [f, setF] = useState(() =>
+  const dispatch = useAppDispatch();
+  const [f, setF] = useUiState('DoctorDialog.f', () =>
     doctor
       ? {
           name: doctor.name || '',
@@ -39,10 +41,10 @@ function DoctorForm({ doctor, onClose, onSaved }) {
     if (!payload.name) return;
     try {
       if (doctor) {
-        await api.doctors.update(doctor.doctor_id, payload);
+        await dispatch(updateDoctor({ id: doctor.doctor_id, patch: payload })).unwrap();
         toast(payload.name + ' updated.', 'success');
       } else {
-        await api.doctors.create(payload);
+        await dispatch(createDoctor(payload)).unwrap();
         toast(payload.name + ' added.', 'success');
       }
       onClose();

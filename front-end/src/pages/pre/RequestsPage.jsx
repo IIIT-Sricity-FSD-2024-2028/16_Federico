@@ -1,8 +1,6 @@
 'use strict';
 
-import { useState, useMemo } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import Button from '../../components/ui/Button.jsx';
 import Badge from '../../components/ui/Badge.jsx';
@@ -13,6 +11,11 @@ import { joinPreRequestsWithPatients, statusLabel, formatDate, to12Hour } from '
 import ApprovePopup from './ApprovePopup.jsx';
 import SuggestPopup from './SuggestPopup.jsx';
 import RejectPopup from './RejectPopup.jsx';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreRequests } from '../../store/pageLoaders.js';
+import { selectPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
 
 /**
  * Ported from PRE/pages/request.html + js/requests.js.
@@ -25,36 +28,31 @@ import RejectPopup from './RejectPopup.jsx';
  */
 export default function RequestsPage() {
   useDocumentTitle('Patient Requests');
-  const [popup, setPopup] = useState(null); // { kind, id }
+  const [popup, setPopup] = useUiState('RequestsPage.popup', null); // { kind, id }
 
-  const { data, loading, error, reload } = useApi(async () => {
-    const [preRequests, patients, doctors] = await Promise.all([
-      api.preRequests.list(),
-      api.patients.list(),
-      api.doctors.list(),
-    ]);
+  const { loading, error, reload } = useLoader(loadPreRequests);
+  const preRequestList = useAppSelector(selectPreRequests);
+  const patientList = useAppSelector(selectPatients);
+  const doctorList = useAppSelector(selectDoctors);
+
+  const pending = useMemo(() => {
     const doctorsById = {};
-    doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
-    return {
-      pending: joinPreRequestsWithPatients(preRequests, patients, doctorsById).filter((r) => r.status === 'PENDING'),
-      doctors: doctors || [],
-    };
-  }, []);
-
-  const pending = data?.pending || [];
-  const doctors = data?.doctors || [];
+    doctorList.forEach((d) => (doctorsById[d.doctor_id] = d));
+    return joinPreRequestsWithPatients(preRequestList, patientList, doctorsById).filter((r) => r.status === 'PENDING');
+  }, [preRequestList, patientList, doctorList]);
+  const doctors = doctorList;
   const activeRequest = popup ? pending.find((r) => r.pre_request_id === popup.id) : null;
 
-  const [query, setQuery] = useState('');
-  const [deptFilter, setDeptFilter] = useState('');
+  const [query, setQuery] = useUiState('RequestsPage.query', '');
+  const [deptFilter, setDeptFilter] = useUiState('RequestsPage.deptFilter', '');
 
   const departments = useMemo(() => {
     const depts = new Set();
-    (data?.pending || []).forEach((r) => {
+    pending.forEach((r) => {
       if (r.department) depts.add(r.department);
     });
     return Array.from(depts).sort();
-  }, [data?.pending]);
+  }, [pending]);
 
   const q = query.trim().toLowerCase();
   const filtered = pending.filter((r) => {

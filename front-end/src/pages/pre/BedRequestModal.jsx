@@ -1,12 +1,14 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
+
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
 import Modal from '../../components/layout/Modal.jsx';
 import { toast } from '../../components/feedback/feedback.js';
 import { formatDate, to12Hour } from './preHelpers.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { updatePreRequest } from '../../store/slices/preRequestsSlice.js';
+import { createBedRequest } from '../../store/slices/wardsSlice.js';
 
 function autoMatchWard(wards, department) {
   const deptLower = String(department || '').toLowerCase();
@@ -35,25 +37,33 @@ export default function BedRequestModal({ request, wards, onClose, onSubmitted }
 }
 
 function BedRequestForm({ request, wards, onClose, onSubmitted }) {
-  const [wardId, setWardId] = useState(() => autoMatchWard(wards, request.department));
-  const [priority, setPriority] = useState('NORMAL');
-  const [submitting, setSubmitting] = useState(false);
+  const dispatch = useAppDispatch();
+  const [wardId, setWardId] = useUiState('BedRequestModal.wardId', () => autoMatchWard(wards, request.department));
+  const [priority, setPriority] = useUiState('BedRequestModal.priority', 'NORMAL');
+  const [submitting, setSubmitting] = useUiState('BedRequestModal.submitting', false);
 
   const selectedWard = wardId ? wards.find((w) => w.ward_id === Number(wardId)) : null;
 
   async function dispatchBedRequest() {
     setSubmitting(true);
     try {
-      await api.preRequests.update(request.pre_request_id, {
-        visit_type: 'Admit',
-        ward_type: selectedWard ? selectedWard.ward_name : undefined,
-      });
-      await api.wards.bedRequests.create({
-        patient_id: request.patient_id,
-        pre_request_id: request.pre_request_id,
-        ward_id: wardId ? Number(wardId) : undefined,
-        priority,
-      });
+      await dispatch(
+        updatePreRequest({
+          id: request.pre_request_id,
+          patch: {
+            visit_type: 'Admit',
+            ward_type: selectedWard ? selectedWard.ward_name : undefined,
+          },
+        }),
+      ).unwrap();
+      await dispatch(
+        createBedRequest({
+          patient_id: request.patient_id,
+          pre_request_id: request.pre_request_id,
+          ward_id: wardId ? Number(wardId) : undefined,
+          priority,
+        }),
+      ).unwrap();
       toast('Bed request dispatched to HOM. Status: Pending.', 'success');
       onClose();
       await onSubmitted();

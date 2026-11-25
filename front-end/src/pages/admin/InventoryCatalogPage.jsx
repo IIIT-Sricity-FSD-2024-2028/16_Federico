@@ -1,8 +1,6 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import DataTable from '../../components/ui/DataTable.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -12,16 +10,20 @@ import StatCard from '../../components/ui/StatCard.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import { toast, confirm } from '../../components/feedback/feedback.js';
 import ItemDialog from './ItemDialog.jsx';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadAdminInventory } from '../../store/pageLoaders.js';
+import { deleteInventoryItem, selectInventoryItems } from '../../store/slices/inventorySlice.js';
 
 /** Ported from Admin/screen-03-inventory.html + inventory-catalog.js. */
 export default function InventoryCatalogPage() {
   useDocumentTitle('Inventory Catalog | Federico Hospital Admin');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [dialogOpen, setDialogOpen] = useUiState('InventoryCatalogPage.dialogOpen', false);
+  const [searchQuery, setSearchQuery] = useUiState('InventoryCatalogPage.searchQuery', '');
+  const [selectedCategory, setSelectedCategory] = useUiState('InventoryCatalogPage.selectedCategory', 'ALL');
 
-  const { data, reload } = useApi(() => api.inventory.items.list(), []);
-  const items = data || [];
+  const dispatch = useAppDispatch();
+  const { reload } = useLoader(loadAdminInventory);
+  const items = useAppSelector(selectInventoryItems);
 
   const lowStock = items.filter((i) => i.stock_quantity < i.reorder_level).length;
   const uniqueCategories = Array.from(new Set(items.map((i) => i.category).filter(Boolean))).sort();
@@ -48,7 +50,7 @@ export default function InventoryCatalogPage() {
     });
     if (!ok) return;
     try {
-      await api.inventory.items.remove(itemId);
+      await dispatch(deleteInventoryItem(itemId)).unwrap();
       toast(item.item_name + ' deleted.', 'warning');
       await reload();
     } catch (err) {

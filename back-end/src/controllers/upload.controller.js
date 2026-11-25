@@ -14,7 +14,7 @@ function handleDocumentUpload(req, res) {
     });
   }
 
-  const fileUrl = `/api/uploads/documents/${req.file.filename}`;
+  const fileUrl = `/uploads/documents/${req.file.filename}`;
   res.status(201).json({
     statusCode: 201,
     message: 'Document uploaded successfully',
@@ -39,7 +39,7 @@ function handleBrandingUpload(req, res) {
     });
   }
 
-  const fileUrl = `/api/uploads/branding/${req.file.filename}`;
+  const fileUrl = `/uploads/branding/${req.file.filename}`;
   res.status(201).json({
     statusCode: 201,
     message: 'Branding logo uploaded successfully',
@@ -64,7 +64,7 @@ function handleInventoryUpload(req, res) {
     });
   }
 
-  const fileUrl = `/api/uploads/inventory/${req.file.filename}`;
+  const fileUrl = `/uploads/inventory/${req.file.filename}`;
   res.status(201).json({
     statusCode: 201,
     message: 'Inventory invoice uploaded successfully',

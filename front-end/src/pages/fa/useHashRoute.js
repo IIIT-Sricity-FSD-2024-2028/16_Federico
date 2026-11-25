@@ -22,32 +22,18 @@ export function parseHashRoute(rawHashInput) {
   return { rawHash, mainRoute, param };
 }
 
-export function useHashRoute() {
+/**
+ * The pure, effect-free half: the parsed hash and navigate(hash, admissionId).
+ * Anything under the FA layout can call this (useFa does); only FaLayout calls
+ * useHashRoute, which adds the hash-sync effects once.
+ */
+export function useHashNavigate() {
   const location = useLocation();
   const routerNavigate = useNavigate();
 
   // Use React Router's location.hash, falling back to window.location.hash or DEFAULT_ROUTE
   const activeHash = location.hash || (typeof window !== 'undefined' ? window.location.hash : '') || DEFAULT_ROUTE;
   const parsed = useMemo(() => parseHashRoute(activeHash), [activeHash]);
-
-  // Keep window.location.hash in sync if external scripts assign it directly
-  useEffect(() => {
-    function onHashChange() {
-      const current = window.location.hash || DEFAULT_ROUTE;
-      if (current !== location.hash) {
-        routerNavigate({ pathname: location.pathname, hash: current }, { replace: true });
-      }
-    }
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, [location.hash, location.pathname, routerNavigate]);
-
-  // Ensure default hash appears in URL if user navigates to /FA/fa-dashboard.html bare
-  useEffect(() => {
-    if (!location.hash) {
-      routerNavigate({ pathname: location.pathname, hash: DEFAULT_ROUTE }, { replace: true });
-    }
-  }, [location.hash, location.pathname, routerNavigate]);
 
   /**
    * navigate(hash, admissionId): appends the id to the hash unless it is
@@ -70,3 +56,29 @@ export function useHashRoute() {
   return { ...parsed, navigate, setHash: navigate };
 }
 
+export function useHashRoute() {
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  const route = useHashNavigate();
+
+  // Keep window.location.hash in sync if external scripts assign it directly
+  useEffect(() => {
+    function onHashChange() {
+      const current = window.location.hash || DEFAULT_ROUTE;
+      if (current !== location.hash) {
+        routerNavigate({ pathname: location.pathname, hash: current }, { replace: true });
+      }
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [location.hash, location.pathname, routerNavigate]);
+
+  // Ensure default hash appears in URL if user navigates to /FA/fa-dashboard.html bare
+  useEffect(() => {
+    if (!location.hash) {
+      routerNavigate({ pathname: location.pathname, hash: DEFAULT_ROUTE }, { replace: true });
+    }
+  }, [location.hash, location.pathname, routerNavigate]);
+
+  return route;
+}

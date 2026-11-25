@@ -1,8 +1,6 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -12,6 +10,14 @@ import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import StatCard from '../../components/ui/StatCard.jsx';
 import { formatAge } from './preHelpers.js';
 import Patient360Modal from './Patient360Modal.jsx';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPrePatientRecords } from '../../store/pageLoaders.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { selectAppointments } from '../../store/slices/appointmentsSlice.js';
+import { selectAdmissions } from '../../store/slices/admissionsSlice.js';
+import { selectBeds, selectBedRequests, selectWards } from '../../store/slices/wardsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
@@ -26,23 +32,23 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 export default function PatientRecordsPage() {
   useDocumentTitle('Patient Directory & Records – Federico PRE');
 
-  const [query, setQuery] = useState('');
-  const [bloodFilter, setBloodFilter] = useState('');
-  const [detailId, setDetailId] = useState(null);
+  const [query, setQuery] = useUiState('PatientRecordsPage.query', '');
+  const [bloodFilter, setBloodFilter] = useUiState('PatientRecordsPage.bloodFilter', '');
+  const [detailId, setDetailId] = useUiState('PatientRecordsPage.detailId', null);
 
-  const { data, error } = useApi(async () => {
-    const [patients, insurances, preRequests, appointments, admissions, beds, doctors, bedRequests, wards] = await Promise.all([
-      api.patients.list().catch(() => []),
-      api.patients.insuranceAll().catch(() => []),
-      api.preRequests.list().catch(() => []),
-      api.appointments.list().catch(() => []),
-      api.admissions.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-      api.doctors.list().catch(() => []),
-      api.wards.bedRequests.list().catch(() => []),
-      api.wards.list().catch(() => []),
-    ]);
+  const { error } = useLoader(loadPrePatientRecords);
+  const patients = useAppSelector(selectPatients);
+  const insurances = useAppSelector((state) => state.patients.insuranceAll);
+  const preRequests = useAppSelector(selectPreRequests);
+  const appointments = useAppSelector(selectAppointments);
+  const admissions = useAppSelector(selectAdmissions);
+  const beds = useAppSelector(selectBeds);
+  const doctors = useAppSelector(selectDoctors);
+  const bedRequests = useAppSelector(selectBedRequests);
+  const wards = useAppSelector(selectWards);
 
+  // The patient directory is a join across nine slices, derived rather than stored.
+  const data = useMemo(() => {
     const doctorsById = {};
     (doctors || []).forEach((d) => (doctorsById[d.doctor_id] = d));
     const wardsById = {};
@@ -113,7 +119,7 @@ export default function PatientRecordsPage() {
     });
 
     return { rows, doctorsById, bedsById };
-  }, []);
+  }, [patients, insurances, preRequests, appointments, admissions, beds, doctors, bedRequests, wards]);
 
   const rows = data?.rows || [];
 

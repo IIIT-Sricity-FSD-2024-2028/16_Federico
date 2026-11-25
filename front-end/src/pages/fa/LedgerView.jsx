@@ -1,9 +1,10 @@
 'use strict';
 
-import { useState } from 'react';
-import { useApi } from '../../hooks/useApi.js';
-import { useFa } from './FaContext.jsx';
-import { loadBillingOverview, loadLedgerEntries, ledgerTotal, formatCurrency } from './faHelpers.js';
+
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadFaLedgerEntries, loadFaOverview } from '../../store/pageLoaders.js';
+import { useFa } from './useFa.js';
+import { selectBillingOverview, ledgerTotal, formatCurrency } from './faHelpers.js';
 import { useSelectedRow } from './useSelectedRow.js';
 import * as actions from './faActions.js';
 import { toast } from '../../components/feedback/feedback.js';
@@ -23,10 +24,12 @@ const DETAIL_ID = 'fa-ledger-detail';
  */
 export default function LedgerView() {
   const ctx = useFa();
-  const [addService, setAddService] = useState('');
-  const [addQty, setAddQty] = useState('1');
+  const [addService, setAddService] = useUiState('LedgerView.addService', '');
+  const [addQty, setAddQty] = useUiState('LedgerView.addQty', '1');
 
-  const { data, error, loading } = useApi(() => loadBillingOverview(), [ctx.version]);
+  const { loaded, error, loading } = useLoader(loadFaOverview, { deps: [ctx.version] });
+  const overview = useAppSelector(selectBillingOverview);
+  const data = loaded ? overview : null;
 
   const rows = data?.rows;
   const { selectedId, row } = useSelectedRow(ctx, rows);
@@ -92,10 +95,9 @@ export default function LedgerView() {
 }
 
 function LoadedLedger({ ctx, row, servicesById, addService, setAddService, addQty, setAddQty }) {
-  const { data: entries } = useApi(
-    () => loadLedgerEntries(row.ledger.ledger_id),
-    [ctx.version, row.ledger.ledger_id],
-  );
+  const ledgerId = row.ledger.ledger_id;
+  useLoader(loadFaLedgerEntries, { arg: ledgerId, deps: [ctx.version, ledgerId] });
+  const entries = useAppSelector((state) => state.billing.ledgerEntries[ledgerId]);
 
   const list = entries || [];
   const total = ledgerTotal(list);

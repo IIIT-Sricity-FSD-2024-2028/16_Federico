@@ -1,8 +1,6 @@
 'use strict';
 
-import { useState, useMemo } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
 import { usePolling } from '../../hooks/usePolling.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import Badge from '../../components/ui/Badge.jsx';
@@ -19,6 +17,19 @@ import RestockModal from './RestockModal.jsx';
 import AdmittedPatientPicker from './AdmittedPatientPicker.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import inventoryCss from '../../styles/hom/inventory.css?inline';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadHomInventory } from '../../store/pageLoaders.js';
+import { selectBeds } from '../../store/slices/wardsSlice.js';
+import { openUploadedFile } from '../../store/slices/uploadsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectAdmissions } from '../../store/slices/admissionsSlice.js';
+import { createLeader, fetchPatientBills, selectServices } from '../../store/slices/billingSlice.js';
+import {
+  selectInventoryItems,
+  selectPurchaseRequests,
+  updateInventoryItem,
+  updatePurchaseRequest,
+} from '../../store/slices/inventorySlice.js';
 
 /**
  * Ported from HOM/screen-04-inventory.html + inventory.js - the densest screen
@@ -28,39 +39,29 @@ export default function InventoryPage() {
   usePageStyles(inventoryCss);
   useDocumentTitle('Inventory | Federico Hospital HOM');
 
-  const [filters, setFilters] = useState({ search: '', category: '', status: '' });
-  const [actionTab, setActionTab] = useState('low-stock');
-  const [restockModalItemId, setRestockModalItemId] = useState(undefined);
+  const [filters, setFilters] = useUiState('InventoryPage.filters', { search: '', category: '', status: '' });
+  const [actionTab, setActionTab] = useUiState('InventoryPage.actionTab', 'low-stock');
+  const [restockModalItemId, setRestockModalItemId] = useUiState('InventoryPage.restockModalItemId', undefined);
 
   // Sidebar "Post Usage to Patient" form
-  const [sidebarUhid, setSidebarUhid] = useState('');
-  const [sidebarItemId, setSidebarItemId] = useState('');
-  const [sidebarQty, setSidebarQty] = useState(1);
-  const [sidebarError, setSidebarError] = useState('');
+  const [sidebarUhid, setSidebarUhid] = useUiState('InventoryPage.sidebarUhid', '');
+  const [sidebarItemId, setSidebarItemId] = useUiState('InventoryPage.sidebarItemId', '');
+  const [sidebarQty, setSidebarQty] = useUiState('InventoryPage.sidebarQty', 1);
+  const [sidebarError, setSidebarError] = useUiState('InventoryPage.sidebarError', '');
 
-  const { data, reload } = useApi(async () => {
-    const [items, requests, patients, services, admissions, beds] = await Promise.all([
-      api.inventory.items.list().catch(() => []),
-      api.inventory.requests.list().catch(() => []),
-      api.patients.list().catch(() => []),
-      api.billing.services.list().catch(() => []),
-      api.admissions.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-    ]);
-    const arr = (v) => (Array.isArray(v) ? v : []);
-    return {
-      items: arr(items),
-      requests: arr(requests),
-      patients: arr(patients),
-      services: arr(services),
-      admissions: arr(admissions),
-      beds: arr(beds),
-    };
-  }, []);
+  const dispatch = useAppDispatch();
+  const { reload, loaded } = useLoader(loadHomInventory);
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const d = {
+    items: arr(useAppSelector(selectInventoryItems)),
+    requests: arr(useAppSelector(selectPurchaseRequests)),
+    patients: arr(useAppSelector(selectPatients)),
+    services: arr(useAppSelector(selectServices)),
+    admissions: arr(useAppSelector(selectAdmissions)),
+    beds: arr(useAppSelector(selectBeds)),
+  };
 
   usePolling(reload, 15000);
-
-  const d = data || { items: [], requests: [], patients: [], services: [], admissions: [], beds: [] };
 
   const admittedPatients = useMemo(() => {
     const patientMap = new Map((d.patients || []).map((p) => [p.patient_id, p]));
@@ -113,23 +114,27 @@ export default function InventoryPage() {
     const item = d.items.find((i) => i.item_id === Number(itemId));
     if (!item) throw new Error('Selected item was not found.');
 
-    await api.inventory.items.update(item.item_id, {
-      stock_quantity: Math.max(0, item.stock_quantity - qty),
-    });
+    await dispatch(
+      updateInventoryItem({ id: item.item_id, patch: { stock_quantity: Math.max(0, item.stock_quantity - qty) } }),
+    ).unwrap();
 
     const service = serviceForItem(item, d.services);
     if (service && patient) {
-      const bills = await api.billing.patient.bills(patient.patient_id).catch(() => []);
+      const { bills } = await dispatch(fetchPatientBills(patient.patient_id))
+        .unwrap()
+        .catch(() => ({ bills: [] }));
       const activeBundle = (Array.isArray(bills) ? bills : []).find(
         (b) => b.admission && b.admission.status !== 'DISCHARGED',
       );
       if (activeBundle && activeBundle.admission) {
-        await api.billing.leaders
-          .create({
+        await dispatch(
+          createLeader({
             admission_id: activeBundle.admission.admission_id,
             service_id: service.service_id,
             quantity: qty,
-          })
+          }),
+        )
+          .unwrap()
           .catch((err) => {
             console.warn('Could not forward supply charge to Finance:', err.message);
           });
@@ -164,11 +169,14 @@ export default function InventoryPage() {
   async function receiveDelivery(order) {
     const item = d.items.find((i) => i.item_id === order.item_id);
     try {
-      await api.inventory.requests.update(order.request_id, { status: 'APPROVED' });
+      await dispatch(updatePurchaseRequest({ id: order.request_id, patch: { status: 'APPROVED' } })).unwrap();
       if (item) {
-        await api.inventory.items.update(item.item_id, {
-          stock_quantity: (item.stock_quantity || 0) + (order.quantity_requested || 0),
-        });
+        await dispatch(
+          updateInventoryItem({
+            id: item.item_id,
+            patch: { stock_quantity: (item.stock_quantity || 0) + (order.quantity_requested || 0) },
+          }),
+        ).unwrap();
       }
       toast(
         'Delivery received: +' + order.quantity_requested + ' units of ' + (item?.item_name || 'Item #' + order.item_id) + '. Stock updated.',
@@ -315,7 +323,9 @@ export default function InventoryPage() {
                                   const parts = order.invoice_url.split('/');
                                   const filename = parts.pop();
                                   const category = parts.pop();
-                                  api.uploads.open(category, filename).catch((err) => toast(err.message || 'Could not open invoice.', 'error'));
+                                  dispatch(openUploadedFile({ category, filename }))
+                                    .unwrap()
+                                    .catch((err) => toast(err.message || 'Could not open invoice.', 'error'));
                                 }}
                               >
                                 View invoice
@@ -526,7 +536,7 @@ export default function InventoryPage() {
 
           <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--md-surface-container)' }}>
             <p className="text-small" id="inventory-count">
-              {!data
+              {!loaded
                 ? 'Loading supplies...'
                 : 'Showing ' + filteredItems.length + ' supply item' + (filteredItems.length === 1 ? '' : 's') +
                   (filteredItems.filter((i) => i.stock_quantity < i.reorder_level).length > 0

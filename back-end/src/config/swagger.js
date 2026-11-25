@@ -154,7 +154,9 @@ const ROUTES = [
   ['RBAC', 'post', '/rbac/staff/{userId}/role', 'Assign a custom role to a staff user'],
   ['RBAC', 'delete', '/rbac/staff/{userId}/role/{roleId}', 'Remove a custom role from a staff user'],
   ['RBAC', 'get', '/rbac/staff', "List staff in the caller's organization with their roles"],
-  ['RBAC', 'put', '/rbac/staff/{userId}/actor-role', "Change a staff user's portal role (HOM / PRE / FA)"],
+  ['RBAC', 'post', '/rbac/staff', 'Create a staff login (HOM / PRE / FA)'],
+  ['RBAC', 'put', '/rbac/staff/{userId}/active', 'Enable or disable a staff login'],
+  ['RBAC', 'delete', '/rbac/staff/{userId}', 'Delete a staff login (HOM / PRE / FA)'],
 ];
 
 function buildDocument() {

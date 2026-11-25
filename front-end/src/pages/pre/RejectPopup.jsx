@@ -1,19 +1,21 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
+
 import Button from '../../components/ui/Button.jsx';
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import { toast } from '../../components/feedback/feedback.js';
 import { formatDate, to12Hour } from './preHelpers.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { updatePreRequest } from '../../store/slices/preRequestsSlice.js';
 
 /**
  * Modern, clean rejection dialog using DialogShell.
  * Ensures PRE staff can clearly communicate clinical reasons with zero emojis.
  */
 export default function RejectPopup({ request, onClose, onDone }) {
-  const [reason, setReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const dispatch = useAppDispatch();
+  const [reason, setReason] = useUiState('RejectPopup.reason', '');
+  const [submitting, setSubmitting] = useUiState('RejectPopup.submitting', false);
 
   if (!request) return null;
 
@@ -25,10 +27,9 @@ export default function RejectPopup({ request, onClose, onDone }) {
     }
     setSubmitting(true);
     try {
-      await api.preRequests.update(request.pre_request_id, {
-        status: 'REJECTED',
-        reject_reason: trimmed,
-      });
+      await dispatch(
+        updatePreRequest({ id: request.pre_request_id, patch: { status: 'REJECTED', reject_reason: trimmed } }),
+      ).unwrap();
       onClose();
       toast('Request rejected successfully', 'success');
       await onDone();

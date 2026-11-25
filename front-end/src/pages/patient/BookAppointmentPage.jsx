@@ -1,11 +1,10 @@
 'use strict';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePatientStore } from './usePatientStore.js';
 import { useSession } from '../../auth/useSession.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
-import { api } from '../../api/index.js';
 import { toast } from '../../components/feedback/feedback.js';
 import DepartmentSelect from '../../components/forms/DepartmentSelect.jsx';
 import {
@@ -26,6 +25,8 @@ import {
 } from './slotHelpers.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientBookAppointmentCss from '../../styles/patient/patient-book-appointment.css?inline';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { uploadDocument } from '../../store/slices/uploadsSlice.js';
 
 const TODAY = getLocalDateIso();
 
@@ -69,6 +70,7 @@ export default function BookAppointmentPage() {
   const navigate = useNavigate();
   const { profile, doctors, specialties, addAppointment } = usePatientStore();
   const { tenant } = useSession();
+  const dispatch = useAppDispatch();
 
   const orgDepartments = useMemo(() => {
     if (specialties && specialties.length > 0) return specialties;
@@ -80,17 +82,24 @@ export default function BookAppointmentPage() {
 
   const dateBounds = useMemo(() => getBookingDateBounds(TODAY), []);
 
-  const [selectedDate, setSelectedDate] = useState(TODAY);
-  const [selectedTime, setSelectedTime] = useState('');
-  const [selectedDept, setSelectedDept] = useState(null);
-  const [selectedDoctorId, setSelectedDoctorId] = useState(null);
-  const [selectedDoctorName, setSelectedDoctorName] = useState('Any Specialist');
-  const [slotMetaTouched, setSlotMetaTouched] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState([]);
-  const [errors, setErrors] = useState({});
-  const [submitLabel, setSubmitLabel] = useState('Confirm Booking');
-  const [submitting, setSubmitting] = useState(false);
-  const [booked, setBooked] = useState(false);
+  const [selectedDate, setSelectedDate] = useUiState('BookAppointmentPage.selectedDate', TODAY);
+  const [selectedTime, setSelectedTime] = useUiState('BookAppointmentPage.selectedTime', '');
+  const [selectedDept, setSelectedDept] = useUiState('BookAppointmentPage.selectedDept', null);
+  const [selectedDoctorId, setSelectedDoctorId] = useUiState('BookAppointmentPage.selectedDoctorId', null);
+  const [selectedDoctorName, setSelectedDoctorName] = useUiState('BookAppointmentPage.selectedDoctorName', 'Any Specialist');
+  const [slotMetaTouched, setSlotMetaTouched] = useUiState('BookAppointmentPage.slotMetaTouched', false);
+  // The File objects are not serializable, so they stay on the DOM side in a
+  // ref; Redux holds only what the form shows (name and size of each).
+  const attachedFilesRef = useRef([]);
+  const [attachedFiles, setAttachedFiles] = useUiState('BookAppointmentPage.attachedFiles', []);
+  const setAttached = (files) => {
+    attachedFilesRef.current = files;
+    setAttachedFiles(files.map((f) => ({ name: f.name, size: f.size })));
+  };
+  const [errors, setErrors] = useUiState('BookAppointmentPage.errors', {});
+  const [submitLabel, setSubmitLabel] = useUiState('BookAppointmentPage.submitLabel', 'Confirm Booking');
+  const [submitting, setSubmitting] = useUiState('BookAppointmentPage.submitting', false);
+  const [booked, setBooked] = useUiState('BookAppointmentPage.booked', false);
 
   const clearError = (field) => {
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
@@ -160,7 +169,7 @@ export default function BookAppointmentPage() {
   function onFilesChange(event) {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) {
-      setAttachedFiles([]);
+      setAttached([]);
       return;
     }
 
@@ -179,7 +188,7 @@ export default function BookAppointmentPage() {
     });
 
     rejected.forEach((msg) => toast(msg, 'warning'));
-    setAttachedFiles(accepted);
+    setAttached(accepted);
 
     if (accepted.length > 0) {
       const names = accepted.map((f) => f.name).join(', ');
@@ -215,12 +224,12 @@ export default function BookAppointmentPage() {
 
     try {
       const documentUrls = [];
-      if (attachedFiles.length > 0) {
+      if (attachedFilesRef.current.length > 0) {
         setSubmitLabel(
           'Uploading ' + attachedFiles.length + ' document' + (attachedFiles.length > 1 ? 's' : '') + '…',
         );
-        for (const file of attachedFiles) {
-          const uploaded = await api.uploads.document(file);
+        for (const file of attachedFilesRef.current) {
+          const uploaded = await dispatch(uploadDocument(file)).unwrap();
           const url = (uploaded && uploaded.file && uploaded.file.url) || (uploaded && uploaded.url);
           if (!url) throw new Error('Upload of "' + file.name + '" did not return a file URL.');
           documentUrls.push(url);

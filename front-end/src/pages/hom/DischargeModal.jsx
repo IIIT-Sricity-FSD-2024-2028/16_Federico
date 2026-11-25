@@ -1,10 +1,12 @@
 'use strict';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import DialogShell from '../../components/layout/DialogShell.jsx';
-import { api } from '../../api/index.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { daysSince, formatCurrency } from './homHelpers.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { fetchLedgerEntries, fetchPatientBills } from '../../store/slices/billingSlice.js';
+import { updatePreRequest } from '../../store/slices/preRequestsSlice.js';
 
 /**
  * Ported from #modal-initiate-discharge plus openDischargeModal /
@@ -15,8 +17,9 @@ import { daysSince, formatCurrency } from './homHelpers.js';
  * parent keys this modal by row, so each opening starts from that state.
  */
 export default function DischargeModal({ row, onClose, onChanged }) {
-  const [total, setTotal] = useState(null); // null = calculating
-  const [error, setError] = useState('');
+  const dispatch = useAppDispatch();
+  const [total, setTotal] = useUiState('DischargeModal.total', null); // null = calculating
+  const [error, setError] = useUiState('DischargeModal.error', '');
 
   useEffect(() => {
     if (!row) return;
@@ -25,14 +28,14 @@ export default function DischargeModal({ row, onClose, onChanged }) {
     (async () => {
       let bundle = null;
       try {
-        const bills = await api.billing.patient.bills(row.patient_id);
+        const { bills } = await dispatch(fetchPatientBills(row.patient_id)).unwrap();
         bundle = bills.find((b) => b.ledger) || bills[0] || null;
       } catch {
         bundle = null;
       }
       if (cancelled) return;
       if (bundle && bundle.ledger) {
-        const entries = await api.billing.ledger.entries(bundle.ledger.ledger_id).catch(() => []);
+        const { entries } = await dispatch(fetchLedgerEntries(bundle.ledger.ledger_id)).unwrap().catch(() => ({ entries: [] }));
         if (cancelled) return;
         setTotal((Array.isArray(entries) ? entries : []).reduce((sum, e) => sum + Number(e.amount || 0), 0));
       } else {
@@ -41,7 +44,7 @@ export default function DischargeModal({ row, onClose, onChanged }) {
     })();
 
     return () => { cancelled = true; };
-  }, [row]);
+  }, [row, dispatch, setTotal]);
 
   if (!row) return null;
 
@@ -52,7 +55,7 @@ export default function DischargeModal({ row, onClose, onChanged }) {
     }
     setError('');
     try {
-      await api.preRequests.update(row.pre_request_id, { status: 'DISCHARGE_APPROVED' });
+      await dispatch(updatePreRequest({ id: row.pre_request_id, patch: { status: 'DISCHARGE_APPROVED' } })).unwrap();
       toast('Discharge clearance approved successfully. PRE notified to finalize release.', 'success');
     } catch (err) {
       setError(err.message || 'Unable to approve discharge clearance.');

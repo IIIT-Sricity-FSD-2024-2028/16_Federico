@@ -31,7 +31,6 @@ const PreDischargePage = lazy(() => import('./pages/pre/DischargePage.jsx'));
 const PreRejectedPage = lazy(() => import('./pages/pre/RejectedPage.jsx'));
 const PrePatientRecordsPage = lazy(() => import('./pages/pre/PatientRecordsPage.jsx'));
 const PreDoctorRosterPage = lazy(() => import('./pages/pre/DoctorRosterPage.jsx'));
-const PreAppointmentPage = lazy(() => import('./pages/pre/AppointmentPage.jsx'));
 
 const PatientLayout = lazy(() => import('./pages/patient/PatientLayout.jsx'));
 const PatientDashboardPage = lazy(() => import('./pages/patient/DashboardPage.jsx'));
@@ -143,11 +142,6 @@ const router = createBrowserRouter([
           { path: '/PRE/pages/rejected.html', element: L(<PreRejectedPage />) },
           { path: '/PRE/pages/patient-records.html', element: L(<PrePatientRecordsPage />) },
           { path: '/PRE/pages/doctor.html', element: L(<PreDoctorRosterPage />) },
-          // Both casings resolve (DEC-7). Every link in the app uses the
-          // lowercase spelling; the file on disk was APPointment.html, so a
-          // bookmark of either must keep working.
-          { path: '/PRE/pages/appointment.html', element: L(<PreAppointmentPage />) },
-          { path: '/PRE/pages/APPointment.html', element: L(<PreAppointmentPage />) },
         ],
       },
 

@@ -1,9 +1,11 @@
 'use strict';
 
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
-import { useFa } from './FaContext.jsx';
-import { loadBillingOverview, loadLedgerEntries, formatCurrency } from './faHelpers.js';
+import { useMemo } from 'react';
+import { useAppSelector, useLoader } from '../../store/hooks.js';
+import { loadFaCharges } from '../../store/pageLoaders.js';
+import { selectLeaders } from '../../store/slices/billingSlice.js';
+import { useFa } from './useFa.js';
+import { buildCharges, selectBillingOverview, formatCurrency } from './faHelpers.js';
 import * as actions from './faActions.js';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
@@ -13,66 +15,16 @@ import * as S from './faStyles.js';
 export default function ChargesView() {
   const ctx = useFa();
 
-  const { data, error, loading } = useApi(async () => {
-    const [overview, leaders] = await Promise.all([
-      loadBillingOverview(),
-      api.billing.leaders.list().catch(() => []),
-    ]);
-    const { rows, servicesById, patientsById, admissionsById } = overview;
+  const { loaded, error, loading } = useLoader(loadFaCharges, { deps: [ctx.version] });
+  const overview = useAppSelector(selectBillingOverview);
+  const leaders = useAppSelector(selectLeaders);
+  const ledgerEntries = useAppSelector((state) => state.billing.ledgerEntries);
 
-    // Pending items submitted by HOM (not yet approved into ledger)
-    const pendingItems = (leaders || [])
-      .filter((l) => l.status === 'PENDING')
-      .map((l) => {
-        const admission = admissionsById[l.admission_id];
-        const patient = l.patient_id
-          ? patientsById[l.patient_id]
-          : admission
-            ? patientsById[admission.patient_id]
-            : null;
-        const service = servicesById[l.service_id];
-        return {
-          id: 'pending-' + l.leader_id,
-          leaderId: l.leader_id,
-          isPending: true,
-          patientId: patient?.patient_id || l.patient_id || '-',
-          patientName: patient?.name || 'Patient',
-          uhid: patient?.uhid || '-',
-          serviceName: service?.service_name || 'Service #' + l.service_id,
-          quantity: l.quantity,
-          amount: l.amount,
-          status: 'Pending',
-          time: new Date(l.created_at || Date.now()),
-        };
-      });
-
-    // Recent ledger entries approved in FA ledger
-    const withLedgers = rows.filter((r) => r.ledger);
-    const entryLists = await Promise.all(
-      withLedgers.map((r) => loadLedgerEntries(r.ledger.ledger_id).then((entries) => ({ r, entries }))),
-    );
-    const recentLedgerItems = entryLists.flatMap(({ r, entries }) =>
-      entries.map((e) => ({
-        id: 'entry-' + r.ledger.ledger_id + '-' + e.entry_id,
-        isPending: false,
-        patientId: r.patient.patient_id || '-',
-        patientName: r.patient.name,
-        uhid: r.patient.uhid,
-        serviceName: servicesById[e.service_id]?.service_name || 'Service #' + e.service_id,
-        quantity: e.quantity,
-        amount: e.amount,
-        status: 'Approved',
-        time: new Date(e.entry_time || Date.now()),
-      })),
-    );
-
-    // Pending items at the top, then recent approved ledger items by time desc
-    const allCharges = [...pendingItems, ...recentLedgerItems].sort(
-      (a, b) => (b.isPending ? 1 : 0) - (a.isPending ? 1 : 0) || b.time - a.time,
-    );
-
-    return { pendingItems, allCharges };
-  }, [ctx.version]);
+  // The charges table is derived from the slices (overview, leaders, entries).
+  const data = useMemo(
+    () => (loaded ? buildCharges(overview, leaders, ledgerEntries) : null),
+    [loaded, overview, leaders, ledgerEntries],
+  );
 
   return (
     <ViewFrame loading={loading} error={error}>

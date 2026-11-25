@@ -1,11 +1,12 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadFaSettlement } from '../../store/pageLoaders.js';
+import { setFaCoverageDeduction } from '../../store/slices/billingSlice.js';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
-import { loadLedgerEntries, ledgerTotal, formatCurrency } from './faHelpers.js';
+import { ledgerTotal, formatCurrency } from './faHelpers.js';
 import * as actions from './faActions.js';
 
 /**
@@ -16,17 +17,17 @@ import * as actions from './faActions.js';
  * summary's final amount is derived server-side from the ledger entries.
  */
 export default function SettlementSection({ ctx, row }) {
-  const { data: extra } = useApi(async () => {
-    const entries = row.ledger ? await loadLedgerEntries(row.ledger.ledger_id) : [];
-    let insurance = null;
-    try {
-      const list = await api.patients.insuranceForPatient(row.patient.patient_id);
-      insurance = list && list[0] ? list[0] : null;
-    } catch {
-      insurance = null;
-    }
-    return { entries, insurance };
-  }, [ctx.version, row.admission.admission_id, row.ledger?.ledger_id]);
+  const ledgerId = row.ledger?.ledger_id;
+  const patientId = row.patient.patient_id;
+  const { loaded } = useLoader(loadFaSettlement, {
+    arg: { ledgerId, patientId },
+    deps: [ctx.version, row.admission.admission_id, ledgerId],
+  });
+  const entries = useAppSelector((state) => (ledgerId ? state.billing.ledgerEntries[ledgerId] : undefined));
+  const insuranceList = useAppSelector((state) => state.patients.patientInsurance[patientId]);
+  const extra = loaded
+    ? { entries: entries || [], insurance: insuranceList && insuranceList[0] ? insuranceList[0] : null }
+    : null;
 
   if (!row.dischargeApproved) {
     return (
@@ -85,12 +86,20 @@ export default function SettlementSection({ ctx, row }) {
 }
 
 function Settlement({ ctx, row, entries, insurance }) {
-  // Read live at click time by the payment / summary actions.
-  const { coverageOverrideRef } = ctx;
+  const dispatch = useAppDispatch();
   const grossTotal = ledgerTotal(entries);
   const coverageLimit = insurance ? Math.min(Number(insurance.coverage_limit || 0), grossTotal) : 0;
-  const [userOverride, setUserOverride] = useState(null);
+  const [userOverride, setUserOverride] = useUiState('SettlementSection.userOverride', null);
   const overrideDeduction = userOverride !== null ? userOverride : coverageLimit;
+
+  // The payment / summary actions read the deduction shown here at click time;
+  // it is kept in state.billing.fa.coverageDeduction while this form is on screen.
+  useEffect(() => {
+    dispatch(setFaCoverageDeduction(overrideDeduction));
+    return () => {
+      dispatch(setFaCoverageDeduction(null));
+    };
+  }, [dispatch, overrideDeduction]);
 
   const effectiveDeduction = Math.min(Math.max(0, overrideDeduction), grossTotal);
   const netPayable = Math.max(0, grossTotal - effectiveDeduction);
@@ -148,7 +157,6 @@ function Settlement({ ctx, row, entries, insurance }) {
             <input
               type="number"
               id="coverage-override"
-              ref={coverageOverrideRef}
               value={overrideDeduction}
               onChange={(e) => {
                 const val = e.target.value === '' ? 0 : Number(e.target.value);

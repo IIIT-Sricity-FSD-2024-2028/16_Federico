@@ -1,41 +1,42 @@
 'use strict';
 
-import { useState, useMemo } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import Badge from '../../components/ui/Badge.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import { joinPreRequestsWithPatients, statusLabel, formatDate } from './preHelpers.js';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreRejected } from '../../store/pageLoaders.js';
+import { selectPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
 
 /** Ported from PRE/pages/rejected.html + rejected.js. */
 export default function RejectedPage() {
   useDocumentTitle('Rejected Requests');
 
-  const { data, loading, error } = useApi(async () => {
-    const [preRequests, patients, doctors] = await Promise.all([
-      api.preRequests.list(),
-      api.patients.list(),
-      api.doctors.list(),
-    ]);
-    const doctorsById = {};
-    (doctors || []).forEach((d) => (doctorsById[d.doctor_id] = d));
-    return joinPreRequestsWithPatients(preRequests, patients, doctorsById).filter((r) => r.status === 'REJECTED');
-  }, []);
+  const { loading, error } = useLoader(loadPreRejected);
+  const preRequestList = useAppSelector(selectPreRequests);
+  const patientList = useAppSelector(selectPatients);
+  const doctorList = useAppSelector(selectDoctors);
 
-  const rows = data || [];
-  const [query, setQuery] = useState('');
-  const [deptFilter, setDeptFilter] = useState('');
+  const rows = useMemo(() => {
+    const doctorsById = {};
+    (doctorList || []).forEach((d) => (doctorsById[d.doctor_id] = d));
+    return joinPreRequestsWithPatients(preRequestList, patientList, doctorsById).filter((r) => r.status === 'REJECTED');
+  }, [preRequestList, patientList, doctorList]);
+  const [query, setQuery] = useUiState('RejectedPage.query', '');
+  const [deptFilter, setDeptFilter] = useUiState('RejectedPage.deptFilter', '');
 
   const departments = useMemo(() => {
     const depts = new Set();
-    (data || []).forEach((r) => {
+    rows.forEach((r) => {
       if (r.department) depts.add(r.department);
     });
     return Array.from(depts).sort();
-  }, [data]);
+  }, [rows]);
 
   const q = query.trim().toLowerCase();
   const filtered = rows.filter((r) => {

@@ -18,4 +18,10 @@ function updateFullState(req, res) {
   res.status(201).json({ success: true });
 }
 
-module.exports = { getFullState, updateFullState };
+function getAdminDashboard(req, res) {
+  const organizationId = req.tenant && req.tenant.organizationId;
+  const hospitalId = req.tenant && req.tenant.hospitalId;
+  res.status(200).json(dataService.getAdminDashboard(organizationId, hospitalId));
+}
+
+module.exports = { getFullState, updateFullState, getAdminDashboard };

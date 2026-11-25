@@ -91,4 +91,56 @@ describe('Platform Revenue Analytics & Marketplace Self-Service Onboarding', () 
     expect(org.subscription.service_lines).toHaveLength(1);
     expect(org.subscription.service_lines[0].code).toBe('PLATFORM_BASE');
   });
+
+  it('rejects weak passwords / invalid phone and persists sanitized payment summary on valid signup', async () => {
+    const weakPwRes = await request(app)
+      .post('/marketplace/register-organization')
+      .send({
+        name: 'Bad Password Hospital',
+        city: 'Pune',
+        phone: '+91 9876543210',
+        plan_id: 1,
+        admin_name: 'Dr. Test',
+        email_domain: 'badpw.com',
+        admin_email: 'test.admin@badpw.com',
+        admin_password: 'weak',
+      });
+    expect(weakPwRes.status).toBe(400);
+
+    const badPhoneRes = await request(app)
+      .post('/marketplace/register-organization')
+      .send({
+        name: 'Bad Phone Hospital',
+        city: 'Pune',
+        phone: '123',
+        plan_id: 1,
+        admin_name: 'Dr. Test',
+        email_domain: 'badphone.com',
+        admin_email: 'test.admin@badphone.com',
+        admin_password: 'Password@123',
+      });
+    expect(badPhoneRes.status).toBe(400);
+
+    const validRes = await request(app)
+      .post('/marketplace/register-organization')
+      .send({
+        name: 'Verified Care Network',
+        city: 'Bengaluru',
+        phone: '+91 9876543210',
+        plan_id: 1,
+        admin_name: 'Dr. Ananya Rao',
+        email_domain: 'verifiedcare.com',
+        admin_email: 'ananya.admin@verifiedcare.com',
+        admin_password: 'Password@123',
+        payment_method: 'netbanking',
+        payment_summary: { bank_name: 'HDFC Bank Corporate' },
+        payment_reference: 'PAY_FED_VERIFY1',
+      });
+    expect(validRes.status).toBe(201);
+    expect(validRes.body.provisioned.subscription.payment_method).toBe('netbanking');
+    expect(validRes.body.provisioned.subscription.payment_reference).toBe('PAY_FED_VERIFY1');
+    expect(validRes.body.provisioned.subscription.payment_summary).toEqual({
+      bank_name: 'HDFC Bank Corporate',
+    });
+  });
 });

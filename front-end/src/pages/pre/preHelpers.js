@@ -60,6 +60,48 @@ export function to24Hour(timeStr) {
   return String(hours).padStart(2, '0') + ':' + minutes;
 }
 
+function localDateKey(date) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
+/** Returns the browser's local calendar date in the request's YYYY-MM-DD format. */
+export function getLocalDate(date = new Date()) {
+  return localDateKey(date);
+}
+
+/** Returns the approval block message when a requested local date/time is past. */
+export function getApprovalScheduleError(dateValue, timeValue, now = new Date()) {
+  const dateMatch = String(dateValue || '').trim().match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!dateMatch) return null;
+
+  const requestedDate = dateMatch[1];
+  const today = localDateKey(now);
+  if (requestedDate < today) {
+    return 'This appointment request is for a past date and cannot be approved.';
+  }
+  if (requestedDate > today) return null;
+
+  const timeMatch = String(timeValue || '').trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!timeMatch) return null;
+
+  let hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const seconds = Number(timeMatch[3] || 0);
+  const meridiem = timeMatch[4]?.toUpperCase();
+  if (minutes > 59 || seconds > 59 || (meridiem && (hours < 1 || hours > 12)) || (!meridiem && hours > 23)) {
+    return null;
+  }
+  if (meridiem === 'PM' && hours < 12) hours += 12;
+  if (meridiem === 'AM' && hours === 12) hours = 0;
+
+  const requestedMinutes = hours * 60 + minutes;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  if (requestedMinutes < currentMinutes) {
+    return 'This appointment time has already passed and cannot be approved.';
+  }
+  return null;
+}
+
 export function inferWardType(department) {
   const key = String(department || '').toLowerCase();
   const match = DEFAULT_DEPARTMENTS.find(

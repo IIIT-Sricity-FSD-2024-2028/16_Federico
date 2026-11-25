@@ -533,65 +533,6 @@ button, a {
   transform: translateY(0) scale(0.98);
 }
 
-/* Key Metrics Strip */
-.hero-metrics-strip {
-  width: 100%;
-  max-width: 1040px;
-  background: rgba(255, 255, 255, 0.76);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
-  border-radius: 20px;
-  padding: 24px 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.metric-box {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  text-align: left;
-}
-
-.metric-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(103, 80, 164, 0.08);
-  color: #6750A4;
-  display: grid;
-  place-items: center;
-}
-
-.metric-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.metric-number {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #1C1B1F;
-  line-height: 1.1;
-}
-
-.metric-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #79747E;
-  margin-top: 2px;
-}
-
-.metric-divider {
-  width: 1px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.08);
-}
-
 /* ==========================================================================
    5. Section Header Shared
    ========================================================================== */
@@ -1583,20 +1524,6 @@ button, a {
 
   .hero-main-title {
     font-size: 2.2rem;
-  }
-
-  .hero-metrics-strip {
-    flex-direction: column;
-    gap: 16px;
-    padding: 20px;
-  }
-
-  .metric-divider {
-    display: none;
-  }
-
-  .metric-box {
-    width: 100%;
   }
 
   .navigator-options-grid {

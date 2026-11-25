@@ -1,9 +1,7 @@
 'use strict';
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
 import { usePolling } from '../../hooks/usePolling.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import PageHeader from '../../components/layout/PageHeader.jsx';
@@ -16,35 +14,38 @@ import AssignBedModal from './AssignBedModal.jsx';
 import BedDetailModal from './BedDetailModal.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import bedManagementCss from '../../styles/hom/bed-management.css?inline';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadHomBeds } from '../../store/pageLoaders.js';
+import { selectBeds, selectBedRequests, selectWards, updateBedStatus } from '../../store/slices/wardsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
 
 /** Ported from HOM/screen-02-bed-management.html + beds.js. */
 export default function BedManagementPage() {
   usePageStyles(bedManagementCss);
   useDocumentTitle('Bed Management | Federico Hospital HOM');
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
-  const [activeTab, setActiveTab] = useState('all');
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [search, setSearch] = useState('');
-  const [assignBedId, setAssignBedId] = useState(null);
-  const [detailBedId, setDetailBedId] = useState(null);
+  const [activeTab, setActiveTab] = useUiState('BedManagementPage.activeTab', 'all');
+  const [activeFilter, setActiveFilter] = useUiState('BedManagementPage.activeFilter', 'all');
+  const [search, setSearch] = useUiState('BedManagementPage.search', '');
+  const [assignBedId, setAssignBedId] = useUiState('BedManagementPage.assignBedId', null);
+  const [detailBedId, setDetailBedId] = useUiState('BedManagementPage.detailBedId', null);
 
-  const { data, reload } = useApi(async () => {
-    const [wards, beds, bedRequests, patients, preRequests, doctors] = await Promise.all([
-      api.wards.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-      api.wards.bedRequests.list().catch(() => []),
-      api.patients.list().catch(() => []),
-      api.preRequests.list().catch(() => []),
-      api.doctors.list().catch(() => []),
-    ]);
-    const arr = (v) => (Array.isArray(v) ? v : []);
-    return { wards: arr(wards), beds: arr(beds), bedRequests: arr(bedRequests), patients: arr(patients), preRequests: arr(preRequests), doctors: arr(doctors) };
-  }, []);
+  const { reload } = useLoader(loadHomBeds);
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const d = {
+    wards: arr(useAppSelector(selectWards)),
+    beds: arr(useAppSelector(selectBeds)),
+    bedRequests: arr(useAppSelector(selectBedRequests)),
+    patients: arr(useAppSelector(selectPatients)),
+    preRequests: arr(useAppSelector(selectPreRequests)),
+    doctors: arr(useAppSelector(selectDoctors)),
+  };
 
   usePolling(reload, 15000);
-
-  const d = data || { wards: [], beds: [], bedRequests: [], patients: [], preRequests: [], doctors: [] };
 
   /** A bed's current occupant, via the pre-request that holds it. */
   const patientForBed = useCallback(
@@ -90,7 +91,7 @@ export default function BedManagementPage() {
     if (!bed) return;
     const targetStatus = bed.status === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE';
     try {
-      await api.wards.updateBedStatus(bedId, targetStatus);
+      await dispatch(updateBedStatus({ bedId, status: targetStatus })).unwrap();
       toast('Bed ' + bed.bed_number + ' status updated to ' + targetStatus + '.', 'success');
       setDetailBedId(null);
       await reload();

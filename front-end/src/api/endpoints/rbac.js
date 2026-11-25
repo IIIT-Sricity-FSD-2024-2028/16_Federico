@@ -17,7 +17,7 @@ export const rbac = {
   setStaffActive(userId, isActive) {
     return request('PUT', '/rbac/staff/' + userId + '/active', { is_active: isActive });
   },
-  setStaffRole(userId, actorRole) {
-    return request('PUT', '/rbac/staff/' + userId + '/actor-role', { actor_role: actorRole });
+  deleteStaff(userId) {
+    return request('DELETE', '/rbac/staff/' + userId);
   },
 };

@@ -10,6 +10,7 @@ const appointmentService = require('../services/appointment.service');
 const doctorService = require('../services/doctor.service');
 const billingService = require('../services/billing.service');
 const provisioningService = require('../services/provisioning.service');
+const rbacService = require('../services/rbac.service');
 
 /**
  * Locks in the concurrency / availability / billing guards:
@@ -262,34 +263,65 @@ describe('Allocation, booking and billing guards', () => {
     });
   });
 
-  describe('staff directory role dropdown', () => {
-    it('changes a staff role within the org, revokes their sessions, and rejects other roles/orgs', async () => {
-      const adminTok = createSession({ userId: 1, role: 'Admin', organizationId: 1, hospitalId: 1 });
-      const staff = dataStore.users.find((u) => u.user_id === 105); // PRE, org 1
-      const staffTok = createSession({ userId: 105, role: 'PRE', organizationId: 1, hospitalId: 1 });
+  describe('staff directory deletion', () => {
+    it('deletes a staff login within the org, revokes sessions, cleans role assignments, reassigns creator FKs, and rejects other roles/orgs', async () => {
+      const adminUser = dataStore.users.find((u) => u.organization_id === 1 && u.role_id === 5);
+      const adminTok = createSession({ userId: adminUser.user_id, role: 'Admin', organizationId: 1, hospitalId: 1 });
+      const created = rbacService.createStaffUser(1, {
+        name: 'Temp Delete Staff',
+        email: 'tempdel.pre@citygen.com',
+        password: 'Temp@1234',
+        actor_role: 'PRE',
+      });
+      const staffTok = createSession({ userId: created.user_id, role: 'PRE', organizationId: 1, hospitalId: 1 });
+
+      const customRole = dataStore.customRoles.find((r) => r.organization_id === 1);
+      if (customRole) {
+        rbacService.assignStaffRole(created.user_id, customRole.custom_role_id);
+      }
+      const tempPre = {
+        pre_request_id: 999901,
+        patient_id: 201,
+        department: 'General Medicine',
+        visit_type: 'OPD',
+        status: 'PENDING',
+        created_by: created.user_id,
+        organization_id: 1,
+        hospital_id: 1,
+      };
+      dataStore.preRequests.push(tempPre);
 
       const ok = await request(app)
-        .put('/rbac/staff/105/actor-role')
-        .set('Authorization', `Bearer ${adminTok}`)
-        .send({ actor_role: 'FA' });
+        .delete(`/rbac/staff/${created.user_id}`)
+        .set('Authorization', `Bearer ${adminTok}`);
       expect(ok.status).toBe(200);
-      expect(ok.body.actor_role).toBe('FA');
-      expect(staff.role_id).toBe(3);
+      expect(ok.body).toEqual({ deleted: true, user_id: created.user_id });
+      expect(dataStore.users.find((u) => u.user_id === created.user_id)).toBeUndefined();
+      expect(dataStore.staffRoleAssignments.filter((a) => a.user_id === created.user_id)).toHaveLength(0);
+      expect(tempPre.created_by).toBe(adminUser.user_id);
       expect(getSession(staffTok)).toBeNull();
 
-      const bad = await request(app)
-        .put('/rbac/staff/105/actor-role')
-        .set('Authorization', `Bearer ${adminTok}`)
-        .send({ actor_role: 'Admin' });
-      expect(bad.status).toBe(400);
+      const loginRes = await request(app)
+        .post('/auth/login/pre')
+        .send({ email: 'tempdel.pre@citygen.com', password: 'Temp@1234' });
+      expect(loginRes.status).toBe(401);
+
+      const adminDel = await request(app)
+        .delete(`/rbac/staff/${adminUser.user_id}`)
+        .set('Authorization', `Bearer ${adminTok}`);
+      expect(adminDel.status).toBe(403);
+
+      const patientDel = await request(app)
+        .delete('/rbac/staff/102')
+        .set('Authorization', `Bearer ${adminTok}`);
+      expect(patientDel.status).toBe(403);
 
       const otherOrg = await request(app)
-        .put('/rbac/staff/108/actor-role')
-        .set('Authorization', `Bearer ${adminTok}`)
-        .send({ actor_role: 'HOM' });
+        .delete('/rbac/staff/108')
+        .set('Authorization', `Bearer ${adminTok}`);
       expect(otherOrg.status).toBe(403);
 
-      staff.role_id = 4;
+      dataStore.preRequests = dataStore.preRequests.filter((p) => p.pre_request_id !== 999901);
     });
   });
 

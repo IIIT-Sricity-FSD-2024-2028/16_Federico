@@ -1,7 +1,17 @@
 'use strict';
 
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
+import { useAppSelector, useLoader } from '../../store/hooks.js';
+import { loadAdminDashboard } from '../../store/pageLoaders.js';
+import { selectBeds, selectWards } from '../../store/slices/wardsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectInventoryItems } from '../../store/slices/inventorySlice.js';
+import { selectAdmissions } from '../../store/slices/admissionsSlice.js';
+import { selectPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { selectAppointments } from '../../store/slices/appointmentsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
+import { selectActivityLog } from '../../store/slices/activitySlice.js';
+import { selectPlatformRates } from '../../store/slices/platformSlice.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { useSession } from '../../auth/useSession.js';
 import { formatCurrency, formatDateTime } from '../../lib/formatters.js';
@@ -14,72 +24,34 @@ export default function AdminDashboardPage() {
   useDocumentTitle('Dashboard | Federico Hospital Admin');
   const { tenant } = useSession();
 
-  const { data } = useApi(async () => {
-    const [
-      wards,
-      beds,
-      patients,
-      rawLedgers,
-      items,
-      staff,
-      payments,
-      admissions,
-      preRequests,
-      appointments,
-      doctors,
-      liveRates,
-      activity,
-    ] = await Promise.all([
-      api.wards.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-      api.patients.list().catch(() => []),
-      api.billing.ledger.listAll().catch(() => []),
-      api.inventory.items.list().catch(() => []),
-      api.rbac.staff().catch(() => []),
-      api.billing.payments.list().catch(() => []),
-      api.admissions.list().catch(() => []),
-      api.preRequests.list().catch(() => []),
-      api.appointments.list().catch(() => []),
-      api.doctors.list().catch(() => []),
-      api.platform.rates.get().catch(() => null),
-      api.activityLog.list().catch(() => []),
-    ]);
+  const { loaded: data, error: loadError } = useLoader(loadAdminDashboard);
 
-    // Compute ledger totals
-    const ledgers = await Promise.all(
-      (rawLedgers || []).map(async (ledger) => {
-        const entries = await api.billing.ledger.entries(ledger.ledger_id).catch(() => []);
-        return { ...ledger, total: entries.reduce((sum, e) => sum + Number(e.amount || 0), 0) };
-      }),
-    );
+  const beds = useAppSelector(selectBeds);
+  const wards = useAppSelector(selectWards);
+  const patients = useAppSelector(selectPatients);
+  const rawLedgers = useAppSelector((state) => state.billing.ledgers);
+  const ledgerEntries = useAppSelector((state) => state.billing.ledgerEntries);
+  const items = useAppSelector(selectInventoryItems);
+  const payments = useAppSelector((state) => state.billing.payments);
+  const admissions = useAppSelector(selectAdmissions);
+  const preRequests = useAppSelector(selectPreRequests);
+  const appointments = useAppSelector(selectAppointments);
+  const doctors = useAppSelector(selectDoctors);
+  const liveRates = useAppSelector(selectPlatformRates);
+  const activity = useAppSelector(selectActivityLog);
 
-    return {
-      wards,
-      beds,
-      patients,
-      ledgers,
-      items,
-      staff,
-      payments,
-      admissions,
-      preRequests,
-      appointments,
-      doctors,
-      liveRates,
-      activity: Array.isArray(activity) ? activity : [],
-    };
-  }, []);
-
-  const d = data || {};
-  const beds = d.beds || [];
-  const wards = d.wards || [];
-  const ledgers = d.ledgers || [];
-  const items = d.items || [];
-  const staff = d.staff || [];
-  const doctors = d.doctors || [];
-  const admissions = d.admissions || [];
-  const preRequests = d.preRequests || [];
-  const activityList = d.activity || [];
+  const ledgers = useMemo(
+    () =>
+      rawLedgers.map((ledger) => ({
+        ...ledger,
+        total:
+          ledger.total_amount !== undefined
+            ? Number(ledger.total_amount || 0)
+            : (ledgerEntries[ledger.ledger_id] || []).reduce((sum, e) => sum + Number(e.amount || 0), 0),
+      })),
+    [rawLedgers, ledgerEntries],
+  );
+  const activityList = Array.isArray(activity) ? activity : [];
 
   // Capacity & Clinical flow
   const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;
@@ -91,38 +63,78 @@ export default function AdminDashboardPage() {
 
   // Financial Health Metrics (Zero Redundancy)
   const totalRevenue = ledgers.reduce((s, l) => s + Number(l.total || 0), 0);
-  const collected = (d.payments || []).reduce((s, p) => s + Number(p.amount_paid || 0), 0);
+  const collected = (payments || []).reduce((s, p) => s + Number(p.amount_paid || 0), 0);
   const outstandingBalance = Math.max(0, totalRevenue - collected);
-  const collectionRate = totalRevenue > 0 ? Math.round((collected / totalRevenue) * 100) : 100;
+  const collectionRate = totalRevenue > 0 ? Math.round((collected / totalRevenue) * 100) : 0;
 
-  // Specialty Breakdown
-  const specialtyMap = {};
-  doctors.forEach((doc) => {
-    const spec = doc.specialization || 'General Practice';
-    specialtyMap[spec] = (specialtyMap[spec] || 0) + 1;
-  });
+  // Specialty Breakdown — merge org sign-up specialties with registered doctors
+  const specialtyList = useMemo(() => {
+    const specEntries = new Map();
+    const addSpec = (rawName, docDelta) => {
+      const clean = String(rawName || '').trim();
+      if (!clean) return;
+      const key = clean.toLowerCase();
+      const existing = specEntries.get(key);
+      if (existing) {
+        if (/^[A-Z]/.test(clean) && !/^[A-Z]/.test(existing.label)) {
+          existing.label = clean;
+        }
+        existing.count += docDelta;
+      } else {
+        const displayLabel = /^[a-z]/.test(clean)
+          ? clean.charAt(0).toUpperCase() + clean.slice(1)
+          : clean;
+        specEntries.set(key, { label: displayLabel, count: docDelta });
+      }
+    };
+    (tenant?.specialties || []).forEach((s) => addSpec(s, 0));
+    doctors.forEach((doc) => addSpec(doc.specialization || 'General Medicine', 1));
+    return Array.from(specEntries.values());
+  }, [tenant?.specialties, doctors]);
 
   // Operational Action Center
   const lowStock = items.filter((i) => i.stock_quantity < i.reorder_level);
 
-  // Cloud Billing & Usage Rates
-  const r = d.liveRates;
-  const basePlatformFee = Number(r?.base_platform_fee ?? r?.base_fee ?? 3000);
-  const bedRate = Number(r?.rates?.GENERAL_BEDS ?? 150);
-  const docRate = Number(r?.rates?.DOCTOR_SEATS ?? 150);
-  const staffRate = Number(r?.rates?.STAFF_SEATS ?? 200);
-  const termRate = Number(r?.rates?.BILLING_TERMINALS ?? 500);
-  const whRate = Number(r?.rates?.WAREHOUSES ?? 1000);
-  const admRate = Number(r?.rates?.PATIENT_ADMISSIONS ?? 10);
+  // Cloud Billing & Subscribed Resource Capacity
+  const resMap = tenant?.resources || {};
+  const branchCount = Math.max(1, Number(tenant?.branch_count) || 1);
+  const basePlatformFee = Number(liveRates?.base_platform_fee ?? liveRates?.base_fee ?? 3000);
+  const baseCost = basePlatformFee * branchCount;
 
-  const bedCost = beds.length * bedRate;
-  const docCost = doctors.length * docRate;
-  const staffCost = staff.length * staffRate;
-  const terminalsCost = 2 * termRate;
-  const warehouseCost = 1 * whRate;
-  const admCost = admissions.length * admRate;
+  const genRate = Number(liveRates?.rates?.GENERAL_BEDS ?? 150);
+  const icuRate = Number(liveRates?.rates?.ICU_BEDS ?? 600);
+  const privRate = Number(liveRates?.rates?.PRIVATE_BEDS ?? 350);
+  const docRate = Number(liveRates?.rates?.DOCTOR_SEATS ?? 150);
+  const staffRate = Number(liveRates?.rates?.STAFF_SEATS ?? 200);
+  const termRate = Number(liveRates?.rates?.BILLING_TERMINALS ?? 500);
+  const whRate = Number(liveRates?.rates?.WAREHOUSES ?? 1000);
+  const admRate = Number(liveRates?.rates?.PATIENT_ADMISSIONS ?? 10);
 
-  const subtotal = basePlatformFee + bedCost + docCost + staffCost + terminalsCost + warehouseCost + admCost;
+  const genBeds = Number(resMap.ADMISSIONS?.GENERAL_BEDS ?? 0);
+  const icuBeds = Number(resMap.ADMISSIONS?.ICU_BEDS ?? 0);
+  const privBeds = Number(resMap.ADMISSIONS?.PRIVATE_BEDS ?? 0);
+  const totalSubscribedBeds = genBeds + icuBeds + privBeds;
+  const bedCost = genBeds * genRate + icuBeds * icuRate + privBeds * privRate;
+
+  const bedBreakdownParts = [];
+  if (genBeds > 0) bedBreakdownParts.push(`${genBeds} Gen`);
+  if (icuBeds > 0) bedBreakdownParts.push(`${icuBeds} ICU`);
+  if (privBeds > 0) bedBreakdownParts.push(`${privBeds} Priv`);
+
+  const docSeats = Number(resMap.DOCTOR?.DOCTOR_SEATS ?? 0);
+  const staffSeats = Number(resMap.BILLING?.STAFF_SEATS ?? 0);
+  const docCost = docSeats * docRate;
+  const staffCost = staffSeats * staffRate;
+
+  const terminals = Number(resMap.BILLING?.BILLING_TERMINALS ?? 0);
+  const warehouses = Number(resMap.INVENTORY?.WAREHOUSES ?? 0);
+  const terminalsCost = terminals * termRate;
+  const warehouseCost = warehouses * whRate;
+
+  const admQuota = Number(resMap.PATIENT?.PATIENT_ADMISSIONS ?? 0);
+  const admCost = admQuota * admRate;
+
+  const subtotal = baseCost + bedCost + docCost + staffCost + terminalsCost + warehouseCost + admCost;
   const gst = Math.round(subtotal * 0.18);
   const totalMonthly = subtotal + gst;
 
@@ -133,12 +145,21 @@ export default function AdminDashboardPage() {
         subtitle={`Executive command center for ${tenant?.organization_name || 'Hospital Operations'} — clinical flow, capacity, and financials`}
       />
 
+      {loadError ? (
+        <div className="card" style={{ marginBottom: 20, padding: 16 }}>
+          <EmptyState
+            title="Could not load dashboard metrics"
+            message={loadError.message || 'Please refresh the page or check your connection.'}
+          />
+        </div>
+      ) : null}
+
       {/* Row 1: Clinical Flow & Capacity KPIs */}
       <div className="metrics-grid">
         <StatCard
           label="Active Inpatients"
           value={activeInpatients}
-          sub={dischargeQueue > 0 ? `${dischargeQueue} pending discharge` : 'All patients accommodated'}
+          sub={activeInpatients > 0 ? 'Currently admitted' : 'No active admissions'}
           variant="primary"
         />
         <StatCard
@@ -149,19 +170,19 @@ export default function AdminDashboardPage() {
         />
         <StatCard
           label="Outpatient Appointments"
-          value={(d.appointments || []).length}
+          value={appointments.length}
           sub="Booked consultations"
           variant="info"
         />
         <StatCard
           label="Registered Patients"
-          value={(d.patients || []).length}
+          value={patients.length}
           sub="Hospital patient records"
           variant="default"
         />
       </div>
 
-      {/* Row 2: Financial Health & Collections KPIs (Zero Redundancy) */}
+      {/* Row 2: Financial Health & Collections KPIs (3-card consolidated layout) */}
       <div className="metrics-grid" style={{ marginTop: -8 }}>
         <StatCard
           label="Total Revenue Billed"
@@ -172,20 +193,14 @@ export default function AdminDashboardPage() {
         <StatCard
           label="Payments Settled"
           value={formatCurrency(collected)}
-          sub="Direct cash & receipts"
+          sub={totalRevenue > 0 ? `${collectionRate}% collection rate` : 'No revenue billed yet'}
           variant="success"
         />
         <StatCard
           label="Outstanding Receivables"
           value={formatCurrency(outstandingBalance)}
-          sub="Unsettled patient balances"
+          sub={outstandingBalance > 0 ? 'Unsettled patient balances' : 'All balances settled'}
           variant={outstandingBalance > 0 ? 'warning' : 'default'}
-        />
-        <StatCard
-          label="Collection Efficiency"
-          value={`${collectionRate}%`}
-          sub="Settled vs. billed revenue"
-          variant={collectionRate >= 70 ? 'success' : 'info'}
         />
       </div>
 
@@ -195,27 +210,25 @@ export default function AdminDashboardPage() {
         <div className="left-column">
           {/* Ward Capacity & Occupancy Breakdown */}
           <div className="card">
-            <div className="card-header" style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 className="card-title">Ward Occupancy &amp; Bed Capacity</h2>
-                <p className="card-description">Live patient load across configured clinical departments</p>
-              </div>
-              <Badge variant={occupancyPct >= 85 ? 'warning' : 'success'}>
-                {occupied} / {beds.length} Beds In Use
-              </Badge>
+            <div className="card-header">
+              <h2 className="card-title">Ward Occupancy &amp; Bed Capacity</h2>
+              <p className="card-description">Live patient load across configured clinical departments</p>
             </div>
             <div className="card-content">
               <div id="ward-occupancy-list">
                 {!data ? (
                   <EmptyState title="Loading wards…" />
                 ) : wards.length === 0 ? (
-                  <EmptyState title="No wards configured" description="Add clinical units in the Departments & Wards tab." />
+                  <EmptyState
+                    title="No wards configured"
+                    message="Add clinical units in the Departments & Wards tab."
+                  />
                 ) : (
                   wards.map((ward) => {
                     const wardBeds = beds.filter((b) => b.ward_id === ward.ward_id);
                     const wardOccupied = wardBeds.filter((b) => b.status === 'OCCUPIED').length;
                     const pct = wardBeds.length ? Math.round((wardOccupied / wardBeds.length) * 100) : 0;
-                    const statusVariant = pct >= 85 ? 'danger' : pct >= 60 ? 'warning' : 'success';
+                    const statusVariant = pct >= 85 ? 'error' : pct >= 60 ? 'warning' : 'success';
                     const statusText = pct >= 85 ? 'Near Full' : pct >= 60 ? 'Moderate' : 'Optimal';
 
                     return (
@@ -258,20 +271,25 @@ export default function AdminDashboardPage() {
             <div className="card-header" style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 className="card-title">Clinical Medical Specialties</h2>
-                <p className="card-description">Physician coverage and clinical capability distribution</p>
+                <p className="card-description">Configured hospital specialties and registered physician coverage</p>
               </div>
-              <Badge variant="info">{doctors.length} Doctors Registered</Badge>
+              <Badge variant="info">
+                {doctors.length} {doctors.length === 1 ? 'Doctor' : 'Doctors'} Registered
+              </Badge>
             </div>
             <div className="card-content">
               {!data ? (
                 <EmptyState title="Loading specialties…" />
-              ) : Object.keys(specialtyMap).length === 0 ? (
-                <EmptyState title="No doctors configured" description="Register medical specialists in Staff & Doctors." />
+              ) : specialtyList.length === 0 ? (
+                <EmptyState
+                  title="No specialties configured"
+                  message="Register medical specialists in Staff & Doctors."
+                />
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
-                  {Object.entries(specialtyMap).map(([spec, count]) => (
+                  {specialtyList.map((spec) => (
                     <div
-                      key={spec}
+                      key={spec.label}
                       style={{
                         padding: '12px 14px',
                         background: 'var(--admin-surface-low, #F8FAFC)',
@@ -282,8 +300,10 @@ export default function AdminDashboardPage() {
                         justifyContent: 'space-between',
                       }}
                     >
-                      <span style={{ fontSize: 13, fontWeight: 500 }}>{spec}</span>
-                      <Badge variant="primary">{count} {count === 1 ? 'Doc' : 'Docs'}</Badge>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>{spec.label}</span>
+                      <Badge variant="primary">
+                        {spec.count} {spec.count === 1 ? 'Doc' : 'Docs'}
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -329,7 +349,7 @@ export default function AdminDashboardPage() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>Critical Supply Alerts</span>
-                  <Badge variant={lowStock.length > 0 ? 'danger' : 'success'}>
+                  <Badge variant={lowStock.length > 0 ? 'error' : 'success'}>
                     {lowStock.length} Low Stock
                   </Badge>
                 </div>
@@ -358,7 +378,7 @@ export default function AdminDashboardPage() {
                             Stock: <strong>{item.stock_quantity}</strong> (Reorder: {item.reorder_level})
                           </div>
                         </div>
-                        <Badge variant="danger">{item.category}</Badge>
+                        <Badge variant="error">{item.category}</Badge>
                       </div>
                     ))}
                     {lowStock.length > 4 && (
@@ -383,35 +403,48 @@ export default function AdminDashboardPage() {
             </div>
             <div className="card-content" style={{ padding: 0 }}>
               {activityList.length === 0 ? (
-                <EmptyState title="No recent events" description="Hospital activity will stream here in real-time." />
+                <EmptyState
+                  title="No recent events"
+                  message="Hospital activity will stream here in real-time."
+                />
               ) : (
                 <div style={{ maxHeight: 380, overflowY: 'auto' }}>
-                  {activityList.slice(0, 7).map((entry) => (
-                    <div
-                      key={entry.id}
-                      style={{
-                        padding: '12px 18px',
-                        borderBottom: '1px solid var(--admin-border, #E2E8F0)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 12,
-                      }}
-                    >
-                      <div style={{ marginTop: 2 }}>
-                        <Badge variant={entry.type === 'success' ? 'success' : entry.type === 'error' ? 'danger' : 'info'}>
-                          {entry.type ? entry.type.toUpperCase() : 'EVENT'}
-                        </Badge>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--admin-text-primary)' }}>
-                          {entry.text}
+                  {activityList.slice(0, 7).map((entry) => {
+                    const badgeVariant =
+                      entry.type === 'success'
+                        ? 'success'
+                        : entry.type === 'error'
+                        ? 'error'
+                        : entry.type === 'warning'
+                        ? 'warning'
+                        : 'info';
+                    return (
+                      <div
+                        key={entry.id}
+                        style={{
+                          padding: '12px 18px',
+                          borderBottom: '1px solid var(--admin-border, #E2E8F0)',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ marginTop: 2 }}>
+                          <Badge variant={badgeVariant}>
+                            {entry.type ? entry.type.toUpperCase() : 'EVENT'}
+                          </Badge>
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 2 }}>
-                          {formatDateTime(entry.created_at)}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--admin-text-primary)' }}>
+                            {entry.text}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 2 }}>
+                            {formatDateTime(entry.created_at)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -419,7 +452,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Bottom Section: Monthly Cloud Subscription & Resource Capacity */}
+      {/* Bottom Section: Monthly Cloud Subscription & Resource Usage */}
       <div
         className="card"
         style={{
@@ -435,7 +468,7 @@ export default function AdminDashboardPage() {
               Monthly Cloud Subscription &amp; Resource Usage
             </h2>
             <p style={{ fontSize: 13, color: 'var(--admin-text-secondary)', margin: '4px 0 0 0' }}>
-              Pay-As-You-Scale enterprise capacity breakdown · Dynamic billing with zero artificial quota bottlenecks
+              Pay-As-You-Scale capacity breakdown · Subscribed resources from your organization setup
             </p>
           </div>
           <Badge variant="success">ACTIVE PLAN</Badge>
@@ -454,29 +487,33 @@ export default function AdminDashboardPage() {
               }}
             >
               <StatCard
-                label="Base Platform Fee"
-                value={formatCurrency(basePlatformFee)}
-                sub="All 8 operational modules active"
+                label="Base Platform License"
+                value={formatCurrency(baseCost)}
+                sub={`${branchCount} ${branchCount === 1 ? 'branch' : 'branches'} · All 8 modules active`}
               />
               <StatCard
                 label="Inpatient Beds"
                 value={formatCurrency(bedCost)}
-                sub={`${beds.length} beds (@ ${formatCurrency(bedRate)}/bed)`}
+                sub={
+                  bedBreakdownParts.length > 0
+                    ? `${totalSubscribedBeds} bed${totalSubscribedBeds === 1 ? '' : 's'} (${bedBreakdownParts.join(' · ')})`
+                    : '0 beds configured'
+                }
               />
               <StatCard
                 label="Doctors & Staff"
                 value={formatCurrency(docCost + staffCost)}
-                sub={`${doctors.length} docs (@ ${formatCurrency(docRate)}) + ${staff.length} staff`}
+                sub={`${docSeats} doc (${formatCurrency(docRate)}) + ${staffSeats} staff (${formatCurrency(staffRate)})`}
               />
               <StatCard
-                label="Terminals & Warehouse"
+                label="Terminals & Warehouses"
                 value={formatCurrency(terminalsCost + warehouseCost)}
-                sub="2 billing terminals + 1 warehouse"
+                sub={`${terminals} terminal${terminals === 1 ? '' : 's'} (${formatCurrency(termRate)}) + ${warehouses} warehouse${warehouses === 1 ? '' : 's'} (${formatCurrency(whRate)})`}
               />
               <StatCard
                 label="Patient Admissions"
                 value={formatCurrency(admCost)}
-                sub={`${admissions.length} admissions (@ ${formatCurrency(admRate)}/adm)`}
+                sub={`${admQuota} est. admission${admQuota === 1 ? '' : 's'} (@ ${formatCurrency(admRate)}/adm)`}
               />
             </div>
 

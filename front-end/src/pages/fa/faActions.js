@@ -1,6 +1,17 @@
 'use strict';
 
-import { api } from '../../api/index.js';
+import { orElse } from '../../store/loaders.js';
+import { store } from '../../store/store.js';
+import {
+  addLedgerEntry,
+  approveLeader as approveLeaderThunk,
+  createDischargeSummary,
+  createLedger,
+  createPayment,
+  dispatchLedger,
+  fetchDischargeSummary,
+  fetchReceipts,
+} from '../../store/slices/billingSlice.js';
 import { toast, confirm } from '../../components/feedback/feedback.js';
 import { openPrintWindow } from '../../lib/printDocument.js';
 import {
@@ -20,18 +31,20 @@ import {
  *
  * Every action the legacy module ended with `window.render()`; here each one
  * takes a `ctx` carrying `reload` (the equivalent), `navigate`, and
- * `setCurrentAdmissionId`. The two that read `#coverage-override` off the DOM
- * now take the value through `ctx.coverageOverrideRef` instead.
+ * `setCurrentAdmissionId`, and `dispatch`: every server call below is a billing
+ * (or other slice) thunk dispatched through it. The two that read
+ * `#coverage-override` off the DOM now read the deduction the settlement form
+ * keeps in state.billing.fa.coverageDeduction - null when it is not on screen.
  */
 
 function readCoverageOverride(ctx, grossTotal) {
-  const el = ctx.coverageOverrideRef?.current;
-  return el ? Math.min(Number(el.value) || 0, grossTotal) : 0;
+  const value = store.getState().billing.fa.coverageDeduction;
+  return value === null ? 0 : Math.min(Number(value) || 0, grossTotal);
 }
 
 export async function createLedgerAndOpen(ctx, admissionId) {
   try {
-    await api.billing.ledger.create({ admission_id: admissionId, status: 'OPEN' });
+    await ctx.dispatch(createLedger({ admission_id: admissionId, status: 'OPEN' })).unwrap();
   } catch (err) {
     toast(err.message || 'Unable to create ledger.', 'error');
     return;
@@ -41,21 +54,23 @@ export async function createLedgerAndOpen(ctx, admissionId) {
   ctx.reload();
 }
 
-async function addCharge(ledgerId, serviceId, qty) {
-  const { servicesById } = await loadBillingOverview();
+async function addCharge(dispatch, ledgerId, serviceId, qty) {
+  const { servicesById } = await loadBillingOverview(dispatch);
   const service = servicesById[serviceId];
   if (!service) throw new Error('Select a valid service.');
   if (!Number.isInteger(qty) || qty < 1) {
     throw new Error('Quantity must be a whole number greater than 0.');
   }
 
-  await api.billing.ledger.addEntry({
-    ledger_id: ledgerId,
-    service_id: serviceId,
-    quantity: qty,
-    unit_price: service.base_cost,
-    amount: service.base_cost * qty,
-  });
+  await dispatch(
+    addLedgerEntry({
+      ledger_id: ledgerId,
+      service_id: serviceId,
+      quantity: qty,
+      unit_price: service.base_cost,
+      amount: service.base_cost * qty,
+    }),
+  ).unwrap();
 }
 
 export async function addChargeToCurrentLedger(ctx, admissionId, ledgerId, serviceId, qty) {
@@ -65,7 +80,7 @@ export async function addChargeToCurrentLedger(ctx, admissionId, ledgerId, servi
   }
 
   try {
-    await addCharge(ledgerId, Number(serviceId), Number(qty));
+    await addCharge(ctx.dispatch, ledgerId, Number(serviceId), Number(qty));
   } catch (err) {
     toast(err.message || 'Unable to add charge.', 'error');
     return;
@@ -86,7 +101,7 @@ export async function dispatchCurrent(ctx, ledgerId) {
   if (!confirmed) return;
 
   try {
-    await api.billing.ledger.dispatch(ledgerId);
+    await ctx.dispatch(dispatchLedger(ledgerId)).unwrap();
     toast('EOD bill sent to patient.', 'success');
   } catch (err) {
     toast(err.message || 'Unable to send this bill.', 'error');
@@ -96,7 +111,7 @@ export async function dispatchCurrent(ctx, ledgerId) {
 }
 
 export async function recordCashPayment(ctx, ledgerId) {
-  const entries = await loadLedgerEntries(ledgerId);
+  const entries = await loadLedgerEntries(ctx.dispatch, ledgerId);
   const grossTotal = ledgerTotal(entries);
   const deduction = readCoverageOverride(ctx, grossTotal);
   const netPayable = Math.max(0, grossTotal - deduction);
@@ -106,11 +121,15 @@ export async function recordCashPayment(ctx, ledgerId) {
   }
 
   try {
-    await api.billing.payments.create({
-      ledger_id: ledgerId,
-      amount_paid: netPayable,
-      payment_mode: 'CASH',
-    });
+    await ctx
+      .dispatch(
+        createPayment({
+          ledger_id: ledgerId,
+          amount_paid: netPayable,
+          payment_mode: 'CASH',
+        }),
+      )
+      .unwrap();
   } catch (err) {
     return ctx.showFormError('discharge-payment-error', err.message || 'Unable to record payment.');
   }
@@ -118,27 +137,32 @@ export async function recordCashPayment(ctx, ledgerId) {
 }
 
 async function ensureDischargeSummary(ctx, admissionId) {
-  const { rows } = await loadBillingOverview();
+  const { rows } = await loadBillingOverview(ctx.dispatch);
   const row = rows.find((r) => r.admission.admission_id === admissionId);
   if (!row) return { row: null, summary: null };
 
-  const existing = await api.billing.dischargeSummary.getByAdmission(admissionId).catch(() => null);
+  const existingResult = await orElse(ctx.dispatch(fetchDischargeSummary(admissionId)), null);
+  const existing = existingResult ? existingResult.summary : null;
   if (existing) return { row, summary: existing };
 
-  const entries = row.ledger ? await loadLedgerEntries(row.ledger.ledger_id) : [];
+  const entries = row.ledger ? await loadLedgerEntries(ctx.dispatch, row.ledger.ledger_id) : [];
   const grossTotal = ledgerTotal(entries);
   const deduction = readCoverageOverride(ctx, grossTotal);
   const finalAmount = Math.max(0, grossTotal - deduction);
 
-  const summary = await api.billing.dischargeSummary.create({
-    admission_id: admissionId,
-    patient_id: row.patient.patient_id,
-    discharge_notes:
-      'Patient treated and stabilized for the condition requiring admission; fit for discharge.',
-    gross_amount: grossTotal,
-    insurance_deduction: deduction,
-    final_amount: finalAmount,
-  });
+  const summary = await ctx
+    .dispatch(
+      createDischargeSummary({
+        admission_id: admissionId,
+        patient_id: row.patient.patient_id,
+        discharge_notes:
+          'Patient treated and stabilized for the condition requiring admission; fit for discharge.',
+        gross_amount: grossTotal,
+        insurance_deduction: deduction,
+        final_amount: finalAmount,
+      }),
+    )
+    .unwrap();
   return { row, summary };
 }
 
@@ -148,15 +172,15 @@ export async function generateDischargeSummary(ctx, admissionId) {
 
   if (row.ledger && row.ledger.status === 'OPEN') {
     try {
-      await api.billing.ledger.dispatch(row.ledger.ledger_id);
+      await ctx.dispatch(dispatchLedger(row.ledger.ledger_id)).unwrap();
       toast('Discharge summary generated and bill sent to the patient.', 'success');
     } catch (err) {
       toast(err.message || 'Discharge summary created, but the bill could not be sent.', 'warning');
     }
   }
 
-  const entries = row.ledger ? await loadLedgerEntries(row.ledger.ledger_id) : [];
-  const { servicesById } = await loadBillingOverview();
+  const entries = row.ledger ? await loadLedgerEntries(ctx.dispatch, row.ledger.ledger_id) : [];
+  const { servicesById } = await loadBillingOverview(ctx.dispatch);
   const grossTotal = ledgerTotal(entries);
 
   const servicesList = entries
@@ -213,8 +237,8 @@ export async function printDischargeSummary(ctx, admissionId, hospitalName) {
   const { row, summary } = await ensureDischargeSummary(ctx, admissionId);
   if (!row) return;
 
-  const entries = row.ledger ? await loadLedgerEntries(row.ledger.ledger_id) : [];
-  const { servicesById } = await loadBillingOverview();
+  const entries = row.ledger ? await loadLedgerEntries(ctx.dispatch, row.ledger.ledger_id) : [];
+  const { servicesById } = await loadBillingOverview(ctx.dispatch);
   const grossTotal = ledgerTotal(entries);
   const treatmentsReceived =
     entries
@@ -263,10 +287,10 @@ export async function printDischargeSummary(ctx, admissionId, hospitalName) {
   ctx.reload();
 }
 
-export async function printReceipt(receiptId) {
+export async function printReceipt(ctx, receiptId) {
   const [receipts, { patientsById }] = await Promise.all([
-    api.billing.receipts.list().catch(() => []),
-    loadBillingOverview(),
+    orElse(ctx.dispatch(fetchReceipts()), []),
+    loadBillingOverview(ctx.dispatch),
   ]);
   const r = receipts.find((rec) => rec.receipt_id === receiptId);
   if (!r) {
@@ -305,7 +329,7 @@ export async function printReceipt(receiptId) {
 export async function approveLeader(ctx, leaderId) {
   if (!leaderId) return;
   try {
-    await api.billing.leaders.approve(leaderId);
+    await ctx.dispatch(approveLeaderThunk(leaderId)).unwrap();
     toast(
       'Charge approved and posted to the patient ledger. Send the EOD bill from the EOD & Settlement tab when ready.',
       'success',

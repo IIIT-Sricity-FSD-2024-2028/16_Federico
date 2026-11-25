@@ -89,9 +89,8 @@ function destroySession(token) {
 }
 
 /**
- * Ends every live session for a user. Sessions snapshot the role at login,
- * so an Admin changing a staff member's role (or disabling them) must revoke
- * the old sessions for the change to take effect immediately.
+ * Ends every live session for a user. Disabling or deleting a staff member
+ * must revoke their active sessions for the change to take effect immediately.
  */
 function destroySessionsForUser(userId) {
   let removed = 0;

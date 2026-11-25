@@ -1,6 +1,6 @@
 'use strict';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { usePatientStore } from './usePatientStore.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
@@ -17,6 +17,7 @@ import {
   openInsuranceCardModal,
 } from './patientDocumentCopy.js';
 import patientDocumentsCss from '../../styles/patient/patient-documents.css?inline';
+import { useUiState } from '../../store/hooks.js';
 
 function DocumentTypeIcon({ type }) {
   if (type === 'DISCHARGE_SUMMARY') {
@@ -84,8 +85,8 @@ export default function DocumentsPage() {
   useDocumentTitle('My Documents – Federico Hospital Portal');
 
   const { profile, patientDocuments } = usePatientStore();
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useUiState('DocumentsPage.activeTab', 'all');
+  const [searchQuery, setSearchQuery] = useUiState('DocumentsPage.searchQuery', '');
 
   const docs = useMemo(
     () =>

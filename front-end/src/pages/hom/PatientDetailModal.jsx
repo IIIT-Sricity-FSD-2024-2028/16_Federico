@@ -1,13 +1,11 @@
 'use strict';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
 import TabNav from '../../components/ui/TabNav.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
-import { api } from '../../api/index.js';
-import { getSession } from '../../api/session.js';
 import { openPrintWindow } from '../../lib/printDocument.js';
 import {
   escapeHtml,
@@ -18,6 +16,56 @@ import {
   formatDateTime,
   formatCurrency,
 } from './homHelpers.js';
+import { useAppDispatch, useAppSelector, useUiState } from '../../store/hooks.js';
+import { orElse, soft } from '../../store/loaders.js';
+import { selectSession } from '../../store/slices/authSlice.js';
+import {
+  fetchDischargeSummary,
+  fetchLedgerEntries,
+  fetchPatientBills,
+  fetchPatientReceipts,
+  fetchServices,
+  selectServices,
+} from '../../store/slices/billingSlice.js';
+
+/** Picks the admission/ledger bundle that belongs to this patient-flow row. */
+function matchBundle(billList, row) {
+  let matchedBundle = null;
+  if (billList.length > 0) {
+    // Priority 1: Match by assigned bed
+    if (row.bed_id) {
+      matchedBundle = billList.find((b) => b.admission && Number(b.admission.bed_id) === Number(row.bed_id));
+    }
+    // Priority 2: Match by admission status
+    if (!matchedBundle && row.status) {
+      matchedBundle = billList.find(
+        (b) => b.admission && String(b.admission.status).toUpperCase() === String(row.status).toUpperCase(),
+      );
+    }
+    // Priority 3: Fallback to admission with ledger
+    if (!matchedBundle) {
+      matchedBundle = billList.find((b) => b.ledger) || billList[0] || null;
+    }
+  }
+  return matchedBundle;
+}
+
+/** Picks the official payment receipt for the matched bundle. */
+function matchReceipt(receiptList, matchedBundle, row) {
+  let matchedReceipt = null;
+  if (receiptList.length > 0) {
+    if (matchedBundle?.ledger?.ledger_id) {
+      matchedReceipt = receiptList.find((r) => Number(r.ledger_id) === Number(matchedBundle.ledger.ledger_id));
+    }
+    if (!matchedReceipt && matchedBundle?.admission?.admission_id) {
+      matchedReceipt = receiptList.find((r) => Number(r.admission_id) === Number(matchedBundle.admission.admission_id));
+    }
+    if (!matchedReceipt && row.status === 'DISCHARGED') {
+      matchedReceipt = receiptList[receiptList.length - 1] || receiptList[0] || null;
+    }
+  }
+  return matchedReceipt;
+}
 
 /**
  * Clean Inpatient Detail & Payment Receipt Modal for HOM Patient Flow.
@@ -27,16 +75,54 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
   const normalizedInitial =
     initialTab === 'supply' || initialTab === 'receipt' || initialTab === 'billing' ? 'billing' : 'overview';
 
-  const [tab, setTab] = useState(normalizedInitial);
-  const [loading, setLoading] = useState(true);
-  const [billingBundle, setBillingBundle] = useState(null);
-  const [receipt, setReceipt] = useState(null);
-  const [dischargeSummary, setDischargeSummary] = useState(null);
-  const [entries, setEntries] = useState([]);
-  const [servicesById, setServicesById] = useState({});
+  const [tab, setTab] = useUiState('PatientDetailModal.tab', normalizedInitial);
+  const [loading, setLoading] = useUiState('PatientDetailModal.loading', true);
 
-  const session = getSession();
+  const dispatch = useAppDispatch();
+  const session = useAppSelector(selectSession);
   const organizationName = session?.tenant?.organization_name || 'Federico Hospital';
+
+  // The patient's bills, receipts, services, ledger entries and discharge summary
+  // are server data: they live in billingSlice and are read from there. What this
+  // modal derives from them (the matching bundle / receipt) is computed, not stored.
+  const patientBills = useAppSelector((state) => state.billing.patientBills[row?.patient_id]);
+  const patientReceipts = useAppSelector((state) => state.billing.patientReceipts[row?.patient_id]);
+  const services = useAppSelector(selectServices);
+  const ledgerEntriesByLedger = useAppSelector((state) => state.billing.ledgerEntries);
+  const dischargeSummaries = useAppSelector((state) => state.billing.dischargeSummaries);
+
+  const servicesById = useMemo(() => {
+    const svcMap = {};
+    (Array.isArray(services) ? services : []).forEach((s) => {
+      svcMap[s.service_id] = s;
+    });
+    return svcMap;
+  }, [services]);
+
+  // 1. Accurately match the admission and ledger bundle for this patient flow row
+  const billingBundle = useMemo(() => {
+    const billList = Array.isArray(patientBills) ? patientBills : [];
+    return matchBundle(billList, row);
+  }, [patientBills, row]);
+
+  // 2. Itemized ledger entries: the bundle's own, else the fetched ones
+  const entries = useMemo(() => {
+    const own = billingBundle?.entries || [];
+    if (own.length > 0) return own;
+    const ledgerId = billingBundle?.ledger?.ledger_id;
+    const fetched = ledgerId ? ledgerEntriesByLedger[ledgerId] : null;
+    return Array.isArray(fetched) ? fetched : [];
+  }, [billingBundle, ledgerEntriesByLedger]);
+
+  // 3. Match the official payment receipt
+  const receipt = useMemo(
+    () => matchReceipt(Array.isArray(patientReceipts) ? patientReceipts : [], billingBundle, row),
+    [patientReceipts, billingBundle, row],
+  );
+
+  // 4. Discharge summary, when the admission id is known
+  const admissionId = billingBundle?.admission?.admission_id;
+  const dischargeSummary = admissionId ? dischargeSummaries[admissionId] || null : null;
 
   useEffect(() => {
     if (!row) return;
@@ -45,79 +131,23 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
     (async () => {
       setLoading(true);
       try {
-        const [bills, receipts, services] = await Promise.all([
-          api.billing.patient.bills(row.patient_id).catch(() => []),
-          api.billing.patient.receipts(row.patient_id).catch(() => []),
-          api.billing.services.list().catch(() => []),
+        const [billsResult] = await Promise.all([
+          orElse(dispatch(fetchPatientBills(row.patient_id)), { bills: [] }),
+          soft(dispatch(fetchPatientReceipts(row.patient_id))),
+          soft(dispatch(fetchServices())),
         ]);
 
         if (cancelled) return;
 
-        const svcMap = {};
-        (Array.isArray(services) ? services : []).forEach((s) => {
-          svcMap[s.service_id] = s;
-        });
-        setServicesById(svcMap);
+        const matched = matchBundle(Array.isArray(billsResult.bills) ? billsResult.bills : [], row);
 
-        // 1. Accurately match the admission and ledger bundle for this patient flow row
-        const billList = Array.isArray(bills) ? bills : [];
-        let matchedBundle = null;
-
-        if (billList.length > 0) {
-          // Priority 1: Match by assigned bed
-          if (row.bed_id) {
-            matchedBundle = billList.find(
-              (b) => b.admission && Number(b.admission.bed_id) === Number(row.bed_id),
-            );
-          }
-          // Priority 2: Match by admission status
-          if (!matchedBundle && row.status) {
-            matchedBundle = billList.find(
-              (b) => b.admission && String(b.admission.status).toUpperCase() === String(row.status).toUpperCase(),
-            );
-          }
-          // Priority 3: Fallback to admission with ledger
-          if (!matchedBundle) {
-            matchedBundle = billList.find((b) => b.ledger) || billList[0] || null;
-          }
-        }
-        setBillingBundle(matchedBundle);
-
-        // 2. Fetch or resolve itemized ledger entries
-        let resolvedEntries = matchedBundle?.entries || [];
-        if (matchedBundle?.ledger?.ledger_id && (!resolvedEntries || resolvedEntries.length === 0)) {
-          resolvedEntries = await api.billing.ledger.entries(matchedBundle.ledger.ledger_id).catch(() => []);
+        if (matched?.ledger?.ledger_id && (!matched.entries || matched.entries.length === 0)) {
+          await soft(dispatch(fetchLedgerEntries(matched.ledger.ledger_id)));
         }
         if (cancelled) return;
-        setEntries(Array.isArray(resolvedEntries) ? resolvedEntries : []);
 
-        // 3. Match the official payment receipt
-        const receiptList = Array.isArray(receipts) ? receipts : [];
-        let matchedReceipt = null;
-
-        if (receiptList.length > 0) {
-          if (matchedBundle?.ledger?.ledger_id) {
-            matchedReceipt = receiptList.find(
-              (r) => Number(r.ledger_id) === Number(matchedBundle.ledger.ledger_id),
-            );
-          }
-          if (!matchedReceipt && matchedBundle?.admission?.admission_id) {
-            matchedReceipt = receiptList.find(
-              (r) => Number(r.admission_id) === Number(matchedBundle.admission.admission_id),
-            );
-          }
-          if (!matchedReceipt && row.status === 'DISCHARGED') {
-            matchedReceipt = receiptList[receiptList.length - 1] || receiptList[0] || null;
-          }
-        }
-        setReceipt(matchedReceipt);
-
-        // 4. Fetch discharge summary if admission ID is available
-        if (matchedBundle?.admission?.admission_id) {
-          const summary = await api.billing.dischargeSummary
-            .getByAdmission(matchedBundle.admission.admission_id)
-            .catch(() => null);
-          if (!cancelled) setDischargeSummary(summary);
+        if (matched?.admission?.admission_id) {
+          await soft(dispatch(fetchDischargeSummary(matched.admission.admission_id)));
         }
       } catch (err) {
         console.error('[PatientDetailModal] Failed to load billing/receipt data:', err);
@@ -129,7 +159,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
     return () => {
       cancelled = true;
     };
-  }, [row]);
+  }, [row, dispatch, setLoading]);
 
   if (!row) return null;
 

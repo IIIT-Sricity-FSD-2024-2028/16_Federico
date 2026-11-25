@@ -37,6 +37,13 @@ describe('Frontend Shared & Patient Helpers', () => {
     window.Sanitizer = loadEsmModule(`${LIB}/sanitizer.js`);
     window.InsuranceCalc = loadEsmModule(`${LIB}/insurance.js`);
     window.EmailIdentity = loadEsmModule(`${LIB}/emailIdentity.js`);
+    window.PhoneLib = loadEsmModule(`${LIB}/phone.js`);
+    window.OrgSignupValidation = loadEsmModule(`${LIB}/orgSignupValidation.js`, {
+      normalizeDomain: window.EmailIdentity.normalizeDomain,
+      emailDomainProblem: window.EmailIdentity.emailDomainProblem,
+      buildTaggedEmail: window.EmailIdentity.buildTaggedEmail,
+      normalizePhone: window.PhoneLib.normalizePhone,
+    });
     window.ProfileFields = loadEsmModule(`${PATIENT}/profileFields.js`);
     window.SlotHelpers = loadEsmModule(`${PATIENT}/slotHelpers.js`);
     window.PatientStoreShape = loadEsmModule(`${PATIENT}/patientStoreShape.js`, {
@@ -760,6 +767,161 @@ describe('Frontend Shared & Patient Helpers', () => {
       expect(local).toBe(
         `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
       );
+    });
+  });
+
+  describe('OrgSignupValidation (All 4 Steps)', () => {
+    const knownOrgs = [
+      { organization_id: 1, name: 'City General Hospital', email_domain: 'citygen.com' },
+      { organization_id: 2, name: 'Apollo Hospitals', email_domain: 'apollo.com' },
+    ];
+
+    it('validates all Step 1 fields (required + optional + phone normalization parity)', () => {
+      const { validateStep1, filterPhoneInput } = window.OrgSignupValidation;
+
+      expect(filterPhoneInput('+91 abc98765-43210!')).toBe('+91 98765-43210');
+
+      const bad = validateStep1(
+        {
+          name: '<script>',
+          emailDomain: 'gmail.com',
+          city: '12345',
+          phone: '09876543210',
+          address: '123',
+          specialties: 'Cardiology, cardiology',
+        },
+        { knownOrgs, effectiveEmailDomain: 'gmail.com' },
+      );
+      expect(bad.valid).toBe(false);
+      expect(bad.errors.name).toBeDefined();
+      expect(bad.errors.emailDomain).toMatch(/Public mail/);
+      expect(bad.errors.city).toBeDefined();
+      expect(bad.errors.phone).toBeDefined();
+      expect(bad.errors.address).toBeDefined();
+      expect(bad.errors.specialties).toMatch(/Duplicate/);
+
+      const emptyDomain = validateStep1(
+        { name: 'Fortis Care', emailDomain: '', city: 'Mumbai', phone: '9876543210', address: '', specialties: '' },
+        { knownOrgs, effectiveEmailDomain: '' },
+      );
+      expect(emptyDomain.valid).toBe(false);
+      expect(emptyDomain.errors.emailDomain).toBeDefined();
+
+      const takenDomain = validateStep1(
+        { name: 'Fortis Care', emailDomain: 'apollo.com', city: 'Mumbai', phone: '9876543210', address: '', specialties: '' },
+        { knownOrgs, effectiveEmailDomain: 'apollo.com' },
+      );
+      expect(takenDomain.valid).toBe(false);
+      expect(takenDomain.errors.emailDomain).toMatch(/Apollo/);
+
+      const good = validateStep1(
+        {
+          name: 'Fortis Healthcare Network',
+          emailDomain: 'fortis.com',
+          city: 'Mumbai',
+          phone: '9876543210',
+          address: '',
+          specialties: '',
+        },
+        { knownOrgs, effectiveEmailDomain: 'fortis.com' },
+      );
+      expect(good.valid).toBe(true);
+      expect(good.errors).toEqual({});
+    });
+
+    it('enforces minimum 1 and integer bounds on all 8 Step 2 capacity fields', () => {
+      const { validateStep2, digitsOnly } = window.OrgSignupValidation;
+
+      expect(digitsOnly('12ab.5', 4)).toBe('125');
+
+      const bad = validateStep2({
+        generalBeds: '',
+        icuBeds: '0',
+        privateBeds: '-2',
+        doctorSeats: '2.5',
+        staffSeats: '10001',
+        terminals: '0',
+        warehouses: '501',
+        admissions: '0',
+      });
+      expect(bad.valid).toBe(false);
+      expect(Object.keys(bad.errors).length).toBe(8);
+
+      const good = validateStep2({
+        generalBeds: '30',
+        icuBeds: '5',
+        privateBeds: '10',
+        doctorSeats: '10',
+        staffSeats: '6',
+        terminals: '2',
+        warehouses: '1',
+        admissions: '50',
+      });
+      expect(good.valid).toBe(true);
+    });
+
+    it('validates Step 3 admin name, tagged email username, and 8+ complex password', () => {
+      const { validateStep3, evaluatePasswordRules } = window.OrgSignupValidation;
+
+      const bad = validateStep3(
+        { name: 'Admin 123', emailName: 'owner@gmail.com', password: 'weak' },
+        { emailDomain: 'fortis.com' },
+      );
+      expect(bad.valid).toBe(false);
+      expect(bad.errors.name).toBeDefined();
+      expect(bad.errors.emailName).toBeDefined();
+      expect(bad.errors.password).toBeDefined();
+
+      const rulesBad = evaluatePasswordRules('Abcdefg1');
+      expect(rulesBad.find((r) => r.id === 'special').met).toBe(false);
+
+      const good = validateStep3(
+        { name: 'Dr. Rajesh Sharma', emailName: 'owner.ops', password: 'Password@123' },
+        { emailDomain: 'fortis.com' },
+      );
+      expect(good.valid).toBe(true);
+    });
+
+    it('validates Step 4 Card (Luhn/Expiry/CVV), UPI, and mandatory Corporate Bank selection', () => {
+      const {
+        validateStep4,
+        formatCardNumber,
+        formatCardExpiry,
+        passesLuhn,
+      } = window.OrgSignupValidation;
+
+      expect(formatCardNumber('4242abcd424242424242')).toBe('4242 4242 4242 4242');
+      expect(formatCardExpiry('1228')).toBe('12 / 28');
+      expect(formatCardExpiry('12 /', '12 / ')).toBe('1');
+      expect(passesLuhn('4242424242424242')).toBe(true);
+      expect(passesLuhn('4242424242424243')).toBe(false);
+
+      const now = new Date('2026-11-26T00:00:00Z');
+
+      const badCard = validateStep4(
+        'card',
+        { cardNumber: '4242 4242 4242 4243', cardExpiry: '10 / 26', cardCvv: '12' },
+        now,
+      );
+      expect(badCard.valid).toBe(false);
+      expect(badCard.errors.cardNumber).toBeDefined();
+      expect(badCard.errors.cardExpiry).toMatch(/expired/);
+      expect(badCard.errors.cardCvv).toBeDefined();
+
+      const goodCard = validateStep4(
+        'card',
+        { cardNumber: '4242 4242 4242 4242', cardExpiry: '11 / 26', cardCvv: '123' },
+        now,
+      );
+      expect(goodCard.valid).toBe(true);
+
+      expect(validateStep4('upi', { upiId: 'bad upi' }, now).valid).toBe(false);
+      expect(validateStep4('upi', { upiId: 'hospital@okhdfcbank' }, now).valid).toBe(true);
+
+      const blankBank = validateStep4('netbanking', { bankName: '' }, now);
+      expect(blankBank.valid).toBe(false);
+      expect(blankBank.errors.bankName).toMatch(/select a corporate bank/i);
+      expect(validateStep4('netbanking', { bankName: 'HDFC Bank Corporate' }, now).valid).toBe(true);
     });
   });
 });

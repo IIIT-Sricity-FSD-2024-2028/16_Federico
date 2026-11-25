@@ -1,9 +1,8 @@
 'use strict';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { api } from '../../api/index.js';
 import { useSession } from '../../auth/useSession.js';
 import { useSearchParam } from '../../hooks/useSearchParam.js';
 import { resolveLoginIdentity, PORTAL_LABEL } from '../../lib/emailIdentity.js';
@@ -12,6 +11,9 @@ import { toast } from '../../components/feedback/feedback.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import loginPageCss from '../../styles/login/login-page.css?inline';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadLogin } from '../../store/pageLoaders.js';
+import { selectMarketplaceOrganizations } from '../../store/slices/marketplaceSlice.js';
 
 const REMEMBER_KEY = 'FedericoRememberMe';
 const IDENTITY_SETTLE_MS = 250;
@@ -38,20 +40,25 @@ export default function LoginPage() {
   const { authenticate, getLastAuthError, isPlatformUser } = useSession();
   const preselectOrg = useSearchParam('org');
 
-  const [remembered] = useState(readRemembered);
-  const [organizations, setOrganizations] = useState(null);
-  const [demoData, setDemoData] = useState(null);
-  const [orgId, setOrgId] = useState('');
-  const [orgTouched, setOrgTouched] = useState(false);
-  const [multiOrgs, setMultiOrgs] = useState(null);
-  const [email, setEmail] = useState(remembered?.email || '');
-  const [settledEmail, setSettledEmail] = useState(remembered?.email || '');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(Boolean(remembered));
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [demoTab, setDemoTab] = useState(null);
+  const remembered = useMemo(() => readRemembered(), []);
+  // Server data lives in Redux: the public org list (marketplaceSlice) and the
+  // demo accounts (authSlice). `organizations` stays null until the first load
+  // has settled, which is what the submit guard below checks.
+  const { loading: loadingLoginData } = useLoader(loadLogin, { deps: [preselectOrg] });
+  const orgList = useAppSelector(selectMarketplaceOrganizations);
+  const demoData = useAppSelector((state) => state.auth.demoAccounts);
+  const organizations = loadingLoginData ? null : orgList;
+  const [orgId, setOrgId] = useUiState('Login.orgId', '');
+  const [orgTouched, setOrgTouched] = useUiState('Login.orgTouched', false);
+  const [multiOrgs, setMultiOrgs] = useUiState('Login.multiOrgs', null);
+  const [email, setEmail] = useUiState('Login.email', () => remembered?.email || '');
+  const [settledEmail, setSettledEmail] = useUiState('Login.settledEmail', () => remembered?.email || '');
+  const [password, setPassword] = useUiState('Login.password', '');
+  const [showPassword, setShowPassword] = useUiState('Login.showPassword', false);
+  const [remember, setRemember] = useUiState('Login.remember', () => Boolean(remembered));
+  const [error, setError] = useUiState('Login.error', '');
+  const [submitting, setSubmitting] = useUiState('Login.submitting', false);
+  const [demoTab, setDemoTab] = useUiState('Login.demoTab', null);
 
   useEffect(() => {
     if (isPlatformUser) navigate(getActorHome('PLATFORM'), { replace: true });
@@ -60,41 +67,24 @@ export default function LoginPage() {
   useEffect(() => {
     const t = setTimeout(() => setSettledEmail(email), IDENTITY_SETTLE_MS);
     return () => clearTimeout(t);
-  }, [email]);
+  }, [email, setSettledEmail]);
 
+  // Once the org list has loaded, preselect the ?org= / remembered organization.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [orgs, demoAccounts] = await Promise.all([
-          api.marketplace.organizations().catch(() => []),
-          api.auth.demoAccounts().catch(() => null),
-        ]);
-        if (cancelled) return;
-        setOrganizations(orgs || []);
-        setDemoData(demoAccounts);
-
-        const rememberedOrgId = readRemembered()?.orgId;
-        if (preselectOrg && (orgs || []).some((o) => String(o.organization_id) === preselectOrg)) {
-          setOrgId(preselectOrg);
-          setOrgTouched(true);
-        } else if (
-          rememberedOrgId &&
-          (orgs || []).some((o) => String(o.organization_id) === String(rememberedOrgId))
-        ) {
-          setOrgId(String(rememberedOrgId));
-          setOrgTouched(true);
-        }
-      } catch {
-        if (cancelled) return;
-        setOrganizations([]);
-        toast('Could not load organizations. Please refresh.', 'error');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [preselectOrg]);
+    if (loadingLoginData) return;
+    const orgs = orgList || [];
+    const rememberedOrgId = readRemembered()?.orgId;
+    if (preselectOrg && orgs.some((o) => String(o.organization_id) === preselectOrg)) {
+      setOrgId(preselectOrg);
+      setOrgTouched(true);
+    } else if (
+      rememberedOrgId &&
+      orgs.some((o) => String(o.organization_id) === String(rememberedOrgId))
+    ) {
+      setOrgId(String(rememberedOrgId));
+      setOrgTouched(true);
+    }
+  }, [loadingLoginData, orgList, preselectOrg, setOrgId, setOrgTouched]);
 
   const identity = useMemo(
     () => resolveLoginIdentity(settledEmail, organizations),
@@ -203,7 +193,23 @@ export default function LoginPage() {
       setError(err?.status === 0 ? err.message : 'Authentication service error. Please try again.');
       setSubmitting(false);
     }
-  }, [email, password, organizations, multiOrgs, orgId, orgTouched, remember, authenticate, getLastAuthError, navigate]);
+  }, [
+    email,
+    password,
+    organizations,
+    multiOrgs,
+    orgId,
+    orgTouched,
+    remember,
+    authenticate,
+    getLastAuthError,
+    navigate,
+    setError,
+    setSubmitting,
+    setMultiOrgs,
+    setOrgId,
+    setOrgTouched,
+  ]);
 
   function fillDemo(account, targetOrgId) {
     setEmail(account.email);

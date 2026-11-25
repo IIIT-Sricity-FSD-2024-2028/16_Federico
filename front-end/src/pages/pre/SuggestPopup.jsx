@@ -1,7 +1,6 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
+
 import Button from '../../components/ui/Button.jsx';
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import { toast } from '../../components/feedback/feedback.js';
@@ -9,16 +8,19 @@ import { sortDoctorsForDepartment, to12Hour, to24Hour, formatDate } from './preH
 import { DoctorOptions } from './PrePopup.jsx';
 import { getBookingDateBounds } from '../patient/slotHelpers.js';
 import PatientNotesPreview from './PatientNotesPreview.jsx';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { updatePreRequest } from '../../store/slices/preRequestsSlice.js';
 
 /**
  * Modern, clean reschedule & slot suggestion dialog using DialogShell.
  * Adheres to clinical UI standards, zero emojis, and the 14-day booking constraint.
  */
 export default function SuggestPopup({ request, doctors, onClose, onDone }) {
-  const [doctorId, setDoctorId] = useState(request?.doctor_id ? String(request.doctor_id) : '');
-  const [newDate, setNewDate] = useState(request?.requested_date || '');
-  const [time, setTime] = useState(to24Hour(request?.requested_time));
-  const [submitting, setSubmitting] = useState(false);
+  const dispatch = useAppDispatch();
+  const [doctorId, setDoctorId] = useUiState('SuggestPopup.doctorId', request?.doctor_id ? String(request.doctor_id) : '');
+  const [newDate, setNewDate] = useUiState('SuggestPopup.newDate', request?.requested_date || '');
+  const [time, setTime] = useUiState('SuggestPopup.time', to24Hour(request?.requested_time));
+  const [submitting, setSubmitting] = useUiState('SuggestPopup.submitting', false);
 
   const bounds = getBookingDateBounds();
 
@@ -34,9 +36,9 @@ export default function SuggestPopup({ request, doctors, onClose, onDone }) {
     try {
       const fieldPatch = { requested_date: newDate, doctor_id: Number(doctorId) };
       if (time) fieldPatch.requested_time = to12Hour(time);
-      await api.preRequests.update(request.pre_request_id, fieldPatch);
+      await dispatch(updatePreRequest({ id: request.pre_request_id, patch: fieldPatch })).unwrap();
       if (request.status === 'PENDING') {
-        await api.preRequests.update(request.pre_request_id, { status: 'APPROVED' });
+        await dispatch(updatePreRequest({ id: request.pre_request_id, patch: { status: 'APPROVED' } })).unwrap();
       }
       onClose();
       toast('Slot rescheduled and approved successfully', 'success');

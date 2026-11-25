@@ -1,9 +1,10 @@
 'use strict';
 
-import { useState } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import Button from '../../components/ui/Button.jsx';
-import { api } from '../../api/index.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { createWard, updateWard } from '../../store/slices/wardsSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 
 /** Ported from the #ward-dialog <dialog> in Admin/screen-02-departments.html. */
@@ -17,9 +18,10 @@ export default function WardDialog({ open, ward, bedCount, onClose, onSaved }) {
 }
 
 function WardForm({ ward, bedCount, onClose, onSaved }) {
-  const [name, setName] = useState(ward ? ward.ward_name : '');
-  const [description, setDescription] = useState(ward ? ward.description || '' : '');
-  const [beds, setBeds] = useState(ward ? String(bedCount) : '');
+  const dispatch = useAppDispatch();
+  const [name, setName] = useUiState('WardDialog.name', ward ? ward.ward_name : '');
+  const [description, setDescription] = useUiState('WardDialog.description', ward ? ward.description || '' : '');
+  const [beds, setBeds] = useUiState('WardDialog.beds', ward ? String(bedCount) : '');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -28,22 +30,29 @@ function WardForm({ ward, bedCount, onClose, onSaved }) {
 
     try {
       if (ward) {
-        const result = await api.wards.update(ward.ward_id, {
-          ward_name: name.trim(),
-          description: description.trim() || undefined,
-          total_beds: totalBeds,
-        });
+        const result = await dispatch(
+          updateWard({
+            id: ward.ward_id,
+            patch: {
+              ward_name: name.trim(),
+              description: description.trim() || undefined,
+              total_beds: totalBeds,
+            },
+          }),
+        ).unwrap();
         if (result && result.error) {
           toast(result.message, 'error');
           return;
         }
         toast(name.trim() + ' updated.', 'success');
       } else {
-        await api.wards.create({
-          ward_name: name.trim(),
-          description: description.trim() || undefined,
-          total_beds: totalBeds,
-        });
+        await dispatch(
+          createWard({
+            ward_name: name.trim(),
+            description: description.trim() || undefined,
+            total_beds: totalBeds,
+          }),
+        ).unwrap();
         toast(name.trim() + ' created.', 'success');
       }
       onClose();

@@ -10,6 +10,7 @@ const wardService = require('./ward.service');
 const inventoryService = require('./inventory.service');
 const billingService = require('./billing.service');
 const authService = require('./auth.service');
+const activityService = require('./activity.service');
 const { hashPassword } = require('../utils/password');
 const {
   DEFAULT_DEPARTMENTS,
@@ -38,26 +39,52 @@ function logStep(organizationId, step, status, message) {
   });
 }
 
+const SIGNUP_WARD_DEFINITIONS = [
+  ['GENERAL_BEDS', 'General Ward', 'General Medicine — configured capacity'],
+  ['ICU_BEDS', 'ICU', 'Critical Care — configured capacity'],
+  ['PRIVATE_BEDS', 'Private / Semi-Private Ward', 'Private & Semi-Private — configured capacity'],
+];
+
+function resolveInitialWards(moduleResources) {
+  const admissionsRes = moduleResources && moduleResources.ADMISSIONS;
+  if (!admissionsRes || typeof admissionsRes !== 'object') {
+    return DEFAULT_DEPARTMENTS.map(({ wardName, defaultBeds }) => ({
+      wardName,
+      totalBeds: defaultBeds,
+      description: `${wardName} — default baseline`,
+    }));
+  }
+
+  const wards = [];
+  SIGNUP_WARD_DEFINITIONS.forEach(([resourceCode, wardName, description]) => {
+    const qty = Math.max(0, Number(admissionsRes[resourceCode]) || 0);
+    if (qty > 0) {
+      wards.push({ wardName, totalBeds: qty, description });
+    }
+  });
+  return wards;
+}
+
 /**
- * Every newly provisioned hospital used to start with zero wards, zero
- * departments and zero inventory — nothing forced a standard baseline, so
- * each org's data shape was whatever got typed in by hand later (and
- * nothing ever got typed in for a demo/test org, since there was no UI to
- * do it). Seeds the standard 6 department/ward pairs + starter inventory
- * from config/defaultClinicalCatalog.js; Admin can add/remove from here
- * afterwards via the wardAdmin/inventoryCatalog endpoints.
+ * Seeds the organization's initial clinical wards/beds (exact capacities from
+ * `module_resources.ADMISSIONS` when supplied during sign-up, or the standard
+ * 6-department baseline when omitted), billable services, and starter inventory.
  */
-function seedDefaultClinicalBaseline(organizationId, hospitalId) {
-  DEFAULT_DEPARTMENTS.forEach(({ wardName, defaultBeds }) => {
+function seedDefaultClinicalBaseline(organizationId, hospitalId, moduleResources) {
+  const initialWards = resolveInitialWards(moduleResources);
+  let totalSeededBeds = 0;
+
+  initialWards.forEach(({ wardName, totalBeds, description }) => {
     // createWard() creates the matching bed records itself when
     // total_beds is set — no need to also loop-create them here.
     wardService.createWard({
       ward_name: wardName,
-      total_beds: defaultBeds,
-      description: `${wardName} — default baseline`,
+      total_beds: totalBeds,
+      description,
       organization_id: organizationId,
       hospital_id: hospitalId,
     });
+    totalSeededBeds += Number(totalBeds) || 0;
   });
 
   // Seed the billable services catalog first, then link each consumable
@@ -85,6 +112,8 @@ function seedDefaultClinicalBaseline(organizationId, hospitalId) {
       hospital_id: hospitalId,
     });
   });
+
+  return { wardCount: initialWards.length, bedCount: totalSeededBeds };
 }
 
 function generateApiKey(organizationId, label) {
@@ -167,12 +196,29 @@ function provision(payload) {
     organization.organization_id,
     plan.plan_id,
   );
+  if (payload.payment_reference) {
+    subscription.payment_reference = payload.payment_reference;
+  }
+  if (payload.payment_method) {
+    subscription.payment_method = payload.payment_method;
+  }
+  if (payload.payment_summary) {
+    subscription.payment_summary = payload.payment_summary;
+  }
   logStep(
     organization.organization_id,
     'ALLOCATE_QUOTAS',
     'DONE',
     `Subscribed to "${plan.name}" — quotas allocated`,
   );
+  if (payload.payment_method || payload.payment_reference) {
+    logStep(
+      organization.organization_id,
+      'RECORD_PAYMENT',
+      'DONE',
+      `Checkout recorded (${payload.payment_method || 'direct'}: ${payload.payment_reference || 'N/A'})`,
+    );
+  }
 
   // Resource-level entitlements (beds / seats / terminals — tasks.md §6/§7).
   // `module_resources` shape: { MODULE_CODE: { RESOURCE_CODE: quantity } }.
@@ -220,12 +266,22 @@ function provision(payload) {
     `Default admin account created (${adminUser.email})`,
   );
 
-  seedDefaultClinicalBaseline(organization.organization_id, hospital.hospital_id);
+  const seeded = seedDefaultClinicalBaseline(
+    organization.organization_id,
+    hospital.hospital_id,
+    payload.module_resources,
+  );
   logStep(
     organization.organization_id,
     'SEED_DEFAULT_WARDS',
     'DONE',
-    `Seeded ${DEFAULT_DEPARTMENTS.length} default department/ward pairs`,
+    `Seeded ${seeded.wardCount} ward(s) with ${seeded.bedCount} bed(s)`,
+  );
+  activityService.log(
+    'success',
+    `Workspace provisioned for ${organization.name} (${seeded.wardCount} ward${seeded.wardCount === 1 ? '' : 's'}, ${seeded.bedCount} bed${seeded.bedCount === 1 ? '' : 's'})`,
+    { organizationId: organization.organization_id, hospitalId: hospital.hospital_id },
+    organization.organization_id,
   );
   logStep(
     organization.organization_id,

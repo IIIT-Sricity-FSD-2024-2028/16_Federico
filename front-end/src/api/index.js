@@ -23,6 +23,7 @@ import { admissions } from './endpoints/admissions.js';
 import { preRequests } from './endpoints/preRequests.js';
 import { activityLog } from './endpoints/activity.js';
 import { uploads } from './endpoints/uploads.js';
+import { dataApi } from './endpoints/data.js';
 
 export const api = {
   BASE_URL: API_BASE_URL,
@@ -43,6 +44,7 @@ export const api = {
   preRequests,
   activityLog,
   uploads,
+  data: dataApi,
 };
 
 export { ApiError } from './errors.js';

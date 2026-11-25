@@ -41,7 +41,13 @@ function findLedgerByAdmission(req, res) {
 // to.
 function findAllLedgers(req, res) {
   if (isPatientSession(req)) return res.status(403).json(FORBIDDEN);
-  sendResult(res, scopeToOrg(billingService.findAllLedgers(), req), 200);
+  const ledgers = scopeToOrg(billingService.findAllLedgers(), req).map((ledger) => ({
+    ...ledger,
+    total_amount: billingService
+      .findLedgerEntries(ledger.ledger_id)
+      .reduce((sum, entry) => sum + Number(entry.amount || 0), 0),
+  }));
+  sendResult(res, ledgers, 200);
 }
 
 function createLedger(req, res) {

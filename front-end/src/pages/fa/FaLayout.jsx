@@ -1,13 +1,13 @@
 'use strict';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSession } from '../../auth/useSession.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import AppNavbar from '../../components/layout/AppNavbar.jsx';
-import { FaContext } from './FaContext.jsx';
+import { useAppDispatch } from '../../store/hooks.js';
+import { resetFa } from '../../store/slices/billingSlice.js';
 import { useHashRoute, DEFAULT_ROUTE } from './useHashRoute.js';
-import { toast } from '../../components/feedback/feedback.js';
 import ChargesView from './ChargesView.jsx';
 import LedgerView from './LedgerView.jsx';
 import EodBillingView from './EodBillingView.jsx';
@@ -28,36 +28,21 @@ const LINKS = [
  */
 const ROUTES = ['ledger', 'charges', 'eod'];
 
-/** The ids a view actually renders an inline error slot for. */
-const FORM_ERROR_IDS = ['discharge-payment-error'];
-
 export default function FaLayout() {
   usePageStyles(baseCss, layoutCss, componentsCss);
   useDocumentTitle('Federico | Finance Portal');
 
+  const dispatch = useAppDispatch();
   const { actor, tenant, logout, hasModuleAccess } = useSession();
-  const { mainRoute, param, navigate } = useHashRoute();
+  const { mainRoute } = useHashRoute();
 
-  const [currentAdmissionId, setCurrentAdmissionId] = useState(null);
-  const [version, setVersion] = useState(0);
-  const [formErrors, setFormErrors] = useState({});
-  // The override field is read live at click time, exactly as the action module
-  // read #coverage-override off the DOM, so it must outlive re-renders.
-  const coverageOverrideRef = useRef(null);
-
-  // parseHashRoute() wrote window.currentAdmissionId whenever the hash carried
-  // a third segment; the same rule applies here, without the global.
-  const admissionId = param || currentAdmissionId;
-
-  const reload = useCallback(() => setVersion((v) => v + 1), []);
-
-  const showFormError = useCallback((id, message) => {
-    if (!FORM_ERROR_IDS.includes(id)) {
-      toast(message, 'error');
-      return;
-    }
-    setFormErrors((e) => ({ ...e, [id]: message }));
-  }, []);
+  // The FA portal's state (current admission, reload counter, form errors) lives
+  // in state.billing.fa and was always scoped to this layout; reset it on leaving.
+  useEffect(() => {
+    return () => {
+      dispatch(resetFa());
+    };
+  }, [dispatch]);
 
   const canAccess = useCallback(
     (route) => {
@@ -67,22 +52,6 @@ export default function FaLayout() {
       return ROUTES.includes(page) && (hasModuleAccess('FA') ?? true);
     },
     [hasModuleAccess],
-  );
-
-  const ctx = useMemo(
-    () => ({
-      currentAdmissionId: admissionId,
-      setCurrentAdmissionId,
-      navigate,
-      reload,
-      version,
-      formErrors,
-      showFormError,
-      clearFormError: (id) => setFormErrors((e) => ({ ...e, [id]: undefined })),
-      coverageOverrideRef,
-      hospitalName: tenant?.organization_name || 'Hospital',
-    }),
-    [admissionId, navigate, reload, version, formErrors, showFormError, tenant],
   );
 
   async function onLogout() {
@@ -105,19 +74,19 @@ export default function FaLayout() {
   }
 
   return (
-    <FaContext.Provider value={ctx}>
-    <AppNavbar
-      roleName={actor === 'HOM' ? 'FA (Finance Control)' : 'FA'}
-      brandName="Federico"
-      hospitalName={tenant?.organization_name}
-      links={LINKS}
-      onLogout={onLogout}
-    />
+    <>
+      <AppNavbar
+        roleName={actor === 'HOM' ? 'FA (Finance Control)' : 'FA'}
+        brandName="Federico"
+        hospitalName={tenant?.organization_name}
+        links={LINKS}
+        onLogout={onLogout}
+      />
 
-    <main id="app" className="main-content">
-      {view}
-    </main>
-  </FaContext.Provider>
-);
+      <main id="app" className="main-content">
+        {view}
+      </main>
+    </>
+  );
 }
 

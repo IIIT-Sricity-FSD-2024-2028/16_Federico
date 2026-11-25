@@ -1,6 +1,6 @@
 'use strict';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Heart, 
@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Activity
 } from 'lucide-react';
+import { useUiState } from '../../store/hooks.js';
 
 /**
  * PatientHealthHub
@@ -31,7 +32,7 @@ import {
  */
 export default function PatientHealthHub() {
   const navigate = useNavigate();
-  const [selectedTriage, setSelectedTriage] = useState('opd');
+  const [selectedTriage, setSelectedTriage] = useUiState('PatientHealthHub.selectedTriage', 'opd');
 
   const healthTips = [
     {

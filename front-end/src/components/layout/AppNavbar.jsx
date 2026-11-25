@@ -1,10 +1,11 @@
 'use strict';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession.js';
 import { LOGIN_PATH } from '../../auth/actorHome.js';
 import '../css/app-navbar.css';
+import { useUiState } from '../../store/hooks.js';
 
 /**
  * Universal top navigation bar for all Federico portals.
@@ -21,14 +22,14 @@ export default function AppNavbar({
   const navigate = useNavigate();
   const location = useLocation();
   const { session, logout } = useSession();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useUiState('AppNavbar.menuOpen', false);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
     const onDocClick = () => setMenuOpen(false);
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
-  }, [menuOpen]);
+  }, [menuOpen, setMenuOpen]);
 
   async function handleSignOut() {
     if (onLogout) {

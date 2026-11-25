@@ -8,8 +8,11 @@ import { API_BASE_URL } from '../../api/client.js';
  */
 function resolveDocumentUrl(url) {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  const resolved = new URL(url, API_BASE_URL);
+  if (resolved.pathname.startsWith('/api/uploads/')) {
+    resolved.pathname = resolved.pathname.slice('/api'.length);
+  }
+  return resolved.href;
 }
 
 /**

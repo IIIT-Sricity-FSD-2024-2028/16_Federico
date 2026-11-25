@@ -1,11 +1,15 @@
 'use strict';
 
-import { useState } from 'react';
+import { useRef } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
-import { api } from '../../api/index.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { formatCurrency } from './homHelpers.js';
 import { itemCost, DEFAULT_RESTOCK_QUANTITY, MAX_NOTES_LENGTH } from './inventoryHelpers.js';
+import { useAppDispatch, useAppSelector, useUiState } from '../../store/hooks.js';
+import { selectSession } from '../../store/slices/authSlice.js';
+import { createPurchaseRequest } from '../../store/slices/inventorySlice.js';
+import { uploadInventoryInvoice } from '../../store/slices/uploadsSlice.js';
 
 /**
  * Ported from #modal-request-restock plus openRestockModal / submitRestock in
@@ -24,14 +28,19 @@ export default function RestockModal({ open, initialItemId, data, onClose, onCha
 }
 
 function RestockForm({ initialItemId, data, onClose, onChanged }) {
-  const [itemId, setItemId] = useState(initialItemId ? String(initialItemId) : '');
-  const [qty, setQty] = useState(String(DEFAULT_RESTOCK_QUANTITY));
-  const [supplier, setSupplier] = useState('');
-  const [priority, setPriority] = useState('normal');
-  const [notes, setNotes] = useState('');
-  const [invoiceFile, setInvoiceFile] = useState(null);
-  const [invoiceStatus, setInvoiceStatus] = useState('');
-  const [error, setError] = useState('');
+  const dispatch = useAppDispatch();
+  const session = useAppSelector(selectSession);
+  const [itemId, setItemId] = useUiState('RestockModal.itemId', initialItemId ? String(initialItemId) : '');
+  const [qty, setQty] = useUiState('RestockModal.qty', String(DEFAULT_RESTOCK_QUANTITY));
+  const [supplier, setSupplier] = useUiState('RestockModal.supplier', '');
+  const [priority, setPriority] = useUiState('RestockModal.priority', 'normal');
+  const [notes, setNotes] = useUiState('RestockModal.notes', '');
+  // The File itself is not serializable, so it stays on the DOM side in a ref;
+  // Redux holds only its name (what the form shows).
+  const invoiceFileRef = useRef(null);
+  const [invoiceFileName, setInvoiceFileName] = useUiState('RestockModal.invoiceFileName', null);
+  const [invoiceStatus, setInvoiceStatus] = useUiState('RestockModal.invoiceStatus', '');
+  const [error, setError] = useUiState('RestockModal.error', '');
 
   const item = data.items.find((i) => i.item_id === Number(itemId));
   const cost = itemCost(item, data.services);
@@ -42,7 +51,6 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
     const quantity = Number(qty);
     const supplierName = supplier.trim();
     const noteText = notes.trim();
-    const session = api.getSession();
     const selected = data.items.find((i) => i.item_id === item_id);
 
     if (!selected) {
@@ -64,10 +72,10 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
     setError('');
 
     let invoiceUrl = null;
-    if (invoiceFile) {
+    if (invoiceFileRef.current) {
       setInvoiceStatus('Uploading invoice…');
       try {
-        const uploaded = await api.uploads.inventory(invoiceFile);
+        const uploaded = await dispatch(uploadInventoryInvoice(invoiceFileRef.current)).unwrap();
         invoiceUrl = uploaded.url;
         setInvoiceStatus('Attached: ' + uploaded.originalName);
       } catch (err) {
@@ -78,16 +86,18 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
     }
 
     try {
-      await api.inventory.requests.create({
-        item_id: selected.item_id,
-        quantity_requested: quantity,
-        status: 'PENDING',
-        requested_by: session ? session.userId : null,
-        supplier: supplierName,
-        priority,
-        notes: noteText,
-        invoice_url: invoiceUrl,
-      });
+      await dispatch(
+        createPurchaseRequest({
+          item_id: selected.item_id,
+          quantity_requested: quantity,
+          status: 'PENDING',
+          requested_by: session ? session.userId : null,
+          supplier: supplierName,
+          priority,
+          notes: noteText,
+          invoice_url: invoiceUrl,
+        }),
+      ).unwrap();
       toast('Purchase Order submitted for ' + quantity + 'x ' + selected.item_name + '.', 'success');
     } catch (err) {
       setError(err.message || 'Unable to submit purchase order.');
@@ -264,7 +274,11 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
                 id="restock-invoice-input"
                 style={{ display: 'none' }}
                 accept="application/pdf,image/png,image/jpeg,image/webp"
-                onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  invoiceFileRef.current = file;
+                  setInvoiceFileName(file ? file.name : null);
+                }}
               />
               <span className="restock-file-btn">
                 <svg
@@ -282,18 +296,19 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                {invoiceFile ? 'Change' : 'Browse'}
+                {invoiceFileName ? 'Change' : 'Browse'}
               </span>
-              <span className="restock-file-info" title={invoiceFile ? invoiceFile.name : 'PDF, PNG, JPG (max 10MB)'}>
-                {invoiceFile ? invoiceFile.name : 'Attach file'}
+              <span className="restock-file-info" title={invoiceFileName ? invoiceFileName : 'PDF, PNG, JPG (max 10MB)'}>
+                {invoiceFileName ? invoiceFileName : 'Attach file'}
               </span>
-              {invoiceFile ? (
+              {invoiceFileName ? (
                 <button
                   type="button"
                   className="restock-file-clear"
                   onClick={(e) => {
                     e.preventDefault();
-                    setInvoiceFile(null);
+                    invoiceFileRef.current = null;
+                    setInvoiceFileName(null);
                     setInvoiceStatus('');
                   }}
                   title="Remove file"

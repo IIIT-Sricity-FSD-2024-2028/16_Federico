@@ -254,20 +254,6 @@ describe('Unified login (email tag → portal, domain → hospital)', () => {
       });
     });
 
-    it('changing a staff role renames the email tag to match', () => {
-      const created = rbacService.createStaffUser(1, {
-        name: 'Omar',
-        email: 'omar.pre@citygen.com',
-        password: 'Omar@1234',
-        actor_role: 'PRE',
-      });
-      const updated = rbacService.setStaffRole(created.user_id, 'FA');
-      expect(updated.email).toBe('omar.fa@citygen.com');
-      expect(
-        authService.login('omar.fa@citygen.com', 'Omar@1234', 1, 'FA').role,
-      ).toBe('FA');
-    });
-
     it('provisioning requires a name.admin@<email_domain> admin and a free, non-public domain', () => {
       const payload = {
         name: 'Lakeside Hospital',

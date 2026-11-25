@@ -1,9 +1,10 @@
 'use strict';
 
-import { useState } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import Button from '../../components/ui/Button.jsx';
-import { api } from '../../api/index.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { createInventoryItem } from '../../store/slices/inventorySlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 
 /** Ported from the #item-dialog <dialog> in Admin/screen-03-inventory.html. */
@@ -16,7 +17,8 @@ export default function ItemDialog({ open, onClose, onSaved }) {
 }
 
 function ItemForm({ onClose, onSaved }) {
-  const [f, setF] = useState(BLANK);
+  const dispatch = useAppDispatch();
+  const [f, setF] = useUiState('ItemDialog.f', BLANK);
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
 
   async function handleSubmit(e) {
@@ -24,12 +26,14 @@ function ItemForm({ onClose, onSaved }) {
     const item_name = f.item_name.trim();
     if (!item_name) return;
     try {
-      await api.inventory.items.create({
-        item_name,
-        category: f.category,
-        stock_quantity: Number(f.stock_quantity),
-        reorder_level: Number(f.reorder_level),
-      });
+      await dispatch(
+        createInventoryItem({
+          item_name,
+          category: f.category,
+          stock_quantity: Number(f.stock_quantity),
+          reorder_level: Number(f.reorder_level),
+        }),
+      ).unwrap();
       toast(item_name + ' added to the catalog.', 'success');
       onClose();
       await onSaved();

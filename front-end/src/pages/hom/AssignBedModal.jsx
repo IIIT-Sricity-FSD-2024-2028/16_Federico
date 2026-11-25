@@ -1,11 +1,12 @@
 'use strict';
 
-import { useState } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import Badge from '../../components/ui/Badge.jsx';
-import { api } from '../../api/index.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { formatDateTime } from './homHelpers.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { allocateBed, denyBedRequest } from '../../store/slices/wardsSlice.js';
 
 /**
  * The one bed-allocation modal. Both of HOM's allocation entry points pick a
@@ -38,16 +39,17 @@ function priorityVariant(priority) {
   return 'info';
 }
 
-async function allocate(bedRequestId, bedId) {
-  await api.wards.bedRequests.allocate(bedRequestId, bedId);
+async function allocate(dispatch, bedRequestId, bedId) {
+  await dispatch(allocateBed({ requestId: bedRequestId, bedId })).unwrap();
   toast('Bed allocated and patient admitted successfully.', 'success');
 }
 
 // ------------------------------------------------- bed -> pick a request --
 
 function BedFirst({ bedId, data, onClose, onChanged }) {
-  const [selectedRequestId, setSelectedRequestId] = useState(null);
-  const [error, setError] = useState('');
+  const dispatch = useAppDispatch();
+  const [selectedRequestId, setSelectedRequestId] = useUiState('AssignBedModal.selectedRequestId', null);
+  const [error, setError] = useUiState('AssignBedModal.error', '');
 
   const bed = (data.beds || []).find((b) => b.bed_id === bedId);
   if (!bed) return null;
@@ -67,7 +69,7 @@ function BedFirst({ bedId, data, onClose, onChanged }) {
       return;
     }
     try {
-      await allocate(selectedRequestId, bed.bed_id);
+      await allocate(dispatch, selectedRequestId, bed.bed_id);
     } catch (err) {
       setError(err.message || 'Unable to allocate this bed.');
       return;
@@ -140,7 +142,8 @@ function BedFirst({ bedId, data, onClose, onChanged }) {
 // ------------------------------------------------- request -> pick a bed --
 
 function RequestFirst({ bedRequestId, data, onClose, onChanged }) {
-  const [selectedBedId, setSelectedBedId] = useState(null);
+  const dispatch = useAppDispatch();
+  const [selectedBedId, setSelectedBedId] = useUiState('AssignBedModal.selectedBedId', null);
 
   const request = (data.bedRequests || []).find((r) => r.bed_request_id === bedRequestId);
   if (!request) return null;
@@ -164,7 +167,7 @@ function RequestFirst({ bedRequestId, data, onClose, onChanged }) {
       return;
     }
     try {
-      await allocate(bedRequestId, selectedBedId);
+      await allocate(dispatch, bedRequestId, selectedBedId);
     } catch (err) {
       toast(err.message || 'Unable to allocate bed.', 'error');
       // The bed list may be stale (409 = someone else took it); refresh it.
@@ -177,7 +180,7 @@ function RequestFirst({ bedRequestId, data, onClose, onChanged }) {
 
   async function reject() {
     try {
-      await api.wards.bedRequests.deny(bedRequestId);
+      await dispatch(denyBedRequest(bedRequestId)).unwrap();
     } catch (err) {
       toast(err.message || 'Unable to deny this bed request.', 'error');
       return;

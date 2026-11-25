@@ -1,8 +1,6 @@
 'use strict';
 
-import { useCallback, useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useCallback } from 'react';
 import { usePolling } from '../../hooks/usePolling.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import Badge from '../../components/ui/Badge.jsx';
@@ -15,6 +13,13 @@ import { toast } from '../../components/feedback/feedback.js';
 import AssignBedModal from './AssignBedModal.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import dashboardCss from '../../styles/hom/dashboard.css?inline';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadHomDashboard } from '../../store/pageLoaders.js';
+import { selectBeds, selectBedRequests, selectWards } from '../../store/slices/wardsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectPreRequests, updatePreRequest } from '../../store/slices/preRequestsSlice.js';
+import { selectActivityLog } from '../../store/slices/activitySlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
 
 /**
  * Ported from HOM/screen-01-dashboard.html + dashboard.js.
@@ -95,33 +100,22 @@ function timeAgo(dateString) {
 export default function HomDashboardPage() {
   usePageStyles(dashboardCss);
   useDocumentTitle('Dashboard | Federico Hospital HOM');
-  const [selectedBedRequestId, setSelectedBedRequestId] = useState(null);
+  const [selectedBedRequestId, setSelectedBedRequestId] = useUiState('DashboardPage.selectedBedRequestId', null);
 
-  const { data, reload } = useApi(async () => {
-    const [preRequests, patients, wards, beds, bedRequests, activity, doctors] = await Promise.all([
-      api.preRequests.list().catch(() => []),
-      api.patients.list().catch(() => []),
-      api.wards.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-      api.wards.bedRequests.list().catch(() => []),
-      api.activityLog.list().catch(() => []),
-      api.doctors.list().catch(() => []),
-    ]);
-    const arr = (v) => (Array.isArray(v) ? v : []);
-    return {
-      preRequests: arr(preRequests),
-      patients: arr(patients),
-      wards: arr(wards),
-      beds: arr(beds),
-      bedRequests: arr(bedRequests),
-      activity: arr(activity),
-      doctors: arr(doctors),
-    };
-  }, []);
+  const dispatch = useAppDispatch();
+  const { reload } = useLoader(loadHomDashboard);
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const d = {
+    preRequests: arr(useAppSelector(selectPreRequests)),
+    patients: arr(useAppSelector(selectPatients)),
+    wards: arr(useAppSelector(selectWards)),
+    beds: arr(useAppSelector(selectBeds)),
+    bedRequests: arr(useAppSelector(selectBedRequests)),
+    activity: arr(useAppSelector(selectActivityLog)),
+    doctors: arr(useAppSelector(selectDoctors)),
+  };
 
   usePolling(reload, 15000);
-
-  const d = data || { preRequests: [], patients: [], wards: [], beds: [], bedRequests: [], activity: [], doctors: [] };
 
   const totalBeds = d.beds.length || d.wards.reduce((sum, w) => sum + (w.total_beds || 0), 0);
   const occupied = d.beds.filter((b) => b.status === 'OCCUPIED').length;
@@ -155,14 +149,14 @@ export default function HomDashboardPage() {
   const approveDischarge = useCallback(
     async (preRequestId) => {
       try {
-        await api.preRequests.update(preRequestId, { status: 'DISCHARGE_APPROVED' });
+        await dispatch(updatePreRequest({ id: preRequestId, patch: { status: 'DISCHARGE_APPROVED' } })).unwrap();
       } catch (err) {
         toast(err.message || 'Unable to approve discharge.', 'error');
         return;
       }
       await reload();
     },
-    [reload],
+    [dispatch, reload],
   );
 
   const today = new Date().toLocaleDateString('en-US', {

@@ -1,8 +1,9 @@
 'use strict';
 
-import { useApi } from '../../hooks/useApi.js';
-import { useFa } from './FaContext.jsx';
-import { loadBillingOverview, loadLedgerEntries, ledgerTotal, formatCurrency } from './faHelpers.js';
+import { useAppSelector, useLoader } from '../../store/hooks.js';
+import { loadFaLedgerEntries, loadFaOverview } from '../../store/pageLoaders.js';
+import { useFa } from './useFa.js';
+import { selectBillingOverview, ledgerTotal, formatCurrency } from './faHelpers.js';
 import { useSelectedRow } from './useSelectedRow.js';
 import * as actions from './faActions.js';
 import PatientPicker from './PatientPicker.jsx';
@@ -25,15 +26,16 @@ const DETAIL_ID = 'fa-settlement-detail';
 export default function EodBillingView() {
   const ctx = useFa();
 
-  const { data, error, loading } = useApi(() => loadBillingOverview(), [ctx.version]);
+  const { loaded, error, loading } = useLoader(loadFaOverview, { deps: [ctx.version] });
+  const overview = useAppSelector(selectBillingOverview);
+  const data = loaded ? overview : null;
 
   const rows = data?.rows;
   const { selectedId, row } = useSelectedRow(ctx, rows);
 
-  const { data: entries } = useApi(
-    () => (row?.ledger ? loadLedgerEntries(row.ledger.ledger_id) : Promise.resolve([])),
-    [ctx.version, row?.ledger?.ledger_id],
-  );
+  const entryLedgerId = row?.ledger?.ledger_id;
+  useLoader(loadFaLedgerEntries, { arg: entryLedgerId, deps: [ctx.version, entryLedgerId] });
+  const entries = useAppSelector((state) => (entryLedgerId ? state.billing.ledgerEntries[entryLedgerId] : undefined));
 
   return (
     <ViewFrame loading={loading} error={error}>

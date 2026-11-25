@@ -129,10 +129,55 @@ function findOne(id) {
   return dataStore.preRequests.find((p) => Number(p.pre_request_id) === numId) || null;
 }
 
+/** Compare stored local calendar/date fields without parsing them as UTC timestamps. */
+function getApprovalScheduleError(dateValue, timeValue, now = new Date()) {
+  const dateMatch = String(dateValue || '').trim().match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!dateMatch) return null;
+
+  const requestedDate = dateMatch[1];
+  const today = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+  if (requestedDate < today) {
+    return 'This appointment request is for a past date and cannot be approved.';
+  }
+  if (requestedDate > today) return null;
+
+  const timeMatch = String(timeValue || '').trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!timeMatch) return null;
+
+  let hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const seconds = Number(timeMatch[3] || 0);
+  const meridiem = timeMatch[4]?.toUpperCase();
+  if (minutes > 59 || seconds > 59 || (meridiem && (hours < 1 || hours > 12)) || (!meridiem && hours > 23)) {
+    return null;
+  }
+  if (meridiem === 'PM' && hours < 12) hours += 12;
+  if (meridiem === 'AM' && hours === 12) hours = 0;
+
+  const requestedMinutes = hours * 60 + minutes;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  if (requestedMinutes < currentMinutes) {
+    return 'This appointment time has already passed and cannot be approved.';
+  }
+  return null;
+}
+
+function assertApprovableSchedule(dateValue, timeValue) {
+  const scheduleError = getApprovalScheduleError(dateValue, timeValue);
+  if (!scheduleError) return;
+  const err = new Error(scheduleError);
+  err.name = 'Conflict';
+  err.statusCode = 409;
+  throw err;
+}
+
 function create(payload, createdBy) {
   const rawStatus = payload.status === 'EMERGENCY' ? 'CRITICAL' : payload.status;
   const initialStatus =
     rawStatus || (payload.visit_type === 'Critical' || payload.visit_type === 'Emergency' ? 'CRITICAL' : 'PENDING');
+  if (initialStatus === 'APPROVED') {
+    assertApprovableSchedule(payload.requested_date, payload.requested_time);
+  }
   const newRequest = {
     pre_request_id:
       maxId(dataStore.preRequests, 'pre_request_id', 1) + 1,
@@ -158,12 +203,6 @@ function create(payload, createdBy) {
     decided_at: null,
   };
   dataStore.preRequests.push(newRequest);
-
-  // PRE's "Create Appointment" schedules straight into APPROVED with a doctor;
-  // book that doctor's slot just as the PENDING -> APPROVED transition does.
-  if (initialStatus === 'APPROVED' && newRequest.doctor_id && !newRequest.appointment_id) {
-    createLinkedAppointment(newRequest);
-  }
 
   const patient = dataStore.patients.find(
     (p) => p.patient_id === newRequest.patient_id,
@@ -228,6 +267,13 @@ function updateFields(id, patch) {
 function transition(id, toStatus, actorRole, extra) {
   const request = findOne(id);
   if (!request) return null;
+
+  if (toStatus === 'APPROVED') {
+    assertApprovableSchedule(
+      extra?.requested_date || request.requested_date,
+      extra?.requested_time || request.requested_time,
+    );
+  }
 
   request.status = toStatus;
   request.hom_status = HOM_STATUS_BY_STATUS[toStatus] || request.hom_status;
@@ -528,4 +574,5 @@ module.exports = {
   transition,
   rejectAdmissionRequest,
   checkIn,
+  getApprovalScheduleError,
 };
