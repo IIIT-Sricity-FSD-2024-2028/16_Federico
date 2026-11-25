@@ -3,23 +3,30 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { subscribe, getSnapshot } from '../api/session.js';
 
+import activityReducer from './slices/activitySlice.js';
 import admissionsReducer from './slices/admissionsSlice.js';
 import appointmentsReducer from './slices/appointmentsSlice.js';
 import authReducer, { sessionSynced } from './slices/authSlice.js';
 import billingReducer from './slices/billingSlice.js';
 import doctorsReducer from './slices/doctorsSlice.js';
+import inventoryReducer from './slices/inventorySlice.js';
 import patientsReducer from './slices/patientsSlice.js';
 import preRequestsReducer from './slices/preRequestsSlice.js';
-import uploadsReducer, { uploadDocument } from './slices/uploadsSlice.js';
+import uploadsReducer, {
+  uploadDocument,
+  uploadInventoryInvoice,
+} from './slices/uploadsSlice.js';
 import wardsReducer from './slices/wardsSlice.js';
 import uiReducer from './slices/uiSlice.js';
 
 const appReducer = combineReducers({
+  activity: activityReducer,
   admissions: admissionsReducer,
   appointments: appointmentsReducer,
   auth: authReducer,
   billing: billingReducer,
   doctors: doctorsReducer,
+  inventory: inventoryReducer,
   patients: patientsReducer,
   preRequests: preRequestsReducer,
   uploads: uploadsReducer,
@@ -48,7 +55,7 @@ function rootReducer(state, action) {
 // A File handed to an upload thunk travels in that thunk's action (meta.arg) so
 // the existing uploads API can send it; it is never written to state. Those
 // action types are exempted from the serializable-value dev check.
-const UPLOAD_ACTION_TYPES = [uploadDocument].flatMap((thunk) => [
+const UPLOAD_ACTION_TYPES = [uploadDocument, uploadInventoryInvoice].flatMap((thunk) => [
   thunk.pending.type,
   thunk.fulfilled.type,
   thunk.rejected.type,

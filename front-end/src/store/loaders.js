@@ -25,3 +25,6 @@ export const must = (dispatched) => dispatched.unwrap();
 
 /** A fetch whose failure is swallowed, like the legacy `.catch(() => [])`. */
 export const soft = (dispatched) => dispatched.unwrap().catch(() => undefined);
+
+/** Like soft, but resolves to `fallback` on failure (for callers that need a value). */
+export const orElse = (dispatched, fallback) => dispatched.unwrap().catch(() => fallback);
