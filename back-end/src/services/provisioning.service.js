@@ -167,12 +167,29 @@ function provision(payload) {
     organization.organization_id,
     plan.plan_id,
   );
+  if (payload.payment_reference) {
+    subscription.payment_reference = payload.payment_reference;
+  }
+  if (payload.payment_method) {
+    subscription.payment_method = payload.payment_method;
+  }
+  if (payload.payment_summary) {
+    subscription.payment_summary = payload.payment_summary;
+  }
   logStep(
     organization.organization_id,
     'ALLOCATE_QUOTAS',
     'DONE',
     `Subscribed to "${plan.name}" — quotas allocated`,
   );
+  if (payload.payment_method || payload.payment_reference) {
+    logStep(
+      organization.organization_id,
+      'RECORD_PAYMENT',
+      'DONE',
+      `Checkout recorded (${payload.payment_method || 'direct'}: ${payload.payment_reference || 'N/A'})`,
+    );
+  }
 
   // Resource-level entitlements (beds / seats / terminals — tasks.md §6/§7).
   // `module_resources` shape: { MODULE_CODE: { RESOURCE_CODE: quantity } }.

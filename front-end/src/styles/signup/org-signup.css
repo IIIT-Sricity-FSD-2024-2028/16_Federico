@@ -200,6 +200,110 @@ body {
   box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.15);
 }
 
+.field-hint {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--md-on-surface-variant);
+  line-height: 1.35;
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--status-error, #b3261e);
+  margin-top: 2px;
+}
+
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea,
+.form-group input[aria-invalid="true"],
+.form-group select[aria-invalid="true"] {
+  border-color: var(--status-error, #b3261e);
+  background: var(--status-error-bg, #fbe8e6);
+}
+
+.form-group.has-error input:focus,
+.form-group.has-error select:focus {
+  box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.16);
+}
+
+.password-rules-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 0.78rem;
+  color: var(--md-on-surface-variant);
+}
+
+.password-rules-list li.is-met {
+  color: var(--status-success, #2e7d32);
+  font-weight: 600;
+}
+
+.password-rules-list.is-error {
+  border-color: var(--status-error, #b3261e);
+}
+
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrap input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 4px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+}
+
+.password-toggle-btn:hover {
+  background: rgba(103, 80, 164, 0.08);
+  color: var(--md-primary);
+}
+
+.resource-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline-variant);
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
 /* Plan Selection Cards */
 .plan-cards-grid {
   display: grid;
@@ -360,6 +464,7 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid var(--md-outline-variant);
   background: var(--md-surface-container-low);
+  font-family: inherit;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -411,7 +516,7 @@ body {
 }
 
 @media (max-width: 768px) {
-  .form-grid-2, .modules-interactive-grid, .payment-method-selector {
+  .form-grid-2, .modules-interactive-grid, .payment-method-selector, .password-rules-list {
     grid-template-columns: 1fr;
   }
   .stepper-header {

@@ -9,16 +9,47 @@ import { sanitizeEmailName } from '../../lib/emailIdentity.js';
  *
  *   [ rekha        ].pre@citygen.com
  */
-export default function TaggedEmailInput({ id, value, onChange, tag, domain, placeholder, required = true }) {
+export default function TaggedEmailInput({
+  id,
+  name,
+  value,
+  onChange,
+  onBlur,
+  tag,
+  domain,
+  placeholder,
+  required = true,
+  sanitize = true,
+  maxLength,
+  enterKeyHint,
+  ariaInvalid,
+  ariaDescribedBy,
+  className,
+  inputRef,
+}) {
   return (
     <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
       <input
+        ref={inputRef}
         id={id}
+        name={name}
         required={required}
         placeholder={placeholder || 'e.g. rekha'}
         autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        maxLength={maxLength}
+        enterKeyHint={enterKeyHint}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
+        className={className}
         value={value}
-        onChange={(e) => onChange(sanitizeEmailName(e.target.value))}
+        onChange={(e) => {
+          const raw = e.target.value;
+          onChange(sanitize ? sanitizeEmailName(raw) : raw.toLowerCase());
+        }}
+        onBlur={onBlur}
         style={{ flex: 1, minWidth: 0 }}
       />
       <span

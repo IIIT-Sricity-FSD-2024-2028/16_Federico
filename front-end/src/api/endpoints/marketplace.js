@@ -1,6 +1,7 @@
 'use strict';
 
 import { request } from '../client.js';
+import { withNormalizedPhones } from '../../lib/phone.js';
 
 /** All three endpoints are deliberately public (no Authorization header). */
 export const marketplace = {
@@ -11,7 +12,12 @@ export const marketplace = {
     return request('GET', '/marketplace/plans', undefined, { auth: false });
   },
   registerOrganization(payload) {
-    return request('POST', '/marketplace/register-organization', payload, { auth: false });
+    return request(
+      'POST',
+      '/marketplace/register-organization',
+      withNormalizedPhones(payload, ['phone']),
+      { auth: false },
+    );
   },
 };
 
