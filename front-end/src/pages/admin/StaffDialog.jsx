@@ -93,8 +93,7 @@ function StaffForm({ emailDomain, onClose, onSaved }) {
           </div>
           <p className="cred-hint">
             Share the email + temporary password with the person. They sign in at the login page,
-            which opens their portal from the role in the email. Changing their role later renames
-            the email to match.
+            which opens their portal from the role in the email.
           </p>
           <div className="md-dialog-actions">
             <Button variant="outline" type="button" id="staff-cancel" onClick={onClose}>

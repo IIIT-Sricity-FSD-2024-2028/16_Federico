@@ -20,14 +20,9 @@ const createStaffRules = [
   { field: 'actor_role', checks: ['isNotEmpty', 'isString'] },
 ];
 
-const setStaffRoleRules = [
-  { field: 'actor_role', checks: ['isNotEmpty', 'isString'] },
-];
-
 module.exports = {
   createRoleRules,
   assignPermissionRules,
   assignStaffRoleRules,
   createStaffRules,
-  setStaffRoleRules,
 };

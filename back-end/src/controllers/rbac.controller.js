@@ -189,26 +189,16 @@ function setStaffActive(req, res) {
   sendResult(res, result, 200);
 }
 
-// PUT /rbac/staff/:userId/actor-role — the Staff Directory's role dropdown.
-function setStaffRole(req, res) {
+function deleteStaff(req, res) {
   const targetUser = staffTarget(req);
   if (!targetUser) return res.status(403).json(FORBIDDEN);
-  const result = rbacService.setStaffRole(targetUser.user_id, req.body.actor_role);
-  if (result && result.error) {
-    const [status, message, error] =
-      result.error === 'EMAIL_TAKEN'
-        ? [
-            409,
-            'Changing the role renames the login email, and that address is already registered',
-            'Conflict',
-          ]
-        : STAFF_CREATE_ERRORS.INVALID_ROLE;
-    return res.status(status).json({ message, error, statusCode: status });
-  }
-  // Live sessions carry the old role; make the change effective now.
   destroySessionsForUser(targetUser.user_id);
+  const result = rbacService.deleteStaffUser(
+    targetUser.user_id,
+    req.session?.userId,
+  );
   logger.log(
-    `✏️  STAFF ROLE  user_id=${targetUser.user_id}  role=${result.actor_role}  org=${req.tenant.organizationId}`,
+    `🗑️  STAFF DELETED  user_id=${targetUser.user_id}  email=${targetUser.email}  org=${req.tenant.organizationId}`,
   );
   sendResult(res, result, 200);
 }
@@ -225,5 +215,5 @@ module.exports = {
   listStaff,
   createStaff,
   setStaffActive,
-  setStaffRole,
+  deleteStaff,
 };

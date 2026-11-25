@@ -341,6 +341,14 @@ function registerDemoPassword(email, password) {
   }
 }
 
+function unregisterDemoPassword(email) {
+  if (email) {
+    const trimmed = String(email).trim();
+    delete KNOWN_DEMO_PASSWORDS[trimmed.toLowerCase()];
+    delete KNOWN_DEMO_PASSWORDS[trimmed];
+  }
+}
+
 function getDemoAccounts() {
   const activeOrgs = dataStore.organizations.filter((o) => o.status === 'ACTIVE');
   const orgMap = {};
@@ -438,4 +446,5 @@ module.exports = {
   changePassword,
   toPublicUser,
   registerDemoPassword,
+  unregisterDemoPassword,
 };

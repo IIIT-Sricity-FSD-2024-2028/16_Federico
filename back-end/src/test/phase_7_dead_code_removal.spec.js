@@ -6,6 +6,7 @@ const dataStore = require('../store/dataStore');
 const dataService = require('../services/data.service');
 const platformActivityService = require('../services/platformActivity.service');
 const billingService = require('../services/billing.service');
+const rbacService = require('../services/rbac.service');
 
 describe('Route Deprecation & Dead Code Elimination Specifications', () => {
   let app;
@@ -33,6 +34,15 @@ describe('Route Deprecation & Dead Code Elimination Specifications', () => {
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('returns 404 Not Found for removed PUT /rbac/staff/:userId/actor-role endpoint', async () => {
+      expect(rbacService.setStaffRole).toBeUndefined();
+      const res = await request(app)
+        .put('/rbac/staff/105/actor-role')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ actor_role: 'FA' });
+      expect(res.status).toBe(404);
     });
   });
 

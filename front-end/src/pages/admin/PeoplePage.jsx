@@ -16,14 +16,7 @@ import DoctorDialog from './DoctorDialog.jsx';
 import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
 import { loadAdminDoctors, loadAdminStaff } from '../../store/pageLoaders.js';
 import { deleteDoctor as deleteDoctorThunk, selectDoctors } from '../../store/slices/doctorsSlice.js';
-import { selectStaff, setStaffActive, setStaffRole } from '../../store/slices/rbacSlice.js';
-
-/** The portal roles a staff login can hold (Admin is the provisioned owner). */
-const STAFF_ROLES = [
-  { value: 'PRE', label: 'PRE' },
-  { value: 'HOM', label: 'HOM' },
-  { value: 'FA', label: 'FA' },
-];
+import { deleteStaff as deleteStaffThunk, selectStaff, setStaffActive } from '../../store/slices/rbacSlice.js';
 
 /**
  * Staff & Medical Directory for the organization.
@@ -100,17 +93,20 @@ export default function PeoplePage() {
     }
   }
 
-  async function changeRole(member, nextRole) {
-    if (nextRole === member.actor_role) return;
+  async function deleteStaff(member) {
+    const ok = await confirm({
+      title: 'Delete ' + member.name + '?',
+      body: 'This permanently removes the login ' + member.email + ' and revokes any active sessions.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
-      const updated = await dispatch(setStaffRole({ userId: member.user_id, actorRole: nextRole })).unwrap();
-      toast(
-        member.name + ' is now ' + nextRole + '. They now sign in as ' + (updated?.email || member.email) + '.',
-        'success',
-      );
+      await dispatch(deleteStaffThunk(member.user_id)).unwrap();
+      toast(member.name + ' deleted.', 'warning');
       await loadStaff();
     } catch (err) {
-      toast(err.message || 'Could not change this role.', 'error');
+      toast(err.message || 'Could not delete this login.', 'error');
     }
   }
 
@@ -200,7 +196,7 @@ export default function PeoplePage() {
           <div className="table-container">
             <table className="data-table">
               <thead>
-                <tr><th>Name</th><th>Email</th><th>Portal Role</th><th>Status</th><th>Action</th></tr>
+                <tr><th>Name</th><th>Email</th><th>Portal Role</th><th>Status</th><th>Actions</th></tr>
               </thead>
               <tbody id="staff-tbody">
                 {staff === null ? null : staff === false ? (
@@ -219,31 +215,26 @@ export default function PeoplePage() {
                       <tr key={m.user_id}>
                         <td style={{ fontWeight: 500 }}>{m.name}</td>
                         <td>{m.email}</td>
-                        <td>
-                          <select
-                            className="input"
-                            aria-label={'Portal role for ' + m.name}
-                            style={{ width: 'auto', minWidth: 96 }}
-                            value={m.actor_role || ''}
-                            onChange={(e) => changeRole(m, e.target.value)}
-                          >
-                            {STAFF_ROLES.map((r) => (
-                              <option key={r.value} value={r.value}>{r.label}</option>
-                            ))}
-                          </select>
-                        </td>
+                        <td>{m.actor_role || '—'}</td>
                         <td>
                           <Badge variant={active ? 'success' : 'neutral'}>
                             {active ? 'Active' : 'Disabled'}
                           </Badge>
                         </td>
-                        <td>
+                        <td style={{ display: 'flex', gap: 6 }}>
                           <Button
                             variant={active ? 'outline' : 'primary'}
                             size="sm"
                             onClick={() => toggleStaff(m.user_id, !active)}
                           >
                             {active ? 'Disable' : 'Enable'}
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => deleteStaff(m)}
+                          >
+                            Delete
                           </Button>
                         </td>
                       </tr>

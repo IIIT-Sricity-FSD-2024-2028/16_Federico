@@ -8,7 +8,7 @@ import adminCss from '../../styles/admin/admin.css?inline';
 
 /**
  * Ported from Admin/shared-nav.js. "Roles & Staff" (screen-04, the custom-RBAC
- * matrix) is gone: staff roles are managed from the People directory, and the
+ * matrix) is gone: staff logins are managed from the People directory, and the
  * old URL redirects there.
  */
 const LINKS = [

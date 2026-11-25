@@ -274,40 +274,58 @@ function setStaffActive(userId, active) {
 }
 
 /**
- * Changes a staff account's portal role (HOM / PRE / FA). Returns
- * { error: 'INVALID_ROLE' } for anything else — Admin is the provisioned org
- * owner and Patient self-registers, so neither is assignable here.
+ * Permanently deletes a staff account (HOM / PRE / FA), revoking its custom
+ * role assignments and reassigning any historical creator/requester references
+ * to the organization's Admin (or `fallbackUserId`) so referential integrity
+ * is preserved across operational collections.
  */
-function setStaffRole(userId, actorRole) {
-  const role = String(actorRole || '').toUpperCase();
-  if (!CREATABLE_STAFF_ROLES.includes(role)) return { error: 'INVALID_ROLE' };
-  const user = dataStore.users.find((u) => u.user_id === Number(userId));
+function deleteStaffUser(userId, fallbackUserId = null) {
+  const uid = Number(userId);
+  const user = dataStore.users.find((u) => u.user_id === uid);
   if (!user) return null;
-  // The email's tag names the portal, so it follows the role:
-  // rekha.pre@citygen.com promoted to HOM signs in as rekha.hom@citygen.com.
-  const parsed = parseEmail(user.email);
-  if (parsed && parsed.tag && parsed.tag !== ACTOR_TO_TAG[role]) {
-    const renamed =
-      `${parsed.name}.${ACTOR_TO_TAG[role]}@${parsed.domain}`.toLowerCase();
-    if (
-      dataStore.users.some(
+
+  const fallbackUser =
+    (fallbackUserId != null &&
+      dataStore.users.find(
         (u) =>
-          u.user_id !== user.user_id &&
-          String(u.email || '').toLowerCase() === renamed,
-      )
-    ) {
-      return { error: 'EMAIL_TAKEN' };
+          u.user_id === Number(fallbackUserId) &&
+          u.user_id !== uid &&
+          u.organization_id === user.organization_id,
+      )) ||
+    dataStore.users.find(
+      (u) =>
+        u.user_id !== uid &&
+        u.organization_id === user.organization_id &&
+        u.role_id === 5,
+    ) ||
+    null;
+
+  if (fallbackUser) {
+    const replacementId = fallbackUser.user_id;
+    for (const apt of dataStore.appointments) {
+      if (apt.created_by === uid) apt.created_by = replacementId;
     }
-    user.email = renamed;
+    for (const pr of dataStore.purchaseRequests) {
+      if (pr.requested_by === uid) pr.requested_by = replacementId;
+    }
+    for (const pre of dataStore.preRequests) {
+      if (pre.created_by === uid) pre.created_by = replacementId;
+    }
+    for (const br of dataStore.bedRequests) {
+      if (br.requested_by === uid) br.requested_by = replacementId;
+    }
+    for (const en of dataStore.emergencyNotifications) {
+      if (en.created_by === uid) en.created_by = replacementId;
+    }
   }
-  user.role_id = ROLE_NAME_TO_ID[role];
-  return {
-    user_id: user.user_id,
-    name: user.name,
-    email: user.email,
-    actor_role: role,
-    is_active: user.is_active !== false,
-  };
+
+  dataStore.staffRoleAssignments = dataStore.staffRoleAssignments.filter(
+    (a) => a.user_id !== uid,
+  );
+  dataStore.users = dataStore.users.filter((u) => u.user_id !== uid);
+  authService.unregisterDemoPassword(user.email);
+
+  return { deleted: true, user_id: uid };
 }
 
 module.exports = {
@@ -325,6 +343,6 @@ module.exports = {
   staffFor,
   createStaffUser,
   setStaffActive,
-  setStaffRole,
+  deleteStaffUser,
   CREATABLE_STAFF_ROLES,
 };

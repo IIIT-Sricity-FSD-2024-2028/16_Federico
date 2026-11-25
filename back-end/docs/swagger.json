@@ -2718,14 +2718,58 @@
             "description": "Successful response"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Create a staff login (HOM / PRE / FA)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
       }
     },
-    "/rbac/staff/{userId}/actor-role": {
+    "/rbac/staff/{userId}/active": {
       "put": {
         "tags": [
           "RBAC"
         ],
-        "summary": "Change a staff user's portal role (HOM / PRE / FA)",
+        "summary": "Enable or disable a staff login",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/rbac/staff/{userId}": {
+      "delete": {
+        "tags": [
+          "RBAC"
+        ],
+        "summary": "Delete a staff login (HOM / PRE / FA)",
         "security": [
           {
             "bearerAuth": []
