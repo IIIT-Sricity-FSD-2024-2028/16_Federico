@@ -1,6 +1,6 @@
 'use strict';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -10,8 +10,9 @@ import {
   X,
   RefreshCw,
 } from 'lucide-react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadMarketplace } from '../../store/pageLoaders.js';
+import { selectMarketplaceOrganizations } from '../../store/slices/marketplaceSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import marketplacePageCss from '../../styles/marketplace/marketplace-page.css?inline';
@@ -95,16 +96,14 @@ function OrgCard({ org }) {
 export default function MarketplacePage() {
   usePageStyles(marketplacePageCss);
   useDocumentTitle('Federico — Hospital Directory');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useUiState('Marketplace.query', '');
 
-  const { data, error, loading } = useApi(async () => {
-    try {
-      return await api.marketplace.organizations();
-    } catch (err) {
-      toast('Could not reach the Federico platform. Please refresh.', 'error');
-      throw err;
-    }
-  }, []);
+  const { error, loading } = useLoader(loadMarketplace);
+  const data = useAppSelector(selectMarketplaceOrganizations);
+
+  useEffect(() => {
+    if (error) toast('Could not reach the Federico platform. Please refresh.', 'error');
+  }, [error]);
 
   const filtered = useMemo(
     () => (data || []).filter((org) => matchesSearch(org, query.trim())),

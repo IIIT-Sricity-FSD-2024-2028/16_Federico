@@ -1,6 +1,7 @@
 'use strict';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import { useUiState } from '../../store/hooks.js';
 
 const EXIT_MS = 300;
 
@@ -10,7 +11,7 @@ const EXIT_MS = 300;
  * focus lands on the last action on open, both as in shared/ui-feedback.js.
  */
 export default function Dialog({ kind, options, onClose }) {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useUiState('Dialog.visible', false);
   const actionsRef = useRef(null);
   const choicesRef = useRef(null);
   const closingRef = useRef(false);
@@ -40,7 +41,7 @@ export default function Dialog({ kind, options, onClose }) {
       cancelAnimationFrame(raf1);
       if (raf2) cancelAnimationFrame(raf2);
     };
-  }, []);
+  }, [setVisible]);
 
   useEffect(() => {
     function onKeydown(e) {

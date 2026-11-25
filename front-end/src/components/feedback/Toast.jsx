@@ -1,6 +1,7 @@
 'use strict';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useUiState } from '../../store/hooks.js';
 
 const ICONS = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
 const DURATION_MS = 4000;
@@ -24,7 +25,7 @@ const EXIT_FALLBACK_MS = 400;
  * whenever requestAnimationFrame is throttled - a background tab, for one.
  */
 export default function Toast({ toast, onRemove }) {
-  const [phase, setPhase] = useState('entering');
+  const [phase, setPhase] = useUiState('Toast.phase', 'entering');
   const nodeRef = useRef(null);
   const removedRef = useRef(false);
 
@@ -44,7 +45,7 @@ export default function Toast({ toast, onRemove }) {
       if (raf2) cancelAnimationFrame(raf2);
       clearTimeout(dismissTimer);
     };
-  }, []);
+  }, [setPhase]);
 
   // exiting -> unmounted.
   useEffect(() => {

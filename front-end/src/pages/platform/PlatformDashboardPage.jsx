@@ -1,8 +1,7 @@
 'use strict';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/index.js';
 import { useSession } from '../../auth/useSession.js';
 import { LOGIN_PATH } from '../../auth/actorHome.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -16,6 +15,20 @@ import TabNav from '../../components/ui/TabNav.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import platformCss from '../../styles/platform/platform.css?inline';
+import { useAppDispatch, useAppSelector, useUiState } from '../../store/hooks.js';
+import {
+  activateOrganization,
+  fetchPlatformActivityLog,
+  fetchPlatformUsage,
+  fetchRates,
+  platformLogout,
+  selectPlatformActivity,
+  selectPlatformUsage,
+  suspendOrganization,
+  updateRates,
+} from '../../store/slices/platformSlice.js';
+
+const EMPTY_ORGS = [];
 
 const PLATFORM_TABS = [
   { id: 'overview', label: 'Overview & Analytics' },
@@ -302,59 +315,55 @@ export default function PlatformDashboardPage() {
   const navigate = useNavigate();
   const { session, logout } = useSession();
 
-  const [tab, setTab] = useState('overview');
-  const [usage, setUsage] = useState(null);
-  const [orgs, setOrgs] = useState([]);
-  const [activity, setActivity] = useState(null);
-  const [detailOrgId, setDetailOrgId] = useState(null);
-  const [provisionOpen, setProvisionOpen] = useState(false);
+  const [tab, setTab] = useUiState('PlatformDashboardPage.tab', 'overview');
+  const dispatch = useAppDispatch();
+  // Server data (platformSlice): usage is null until loaded and false when the load failed.
+  const usage = useAppSelector(selectPlatformUsage);
+  const orgs = (usage && usage.organizations) || EMPTY_ORGS;
+  const activity = useAppSelector(selectPlatformActivity);
+  const [detailOrgId, setDetailOrgId] = useUiState('PlatformDashboardPage.detailOrgId', null);
+  const [provisionOpen, setProvisionOpen] = useUiState('PlatformDashboardPage.provisionOpen', false);
 
-  const [baseFee, setBaseFee] = useState(3000);
-  const [rates, setRates] = useState(
+  const [baseFee, setBaseFee] = useUiState('PlatformDashboardPage.baseFee', 3000);
+  const [rates, setRates] = useUiState(
+    'PlatformDashboardPage.rates',
     RATE_FIELDS.reduce((acc, [, key, , fallback]) => ({ ...acc, [key]: fallback }), {}),
   );
 
   /** The one usage load: KPI cards, tenant directory and tenants table. */
   const loadUsage = useCallback(async () => {
-    try {
-      const data = await api.platform.usage();
-      setUsage(data);
-      setOrgs(data.organizations || []);
-      return data;
-    } catch (err) {
-      setUsage(false);
-      toast(err.message || 'Could not load platform usage.', 'error');
+    const action = await dispatch(fetchPlatformUsage());
+    if (fetchPlatformUsage.rejected.match(action)) {
+      toast((action.payload && action.payload.message) || 'Could not load platform usage.', 'error');
       return null;
     }
-  }, []);
+    return action.payload;
+  }, [dispatch]);
 
   const loadActivity = useCallback(async () => {
-    try {
-      setActivity(await api.platform.activityLog());
-    } catch {
-      setActivity(false);
-    }
-  }, []);
+    await dispatch(fetchPlatformActivityLog());
+  }, [dispatch]);
 
   const loadRates = useCallback(async () => {
-    try {
-      const data = await api.platform.rates.get();
-      if (!data) return;
-      // Note the field name: base_platform_fee. The org-signup page reads
-      // base_fee instead and so never picks this up (defect D3).
-      setBaseFee(data.base_platform_fee || 3000);
-      const r = data.rates || {};
-      setRates((prev) => {
-        const next = { ...prev };
-        RATE_FIELDS.forEach(([, key, , fallback]) => {
-          next[key] = r[key] !== undefined ? r[key] : fallback;
-        });
-        return next;
-      });
-    } catch (err) {
-      toast(err.message || 'Could not load global rate card.', 'error');
+    const action = await dispatch(fetchRates());
+    if (fetchRates.rejected.match(action)) {
+      toast((action.payload && action.payload.message) || 'Could not load global rate card.', 'error');
+      return;
     }
-  }, []);
+    const data = action.payload;
+    if (!data) return;
+    // Note the field name: base_platform_fee. The org-signup page reads
+    // base_fee instead and so never picks this up (defect D3).
+    setBaseFee(data.base_platform_fee || 3000);
+    const r = data.rates || {};
+    setRates((prev) => {
+      const next = { ...prev };
+      RATE_FIELDS.forEach(([, key, , fallback]) => {
+        next[key] = r[key] !== undefined ? r[key] : fallback;
+      });
+      return next;
+    });
+  }, [dispatch, setBaseFee, setRates]);
 
   useEffect(() => {
     (async () => {
@@ -366,8 +375,8 @@ export default function PlatformDashboardPage() {
 
   async function toggleOrgStatus(id, action) {
     try {
-      if (action === 'suspend') await api.platform.organizations.suspend(id);
-      else await api.platform.organizations.activate(id);
+      if (action === 'suspend') await dispatch(suspendOrganization(id)).unwrap();
+      else await dispatch(activateOrganization(id)).unwrap();
       toast('Organization status updated.', 'success');
       await loadUsage();
     } catch (err) {
@@ -388,7 +397,7 @@ export default function PlatformDashboardPage() {
     payload.rates.SEMI_PRIVATE_BEDS = Number(rates.PRIVATE_BEDS) || 350;
 
     try {
-      await api.platform.rates.update(payload);
+      await dispatch(updateRates(payload)).unwrap();
       toast('Global SaaS rate card updated successfully.', 'success');
       await loadUsage();
     } catch (err) {
@@ -409,7 +418,7 @@ export default function PlatformDashboardPage() {
           subtitle: session?.email || 'Platform Administrator',
         }}
         onLogout={async () => {
-          await api.platform.auth.logout();
+          await dispatch(platformLogout());
           await logout();
           navigate(LOGIN_PATH);
         }}

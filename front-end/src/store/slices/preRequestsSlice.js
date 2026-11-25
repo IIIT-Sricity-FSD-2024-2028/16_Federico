@@ -11,6 +11,11 @@ export const fetchPreRequests = apiThunk(
   () => preRequests.list(),
   'Failed to load requests',
 );
+export const fetchPreRequest = apiThunk(
+  'preRequests/fetchOne',
+  (id) => preRequests.get(id),
+  'Failed to load request',
+);
 export const createPreRequest = apiThunk(
   'preRequests/create',
   (payload) => preRequests.create(payload),
@@ -29,11 +34,14 @@ export const checkInPreRequest = apiThunk(
 
 const preRequestsSlice = createSlice({
   name: 'preRequests',
-  initialState: { items: [], loading: false, pending: 0, saving: false, error: null },
+  initialState: { items: [], current: null, loading: false, pending: 0, saving: false, error: null },
   reducers: {},
   extraReducers: (builder) => {
     addReadCases(builder, fetchPreRequests, (state, action) => {
       state.items = Array.isArray(action.payload) ? action.payload : [];
+    });
+    addReadCases(builder, fetchPreRequest, (state, action) => {
+      state.current = action.payload || null;
     });
     addWriteCases(builder, createPreRequest, (state, action) => {
       upsertByKey(state.items, 'pre_request_id', action.payload);

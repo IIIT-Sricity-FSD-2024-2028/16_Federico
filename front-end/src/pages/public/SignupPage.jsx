@@ -1,8 +1,11 @@
 'use strict';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../../api/index.js';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadSignup } from '../../store/pageLoaders.js';
+import { selectMarketplaceOrganizations } from '../../store/slices/marketplaceSlice.js';
+import { createInsurance } from '../../store/slices/patientsSlice.js';
 import { useSession } from '../../auth/useSession.js';
 import { useSearchParam } from '../../hooks/useSearchParam.js';
 import { toast } from '../../components/feedback/feedback.js';
@@ -44,13 +47,18 @@ export default function SignupPage() {
   const { signupPatient } = useSession();
   const preselectOrg = useSearchParam('org');
 
-  const [organizations, setOrganizations] = useState(null);
-  const [orgLoadFailed, setOrgLoadFailed] = useState(false);
-  const [orgId, setOrgId] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [created, setCreated] = useState(false);
+  const dispatch = useAppDispatch();
 
-  const [f, setF] = useState({
+  const { loading: loadingOrgs, error: orgLoadError } = useLoader(loadSignup, { deps: [preselectOrg] });
+  const orgList = useAppSelector(selectMarketplaceOrganizations);
+  const orgLoadFailed = Boolean(orgLoadError);
+  // null until the org list has loaded (the select shows "Loading hospitals…").
+  const organizations = loadingOrgs ? null : orgLoadFailed ? [] : orgList;
+  const [orgId, setOrgId] = useUiState('Signup.orgId', '');
+  const [submitting, setSubmitting] = useUiState('Signup.submitting', false);
+  const [created, setCreated] = useUiState('Signup.created', false);
+
+  const [f, setF] = useUiState('Signup.form', {
     firstName: '',
     lastName: '',
     dob: '',
@@ -71,29 +79,20 @@ export default function SignupPage() {
   const set = (k) => (e) =>
     setF((prev) => ({ ...prev, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
+  // When the org list settles: report a failed load, otherwise preselect the
+  // ?org= hospital, falling back to the first one.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const orgs = await api.marketplace.organizations();
-        if (cancelled) return;
-        setOrganizations(orgs || []);
-        if (preselectOrg && (orgs || []).some((o) => String(o.organization_id) === preselectOrg)) {
-          setOrgId(preselectOrg);
-        } else if ((orgs || []).length) {
-          setOrgId(String(orgs[0].organization_id));
-        }
-      } catch {
-        if (cancelled) return;
-        setOrgLoadFailed(true);
-        setOrganizations([]);
-        toast('Could not load the list of hospitals. Please refresh.', 'error');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [preselectOrg]);
+    if (loadingOrgs) return;
+    if (orgLoadFailed) {
+      toast('Could not load the list of hospitals. Please refresh.', 'error');
+      return;
+    }
+    if (preselectOrg && orgList.some((o) => String(o.organization_id) === preselectOrg)) {
+      setOrgId(preselectOrg);
+    } else if (orgList.length) {
+      setOrgId(String(orgList[0].organization_id));
+    }
+  }, [loadingOrgs, orgLoadFailed, orgList, preselectOrg, setOrgId]);
 
   async function handleCreate() {
     const firstName = f.firstName.trim();
@@ -155,15 +154,17 @@ export default function SignupPage() {
       // here is logged, never surfaced, because the account already exists.
       if (f.provider && f.policyNumber && f.memberId && f.validFrom && f.validTo) {
         try {
-          await api.patients.createInsurance({
-            patient_id: result.patient.patient_id,
-            provider_name: f.provider,
-            policy_number: f.policyNumber,
-            member_id: f.memberId,
-            coverage_type: f.coverage || 'Individual',
-            valid_from: normalizeToIsoDate(f.validFrom),
-            valid_to: normalizeToIsoDate(f.validTo),
-          });
+          await dispatch(
+            createInsurance({
+              patient_id: result.patient.patient_id,
+              provider_name: f.provider,
+              policy_number: f.policyNumber,
+              member_id: f.memberId,
+              coverage_type: f.coverage || 'Individual',
+              valid_from: normalizeToIsoDate(f.validFrom),
+              valid_to: normalizeToIsoDate(f.validTo),
+            }),
+          ).unwrap();
         } catch (insuranceErr) {
           console.warn('[Signup] Insurance could not be saved, continuing:', insuranceErr);
         }

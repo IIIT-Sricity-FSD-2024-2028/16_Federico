@@ -17,6 +17,11 @@ import { createPayment } from './billingSlice.js';
 // The backend has no DELETE /patient.
 
 export const fetchPatients = apiThunk('patients/fetchAll', () => patients.list(), 'Failed to load patients');
+export const fetchPatient = apiThunk(
+  'patients/fetchOne',
+  (idOrUhid) => patients.get(idOrUhid),
+  'Failed to load patient',
+);
 export const createPatient = apiThunk(
   'patients/create',
   (payload) => patients.create(payload),
@@ -26,6 +31,11 @@ export const updatePatient = apiThunk(
   'patients/update',
   ({ id, patch }) => patients.update(id, patch),
   'Failed to update patient',
+);
+export const fetchPortalSummary = apiThunk(
+  'patients/fetchPortalSummary',
+  (id) => patients.portalSummary(id),
+  'Failed to load portal summary',
 );
 export const fetchAllInsurance = apiThunk(
   'patients/fetchAllInsurance',
@@ -280,9 +290,11 @@ const patientsSlice = createSlice({
   name: 'patients',
   initialState: {
     items: [],
+    current: null,
     insuranceAll: [],
     // Insurance rows per patient id (a failed fetch leaves that patient's key absent).
     patientInsurance: {},
+    portalSummary: null,
     portal: { data: EMPTY_PORTAL, loaded: false },
     loading: false,
     pending: 0,
@@ -293,6 +305,12 @@ const patientsSlice = createSlice({
   extraReducers: (builder) => {
     addReadCases(builder, fetchPatients, (state, action) => {
       state.items = Array.isArray(action.payload) ? action.payload : [];
+    });
+    addReadCases(builder, fetchPatient, (state, action) => {
+      state.current = action.payload || null;
+    });
+    addReadCases(builder, fetchPortalSummary, (state, action) => {
+      state.portalSummary = action.payload || null;
     });
     addReadCases(builder, fetchAllInsurance, (state, action) => {
       state.insuranceAll = Array.isArray(action.payload) ? action.payload : [];

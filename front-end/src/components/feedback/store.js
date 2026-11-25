@@ -1,30 +1,23 @@
 'use strict';
 
+import { store } from '../../store/store.js';
+import { closeDialogState, dismissToast as dismissToastAction, openDialog, pushToast } from '../../store/slices/uiSlice.js';
+
 /**
- * Backing store for the imperative feedback API.
+ * Redux-backed adapter for the imperative feedback API.
  *
  * shared/ui-feedback.js exposed toast/alert/confirm/selectOne as functions that
  * could be called from anywhere, and roughly 200 call sites across the app use
- * them that way. Keeping that signature means those call sites port as a plain
- * import. The functions push into this store; <FeedbackHost> renders it.
+ * them that way. Keeping that signature means those call sites keep working
+ * untouched. The functions only dispatch into state.ui (toasts, dialog);
+ * <FeedbackHost> renders from there, so Redux is the single source of truth.
+ *
+ * The one thing that cannot live in the store is the Promise resolver of an
+ * open dialog (a function), so it is parked here, keyed by the dialog's id.
  */
-let state = { toasts: [], dialog: null };
-const listeners = new Set();
-let nextId = 1;
-
-function emit(next) {
-  state = next;
-  listeners.forEach((fn) => fn());
-}
-
-export function subscribe(fn) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-
-export function getSnapshot() {
-  return state;
-}
+const dialogResolvers = new Map();
+let nextToastId = 1;
+let nextDialogId = 1;
 
 const TOAST_TYPES = ['success', 'error', 'warning', 'info'];
 
@@ -34,37 +27,42 @@ const TOAST_TYPES = ['success', 'error', 'warning', 'info'];
  * signup/signup-page.js maps 'warn' to 'warning' first. Defect D9, preserved.
  */
 export function toast(message, type) {
-  const id = nextId++;
+  const id = nextToastId++;
   const safeType = TOAST_TYPES.includes(type) ? type : 'info';
-  emit({ ...state, toasts: [...state.toasts, { id, message: String(message), type: safeType }] });
+  store.dispatch(pushToast({ id, message: String(message), type: safeType }));
   return { dismiss: () => dismissToast(id) };
 }
 
 export function dismissToast(id) {
-  emit({ ...state, toasts: state.toasts.filter((t) => t.id !== id) });
+  store.dispatch(dismissToastAction(id));
 }
 
-function openDialog(kind, options) {
+function showDialog(kind, options) {
   return new Promise((resolve) => {
-    emit({ ...state, dialog: { kind, options: options || {}, resolve } });
+    const id = nextDialogId++;
+    dialogResolvers.set(id, resolve);
+    store.dispatch(openDialog({ id, kind, options: options || {} }));
   });
 }
 
 export function closeDialog(result) {
-  const current = state.dialog;
-  emit({ ...state, dialog: null });
-  if (current) current.resolve(result);
+  const current = store.getState().ui.dialog;
+  store.dispatch(closeDialogState());
+  if (current) {
+    const resolve = dialogResolvers.get(current.id);
+    dialogResolvers.delete(current.id);
+    if (resolve) resolve(result);
+  }
 }
 
 export function alert(options) {
-  return openDialog('alert', options);
+  return showDialog('alert', options);
 }
 
 export function confirm(options) {
-  return openDialog('confirm', options);
+  return showDialog('confirm', options);
 }
 
 export function selectOne(options) {
-  return openDialog('selectOne', options);
+  return showDialog('selectOne', options);
 }
-

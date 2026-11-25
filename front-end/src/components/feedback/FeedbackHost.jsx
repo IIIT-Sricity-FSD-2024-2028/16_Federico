@@ -1,8 +1,9 @@
 'use strict';
 
-import { useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { subscribe, getSnapshot, dismissToast, closeDialog } from './store.js';
+import { useAppSelector } from '../../store/hooks.js';
+import { selectDialog, selectToasts } from '../../store/slices/uiSlice.js';
+import { dismissToast, closeDialog } from './store.js';
 import Toast from './Toast.jsx';
 import Dialog from './Dialog.jsx';
 
@@ -13,7 +14,8 @@ import Dialog from './Dialog.jsx';
  * rather than inside whatever card happened to trigger them.
  */
 export default function FeedbackHost() {
-  const { toasts, dialog } = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const toasts = useAppSelector(selectToasts);
+  const dialog = useAppSelector(selectDialog);
 
   return createPortal(
     <>
@@ -23,10 +25,9 @@ export default function FeedbackHost() {
         ))}
       </div>
       {dialog ? (
-        <Dialog kind={dialog.kind} options={dialog.options} onClose={closeDialog} />
+        <Dialog key={dialog.id} kind={dialog.kind} options={dialog.options} onClose={closeDialog} />
       ) : null}
     </>,
     document.body,
   );
 }
-

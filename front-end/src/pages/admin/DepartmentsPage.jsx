@@ -1,8 +1,8 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadAdminDepartments } from '../../store/pageLoaders.js';
+import { deleteWard as deleteWardThunk, selectBeds, selectWards } from '../../store/slices/wardsSlice.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { escapeHtml } from '../../lib/formatters.js';
 import Button from '../../components/ui/Button.jsx';
@@ -15,18 +15,12 @@ import WardDialog from './WardDialog.jsx';
 /** Ported from Admin/screen-02-departments.html + departments.js. */
 export default function DepartmentsPage() {
   useDocumentTitle('Departments & Wards | Federico Hospital Admin');
-  const [editingWard, setEditingWard] = useState(undefined); // undefined = closed, null = new
+  const dispatch = useAppDispatch();
+  const [editingWard, setEditingWard] = useUiState('DepartmentsPage.editingWard', undefined); // undefined = closed, null = new
 
-  const { data, reload } = useApi(
-    async () => {
-      const [wards, beds] = await Promise.all([api.wards.list(), api.wards.beds()]);
-      return { wards: wards || [], beds: beds || [] };
-    },
-    [],
-  );
-
-  const wards = data?.wards || [];
-  const beds = data?.beds || [];
+  const { loaded: data, reload } = useLoader(loadAdminDepartments);
+  const wards = useAppSelector(selectWards);
+  const beds = useAppSelector(selectBeds);
   const bedsForWard = (wardId) => beds.filter((b) => b.ward_id === wardId);
 
   const totalBeds = beds.length;
@@ -44,7 +38,7 @@ export default function DepartmentsPage() {
     if (!ok) return;
 
     try {
-      await api.wards.remove(wardId);
+      await dispatch(deleteWardThunk(wardId)).unwrap();
       toast(ward.ward_name + ' deleted.', 'warning');
       await reload();
     } catch (err) {

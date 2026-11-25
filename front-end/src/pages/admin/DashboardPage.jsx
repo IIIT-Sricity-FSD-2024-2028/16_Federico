@@ -1,7 +1,18 @@
 'use strict';
 
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
+import { useAppSelector, useLoader } from '../../store/hooks.js';
+import { loadAdminDashboard } from '../../store/pageLoaders.js';
+import { selectBeds, selectWards } from '../../store/slices/wardsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectInventoryItems } from '../../store/slices/inventorySlice.js';
+import { selectStaff } from '../../store/slices/rbacSlice.js';
+import { selectAdmissions } from '../../store/slices/admissionsSlice.js';
+import { selectPreRequests } from '../../store/slices/preRequestsSlice.js';
+import { selectAppointments } from '../../store/slices/appointmentsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
+import { selectActivityLog } from '../../store/slices/activitySlice.js';
+import { selectPlatformRates } from '../../store/slices/platformSlice.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { useSession } from '../../auth/useSession.js';
 import { formatCurrency, formatDateTime } from '../../lib/formatters.js';
@@ -14,72 +25,34 @@ export default function AdminDashboardPage() {
   useDocumentTitle('Dashboard | Federico Hospital Admin');
   const { tenant } = useSession();
 
-  const { data } = useApi(async () => {
-    const [
-      wards,
-      beds,
-      patients,
-      rawLedgers,
-      items,
-      staff,
-      payments,
-      admissions,
-      preRequests,
-      appointments,
-      doctors,
-      liveRates,
-      activity,
-    ] = await Promise.all([
-      api.wards.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-      api.patients.list().catch(() => []),
-      api.billing.ledger.listAll().catch(() => []),
-      api.inventory.items.list().catch(() => []),
-      api.rbac.staff().catch(() => []),
-      api.billing.payments.list().catch(() => []),
-      api.admissions.list().catch(() => []),
-      api.preRequests.list().catch(() => []),
-      api.appointments.list().catch(() => []),
-      api.doctors.list().catch(() => []),
-      api.platform.rates.get().catch(() => null),
-      api.activityLog.list().catch(() => []),
-    ]);
+  const { loaded: data } = useLoader(loadAdminDashboard);
 
-    // Compute ledger totals
-    const ledgers = await Promise.all(
-      (rawLedgers || []).map(async (ledger) => {
-        const entries = await api.billing.ledger.entries(ledger.ledger_id).catch(() => []);
-        return { ...ledger, total: entries.reduce((sum, e) => sum + Number(e.amount || 0), 0) };
-      }),
-    );
+  const beds = useAppSelector(selectBeds);
+  const wards = useAppSelector(selectWards);
+  const patients = useAppSelector(selectPatients);
+  const rawLedgers = useAppSelector((state) => state.billing.ledgers);
+  const ledgerEntries = useAppSelector((state) => state.billing.ledgerEntries);
+  const items = useAppSelector(selectInventoryItems);
+  const staff = useAppSelector(selectStaff);
+  const payments = useAppSelector((state) => state.billing.payments);
+  const admissions = useAppSelector(selectAdmissions);
+  const preRequests = useAppSelector(selectPreRequests);
+  const appointments = useAppSelector(selectAppointments);
+  const doctors = useAppSelector(selectDoctors);
+  const liveRates = useAppSelector(selectPlatformRates);
+  const activity = useAppSelector(selectActivityLog);
 
-    return {
-      wards,
-      beds,
-      patients,
-      ledgers,
-      items,
-      staff,
-      payments,
-      admissions,
-      preRequests,
-      appointments,
-      doctors,
-      liveRates,
-      activity: Array.isArray(activity) ? activity : [],
-    };
-  }, []);
-
-  const d = data || {};
-  const beds = d.beds || [];
-  const wards = d.wards || [];
-  const ledgers = d.ledgers || [];
-  const items = d.items || [];
-  const staff = d.staff || [];
-  const doctors = d.doctors || [];
-  const admissions = d.admissions || [];
-  const preRequests = d.preRequests || [];
-  const activityList = d.activity || [];
+  // Ledger totals, computed from each ledger's entries.
+  const ledgers = useMemo(
+    () =>
+      rawLedgers.map((ledger) => ({
+        ...ledger,
+        total: (ledgerEntries[ledger.ledger_id] || []).reduce((sum, e) => sum + Number(e.amount || 0), 0),
+      })),
+    [rawLedgers, ledgerEntries],
+  );
+  const d = { payments, appointments, patients, liveRates };
+  const activityList = Array.isArray(activity) ? activity : [];
 
   // Capacity & Clinical flow
   const occupied = beds.filter((b) => b.status === 'OCCUPIED').length;

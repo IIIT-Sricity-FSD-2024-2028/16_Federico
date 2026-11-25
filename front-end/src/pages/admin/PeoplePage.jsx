@@ -1,8 +1,7 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useEffect } from 'react';
+
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { useSession } from '../../auth/useSession.js';
 import Button from '../../components/ui/Button.jsx';
@@ -14,6 +13,10 @@ import EmptyState from '../../components/ui/EmptyState.jsx';
 import { toast, confirm } from '../../components/feedback/feedback.js';
 import StaffDialog from './StaffDialog.jsx';
 import DoctorDialog from './DoctorDialog.jsx';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadAdminDoctors, loadAdminStaff } from '../../store/pageLoaders.js';
+import { deleteDoctor as deleteDoctorThunk, selectDoctors } from '../../store/slices/doctorsSlice.js';
+import { selectStaff, setStaffActive, setStaffRole } from '../../store/slices/rbacSlice.js';
 
 /** The portal roles a staff login can hold (Admin is the provisioned owner). */
 const STAFF_ROLES = [
@@ -30,36 +33,31 @@ export default function PeoplePage() {
   useDocumentTitle('Staff & Doctors | Federico Hospital Admin');
   const { tenant } = useSession();
   const emailDomain = tenant?.email_domain || null;
+  const dispatch = useAppDispatch();
 
-  const [staffDialogOpen, setStaffDialogOpen] = useState(false);
-  const [editingDoctorId, setEditingDoctorId] = useState(undefined);
-  const [staffQuery, setStaffQuery] = useState('');
-  const [doctorQuery, setDoctorQuery] = useState('');
-  const [selectedSpecialization, setSelectedSpecialization] = useState('ALL');
+  const [staffDialogOpen, setStaffDialogOpen] = useUiState('PeoplePage.staffDialogOpen', false);
+  const [editingDoctorId, setEditingDoctorId] = useUiState('PeoplePage.editingDoctorId', undefined);
+  const [staffQuery, setStaffQuery] = useUiState('PeoplePage.staffQuery', '');
+  const [doctorQuery, setDoctorQuery] = useUiState('PeoplePage.doctorQuery', '');
+  const [selectedSpecialization, setSelectedSpecialization] = useUiState('PeoplePage.selectedSpecialization', 'ALL');
 
   // staff / doctors: null = loading, false = failed, array = loaded.
-  const staffLoad = useApi(async () => {
-    try {
-      return await api.rbac.staff();
-    } catch (err) {
-      toast(err.message || 'Could not load staff.', 'error');
-      throw err;
-    }
-  }, []);
-  const staff = staffLoad.error ? false : staffLoad.data;
+  const staffLoad = useLoader(loadAdminStaff);
+  const staffItems = useAppSelector(selectStaff);
+  const staff = staffLoad.error ? false : staffLoad.loaded ? staffItems : null;
   const loadStaff = staffLoad.reload;
 
-  const doctorsLoad = useApi(async () => {
-    try {
-      const d = await api.doctors.list();
-      return d || [];
-    } catch (err) {
-      toast(err.message || 'Could not load doctors.', 'error');
-      throw err;
-    }
-  }, []);
-  const doctors = doctorsLoad.error ? false : doctorsLoad.data;
+  const doctorsLoad = useLoader(loadAdminDoctors);
+  const doctorItems = useAppSelector(selectDoctors);
+  const doctors = doctorsLoad.error ? false : doctorsLoad.loaded ? doctorItems : null;
   const loadDoctors = doctorsLoad.reload;
+
+  useEffect(() => {
+    if (staffLoad.error) toast(staffLoad.error.message || 'Could not load staff.', 'error');
+  }, [staffLoad.error]);
+  useEffect(() => {
+    if (doctorsLoad.error) toast(doctorsLoad.error.message || 'Could not load doctors.', 'error');
+  }, [doctorsLoad.error]);
 
   const staffList = Array.isArray(staff) ? staff : [];
   const doctorList = Array.isArray(doctors) ? doctors : [];
@@ -94,7 +92,7 @@ export default function PeoplePage() {
 
   async function toggleStaff(userId, next) {
     try {
-      await api.rbac.setStaffActive(userId, next);
+      await dispatch(setStaffActive({ userId, isActive: next })).unwrap();
       toast(next ? 'Login enabled.' : 'Login disabled.', next ? 'success' : 'warning');
       await loadStaff();
     } catch (err) {
@@ -105,7 +103,7 @@ export default function PeoplePage() {
   async function changeRole(member, nextRole) {
     if (nextRole === member.actor_role) return;
     try {
-      const updated = await api.rbac.setStaffRole(member.user_id, nextRole);
+      const updated = await dispatch(setStaffRole({ userId: member.user_id, actorRole: nextRole })).unwrap();
       toast(
         member.name + ' is now ' + nextRole + '. They now sign in as ' + (updated?.email || member.email) + '.',
         'success',
@@ -127,7 +125,7 @@ export default function PeoplePage() {
     });
     if (!ok) return;
     try {
-      await api.doctors.remove(doctorId);
+      await dispatch(deleteDoctorThunk(doctorId)).unwrap();
       toast(doc.name + ' removed.', 'warning');
       await loadDoctors();
     } catch (err) {

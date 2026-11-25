@@ -1,11 +1,12 @@
 'use strict';
 
-import { useState } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import { statusChipClass, inr } from './platformHelpers.js';
-import { api } from '../../api/index.js';
 import { toast, confirm } from '../../components/feedback/feedback.js';
 import { emailDomainProblem, normalizeDomain } from '../../lib/emailIdentity.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { changeEmailDomain, fetchEmailDomainImpact } from '../../store/slices/platformSlice.js';
 
 /**
  * Ported from platform-dashboard.js#openOrgDetail, which used a native
@@ -99,9 +100,10 @@ export default function OrgDetailDialog({ org, organizations, onClose, onChanged
  * confirm step says how many people that affects. Patients are untouched.
  */
 function EmailDomainSection({ org, organizations, onChanged }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(org.email_domain || '');
-  const [saving, setSaving] = useState(false);
+  const dispatch = useAppDispatch();
+  const [editing, setEditing] = useUiState('OrgDetailDialog.editing', false);
+  const [draft, setDraft] = useUiState('OrgDetailDialog.draft', org.email_domain || '');
+  const [saving, setSaving] = useUiState('OrgDetailDialog.saving', false);
 
   const normalized = normalizeDomain(draft);
   const unchanged = normalized === (org.email_domain || '');
@@ -111,7 +113,7 @@ function EmailDomainSection({ org, organizations, onChanged }) {
     if (unchanged || problem) return;
     setSaving(true);
     try {
-      const impact = await api.platform.organizations.emailDomainImpact(org.organization_id);
+      const impact = await dispatch(fetchEmailDomainImpact(org.organization_id)).unwrap();
       const count = impact ? impact.staff_logins : 0;
       const ok = await confirm({
         title: 'Change email domain to @' + normalized + '?',
@@ -130,7 +132,9 @@ function EmailDomainSection({ org, organizations, onChanged }) {
         setSaving(false);
         return;
       }
-      const result = await api.platform.organizations.changeEmailDomain(org.organization_id, normalized);
+      const result = await dispatch(
+        changeEmailDomain({ id: org.organization_id, emailDomain: normalized }),
+      ).unwrap();
       toast(
         'Email domain is now @' +
           normalized +

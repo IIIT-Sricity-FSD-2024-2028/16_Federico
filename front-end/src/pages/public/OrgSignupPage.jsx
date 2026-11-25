@@ -1,8 +1,11 @@
 'use strict';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../../api/index.js';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadOrgSignup } from '../../store/pageLoaders.js';
+import { registerOrganization, selectMarketplaceOrganizations } from '../../store/slices/marketplaceSlice.js';
+import { selectPlatformRates } from '../../store/slices/platformSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import orgSignupCss from '../../styles/signup/org-signup.css?inline';
@@ -46,14 +49,13 @@ export default function OrgSignupPage() {
   usePageStyles(orgSignupCss);
   useDocumentTitle('Federico — Hospital Chain Onboarding & Provisioning');
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [baseFee, setBaseFee] = useState(DEFAULT_BASE_FEE);
-  const [rates, setRates] = useState(DEFAULT_RATES);
-  const [submitting, setSubmitting] = useState(false);
-  const [provisioned, setProvisioned] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const dispatch = useAppDispatch();
+  const [step, setStep] = useUiState('OrgSignup.step', 1);
+  const [submitting, setSubmitting] = useUiState('OrgSignup.submitting', false);
+  const [provisioned, setProvisioned] = useUiState('OrgSignup.provisioned', null);
+  const [paymentMethod, setPaymentMethod] = useUiState('OrgSignup.paymentMethod', 'card');
 
-  const [org, setOrg] = useState({
+  const [org, setOrg] = useUiState('OrgSignup.org', {
     name: '',
     city: '',
     phone: '',
@@ -64,10 +66,14 @@ export default function OrgSignupPage() {
     domainEdited: false,
   });
   // `emailName` is the part before ".admin@<domain>" (unified login convention).
-  const [admin, setAdmin] = useState({ name: '', emailName: '', password: '' });
-  // Existing hospitals, only to flag a taken email domain early; the server decides.
-  const [knownOrgs, setKnownOrgs] = useState([]);
-  const [res, setRes] = useState({
+  const [admin, setAdmin] = useUiState('OrgSignup.admin', { name: '', emailName: '', password: '' });
+  // Existing hospitals (marketplaceSlice), only to flag a taken email domain
+  // early; the server decides. The live rate card (platformSlice) overrides the
+  // defaults when it loads; a failed load leaves the defaults standing.
+  useLoader(loadOrgSignup);
+  const knownOrgs = useAppSelector(selectMarketplaceOrganizations);
+  const rateCard = useAppSelector(selectPlatformRates);
+  const [res, setRes] = useUiState('OrgSignup.resources', {
     generalBeds: 30,
     icuBeds: 5,
     privateBeds: 10,
@@ -81,15 +87,6 @@ export default function OrgSignupPage() {
   const setResNum = (k) => (e) =>
     setRes((p) => ({ ...p, [k]: Math.max(0, parseInt(e.target.value, 10) || 0) }));
 
-  useEffect(() => {
-    api.marketplace
-      .organizations()
-      .then((orgs) => setKnownOrgs(orgs || []))
-      .catch(() => {
-        /* the server still rejects a taken domain */
-      });
-  }, []);
-
   // Follows the hospital name (City General Hospital → citygen.com) until edited.
   const emailDomain = org.domainEdited
     ? normalizeDomain(org.emailDomain)
@@ -99,20 +96,12 @@ export default function OrgSignupPage() {
   const domainProblem = emailDomain ? emailDomainProblem(emailDomain, knownOrgs) : null;
   const adminEmail = buildTaggedEmail(admin.emailName, 'admin', emailDomain);
 
-  useEffect(() => {
-    api.platform.rates
-      .get()
-      .then((data) => {
-        if (data && data.rates) {
-          const fee = data.base_platform_fee ?? data.base_fee;
-          if (typeof fee === 'number') setBaseFee(fee);
-          setRates((prev) => ({ ...prev, ...data.rates }));
-        }
-      })
-      .catch(() => {
-        /* rate card unavailable; the defaults above stand */
-      });
-  }, []);
+  const rateFee = rateCard && rateCard.rates ? (rateCard.base_platform_fee ?? rateCard.base_fee) : undefined;
+  const baseFee = typeof rateFee === 'number' ? rateFee : DEFAULT_BASE_FEE;
+  const rates = useMemo(
+    () => (rateCard && rateCard.rates ? { ...DEFAULT_RATES, ...rateCard.rates } : DEFAULT_RATES),
+    [rateCard],
+  );
 
   const costs = useMemo(() => {
     const genCost = res.generalBeds * rates.GENERAL_BEDS;
@@ -197,19 +186,7 @@ export default function OrgSignupPage() {
     };
 
     try {
-      const response = await api.marketplace.registerOrganization(payload);
-      const sess = response.session;
-      if (sess && sess.token) {
-        api.setSession({
-          token: sess.token,
-          actor: 'Admin',
-          role: 'ORG_ADMIN',
-          userId: sess.user ? sess.user.user_id : null,
-          displayName: sess.user ? sess.user.name : admin.name,
-          email: sess.user ? sess.user.email : adminEmail,
-          tenant: sess.tenant || null,
-        });
-      }
+      const response = await dispatch(registerOrganization(payload)).unwrap();
       setProvisioned(response.provisioned);
       setStep('success');
       toast('Organization workspace successfully activated!', 'success');

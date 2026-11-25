@@ -1,9 +1,10 @@
 'use strict';
 
-import { useState } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import Button from '../../components/ui/Button.jsx';
-import { api } from '../../api/index.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { createStaff } from '../../store/slices/rbacSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 import TaggedEmailInput from '../../components/forms/TaggedEmailInput.jsx';
 import { ACTOR_TO_TAG, buildTaggedEmail } from '../../lib/emailIdentity.js';
@@ -25,7 +26,8 @@ export default function StaffDialog({ open, emailDomain, onClose, onSaved }) {
 }
 
 function StaffForm({ emailDomain, onClose, onSaved }) {
-  const [f, setF] = useState(BLANK);
+  const dispatch = useAppDispatch();
+  const [f, setF] = useUiState('StaffDialog.f', BLANK);
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
 
   async function handleSubmit(e) {
@@ -39,7 +41,7 @@ function StaffForm({ emailDomain, onClose, onSaved }) {
     };
     if (!payload.name || !payload.email || payload.password.length < 6) return;
     try {
-      const created = await api.rbac.createStaff(payload);
+      const created = await dispatch(createStaff(payload)).unwrap();
       onClose();
       toast(
         created.name + ' can now sign in as ' + created.actor_role + ' with ' + created.email + '.',

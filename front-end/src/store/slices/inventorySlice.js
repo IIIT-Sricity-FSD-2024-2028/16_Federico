@@ -2,17 +2,30 @@
 
 import { createSlice } from '@reduxjs/toolkit';
 import { inventory } from '../../api/endpoints/inventory.js';
-import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { addReadCases, addWriteCases, apiThunk, removeByKey, upsertByKey } from '../thunkHelpers.js';
 
 export const fetchInventoryItems = apiThunk(
   'inventory/fetchItems',
   () => inventory.items.list(),
   'Failed to load inventory',
 );
+export const createInventoryItem = apiThunk(
+  'inventory/createItem',
+  (payload) => inventory.items.create(payload),
+  'Failed to create inventory item',
+);
 export const updateInventoryItem = apiThunk(
   'inventory/updateItem',
   ({ id, patch }) => inventory.items.update(id, patch),
   'Failed to update inventory item',
+);
+export const deleteInventoryItem = apiThunk(
+  'inventory/deleteItem',
+  async (id) => {
+    await inventory.items.remove(id);
+    return id;
+  },
+  'Failed to delete inventory item',
 );
 
 // Purchase requests: the backend has no DELETE for these.
@@ -43,8 +56,14 @@ const inventorySlice = createSlice({
     addReadCases(builder, fetchPurchaseRequests, (state, action) => {
       state.requests = Array.isArray(action.payload) ? action.payload : [];
     });
+    addWriteCases(builder, createInventoryItem, (state, action) => {
+      upsertByKey(state.items, 'item_id', action.payload);
+    });
     addWriteCases(builder, updateInventoryItem, (state, action) => {
       upsertByKey(state.items, 'item_id', action.payload);
+    });
+    addWriteCases(builder, deleteInventoryItem, (state, action) => {
+      state.items = removeByKey(state.items, 'item_id', action.payload);
     });
     addWriteCases(builder, createPurchaseRequest, (state, action) => {
       upsertByKey(state.requests, 'request_id', action.payload);

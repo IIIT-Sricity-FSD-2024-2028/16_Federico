@@ -9,10 +9,20 @@ import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelp
 // discharge summaries or leaders - only the operations below exist.
 
 export const fetchServices = apiThunk('billing/fetchServices', () => billing.services.list(), 'Failed to load services');
+export const createService = apiThunk(
+  'billing/createService',
+  (payload) => billing.services.create(payload),
+  'Failed to create service',
+);
 
 /* ------------------------------- ledgers ------------------------------ */
 
 export const fetchLedgers = apiThunk('billing/fetchLedgers', () => billing.ledger.listAll(), 'Failed to load ledgers');
+export const fetchLedgerByAdmission = apiThunk(
+  'billing/fetchLedgerByAdmission',
+  async (admissionId) => ({ admissionId, ledger: await billing.ledger.getByAdmission(admissionId) }),
+  'Failed to load ledger',
+);
 export const createLedger = apiThunk(
   'billing/createLedger',
   (payload) => billing.ledger.create(payload),
@@ -36,6 +46,7 @@ export const dispatchLedger = apiThunk(
 
 /* ------------------------------ payments ------------------------------ */
 
+export const fetchPayments = apiThunk('billing/fetchPayments', () => billing.payments.list(), 'Failed to load payments');
 export const createPayment = apiThunk(
   'billing/createPayment',
   (payload) => billing.payments.create(payload),
@@ -90,6 +101,7 @@ const billingSlice = createSlice({
   initialState: {
     services: [],
     ledgers: [],
+    ledgerByAdmission: {},
     ledgerEntries: {},
     payments: [],
     receipts: [],
@@ -134,10 +146,16 @@ const billingSlice = createSlice({
     addReadCases(builder, fetchLedgers, (state, action) => {
       state.ledgers = Array.isArray(action.payload) ? action.payload : [];
     });
+    addReadCases(builder, fetchLedgerByAdmission, (state, action) => {
+      state.ledgerByAdmission[action.payload.admissionId] = action.payload.ledger || null;
+    });
     addReadCases(builder, fetchLedgerEntries, (state, action) => {
       state.ledgerEntries[action.payload.ledgerId] = Array.isArray(action.payload.entries)
         ? action.payload.entries
         : [];
+    });
+    addReadCases(builder, fetchPayments, (state, action) => {
+      state.payments = Array.isArray(action.payload) ? action.payload : [];
     });
     addReadCases(builder, fetchReceipts, (state, action) => {
       state.receipts = Array.isArray(action.payload) ? action.payload : [];
@@ -155,6 +173,9 @@ const billingSlice = createSlice({
       state.leaders = Array.isArray(action.payload) ? action.payload : [];
     });
 
+    addWriteCases(builder, createService, (state, action) => {
+      upsertByKey(state.services, 'service_id', action.payload);
+    });
     addWriteCases(builder, createLedger, (state, action) => {
       upsertByKey(state.ledgers, 'ledger_id', action.payload);
     });

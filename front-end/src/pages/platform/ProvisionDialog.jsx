@@ -1,8 +1,7 @@
 'use strict';
 
-import { useState } from 'react';
+
 import DialogShell from '../../components/layout/DialogShell.jsx';
-import { api } from '../../api/index.js';
 import { toast } from '../../components/feedback/feedback.js';
 import TaggedEmailInput from '../../components/forms/TaggedEmailInput.jsx';
 import {
@@ -11,6 +10,8 @@ import {
   normalizeDomain,
   buildTaggedEmail,
 } from '../../lib/emailIdentity.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { provisionOrganization } from '../../store/slices/platformSlice.js';
 
 const BLANK = { name: '', emailDomain: '', domainEdited: false, adminName: '', adminPassword: '', plan_id: '1' };
 
@@ -26,7 +27,8 @@ const BLANK = { name: '', emailDomain: '', domainEdited: false, adminName: '', a
  * so the unified login page can route it.
  */
 export default function ProvisionDialog({ open, organizations, onClose, onProvisioned }) {
-  const [f, setF] = useState(BLANK);
+  const dispatch = useAppDispatch();
+  const [f, setF] = useUiState('ProvisionDialog.f', BLANK);
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
 
   const emailDomain = f.domainEdited
@@ -42,14 +44,16 @@ export default function ProvisionDialog({ open, organizations, onClose, onProvis
     const adminEmail = buildTaggedEmail(f.adminName, 'admin', emailDomain);
     if (domainProblem || !adminEmail) return;
     try {
-      await api.platform.organizations.provision({
-        name,
-        email_domain: emailDomain,
-        admin_name: name + ' Admin',
-        admin_email: adminEmail,
-        admin_password: f.adminPassword,
-        plan_id: Number(f.plan_id || 1),
-      });
+      await dispatch(
+        provisionOrganization({
+          name,
+          email_domain: emailDomain,
+          admin_name: name + ' Admin',
+          admin_email: adminEmail,
+          admin_password: f.adminPassword,
+          plan_id: Number(f.plan_id || 1),
+        }),
+      ).unwrap();
       onClose();
       setF(BLANK);
       toast('Organization provisioned. Admin login: ' + adminEmail, 'success');

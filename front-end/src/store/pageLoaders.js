@@ -2,15 +2,89 @@
 
 import { createLoader, must, soft } from './loaders.js';
 import { selectBillingOverview } from '../pages/fa/faHelpers.js';
+import { fetchDemoAccounts } from './slices/authSlice.js';
+import { fetchMarketplaceOrganizations } from './slices/marketplaceSlice.js';
+import { fetchRates } from './slices/platformSlice.js';
 import { fetchWards, fetchBeds, fetchBedRequests } from './slices/wardsSlice.js';
 import { fetchPatients, fetchAllInsurance, fetchPatientInsurance } from './slices/patientsSlice.js';
-import { fetchLedgers, fetchLedgerEntries, fetchLeaders, fetchReceipts, fetchServices } from './slices/billingSlice.js';
+import {
+  fetchLedgers,
+  fetchLedgerEntries,
+  fetchLeaders,
+  fetchPayments,
+  fetchReceipts,
+  fetchServices,
+} from './slices/billingSlice.js';
 import { fetchInventoryItems, fetchPurchaseRequests } from './slices/inventorySlice.js';
+import { fetchStaff } from './slices/rbacSlice.js';
 import { fetchAdmissions } from './slices/admissionsSlice.js';
 import { fetchPreRequests } from './slices/preRequestsSlice.js';
 import { fetchAppointments } from './slices/appointmentsSlice.js';
 import { fetchDoctors, fetchAllAvailabilities } from './slices/doctorsSlice.js';
 import { fetchActivityLog } from './slices/activitySlice.js';
+
+/* ----------------------------------- public ----------------------------------- */
+
+/** Login page: the public org list and the demo accounts, each tolerant of failure. */
+export const loadLogin = createLoader('login', async (_arg, { dispatch }) => {
+  await Promise.all([soft(dispatch(fetchMarketplaceOrganizations())), soft(dispatch(fetchDemoAccounts()))]);
+});
+
+/** Patient signup: the public org list; a failure is reported by the page. */
+export const loadSignup = createLoader('signup', async (_arg, { dispatch }) => {
+  await must(dispatch(fetchMarketplaceOrganizations()));
+});
+
+/** Marketplace directory: the public org list; a failure is shown by the page. */
+export const loadMarketplace = createLoader('marketplace', async (_arg, { dispatch }) => {
+  await must(dispatch(fetchMarketplaceOrganizations()));
+});
+
+/** Organization signup: existing orgs (to flag a taken domain) and the live rate card; both optional. */
+export const loadOrgSignup = createLoader('orgSignup', async (_arg, { dispatch }) => {
+  await Promise.all([soft(dispatch(fetchMarketplaceOrganizations())), soft(dispatch(fetchRates()))]);
+});
+
+/* ----------------------------------- admin ------------------------------------ */
+
+/** Admin dashboard: thirteen reads, each tolerant of failure, then every ledger's entries for its total. */
+export const loadAdminDashboard = createLoader('adminDashboard', async (_arg, { dispatch, getState }) => {
+  await Promise.all([
+    soft(dispatch(fetchWards())),
+    soft(dispatch(fetchBeds())),
+    soft(dispatch(fetchPatients())),
+    soft(dispatch(fetchLedgers())),
+    soft(dispatch(fetchInventoryItems())),
+    soft(dispatch(fetchStaff())),
+    soft(dispatch(fetchPayments())),
+    soft(dispatch(fetchAdmissions())),
+    soft(dispatch(fetchPreRequests())),
+    soft(dispatch(fetchAppointments())),
+    soft(dispatch(fetchDoctors())),
+    soft(dispatch(fetchRates())),
+    soft(dispatch(fetchActivityLog())),
+  ]);
+  const ledgers = getState().billing.ledgers;
+  await Promise.all(ledgers.map((ledger) => soft(dispatch(fetchLedgerEntries(ledger.ledger_id)))));
+});
+
+/** Admin departments: wards and beds; a failure of either fails the load. */
+export const loadAdminDepartments = createLoader('adminDepartments', async (_arg, { dispatch }) => {
+  await Promise.all([must(dispatch(fetchWards())), must(dispatch(fetchBeds()))]);
+});
+
+/** Admin inventory catalog. */
+export const loadAdminInventory = createLoader('adminInventory', async (_arg, { dispatch }) => {
+  await must(dispatch(fetchInventoryItems()));
+});
+
+/** Admin people directory: staff logins and doctors load independently. */
+export const loadAdminStaff = createLoader('adminStaff', async (_arg, { dispatch }) => {
+  await must(dispatch(fetchStaff()));
+});
+export const loadAdminDoctors = createLoader('adminDoctors', async (_arg, { dispatch }) => {
+  await must(dispatch(fetchDoctors()));
+});
 
 /* ------------------------------------ HOM ------------------------------------- */
 

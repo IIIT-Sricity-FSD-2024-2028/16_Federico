@@ -1,8 +1,9 @@
 'use strict';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Hospital, Menu, X, ArrowRight } from 'lucide-react';
+import { useUiState } from '../../store/hooks.js';
 
 /**
  * LandingNavbar
@@ -12,8 +13,8 @@ import { Hospital, Menu, X, ArrowRight } from 'lucide-react';
  */
 export default function LandingNavbar() {
   const navigate = useNavigate();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useUiState('LandingNavbar.isScrolled', false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useUiState('LandingNavbar.mobileMenuOpen', false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,7 +22,7 @@ export default function LandingNavbar() {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [setIsScrolled]);
 
   const scrollToSection = (id) => {
     setMobileMenuOpen(false);
