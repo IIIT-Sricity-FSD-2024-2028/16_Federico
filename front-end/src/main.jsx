@@ -10,15 +10,12 @@ import './styles/material-components.css';
 import './styles/ui-feedback.css';
 
 import { store } from './store/store.js';
-import { SessionProvider } from './auth/SessionContext.jsx';
 import AppRouter from './routes.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Provider store={store}>
-      <SessionProvider>
-        <AppRouter />
-      </SessionProvider>
+      <AppRouter />
     </Provider>
   </StrictMode>,
 );
