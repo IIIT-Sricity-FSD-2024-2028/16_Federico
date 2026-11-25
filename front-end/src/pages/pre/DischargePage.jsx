@@ -1,8 +1,6 @@
 'use strict';
 
-import { useState, useMemo } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { toast } from '../../components/feedback/feedback.js';
 import Button from '../../components/ui/Button.jsx';
@@ -12,33 +10,41 @@ import TabNav from '../../components/ui/TabNav.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import { joinPreRequestsWithPatients, statusLabel, formatDate, to12Hour } from './preHelpers.js';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreDischarge } from '../../store/pageLoaders.js';
+import { selectPreRequests, updatePreRequest } from '../../store/slices/preRequestsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
+import { selectBeds } from '../../store/slices/wardsSlice.js';
+import { selectAdmissions } from '../../store/slices/admissionsSlice.js';
+import { selectLedgers } from '../../store/slices/billingSlice.js';
 
 export default function DischargePage() {
   useDocumentTitle('Discharge Requests');
-  const [finalizingId, setFinalizingId] = useState(null);
-  const [activeTab, setActiveTab] = useState('requests');
-  const [query, setQuery] = useState('');
-  const [deptFilter, setDeptFilter] = useState('');
+  const [finalizingId, setFinalizingId] = useUiState('DischargePage.finalizingId', null);
+  const [activeTab, setActiveTab] = useUiState('DischargePage.activeTab', 'requests');
+  const [query, setQuery] = useUiState('DischargePage.query', '');
+  const [deptFilter, setDeptFilter] = useUiState('DischargePage.deptFilter', '');
 
-  const { data, loading, error, reload } = useApi(async () => {
-    const [preRequests, patients, doctors, beds, admissions, ledgers] = await Promise.all([
-      api.preRequests.list(),
-      api.patients.list(),
-      api.doctors.list(),
-      api.wards.beds(),
-      api.admissions.list().catch(() => []),
-      api.billing.ledger.listAll().catch(() => []),
-    ]);
+  const dispatch = useAppDispatch();
+  const { loading, error, reload } = useLoader(loadPreDischarge);
+  const preRequestList = useAppSelector(selectPreRequests);
+  const patientList = useAppSelector(selectPatients);
+  const doctorList = useAppSelector(selectDoctors);
+  const bedList = useAppSelector(selectBeds);
+  const admissionList = useAppSelector(selectAdmissions);
+  const ledgerList = useAppSelector(selectLedgers);
 
+  const joined = useMemo(() => {
     const doctorsById = {};
-    doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
+    doctorList.forEach((d) => (doctorsById[d.doctor_id] = d));
     const bedsById = {};
-    beds.forEach((b) => (bedsById[b.bed_id] = b));
+    bedList.forEach((b) => (bedsById[b.bed_id] = b));
 
     const ledgerByAdmission = {};
-    (Array.isArray(ledgers) ? ledgers : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
+    (Array.isArray(ledgerList) ? ledgerList : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
     const billsClearedByPatient = {};
-    (Array.isArray(admissions) ? admissions : []).forEach((a) => {
+    (Array.isArray(admissionList) ? admissionList : []).forEach((a) => {
       // Focus on the patient's active admission so a historical paid admission does not falsely clear an unpaid current stay
       if (a.status !== 'DISCHARGED') {
         const ledger = ledgerByAdmission[a.admission_id];
@@ -48,14 +54,12 @@ export default function DischargePage() {
       }
     });
 
-    return joinPreRequestsWithPatients(preRequests, patients, doctorsById).map((r) => ({
+    return joinPreRequestsWithPatients(preRequestList, patientList, doctorsById).map((r) => ({
       ...r,
       bedNumber: bedsById[r.bed_id]?.bed_number || '-',
       billsCleared: Boolean(billsClearedByPatient[r.patient_id]),
     }));
-  }, []);
-
-  const joined = data || [];
+  }, [preRequestList, patientList, doctorList, bedList, admissionList, ledgerList]);
   const pending = joined.filter((r) => r.status === 'DISCHARGE_REQUESTED');
   const approved = joined.filter((r) => r.status === 'DISCHARGE_APPROVED');
 
@@ -66,11 +70,11 @@ export default function DischargePage() {
 
   const departments = useMemo(() => {
     const depts = new Set();
-    (data || []).forEach((r) => {
+    joined.forEach((r) => {
       if (r.department) depts.add(r.department);
     });
     return Array.from(depts).sort();
-  }, [data]);
+  }, [joined]);
 
   const q = query.trim().toLowerCase();
   const filterRow = (r) => {
@@ -92,7 +96,7 @@ export default function DischargePage() {
   async function finalApprove(id) {
     setFinalizingId(id);
     try {
-      await api.preRequests.update(id, { status: 'DISCHARGED' });
+      await dispatch(updatePreRequest({ id, patch: { status: 'DISCHARGED' } })).unwrap();
       toast('Discharge finalized — bed released.', 'success');
       await reload();
     } catch (err) {

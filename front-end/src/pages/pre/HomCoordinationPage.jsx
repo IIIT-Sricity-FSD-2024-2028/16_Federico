@@ -1,46 +1,45 @@
 'use strict';
 
-import { useState, useMemo } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import Badge from '../../components/ui/Badge.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreBedCoordination } from '../../store/pageLoaders.js';
+import { selectBeds, selectBedRequests, selectWards } from '../../store/slices/wardsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
 
 /** PRE coordination view for inpatient bed assignment status. */
 export default function HomCoordinationPage() {
   useDocumentTitle('Bed Coordination - Federico PRE');
 
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [wardFilter, setWardFilter] = useState('');
+  const [query, setQuery] = useUiState('HomCoordinationPage.query', '');
+  const [statusFilter, setStatusFilter] = useUiState('HomCoordinationPage.statusFilter', '');
+  const [wardFilter, setWardFilter] = useUiState('HomCoordinationPage.wardFilter', '');
 
-  const { data, loading, error } = useApi(async () => {
-    const [patients, bedRequests, wards, beds] = await Promise.all([
-      api.patients.list().catch(() => []),
-      api.wards.bedRequests.list().catch(() => []),
-      api.wards.list().catch(() => []),
-      api.wards.beds().catch(() => []),
-    ]);
+  const { loading, error } = useLoader(loadPreBedCoordination);
+  const patientList = useAppSelector(selectPatients);
+  const bedRequestList = useAppSelector(selectBedRequests);
+  const wardList = useAppSelector(selectWards);
+  const bedList = useAppSelector(selectBeds);
 
+  const d = useMemo(() => {
     const patientsById = {};
-    (patients || []).forEach((p) => (patientsById[p.patient_id] = p));
+    (patientList || []).forEach((p) => (patientsById[p.patient_id] = p));
     const wardsById = {};
-    (wards || []).forEach((w) => (wardsById[w.ward_id] = w));
+    (wardList || []).forEach((w) => (wardsById[w.ward_id] = w));
     const bedsById = {};
-    (beds || []).forEach((b) => (bedsById[b.bed_id] = b));
+    (bedList || []).forEach((b) => (bedsById[b.bed_id] = b));
 
     // Show PENDING + ALLOCATED + rejected so PRE can see the full bed allocation response.
-    const allBedRequests = (bedRequests || []).filter((r) =>
+    const allBedRequests = (bedRequestList || []).filter((r) =>
       r.status === 'PENDING' || r.status === 'ALLOCATED' || r.status === 'REJECTED' || r.status === 'DENIED',
     );
 
     return { allBedRequests, patientsById, wardsById, bedsById };
-  }, []);
-
-  const d = data || { allBedRequests: [], patientsById: {}, wardsById: {}, bedsById: {} };
+  }, [patientList, bedRequestList, wardList, bedList]);
 
   const wardOptions = useMemo(() => {
     return Object.values(d.wardsById || {})

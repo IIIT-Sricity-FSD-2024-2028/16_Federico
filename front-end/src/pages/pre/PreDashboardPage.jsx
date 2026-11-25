@@ -1,8 +1,7 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
+
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { toast } from '../../components/feedback/feedback.js';
 import StatCard from '../../components/ui/StatCard.jsx';
@@ -12,6 +11,12 @@ import EmptyState from '../../components/ui/EmptyState.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import { joinPreRequestsWithPatients, formatDate, to12Hour } from './preHelpers.js';
 import BedRequestModal from './BedRequestModal.jsx';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreDashboard } from '../../store/pageLoaders.js';
+import { checkInPreRequest, selectPreRequests, updatePreRequest } from '../../store/slices/preRequestsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
+import { selectBedRequests, selectWards } from '../../store/slices/wardsSlice.js';
 
 /**
  * Ported from PRE/pages/PRE.html + PRE.js.
@@ -21,28 +26,21 @@ import BedRequestModal from './BedRequestModal.jsx';
  */
 export default function PreDashboardPage() {
   useDocumentTitle('Dashboard');
-  const [bedRequestId, setBedRequestId] = useState(null);
+  const [bedRequestId, setBedRequestId] = useUiState('PreDashboardPage.bedRequestId', null);
 
-  const { data, reload, error } = useApi(async () => {
-    const [preRequests, patients, doctors, wards, bedRequests] = await Promise.all([
-      api.preRequests.list().catch(() => []),
-      api.patients.list().catch(() => []),
-      api.doctors.list().catch(() => []),
-      api.wards.list().catch(() => []),
-      api.wards.bedRequests.list().catch(() => []),
-    ]);
+  const dispatch = useAppDispatch();
+  const { reload, error } = useLoader(loadPreDashboard);
+  const all = useAppSelector(selectPreRequests);
+  const patients = useAppSelector(selectPatients);
+  const doctors = useAppSelector(selectDoctors);
+  const wards = useAppSelector(selectWards);
+  const bedRequests = useAppSelector(selectBedRequests);
 
+  const rows = useMemo(() => {
     const doctorsById = {};
     (doctors || []).forEach((d) => (doctorsById[d.doctor_id] = d));
-    const joined = joinPreRequestsWithPatients(preRequests, patients, doctorsById);
-
-    return { rows: joined, all: preRequests || [], wards: wards || [], bedRequests: bedRequests || [] };
-  }, []);
-
-  const rows = data?.rows || [];
-  const all = data?.all || [];
-  const wards = data?.wards || [];
-  const bedRequests = data?.bedRequests || [];
+    return joinPreRequestsWithPatients(all, patients, doctorsById);
+  }, [all, patients, doctors]);
   const pendingBedRequestIds = new Set(
     bedRequests
       .filter((r) => r.status === 'PENDING')
@@ -67,8 +65,8 @@ export default function PreDashboardPage() {
 
   async function completeFollowUp(id) {
     try {
-      await api.preRequests.checkIn(id, { visit_type: 'OPD' });
-      await api.preRequests.update(id, { visit_type: 'Follow-Up' });
+      await dispatch(checkInPreRequest({ id, payload: { visit_type: 'OPD' } })).unwrap();
+      await dispatch(updatePreRequest({ id, patch: { visit_type: 'Follow-Up' } })).unwrap();
       toast('Follow up completed and patient record updated.', 'success');
     } catch (err) {
       toast(err.message || 'Could not complete follow up', 'error');

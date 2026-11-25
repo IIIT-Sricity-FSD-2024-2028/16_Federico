@@ -9,17 +9,28 @@ import { billing } from '../../api/endpoints/billing.js';
 import { preRequests } from '../../api/endpoints/preRequests.js';
 import { appointments } from '../../api/endpoints/appointments.js';
 import { shapePatientStoreData } from '../../pages/patient/patientStoreShape.js';
-import { addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
+import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelpers.js';
 import { createPreRequest, updatePreRequest } from './preRequestsSlice.js';
 import { createPayment } from './billingSlice.js';
 
 /* ----------------------------- repository CRUD ---------------------------- */
 // The backend has no DELETE /patient.
 
+export const fetchPatients = apiThunk('patients/fetchAll', () => patients.list(), 'Failed to load patients');
+export const createPatient = apiThunk(
+  'patients/create',
+  (payload) => patients.create(payload),
+  'Failed to create patient',
+);
 export const updatePatient = apiThunk(
   'patients/update',
   ({ id, patch }) => patients.update(id, patch),
   'Failed to update patient',
+);
+export const fetchAllInsurance = apiThunk(
+  'patients/fetchAllInsurance',
+  () => patients.insuranceAll(),
+  'Failed to load insurance',
 );
 export const createInsurance = apiThunk(
   'patients/createInsurance',
@@ -266,11 +277,22 @@ const patientsSlice = createSlice({
     items: [],
     insuranceAll: [],
     portal: { data: EMPTY_PORTAL, loaded: false },
+    loading: false,
+    pending: 0,
     saving: false,
     error: null,
   },
   reducers: {},
   extraReducers: (builder) => {
+    addReadCases(builder, fetchPatients, (state, action) => {
+      state.items = Array.isArray(action.payload) ? action.payload : [];
+    });
+    addReadCases(builder, fetchAllInsurance, (state, action) => {
+      state.insuranceAll = Array.isArray(action.payload) ? action.payload : [];
+    });
+    addWriteCases(builder, createPatient, (state, action) => {
+      upsertByKey(state.items, 'patient_id', action.payload);
+    });
     addWriteCases(builder, updatePatient, (state, action) => {
       upsertByKey(state.items, 'patient_id', action.payload);
     });
@@ -296,6 +318,7 @@ const patientsSlice = createSlice({
   },
 });
 
+export const selectPatients = (state) => state.patients.items;
 export const selectPortal = (state) => state.patients.portal;
 
 export default patientsSlice.reducer;

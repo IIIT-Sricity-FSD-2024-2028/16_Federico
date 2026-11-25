@@ -1,14 +1,16 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
+
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import Badge from '../../components/ui/Badge.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import { to12Hour } from './preHelpers.js';
+import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreDoctorRoster } from '../../store/pageLoaders.js';
+import { selectDoctorAvailabilities, selectDoctors } from '../../store/slices/doctorsSlice.js';
 
 /**
  * Ported from PRE/pages/doctor.html + doctor.js.
@@ -21,16 +23,15 @@ import { to12Hour } from './preHelpers.js';
 export default function DoctorRosterPage() {
   useDocumentTitle('Doctor Availability – Federico PRE');
 
-  const [query, setQuery] = useState('');
-  const [specFilter, setSpecFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [query, setQuery] = useUiState('DoctorRosterPage.query', '');
+  const [specFilter, setSpecFilter] = useUiState('DoctorRosterPage.specFilter', '');
+  const [statusFilter, setStatusFilter] = useUiState('DoctorRosterPage.statusFilter', '');
 
-  const { data, error } = useApi(async () => {
-    const [doctors, availabilities] = await Promise.all([
-      api.doctors.list().catch(() => []),
-      api.doctors.availabilityAll().catch(() => []),
-    ]);
+  const { error } = useLoader(loadPreDoctorRoster);
+  const doctors = useAppSelector(selectDoctors);
+  const availabilities = useAppSelector(selectDoctorAvailabilities);
 
+  const roster = useMemo(() => {
     const availabilityByDoctor = {};
     (availabilities || []).forEach((a) => {
       if (!availabilityByDoctor[a.doctor_id]) availabilityByDoctor[a.doctor_id] = a;
@@ -61,9 +62,7 @@ export default function DoctorRosterPage() {
           : 'Mon – Sat',
       };
     });
-  }, []);
-
-  const roster = data || [];
+  }, [doctors, availabilities]);
   const specs = Array.from(new Set(roster.map((d) => d.specialization).filter(Boolean))).sort();
 
   const q = query.trim().toLowerCase();

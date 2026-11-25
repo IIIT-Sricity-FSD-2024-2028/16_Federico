@@ -1,6 +1,4 @@
-import { useState, useMemo } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { toast } from '../../components/feedback/feedback.js';
 import Button from '../../components/ui/Button.jsx';
@@ -9,40 +7,45 @@ import EmptyState from '../../components/ui/EmptyState.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import { joinPreRequestsWithPatients, formatDate, to12Hour } from './preHelpers.js';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreAdmitted } from '../../store/pageLoaders.js';
+import { selectPreRequests, updatePreRequest } from '../../store/slices/preRequestsSlice.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectDoctors } from '../../store/slices/doctorsSlice.js';
+import { selectBeds } from '../../store/slices/wardsSlice.js';
 
 /** Ported from PRE/pages/admitted.html + admitted.js. */
 export default function AdmittedPage() {
   useDocumentTitle('Admitted Patients');
-  const [actionId, setActionId] = useState(null);
-  const [query, setQuery] = useState('');
-  const [deptFilter, setDeptFilter] = useState('');
+  const [actionId, setActionId] = useUiState('AdmittedPage.actionId', null);
+  const [query, setQuery] = useUiState('AdmittedPage.query', '');
+  const [deptFilter, setDeptFilter] = useUiState('AdmittedPage.deptFilter', '');
 
-  const { data, loading, error, reload } = useApi(async () => {
-    const [preRequests, patients, doctors, beds] = await Promise.all([
-      api.preRequests.list(),
-      api.patients.list(),
-      api.doctors.list(),
-      api.wards.beds(),
-    ]);
+  const dispatch = useAppDispatch();
+  const { loading, error, reload } = useLoader(loadPreAdmitted);
+  const preRequestList = useAppSelector(selectPreRequests);
+  const patientList = useAppSelector(selectPatients);
+  const doctorList = useAppSelector(selectDoctors);
+  const bedList = useAppSelector(selectBeds);
+
+  const admitted = useMemo(() => {
     const doctorsById = {};
-    doctors.forEach((d) => (doctorsById[d.doctor_id] = d));
-    const bedsById = {};
-    beds.forEach((b) => (bedsById[b.bed_id] = b));
-
-    const admitted = joinPreRequestsWithPatients(preRequests, patients, doctorsById).filter((r) => r.status === 'ADMITTED');
-    return { admitted, bedsById };
-  }, []);
-
-  const admitted = data?.admitted || [];
-  const bedsById = data?.bedsById || {};
+    doctorList.forEach((d) => (doctorsById[d.doctor_id] = d));
+    return joinPreRequestsWithPatients(preRequestList, patientList, doctorsById).filter((r) => r.status === 'ADMITTED');
+  }, [preRequestList, patientList, doctorList]);
+  const bedsById = useMemo(() => {
+    const byId = {};
+    bedList.forEach((b) => (byId[b.bed_id] = b));
+    return byId;
+  }, [bedList]);
 
   const departments = useMemo(() => {
     const depts = new Set();
-    (data?.admitted || []).forEach((r) => {
+    admitted.forEach((r) => {
       if (r.department) depts.add(r.department);
     });
     return Array.from(depts).sort();
-  }, [data?.admitted]);
+  }, [admitted]);
 
   const q = query.trim().toLowerCase();
   const filtered = admitted.filter((r) => {
@@ -62,7 +65,7 @@ export default function AdmittedPage() {
   async function dischargePatient(id) {
     setActionId(id);
     try {
-      await api.preRequests.update(id, { status: 'DISCHARGE_REQUESTED' });
+      await dispatch(updatePreRequest({ id, patch: { status: 'DISCHARGE_REQUESTED' } })).unwrap();
       toast('Discharge request sent to HOM', 'success');
       await reload();
     } catch (err) {

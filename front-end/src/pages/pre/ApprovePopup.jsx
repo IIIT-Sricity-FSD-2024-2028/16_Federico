@@ -1,18 +1,21 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
+
 import Button from '../../components/ui/Button.jsx';
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import { toast } from '../../components/feedback/feedback.js';
 import { sortDoctorsForDepartment, to12Hour, to24Hour, formatDate } from './preHelpers.js';
 import { DoctorOptions } from './PrePopup.jsx';
 import PatientNotesPreview from './PatientNotesPreview.jsx';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { fetchDoctorAvailability } from '../../store/slices/doctorsSlice.js';
+import { fetchAppointments } from '../../store/slices/appointmentsSlice.js';
+import { updatePreRequest } from '../../store/slices/preRequestsSlice.js';
 
-async function checkDoctorAvailability(doctorId, date, time24) {
+async function checkDoctorAvailability(dispatch, doctorId, date, time24) {
   const [slots, allAppointments] = await Promise.all([
-    api.doctors.availabilityForDoctor(doctorId),
-    api.appointments.list(),
+    dispatch(fetchDoctorAvailability(doctorId)).unwrap(),
+    dispatch(fetchAppointments()).unwrap(),
   ]);
 
   const allSlots = slots || [];
@@ -75,7 +78,8 @@ async function checkDoctorAvailability(doctorId, date, time24) {
  * robust doctor availability checks, and a clean, non-overflowing layout.
  */
 export default function ApprovePopup({ request, doctors, onClose, onDone }) {
-  const [doctorId, setDoctorId] = useState(request?.doctor_id ? String(request.doctor_id) : '');
+  const dispatch = useAppDispatch();
+  const [doctorId, setDoctorId] = useUiState('ApprovePopup.doctorId', request?.doctor_id ? String(request.doctor_id) : '');
 
   // Parse the existing requested_time into components (hour, minute, meridiem)
   function parseInitialTime(rawTime) {
@@ -90,12 +94,12 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
   }
 
   const init = parseInitialTime(request?.requested_time);
-  const [hour, setHour] = useState(init.hour);
-  const [minute, setMinute] = useState(init.minute);
-  const [meridiem, setMeridiem] = useState(init.meridiem);
+  const [hour, setHour] = useUiState('ApprovePopup.hour', init.hour);
+  const [minute, setMinute] = useUiState('ApprovePopup.minute', init.minute);
+  const [meridiem, setMeridiem] = useUiState('ApprovePopup.meridiem', init.meridiem);
 
-  const [availError, setAvailError] = useState('');
-  const [checking, setChecking] = useState(false);
+  const [availError, setAvailError] = useUiState('ApprovePopup.availError', '');
+  const [checking, setChecking] = useUiState('ApprovePopup.checking', false);
 
   if (!request) return null;
 
@@ -127,7 +131,7 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
     setChecking(true);
     let checkResult;
     try {
-      checkResult = await checkDoctorAvailability(doctorId, date, time24);
+      checkResult = await checkDoctorAvailability(dispatch, doctorId, date, time24);
     } catch (err) {
       checkResult = {
         available: false,
@@ -157,7 +161,7 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
         payload.requested_time = request.requested_time;
       }
 
-      await api.preRequests.update(request.pre_request_id, payload);
+      await dispatch(updatePreRequest({ id: request.pre_request_id, patch: payload })).unwrap();
       onClose();
       toast('Appointment approved successfully', 'success');
       await onDone();

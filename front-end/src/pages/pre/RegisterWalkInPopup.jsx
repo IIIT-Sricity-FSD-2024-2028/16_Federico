@@ -1,10 +1,12 @@
 'use strict';
 
-import { useState } from 'react';
-import { api } from '../../api/index.js';
+import { useEffect } from 'react';
+
 import Button from '../../components/ui/Button.jsx';
 import Modal from '../../components/layout/Modal.jsx';
 import { toast } from '../../components/feedback/feedback.js';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { createPatient } from '../../store/slices/patientsSlice.js';
 
 /**
  * Ported from #patientPopup plus registerPatient in PRE/js/Appointment.js.
@@ -22,14 +24,13 @@ const sanitizeName = (v) => String(v || '').replace(/[^A-Za-z\s.'-]/g, '');
 const sanitizeAge = (v) => String(v || '').replace(/[^0-9]/g, '');
 
 export default function RegisterWalkInPopup({ open, onClose, onRegistered }) {
-  const [f, setF] = useState(BLANK);
-  const [wasOpen, setWasOpen] = useState(open);
-  if (open && !wasOpen) {
-    setWasOpen(true);
-    setF(BLANK);
-  } else if (!open && wasOpen) {
-    setWasOpen(false);
-  }
+  const [f, setF] = useUiState('RegisterWalkInPopup.f', BLANK);
+  const dispatch = useAppDispatch();
+
+  // Each time the popup opens it starts from a blank form.
+  useEffect(() => {
+    if (open) setF(BLANK);
+  }, [open, setF]);
 
   if (!open) return null;
 
@@ -74,13 +75,15 @@ export default function RegisterWalkInPopup({ open, onClose, onRegistered }) {
     const birthYear = new Date().getFullYear() - Number(age);
 
     try {
-      const patient = await api.patients.create({
-        name,
-        dob: birthYear + '-01-01',
-        gender: f.gender,
-        phone,
-        address,
-      });
+      const patient = await dispatch(
+        createPatient({
+          name,
+          dob: birthYear + '-01-01',
+          gender: f.gender,
+          phone,
+          address,
+        }),
+      ).unwrap();
       onClose();
       toast('Patient registered successfully with UHID ' + patient.uhid, 'success');
       await onRegistered(patient);

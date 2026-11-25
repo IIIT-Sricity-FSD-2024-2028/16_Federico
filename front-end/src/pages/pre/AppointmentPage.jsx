@@ -1,8 +1,6 @@
 'use strict';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../../api/index.js';
-import { useApi } from '../../hooks/useApi.js';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { useSearchParam } from '../../hooks/useSearchParam.js';
 import { useSession } from '../../auth/useSession.js';
@@ -15,6 +13,11 @@ import { formatAge, to12Hour } from './preHelpers.js';
 import { getBookingDateBounds } from '../patient/slotHelpers.js';
 import RegisterWalkInPopup from './RegisterWalkInPopup.jsx';
 import SearchResultPopup from './SearchResultPopup.jsx';
+import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
+import { loadPreAppointment } from '../../store/pageLoaders.js';
+import { selectPatients } from '../../store/slices/patientsSlice.js';
+import { selectDoctors, selectDoctorAvailabilities } from '../../store/slices/doctorsSlice.js';
+import { createPreRequest } from '../../store/slices/preRequestsSlice.js';
 
 /**
  * Ported from PRE/pages/APPointment.html + js/Appointment.js.
@@ -66,47 +69,44 @@ export default function AppointmentPage() {
   const patientIdParam = useSearchParam('patient_id');
   const doctorIdParam = useSearchParam('doctor_id');
 
-  const [pickerQuery, setPickerQuery] = useState('');
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [searchPhone, setSearchPhone] = useState('');
-  const [searchResult, setSearchResult] = useState(null);
-  const [registerOpen, setRegisterOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useUiState('AppointmentPage.pickerQuery', '');
+  const [pickerOpen, setPickerOpen] = useUiState('AppointmentPage.pickerOpen', false);
+  const [selected, setSelected] = useUiState('AppointmentPage.selected', null);
+  const [searchPhone, setSearchPhone] = useUiState('AppointmentPage.searchPhone', '');
+  const [searchResult, setSearchResult] = useUiState('AppointmentPage.searchResult', null);
+  const [registerOpen, setRegisterOpen] = useUiState('AppointmentPage.registerOpen', false);
 
-  const [department, setDepartment] = useState('');
-  const [doctorId, setDoctorId] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('10:00 AM');
-  const [reason, setReason] = useState('');
+  const [department, setDepartment] = useUiState('AppointmentPage.department', '');
+  const [doctorId, setDoctorId] = useUiState('AppointmentPage.doctorId', '');
+  const [date, setDate] = useUiState('AppointmentPage.date', '');
+  const [time, setTime] = useUiState('AppointmentPage.time', '10:00 AM');
+  const [reason, setReason] = useUiState('AppointmentPage.reason', '');
 
-  const { data, reload } = useApi(async () => {
-    const [patients, doctors, availabilities] = await Promise.all([
-      api.patients.list().catch(() => []),
-      api.doctors.list().catch(() => []),
-      api.doctors.availabilityAll().catch(() => []),
-    ]);
-    return { patients: patients || [], doctors: doctors || [], availabilities: availabilities || [] };
-  }, []);
+  const dispatch = useAppDispatch();
+  const { loaded, reload } = useLoader(loadPreAppointment);
+  const patientList = useAppSelector(selectPatients);
+  const doctorList = useAppSelector(selectDoctors);
+  const availabilityList = useAppSelector(selectDoctorAvailabilities);
 
   // Scoped to the active tenant organization
   const orgPatients = useMemo(() => {
     const list = orgId
-      ? (data?.patients || []).filter((p) => !p.organization_id || Number(p.organization_id) === Number(orgId))
-      : (data?.patients || []);
+      ? patientList.filter((p) => !p.organization_id || Number(p.organization_id) === Number(orgId))
+      : patientList;
     return [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  }, [data?.patients, orgId]);
+  }, [patientList, orgId]);
 
   const orgDoctors = useMemo(() => {
     return orgId
-      ? (data?.doctors || []).filter((d) => !d.organization_id || Number(d.organization_id) === Number(orgId))
-      : (data?.doctors || []);
-  }, [data?.doctors, orgId]);
+      ? doctorList.filter((d) => !d.organization_id || Number(d.organization_id) === Number(orgId))
+      : doctorList;
+  }, [doctorList, orgId]);
 
   const orgAvailabilities = useMemo(() => {
     return orgId
-      ? (data?.availabilities || []).filter((a) => !a.organization_id || Number(a.organization_id) === Number(orgId))
-      : (data?.availabilities || []);
-  }, [data?.availabilities, orgId]);
+      ? availabilityList.filter((a) => !a.organization_id || Number(a.organization_id) === Number(orgId))
+      : availabilityList;
+  }, [availabilityList, orgId]);
 
   const orgDepartments = useMemo(() => {
     return Array.from(
@@ -153,7 +153,7 @@ export default function AppointmentPage() {
 
   // ?patient_id= / ?doctor_id= prefill, once the catalogs have loaded.
   useEffect(() => {
-    if (!data) return;
+    if (!loaded) return;
     if (patientIdParam) {
       const matched = orgPatients.find((p) => p.patient_id === Number(patientIdParam));
       if (matched) fillPatient(toPickerShape(matched));
@@ -166,7 +166,7 @@ export default function AppointmentPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [loaded, patientList, doctorList, availabilityList]);
 
   function fillPatient(shape) {
     setSelected(shape);
@@ -339,7 +339,7 @@ export default function AppointmentPage() {
     try {
       // `appointment_time` and `status` are not in createPreRequestRules, but
       // the validator does not strip unknown fields, so both reach the service.
-      const result = await api.preRequests.create({
+      const result = await dispatch(createPreRequest({
         patient_id: selected.realId,
         department,
         doctor_id: doctorId ? Number(doctorId) : null,
@@ -349,7 +349,7 @@ export default function AppointmentPage() {
         appointment_time: time,
         note: reason.trim() || undefined,
         status: 'APPROVED',
-      });
+      })).unwrap();
       toast('Appointment scheduled successfully (Ref #' + result.pre_request_id + ')', 'success');
       clearForm();
     } catch (err) {
