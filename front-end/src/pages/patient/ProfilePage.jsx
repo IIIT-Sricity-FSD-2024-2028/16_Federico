@@ -1,9 +1,8 @@
 'use strict';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePatientStore } from './usePatientStore.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
-import { api } from '../../api/index.js';
 import { toast } from '../../components/feedback/feedback.js';
 import { normalizePhone } from '../../lib/phone.js';
 import PageHeader from '../../components/layout/PageHeader.jsx';
@@ -21,6 +20,9 @@ import {
 } from './profileFields.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientProfileCss from '../../styles/patient/patient-profile.css?inline';
+import { useAppDispatch, useUiState } from '../../store/hooks.js';
+import { changePassword } from '../../store/slices/authSlice.js';
+import { openUploadedFile, uploadDocument } from '../../store/slices/uploadsSlice.js';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
@@ -85,24 +87,28 @@ export default function ProfilePage() {
   usePageStyles(patientProfileCss);
   useDocumentTitle('Patient Profile');
   const { profile, updateProfile, updateInsurance } = usePatientStore();
+  const dispatch = useAppDispatch();
 
-  const [values, setValues] = useState(() => valuesFromProfile(profile));
-  const [snapshot, setSnapshot] = useState(() => valuesFromProfile(profile));
-  const [editing, setEditing] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [passwordHint, setPasswordHint] = useState({ text: '', variant: '' });
+  const [values, setValues] = useUiState('ProfilePage.values', () => valuesFromProfile(profile));
+  const [snapshot, setSnapshot] = useUiState('ProfilePage.snapshot', () => valuesFromProfile(profile));
+  const [editing, setEditing] = useUiState('ProfilePage.editing', null);
+  const [saving, setSaving] = useUiState('ProfilePage.saving', false);
+  const [passwordHint, setPasswordHint] = useUiState('ProfilePage.passwordHint', { text: '', variant: '' });
 
   // Insurance card scan URLs, seeded from profile and updated when new file uploads.
-  const [cardUrlState, setCardUrlState] = useState(() => ({
+  const [cardUrlState, setCardUrlState] = useUiState('ProfilePage.cardUrlState', () => ({
     front: profile?.insurance?.cardFrontUrl || null,
     back: profile?.insurance?.cardBackUrl || null,
   }));
-  const [uploadingName, setUploadingName] = useState({ front: '', back: '' });
+  const [uploadingName, setUploadingName] = useUiState('ProfilePage.uploadingName', { front: '', back: '' });
 
-  // Synchronize values, snapshot, and card URLs whenever profile reference changes.
-  const [prevProfile, setPrevProfile] = useState(profile);
-  if (profile !== prevProfile) {
-    setPrevProfile(profile);
+  // Synchronize values, snapshot, and card URLs whenever the profile reference
+  // changes (a refresh after a save, say). Tracking the previous reference is a
+  // genuine ref use - it is bookkeeping, not application state.
+  const prevProfileRef = useRef(profile);
+  useEffect(() => {
+    if (profile === prevProfileRef.current) return;
+    prevProfileRef.current = profile;
     const next = valuesFromProfile(profile);
     setSnapshot(next);
     setValues((current) => {
@@ -122,7 +128,8 @@ export default function ProfilePage() {
         back: profile?.insurance?.cardBackUrl || null,
       });
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
   function setValue(id, value) {
     setValues((v) => ({ ...v, [id]: value }));
@@ -188,7 +195,9 @@ export default function ProfilePage() {
           return;
         }
         try {
-          await api.auth.changePassword(values['new-password'], values['current-password']);
+          await dispatch(
+            changePassword({ newPassword: values['new-password'], currentPassword: values['current-password'] }),
+          ).unwrap();
           setPasswordHint({ text: 'Password updated successfully.', variant: 'match' });
           commitSnapshot('password');
           setEditing(null);
@@ -243,9 +252,11 @@ export default function ProfilePage() {
     const parts = fileUrl.split('/');
     const filename = parts.pop();
     const category = parts.pop();
-    api.uploads.open(category, filename).catch((err) => {
-      toast(err.message || 'Could not open file.', 'error');
-    });
+    dispatch(openUploadedFile({ category, filename }))
+      .unwrap()
+      .catch((err) => {
+        toast(err.message || 'Could not open file.', 'error');
+      });
   }
 
   async function onCardChosen(side, file) {
@@ -253,7 +264,7 @@ export default function ProfilePage() {
     setUploadingName((u) => ({ ...u, [side]: file.name }));
 
     try {
-      const result = await api.uploads.document(file);
+      const result = await dispatch(uploadDocument(file)).unwrap();
       setCardUrlState((s) => ({ ...s, [side]: result.url }));
       toast(
         (side === 'front' ? 'Front' : 'Back') +

@@ -1,6 +1,6 @@
 'use strict';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePatientStore } from './usePatientStore.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -14,6 +14,7 @@ import { openAppointmentSlip } from './patientDocumentCopy.js';
 import { formatDDMMYYYY } from './patientStoreShape.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientDashboardCss from '../../styles/patient/patient-dashboard.css?inline';
+import { useUiState } from '../../store/hooks.js';
 
 const NOTIFICATION_COLORS = {
   success: '#10b981',
@@ -36,7 +37,7 @@ export default function DashboardPage() {
     notifications,
   } = usePatientStore();
 
-  const [apptTab, setApptTab] = useState('all');
+  const [apptTab, setApptTab] = useUiState('DashboardPage.apptTab', 'all');
 
   const allAppointments = useMemo(
     () => (Array.isArray(appointments) ? appointments : []),

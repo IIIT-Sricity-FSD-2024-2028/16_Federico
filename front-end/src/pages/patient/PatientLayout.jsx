@@ -1,9 +1,11 @@
 'use strict';
 
+import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { PatientStoreProvider } from './PatientStoreContext.jsx';
 import { usePatientStore } from './usePatientStore.js';
 import { useSession } from '../../auth/useSession.js';
+import { useAppDispatch } from '../../store/hooks.js';
+import { refreshPatientPortal } from '../../store/slices/patientsSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 import AppNavbar from '../../components/layout/AppNavbar.jsx';
 
@@ -55,10 +57,20 @@ function TopBar() {
 }
 
 export default function PatientLayout() {
+  const dispatch = useAppDispatch();
+  const { session } = useSession();
+  const patientId = session?.patientId;
+
+  // Loads the portal into state.patients.portal for the signed-in patient, and
+  // again whenever the session changes (the old provider's refresh effect).
+  useEffect(() => {
+    dispatch(refreshPatientPortal());
+  }, [dispatch, patientId, session]);
+
   return (
-    <PatientStoreProvider>
+    <>
       <TopBar />
       <Outlet />
-    </PatientStoreProvider>
+    </>
   );
 }

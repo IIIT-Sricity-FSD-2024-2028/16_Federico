@@ -1,6 +1,6 @@
 'use strict';
 
-import { useState } from 'react';
+
 import { useSearchParams } from 'react-router-dom';
 import { usePatientStore } from './usePatientStore.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -14,6 +14,7 @@ import { openInvoiceDigitalCopy, openBillingDigitalCopy } from './patientDocumen
 import { formatINR, formatDDMMYYYY } from './patientStoreShape.js';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientBillingCss from '../../styles/patient/patient-billing.css?inline';
+import { useUiState } from '../../store/hooks.js';
 
 const TABS = [
   { id: 'invoices', label: 'Itemized Invoices' },
@@ -28,9 +29,9 @@ export default function BillingPage() {
     usePatientStore();
   const ins = profile?.insurance;
 
-  const [activeTab, setActiveTab] = useState('invoices');
-  const [detailBill, setDetailBill] = useState(null);
-  const [payingLedger, setPayingLedger] = useState(null);
+  const [activeTab, setActiveTab] = useUiState('BillingPage.activeTab', 'invoices');
+  const [detailBill, setDetailBill] = useUiState('BillingPage.detailBill', null);
+  const [payingLedger, setPayingLedger] = useUiState('BillingPage.payingLedger', null);
 
   // ?bill=<id> opens invoice directly from dashboard
   const [searchParams, setSearchParams] = useSearchParams();

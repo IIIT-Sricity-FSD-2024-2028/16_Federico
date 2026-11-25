@@ -1,6 +1,7 @@
 'use strict';
+import { useUiState } from '../../store/hooks.js';
 
-import { useState } from 'react';
+
 
 /**
  * Password input with a show/hide eye toggle (.eye-btn).
@@ -15,7 +16,7 @@ export default function EyeField({
   disabled,
   bare = false,
 }) {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useUiState('EyeField.visible', false);
 
   const controls = (
     <>
