@@ -7,6 +7,11 @@ import { addReadCases, addWriteCases, apiThunk, upsertByKey } from '../thunkHelp
 export const fetchWards = apiThunk('wards/fetchAll', () => wards.list(), 'Failed to load wards');
 
 export const fetchBeds = apiThunk('wards/fetchBeds', () => wards.beds(), 'Failed to load beds');
+export const updateBedStatus = apiThunk(
+  'wards/updateBedStatus',
+  ({ bedId, status }) => wards.updateBedStatus(bedId, status),
+  'Failed to update bed',
+);
 
 export const fetchBedRequests = apiThunk(
   'wards/fetchBedRequests',
@@ -17,6 +22,16 @@ export const createBedRequest = apiThunk(
   'wards/createBedRequest',
   (payload) => wards.bedRequests.create(payload),
   'Failed to create bed request',
+);
+export const allocateBed = apiThunk(
+  'wards/allocateBed',
+  ({ requestId, bedId }) => wards.bedRequests.allocate(requestId, bedId),
+  'Failed to allocate bed',
+);
+export const denyBedRequest = apiThunk(
+  'wards/denyBedRequest',
+  (requestId) => wards.bedRequests.deny(requestId),
+  'Failed to deny bed request',
 );
 
 const wardsSlice = createSlice({
@@ -41,7 +56,16 @@ const wardsSlice = createSlice({
     addReadCases(builder, fetchBedRequests, (state, action) => {
       state.bedRequests = Array.isArray(action.payload) ? action.payload : [];
     });
+    addWriteCases(builder, updateBedStatus, (state, action) => {
+      upsertByKey(state.beds, 'bed_id', action.payload);
+    });
     addWriteCases(builder, createBedRequest, (state, action) => {
+      upsertByKey(state.bedRequests, 'bed_request_id', action.payload);
+    });
+    addWriteCases(builder, allocateBed, (state, action) => {
+      upsertByKey(state.bedRequests, 'bed_request_id', action.payload);
+    });
+    addWriteCases(builder, denyBedRequest, (state, action) => {
       upsertByKey(state.bedRequests, 'bed_request_id', action.payload);
     });
   },

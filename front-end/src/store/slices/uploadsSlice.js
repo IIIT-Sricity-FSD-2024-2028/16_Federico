@@ -10,6 +10,11 @@ import { addWriteCases, apiThunk } from '../thunkHelpers.js';
  * originalName, sizeBytes, ...) is kept.
  */
 export const uploadDocument = apiThunk('uploads/document', (file) => uploads.document(file), 'Upload failed');
+export const uploadInventoryInvoice = apiThunk(
+  'uploads/inventory',
+  (file) => uploads.inventory(file),
+  'Upload failed',
+);
 export const openUploadedFile = apiThunk(
   'uploads/open',
   async ({ category, filename }) => {
@@ -23,6 +28,7 @@ const uploadsSlice = createSlice({
   name: 'uploads',
   initialState: {
     lastDocument: null,
+    lastInventoryInvoice: null,
     saving: false,
     error: null,
   },
@@ -30,6 +36,9 @@ const uploadsSlice = createSlice({
   extraReducers: (builder) => {
     addWriteCases(builder, uploadDocument, (state, action) => {
       state.lastDocument = action.payload || null;
+    });
+    addWriteCases(builder, uploadInventoryInvoice, (state, action) => {
+      state.lastInventoryInvoice = action.payload || null;
     });
     addWriteCases(builder, openUploadedFile);
   },

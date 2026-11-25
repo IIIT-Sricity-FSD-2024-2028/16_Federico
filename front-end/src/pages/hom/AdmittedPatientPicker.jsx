@@ -1,6 +1,7 @@
 'use strict';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
+import { useUiState } from '../../store/hooks.js';
 
 /**
  * AdmittedPatientPicker — Searchable picker for patients with active inpatient admissions.
@@ -16,8 +17,8 @@ export default function AdmittedPatientPicker({
   className = '',
   error = false,
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [userQuery, setUserQuery] = useState(null);
+  const [isOpen, setIsOpen] = useUiState('AdmittedPatientPicker.isOpen', false);
+  const [userQuery, setUserQuery] = useUiState('AdmittedPatientPicker.userQuery', null);
   const containerRef = useRef(null);
 
   const selectedPatient = useMemo(() => {
@@ -36,7 +37,7 @@ export default function AdmittedPatientPicker({
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [setIsOpen, setUserQuery]);
 
   const displayValue = userQuery !== null
     ? userQuery

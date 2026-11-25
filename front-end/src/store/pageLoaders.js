@@ -3,11 +3,64 @@
 import { createLoader, must, soft } from './loaders.js';
 import { fetchWards, fetchBeds, fetchBedRequests } from './slices/wardsSlice.js';
 import { fetchPatients, fetchAllInsurance } from './slices/patientsSlice.js';
-import { fetchLedgers } from './slices/billingSlice.js';
+import { fetchLedgers, fetchServices } from './slices/billingSlice.js';
+import { fetchInventoryItems, fetchPurchaseRequests } from './slices/inventorySlice.js';
 import { fetchAdmissions } from './slices/admissionsSlice.js';
 import { fetchPreRequests } from './slices/preRequestsSlice.js';
 import { fetchAppointments } from './slices/appointmentsSlice.js';
 import { fetchDoctors, fetchAllAvailabilities } from './slices/doctorsSlice.js';
+import { fetchActivityLog } from './slices/activitySlice.js';
+
+/* ------------------------------------ HOM ------------------------------------- */
+
+/** HOM dashboard (polled every 15s): seven reads, each tolerant of failure. */
+export const loadHomDashboard = createLoader('homDashboard', async (_arg, { dispatch }) => {
+  await Promise.all([
+    soft(dispatch(fetchPreRequests())),
+    soft(dispatch(fetchPatients())),
+    soft(dispatch(fetchWards())),
+    soft(dispatch(fetchBeds())),
+    soft(dispatch(fetchBedRequests())),
+    soft(dispatch(fetchActivityLog())),
+    soft(dispatch(fetchDoctors())),
+  ]);
+});
+
+/** HOM bed management (polled every 15s): six reads, each tolerant of failure. */
+export const loadHomBeds = createLoader('homBeds', async (_arg, { dispatch }) => {
+  await Promise.all([
+    soft(dispatch(fetchWards())),
+    soft(dispatch(fetchBeds())),
+    soft(dispatch(fetchBedRequests())),
+    soft(dispatch(fetchPatients())),
+    soft(dispatch(fetchPreRequests())),
+    soft(dispatch(fetchDoctors())),
+  ]);
+});
+
+/** HOM patient flow (polled every 15s): six reads, each tolerant of failure. */
+export const loadHomPatientFlow = createLoader('homPatientFlow', async (_arg, { dispatch }) => {
+  await Promise.all([
+    soft(dispatch(fetchPreRequests())),
+    soft(dispatch(fetchPatients())),
+    soft(dispatch(fetchDoctors())),
+    soft(dispatch(fetchBeds())),
+    soft(dispatch(fetchAdmissions())),
+    soft(dispatch(fetchLedgers())),
+  ]);
+});
+
+/** HOM inventory (polled every 15s): six reads, each tolerant of failure. */
+export const loadHomInventory = createLoader('homInventory', async (_arg, { dispatch }) => {
+  await Promise.all([
+    soft(dispatch(fetchInventoryItems())),
+    soft(dispatch(fetchPurchaseRequests())),
+    soft(dispatch(fetchPatients())),
+    soft(dispatch(fetchServices())),
+    soft(dispatch(fetchAdmissions())),
+    soft(dispatch(fetchBeds())),
+  ]);
+});
 
 /* ------------------------------------ PRE ------------------------------------- */
 
