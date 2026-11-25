@@ -1,9 +1,10 @@
 'use strict';
 
 import { createLoader, must, soft } from './loaders.js';
+import { selectBillingOverview } from '../pages/fa/faHelpers.js';
 import { fetchWards, fetchBeds, fetchBedRequests } from './slices/wardsSlice.js';
-import { fetchPatients, fetchAllInsurance } from './slices/patientsSlice.js';
-import { fetchLedgers, fetchServices } from './slices/billingSlice.js';
+import { fetchPatients, fetchAllInsurance, fetchPatientInsurance } from './slices/patientsSlice.js';
+import { fetchLedgers, fetchLedgerEntries, fetchLeaders, fetchReceipts, fetchServices } from './slices/billingSlice.js';
 import { fetchInventoryItems, fetchPurchaseRequests } from './slices/inventorySlice.js';
 import { fetchAdmissions } from './slices/admissionsSlice.js';
 import { fetchPreRequests } from './slices/preRequestsSlice.js';
@@ -143,6 +144,55 @@ export const loadPreAppointment = createLoader('preAppointment', async (_arg, { 
     soft(dispatch(fetchPatients())),
     soft(dispatch(fetchDoctors())),
     soft(dispatch(fetchAllAvailabilities())),
+  ]);
+});
+
+/* ------------------------------------ FA -------------------------------------- */
+
+/** The FA portal's one data load: eight collections (the ledger list tolerating failure). */
+function fetchBillingOverview(dispatch) {
+  return Promise.all([
+    must(dispatch(fetchAdmissions())),
+    must(dispatch(fetchPatients())),
+    must(dispatch(fetchBeds())),
+    must(dispatch(fetchWards())),
+    must(dispatch(fetchPreRequests())),
+    must(dispatch(fetchDoctors())),
+    soft(dispatch(fetchLedgers())),
+    must(dispatch(fetchServices())),
+  ]);
+}
+
+/** FA ledger view: the billing overview. */
+export const loadFaOverview = createLoader('faOverview', async (_arg, { dispatch }) => {
+  await fetchBillingOverview(dispatch);
+});
+
+/** FA charges view: the overview, pending leaders, and every ledger's entries. */
+export const loadFaCharges = createLoader('faCharges', async (_arg, { dispatch, getState }) => {
+  await Promise.all([fetchBillingOverview(dispatch), soft(dispatch(fetchLeaders()))]);
+  const { rows } = selectBillingOverview(getState());
+  await Promise.all(
+    rows.filter((r) => r.ledger).map((r) => soft(dispatch(fetchLedgerEntries(r.ledger.ledger_id)))),
+  );
+});
+
+/** One ledger's entries (no ledger means nothing to load). */
+export const loadFaLedgerEntries = createLoader('faLedgerEntries', async (ledgerId, { dispatch }) => {
+  if (!ledgerId) return;
+  await soft(dispatch(fetchLedgerEntries(ledgerId)));
+});
+
+/** The receipts register. */
+export const loadFaReceipts = createLoader('faReceipts', async (_arg, { dispatch }) => {
+  await soft(dispatch(fetchReceipts()));
+});
+
+/** Settlement for one admission: its ledger entries and the patient's insurance, each tolerant of failure. */
+export const loadFaSettlement = createLoader('faSettlement', async ({ ledgerId, patientId }, { dispatch }) => {
+  await Promise.all([
+    ledgerId ? soft(dispatch(fetchLedgerEntries(ledgerId))) : undefined,
+    soft(dispatch(fetchPatientInsurance(patientId))),
   ]);
 });
 

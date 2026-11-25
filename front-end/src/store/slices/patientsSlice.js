@@ -32,6 +32,11 @@ export const fetchAllInsurance = apiThunk(
   () => patients.insuranceAll(),
   'Failed to load insurance',
 );
+export const fetchPatientInsurance = apiThunk(
+  'patients/fetchPatientInsurance',
+  (id) => patients.insuranceForPatient(id),
+  'Failed to load insurance',
+);
 export const createInsurance = apiThunk(
   'patients/createInsurance',
   (payload) => patients.createInsurance(payload),
@@ -276,6 +281,8 @@ const patientsSlice = createSlice({
   initialState: {
     items: [],
     insuranceAll: [],
+    // Insurance rows per patient id (a failed fetch leaves that patient's key absent).
+    patientInsurance: {},
     portal: { data: EMPTY_PORTAL, loaded: false },
     loading: false,
     pending: 0,
@@ -289,6 +296,9 @@ const patientsSlice = createSlice({
     });
     addReadCases(builder, fetchAllInsurance, (state, action) => {
       state.insuranceAll = Array.isArray(action.payload) ? action.payload : [];
+    });
+    addReadCases(builder, fetchPatientInsurance, (state, action) => {
+      state.patientInsurance[action.meta.arg] = Array.isArray(action.payload) ? action.payload : [];
     });
     addWriteCases(builder, createPatient, (state, action) => {
       upsertByKey(state.items, 'patient_id', action.payload);
