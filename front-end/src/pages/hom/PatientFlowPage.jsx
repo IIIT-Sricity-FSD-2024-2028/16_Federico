@@ -59,13 +59,18 @@ export default function PatientFlowPage() {
     // can safely release the bed.
     const ledgerByAdmission = {};
     (Array.isArray(ledgerList) ? ledgerList : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
+    const billsClearedByBed = {};
     const billsClearedByPatient = {};
     (Array.isArray(admissionList) ? admissionList : []).forEach((a) => {
       // Focus on the patient's active admission so a historical paid admission does not falsely clear an unpaid current stay
       if (a.status !== 'DISCHARGED') {
         const ledger = ledgerByAdmission[a.admission_id];
         if (a.receipt_sent_to_hom || (ledger && ledger.status === 'PAID')) {
-          billsClearedByPatient[a.patient_id] = true;
+          if (a.bed_id) {
+            billsClearedByBed[`${a.patient_id}:${a.bed_id}`] = true;
+          } else {
+            billsClearedByPatient[a.patient_id] = true;
+          }
         }
       }
     });
@@ -77,7 +82,9 @@ export default function PatientFlowPage() {
     ).map((r) => ({
       ...r,
       bedNumber: bedsById[r.bed_id]?.bed_number || '-',
-      billsCleared: Boolean(billsClearedByPatient[r.patient_id]),
+      billsCleared: r.bed_id
+        ? Boolean(billsClearedByBed[`${r.patient_id}:${r.bed_id}`])
+        : Boolean(billsClearedByPatient[r.patient_id]),
     }));
   }, [preRequestList, patientList, doctorList, bedList, admissionList, ledgerList]);
 

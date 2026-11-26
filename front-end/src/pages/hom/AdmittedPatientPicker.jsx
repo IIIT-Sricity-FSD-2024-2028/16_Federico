@@ -11,6 +11,7 @@ import { useUiState } from '../../store/hooks.js';
 export default function AdmittedPatientPicker({
   admittedPatients = [],
   selectedUhid = '',
+  selectedAdmissionId = null,
   onSelect,
   placeholder = 'Search admitted patient by name, UHID, or bed...',
   id = 'admitted-patient-picker',
@@ -22,10 +23,14 @@ export default function AdmittedPatientPicker({
   const containerRef = useRef(null);
 
   const selectedPatient = useMemo(() => {
+    if (selectedAdmissionId) {
+      const byAdm = admittedPatients.find((p) => Number(p.admission_id) === Number(selectedAdmissionId));
+      if (byAdm) return byAdm;
+    }
     if (!selectedUhid) return null;
     const clean = String(selectedUhid).trim().toLowerCase();
     return admittedPatients.find((p) => String(p.uhid).toLowerCase() === clean) || null;
-  }, [admittedPatients, selectedUhid]);
+  }, [admittedPatients, selectedUhid, selectedAdmissionId]);
 
   // Close dropdown on click outside and reset transient search query
   useEffect(() => {
@@ -193,7 +198,9 @@ export default function AdmittedPatientPicker({
               </div>
             ) : (
               filtered.map((p) => {
-                const isSelected = selectedPatient?.uhid === p.uhid;
+                const isSelected = selectedPatient?.admission_id
+                  ? Number(selectedPatient.admission_id) === Number(p.admission_id)
+                  : selectedPatient?.uhid === p.uhid;
                 return (
                   <button
                     key={p.admission_id || p.uhid}

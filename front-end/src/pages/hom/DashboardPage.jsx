@@ -121,9 +121,10 @@ export default function HomDashboardPage() {
 
   const totalBeds = d.beds.length || d.wards.reduce((sum, w) => sum + (w.total_beds || 0), 0);
   const occupied = d.beds.filter((b) => b.status === 'OCCUPIED').length;
+  const maintenance = d.beds.filter((b) => b.status === 'MAINTENANCE').length;
   const available = d.beds.length
     ? d.beds.filter((b) => b.status === 'AVAILABLE').length
-    : Math.max(0, totalBeds - occupied);
+    : Math.max(0, totalBeds - occupied - maintenance);
   const occupancyRate = totalBeds > 0 ? Math.round((occupied / totalBeds) * 100) : 0;
 
   const activeStatuses = ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED'];
@@ -190,7 +191,11 @@ export default function HomDashboardPage() {
           <StatCard
             label="Total Beds Managed"
             value={totalBeds}
-            sub={<Badge variant="neutral">{available + ' Available · ' + occupied + ' Occupied'}</Badge>}
+            sub={
+              <Badge variant="neutral">
+                {available + ' Available · ' + occupied + ' Occupied' + (maintenance > 0 ? ' · ' + maintenance + ' Maintenance' : '')}
+              </Badge>
+            }
             variant="default"
           />
           <StatCard

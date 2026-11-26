@@ -36,8 +36,10 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
   const [priority, setPriority] = useUiState('RestockModal.priority', 'normal');
   const [notes, setNotes] = useUiState('RestockModal.notes', '');
   // The File itself is not serializable, so it stays on the DOM side in a ref;
-  // Redux holds only its name (what the form shows).
+  // Redux holds only its name (what the form shows). Keep any uploaded URL so
+  // retrying a failed PO submit does not upload the same file twice.
   const invoiceFileRef = useRef(null);
+  const uploadedInvoiceRef = useRef({ file: null, url: null });
   const [invoiceFileName, setInvoiceFileName] = useUiState('RestockModal.invoiceFileName', null);
   const [invoiceStatus, setInvoiceStatus] = useUiState('RestockModal.invoiceStatus', '');
   const [error, setError] = useUiState('RestockModal.error', '');
@@ -76,16 +78,21 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
 
     let invoiceUrl = null;
     if (invoiceFileRef.current) {
-      setInvoiceStatus('Uploading invoice…');
-      try {
-        const uploaded = await dispatch(uploadInventoryInvoice(invoiceFileRef.current)).unwrap();
-        invoiceUrl = uploaded.url;
-        setInvoiceStatus('Attached: ' + uploaded.originalName);
-      } catch (err) {
-        setError(err.message || 'Unable to upload the invoice file.');
-        setInvoiceStatus('');
-        setSubmitting(false);
-        return;
+      if (uploadedInvoiceRef.current.file === invoiceFileRef.current && uploadedInvoiceRef.current.url) {
+        invoiceUrl = uploadedInvoiceRef.current.url;
+      } else {
+        setInvoiceStatus('Uploading invoice…');
+        try {
+          const uploaded = await dispatch(uploadInventoryInvoice(invoiceFileRef.current)).unwrap();
+          invoiceUrl = uploaded.url;
+          uploadedInvoiceRef.current = { file: invoiceFileRef.current, url: invoiceUrl };
+          setInvoiceStatus('Attached: ' + uploaded.originalName);
+        } catch (err) {
+          setError(err.message || 'Unable to upload the invoice file.');
+          setInvoiceStatus('');
+          setSubmitting(false);
+          return;
+        }
       }
     }
 
@@ -116,7 +123,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
       open
       onClose={onClose}
       title="Request Restock / Purchase Order"
-      subtitle="Generate a non-clinical inventory supply purchase order for Finance approval"
+      subtitle="Create a non-clinical inventory supply purchase order"
       size="md"
       footer={
         <div className="restock-footer">
@@ -144,6 +151,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
                 setItemId(e.target.value);
                 setError('');
               }}
+              disabled={submitting}
             >
               <option value="">Select supply item...</option>
               {data.items.map((i) => (
@@ -183,6 +191,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
               step="1"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
+              disabled={submitting}
             />
           </div>
 
@@ -194,6 +203,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
                 className={`restock-priority-btn ${priority === 'normal' ? 'is-active-normal' : ''}`}
                 id="btn-priority-normal"
                 onClick={() => setPriority('normal')}
+                disabled={submitting}
               >
                 Normal
               </button>
@@ -202,6 +212,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
                 className={`restock-priority-btn ${priority === 'urgent' ? 'is-active-urgent' : ''}`}
                 id="btn-priority-urgent"
                 onClick={() => setPriority('urgent')}
+                disabled={submitting}
               >
                 <svg
                   width="12"
@@ -236,6 +247,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
             placeholder="e.g. MediSupply Co., Global Health Logistics"
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
+            disabled={submitting}
           />
         </div>
 
@@ -264,6 +276,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
               placeholder="Delivery instructions or batch details..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              disabled={submitting}
             />
           </div>
 
@@ -277,10 +290,13 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
                 id="restock-invoice-input"
                 style={{ display: 'none' }}
                 accept="application/pdf,image/png,image/jpeg,image/webp"
+                disabled={submitting}
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   invoiceFileRef.current = file;
+                  uploadedInvoiceRef.current = { file: null, url: null };
                   setInvoiceFileName(file ? file.name : null);
+                  setInvoiceStatus('');
                 }}
               />
               <span className="restock-file-btn">
@@ -311,9 +327,11 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
                   onClick={(e) => {
                     e.preventDefault();
                     invoiceFileRef.current = null;
+                    uploadedInvoiceRef.current = { file: null, url: null };
                     setInvoiceFileName(null);
                     setInvoiceStatus('');
                   }}
+                  disabled={submitting}
                   title="Remove file"
                   aria-label="Remove file"
                 >

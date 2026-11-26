@@ -29,21 +29,21 @@ import {
   selectServices,
 } from '../../store/slices/billingSlice.js';
 
-/** Picks the official payment receipt for the matched bundle. */
-function matchReceipt(receiptList, matchedBundle, row) {
-  let matchedReceipt = null;
-  if (receiptList.length > 0) {
-    if (matchedBundle?.ledger?.ledger_id) {
-      matchedReceipt = receiptList.find((r) => Number(r.ledger_id) === Number(matchedBundle.ledger.ledger_id));
-    }
-    if (!matchedReceipt && matchedBundle?.admission?.admission_id) {
-      matchedReceipt = receiptList.find((r) => Number(r.admission_id) === Number(matchedBundle.admission.admission_id));
-    }
-    if (!matchedReceipt && row.status === 'DISCHARGED') {
-      matchedReceipt = receiptList[receiptList.length - 1] || receiptList[0] || null;
-    }
+/** Collects all official payment receipts belonging to the matched bundle. */
+function matchReceipts(receiptList, matchedBundle) {
+  if (!receiptList.length || !matchedBundle) return [];
+  if (matchedBundle.ledger?.ledger_id) {
+    const byLedger = receiptList.filter(
+      (r) => Number(r.ledger_id) === Number(matchedBundle.ledger.ledger_id),
+    );
+    if (byLedger.length) return byLedger;
   }
-  return matchedReceipt;
+  if (matchedBundle.admission?.admission_id) {
+    return receiptList.filter(
+      (r) => Number(r.admission_id) === Number(matchedBundle.admission.admission_id),
+    );
+  }
+  return [];
 }
 
 /**
@@ -93,11 +93,12 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
     return Array.isArray(fetched) ? fetched : [];
   }, [billingBundle, ledgerEntriesByLedger]);
 
-  // 3. Match the official payment receipt
-  const receipt = useMemo(
-    () => matchReceipt(Array.isArray(patientReceipts) ? patientReceipts : [], billingBundle, row),
-    [patientReceipts, billingBundle, row],
+  // 3. Match the official payment receipt(s) for this admission/ledger
+  const matchingReceipts = useMemo(
+    () => matchReceipts(Array.isArray(patientReceipts) ? patientReceipts : [], billingBundle),
+    [patientReceipts, billingBundle],
   );
+  const receipt = matchingReceipts.length ? matchingReceipts[matchingReceipts.length - 1] : null;
 
   // 4. Discharge summary, when the admission id is known
   const admissionId = billingBundle?.admission?.admission_id;
@@ -151,10 +152,13 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
   if (!row) return null;
 
   const isDischarged = row.status === 'DISCHARGED';
+  const isPaidInFull = isDischarged || billingBundle?.ledger?.status === 'PAID';
   const grossTotal = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const deduction = dischargeSummary?.insurance_deduction ? Number(dischargeSummary.insurance_deduction) : 0;
   const netTotal = dischargeSummary?.final_amount !== undefined ? Number(dischargeSummary.final_amount) : grossTotal - deduction;
-  const paidAmount = receipt?.amount !== undefined ? Number(receipt.amount) : netTotal;
+  const paidAmount = matchingReceipts.length
+    ? matchingReceipts.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+    : netTotal;
 
   const receiptNumber = receipt
     ? `REC-${String(receipt.receipt_id).padStart(5, '0')}`
@@ -303,7 +307,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
             <Button variant="secondary" size="default" onClick={onClose}>
               Close
             </Button>
-            {tab === 'billing' && (receipt || isDischarged) && entries.length > 0 ? (
+            {tab === 'billing' && isPaidInFull && entries.length > 0 ? (
               <button
                 type="button"
                 className="btn btn-primary btn-default"
@@ -423,8 +427,8 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
               </div>
               <div className="pd-field">
                 <span className="pd-field-label">Financial Status</span>
-                <span className="pd-field-value" style={{ color: row.billsCleared || isDischarged ? '#166534' : 'inherit' }}>
-                  {isDischarged || receipt ? 'Paid & Settled' : row.billsCleared ? 'Bills Cleared' : 'Running Ledger'}
+                <span className="pd-field-value" style={{ color: row.billsCleared || isPaidInFull ? '#166534' : 'inherit' }}>
+                  {isPaidInFull ? 'Paid & Settled' : row.billsCleared ? 'Bills Cleared' : 'Running Ledger'}
                 </span>
               </div>
             </div>
@@ -447,7 +451,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
             <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--color-muted-fg, #64748b)', fontSize: 13.5 }}>
               Loading billing and receipt details...
             </div>
-          ) : isDischarged || receipt ? (
+          ) : isPaidInFull ? (
             <>
               {/* Official Receipt Header Banner */}
               <div className="pd-receipt-hero">

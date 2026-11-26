@@ -46,6 +46,7 @@ export default function InventoryPage() {
 
   // Sidebar "Post Usage to Patient" form
   const [sidebarUhid, setSidebarUhid] = useUiState('InventoryPage.sidebarUhid', '');
+  const [sidebarAdmissionId, setSidebarAdmissionId] = useUiState('InventoryPage.sidebarAdmissionId', null);
   const [sidebarItemId, setSidebarItemId] = useUiState('InventoryPage.sidebarItemId', '');
   const [sidebarQty, setSidebarQty] = useUiState('InventoryPage.sidebarQty', 1);
   const [sidebarError, setSidebarError] = useUiState('InventoryPage.sidebarError', '');
@@ -112,7 +113,7 @@ export default function InventoryPage() {
    * then forward the charge to Finance as a pending "leader". HOM never writes
    * a patient ledger directly - FA approves every charge.
    */
-  async function postUsage(uhid, itemId, qty) {
+  async function postUsage(uhid, itemId, qty, admissionId = null) {
     const patient = findPatientByUhid(uhid, d.patients);
     if (!patient) throw new Error('Patient with UHID "' + uhid + '" was not found.');
     const item = d.items.find((i) => i.item_id === Number(itemId));
@@ -128,9 +129,15 @@ export default function InventoryPage() {
       const { bills } = await dispatch(fetchPatientBills(patient.patient_id))
         .unwrap()
         .catch(() => ({ bills: [] }));
-      const activeBundle = (Array.isArray(bills) ? bills : []).find(
-        (b) => b.admission && b.admission.status !== 'DISCHARGED',
-      );
+      const billList = Array.isArray(bills) ? bills : [];
+      const activeBundle =
+        (admissionId
+          ? billList.find(
+              (b) => b.admission && Number(b.admission.admission_id) === Number(admissionId) && b.admission.status !== 'DISCHARGED',
+            )
+          : null) ||
+        billList.find((b) => b.admission && b.admission.status === 'ADMITTED') ||
+        billList.find((b) => b.admission && b.admission.status !== 'DISCHARGED');
       if (activeBundle && activeBundle.admission) {
         try {
           await dispatch(
@@ -179,8 +186,9 @@ export default function InventoryPage() {
     setSidebarError('');
     setPostingUsage(true);
     try {
-      await postUsage(sidebarUhid.trim(), itemId, qty);
+      await postUsage(sidebarUhid.trim(), itemId, qty, sidebarAdmissionId);
       setSidebarUhid('');
+      setSidebarAdmissionId(null);
       setSidebarItemId('');
       setSidebarQty(1);
     } catch (err) {
@@ -411,8 +419,10 @@ export default function InventoryPage() {
                     id="sidebar-uhid"
                     admittedPatients={admittedPatients}
                     selectedUhid={sidebarUhid}
+                    selectedAdmissionId={sidebarAdmissionId}
                     onSelect={(p) => {
                       setSidebarUhid(p ? p.uhid : '');
+                      setSidebarAdmissionId(p ? p.admission_id : null);
                       setSidebarError('');
                     }}
                     error={Boolean(sidebarError)}
