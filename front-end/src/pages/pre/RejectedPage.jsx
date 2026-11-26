@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import Badge from '../../components/ui/Badge.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
@@ -17,7 +18,8 @@ import { selectDoctors } from '../../store/slices/doctorsSlice.js';
 export default function RejectedPage() {
   useDocumentTitle('Rejected Requests');
 
-  const { loading, error } = useLoader(loadPreRejected);
+  const { loading, error, reload } = useLoader(loadPreRejected);
+  usePolling(reload, 15000);
   const preRequestList = useAppSelector(selectPreRequests);
   const patientList = useAppSelector(selectPatients);
   const doctorList = useAppSelector(selectDoctors);

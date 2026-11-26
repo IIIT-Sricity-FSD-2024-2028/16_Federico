@@ -261,4 +261,120 @@ describe('Patient Appointment Advance Booking Constraint Suite', () => {
       expect(preRequest.status).toBe('PENDING');
     });
   });
+
+  describe('PRE approval stores the confirmed appointment slot', () => {
+    const preTok = createSession({ userId: 105, role: 'PRE', organizationId: 1, hospitalId: 1 });
+    const scenarios = [
+      { label: 'the originally requested slot', requestedTime: '10:00 AM', approvedTime: '10:00 AM' },
+      { label: 'a revised slot', requestedTime: '12:00 PM', approvedTime: '11:00 AM' },
+    ];
+
+    it.each(scenarios)('returns $label from the patient portal API', async ({ requestedTime, approvedTime }) => {
+      const targetDate = getNextWeekday(TODAY, 5);
+      let preRequestId;
+      let appointmentId;
+
+      try {
+        const createRes = await request(app)
+          .post('/pre-requests')
+          .set('Authorization', `Bearer ${patientSession}`)
+          .send({
+            patient_id: testPatient.patient_id,
+            doctor_id: 401,
+            department: 'General Medicine',
+            visit_type: 'Consultation',
+            requested_date: targetDate,
+            requested_time: requestedTime,
+          });
+
+        expect(createRes.status).toBe(201);
+        preRequestId = createRes.body.pre_request_id;
+        expect(createRes.body.requested_date).toBe(targetDate);
+        expect(createRes.body.requested_time).toBe(requestedTime);
+
+        const approveRes = await request(app)
+          .put(`/pre-requests/${preRequestId}`)
+          .set('Authorization', `Bearer ${preTok}`)
+          .send({
+            status: 'APPROVED',
+            doctor_id: 401,
+            requested_date: targetDate,
+            requested_time: approvedTime,
+          });
+
+        expect(approveRes.status).toBe(200);
+        expect(approveRes.body.requested_date).toBe(targetDate);
+        expect(approveRes.body.requested_time).toBe(approvedTime);
+        appointmentId = approveRes.body.appointment_id;
+
+        const portalRes = await request(app)
+          .get(`/patient/portal/summary/${testPatient.patient_id}`)
+          .set('Authorization', `Bearer ${patientSession}`);
+
+        expect(portalRes.status).toBe(200);
+        const appointment = portalRes.body.appointments.find((item) => item.appointment_id === appointmentId);
+        expect(appointment).toMatchObject({
+          appointment_date: targetDate,
+          appointment_time: approvedTime,
+          status: 'CONFIRMED',
+        });
+      } finally {
+        if (preRequestId) {
+          dataStore.preRequests = dataStore.preRequests.filter((item) => item.pre_request_id !== preRequestId);
+        }
+        if (appointmentId) {
+          dataStore.appointments = dataStore.appointments.filter((item) => item.appointment_id !== appointmentId);
+        }
+      }
+    });
+
+    it('allows PRE field-only updates (Follow-Up / Admit / reschedule) and blocks Patient from field-only updates', async () => {
+      const targetDate = getNextWeekday(TODAY, 5);
+      const revisedDate = getNextWeekday(TODAY, 6);
+      let preRequestId;
+
+      try {
+        const createRes = await request(app)
+          .post('/pre-requests')
+          .set('Authorization', `Bearer ${patientSession}`)
+          .send({
+            patient_id: testPatient.patient_id,
+            doctor_id: 401,
+            department: 'General Medicine',
+            visit_type: 'Consultation',
+            requested_date: targetDate,
+            requested_time: '10:00 AM',
+          });
+        expect(createRes.status).toBe(201);
+        preRequestId = createRes.body.pre_request_id;
+
+        const followUpRes = await request(app)
+          .put(`/pre-requests/${preRequestId}`)
+          .set('Authorization', `Bearer ${preTok}`)
+          .send({ visit_type: 'Follow-Up' });
+        expect(followUpRes.status).toBe(200);
+        expect(followUpRes.body.visit_type).toBe('Follow-Up');
+
+        const admitPrepRes = await request(app)
+          .put(`/pre-requests/${preRequestId}`)
+          .set('Authorization', `Bearer ${preTok}`)
+          .send({ visit_type: 'Admit', ward_type: 'General Ward', requested_date: revisedDate, requested_time: '11:30 AM' });
+        expect(admitPrepRes.status).toBe(200);
+        expect(admitPrepRes.body.visit_type).toBe('Admit');
+        expect(admitPrepRes.body.ward_type).toBe('General Ward');
+        expect(admitPrepRes.body.requested_date).toBe(revisedDate);
+        expect(admitPrepRes.body.requested_time).toBe('11:30 AM');
+
+        const patientRes = await request(app)
+          .put(`/pre-requests/${preRequestId}`)
+          .set('Authorization', `Bearer ${patientSession}`)
+          .send({ requested_date: targetDate });
+        expect(patientRes.status).toBe(403);
+      } finally {
+        if (preRequestId) {
+          dataStore.preRequests = dataStore.preRequests.filter((item) => item.pre_request_id !== preRequestId);
+        }
+      }
+    });
+  });
 });

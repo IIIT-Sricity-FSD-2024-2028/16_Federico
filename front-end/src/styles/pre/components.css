@@ -352,15 +352,15 @@ tr:hover {
   box-shadow: var(--shadow-2);
 }
 
-/* Suggest / Secondary neutral */
-.suggest,
-.btn.suggest {
+/* Neutral secondary action */
+.neutral-action,
+.btn.neutral-action {
   background: var(--md-surface-container-high, #ece6f0);
   color: var(--md-on-surface-variant, #49454f);
   border: 1px solid var(--md-outline-variant, #cac4d0);
 }
-.suggest:hover,
-.btn.suggest:hover {
+.neutral-action:hover,
+.btn.neutral-action:hover {
   background: var(--md-surface-variant, #e7e0ec);
   color: var(--color-fg, #1c1b1f);
 }
@@ -713,35 +713,6 @@ tr:hover {
   }
 }
 
-/* SUGGEST POPUP */
-
-.suggest-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.suggest-box {
-  background: var(--md-surface-container-high);
-  padding: 32px;
-  border-radius: var(--radius-xl);
-  width: 420px;
-  box-shadow: var(--shadow-4);
-  animation: popupFade var(--duration-base) var(--ease-standard);
-}
-
-.suggest-box h2 {
-  margin-bottom: 20px;
-  text-align: center;
-}
-
 .form-group {
   margin-bottom: 16px;
 }
@@ -853,8 +824,7 @@ tr:hover {
 
 /* Common overlay for all popups */
 .approve-popup,
-.reject-popup,
-.suggest-popup {
+.reject-popup {
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -872,8 +842,7 @@ tr:hover {
 
 /* Common box styling — Material You dialog surface */
 .approve-box,
-.reject-box,
-.suggest-box {
+.reject-box {
   background: var(--md-surface-container-high, #ffffff);
   padding: 32px;
   border-radius: var(--radius-xl, 24px);
@@ -987,7 +956,7 @@ tr:hover {
   color: #fff;
 }
 
-/* Popup polish for PRE approval / reschedule / reject forms */
+/* Popup polish for PRE approval / rejection forms */
 .popup-header-block {
   text-align: left;
   margin-bottom: 24px;
@@ -1024,11 +993,6 @@ tr:hover {
 .popup-kicker-approve {
   background: var(--status-success-bg);
   color: var(--status-success-fg);
-}
-
-.popup-kicker-suggest {
-  background: var(--status-info-bg);
-  color: var(--status-info-fg);
 }
 
 .popup-kicker-reject {
@@ -1070,8 +1034,6 @@ tr:hover {
 .popup-textarea,
 .approve-box input,
 .approve-box select,
-.suggest-box input,
-.suggest-box select,
 .reject-box textarea {
   width: 100%;
   min-height: 56px;
@@ -1090,7 +1052,6 @@ tr:hover {
 .popup-input::placeholder,
 .popup-textarea::placeholder,
 .approve-box input::placeholder,
-.suggest-box input::placeholder,
 .reject-box textarea::placeholder {
   font-family: var(--font-body);
   color: var(--color-muted-fg);
@@ -1101,8 +1062,6 @@ tr:hover {
 .popup-textarea:focus,
 .approve-box input:focus,
 .approve-box select:focus,
-.suggest-box input:focus,
-.suggest-box select:focus,
 .reject-box textarea:focus {
   outline: none;
   border-bottom-color: var(--md-primary);
@@ -1125,8 +1084,7 @@ tr:hover {
 }
 
 .approve-box,
-.reject-box,
-.suggest-box {
+.reject-box {
   padding: 32px;
   border-radius: var(--radius-xl);
   width: 500px;
@@ -1527,18 +1485,6 @@ tr:hover {
   }
 }
 
-.suggest-date-time-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-@media (max-width: 500px) {
-  .suggest-date-time-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .approve-date-input {
   width: 100%;
   height: 42px;
@@ -1619,8 +1565,7 @@ tr:hover {
 
 @media (max-width: 640px) {
   .approve-box,
-  .reject-box,
-  .suggest-box {
+  .reject-box {
     padding: 24px;
     width: min(100%, 420px);
   }

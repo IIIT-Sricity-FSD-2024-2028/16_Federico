@@ -15,7 +15,7 @@ const createPreRequestRules = [
 
 // Covers both kinds of PUT body (see preRequest.controller.js#update):
 // a status transition ({status, reject_reason?}) or a field update
-// (doctor_id/requested_date/requested_time/department/ward_type). No
+// (doctor_id/requested_date/requested_time/department/ward_type/visit_type). No
 // `bed_id` or `hom_status` here — bed assignment only ever happens
 // through the ward bed-allocation cascade, and hom_status is derived
 // server-side from the status transition, never client-settable.

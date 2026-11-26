@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import { toast } from '../../components/feedback/feedback.js';
 import StatCard from '../../components/ui/StatCard.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -30,6 +31,7 @@ export default function PreDashboardPage() {
 
   const dispatch = useAppDispatch();
   const { reload, error } = useLoader(loadPreDashboard);
+  usePolling(reload, 15000);
   const all = useAppSelector(selectPreRequests);
   const patients = useAppSelector(selectPatients);
   const doctors = useAppSelector(selectDoctors);
@@ -154,7 +156,7 @@ export default function PreDashboardPage() {
                         <Badge variant="warning">Awaiting HOM Bed</Badge>
                       ) : (
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <Button variant="secondary" size="sm" className="suggest" onClick={() => completeFollowUp(r.pre_request_id)}>
+                          <Button variant="secondary" size="sm" className="neutral-action" onClick={() => completeFollowUp(r.pre_request_id)}>
                             Follow Up
                           </Button>
                           <Button variant="primary" size="sm" className="approve" onClick={() => setBedRequestId(r.pre_request_id)}>

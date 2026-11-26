@@ -74,6 +74,17 @@ function canTransition(fromStatus, toStatus, actorRole) {
   return Boolean(allowedActors && allowedActors.includes(actorRole));
 }
 
+function buildScheduledDatetime(date, time) {
+  if (!date) return null;
+  const timePart = time
+    ? (String(time).includes(':') ? String(time) : '09:00:00')
+    : '09:00:00';
+  const combined = new Date(`${date} ${timePart}`);
+  return !isNaN(combined.getTime())
+    ? combined.toISOString()
+    : `${date}T09:00:00.000Z`;
+}
+
 function isTerminal(status) {
   return ['REJECTED', 'CONSULTATION_DONE', 'DISCHARGED'].includes(status);
 }
@@ -87,14 +98,10 @@ function findAll(predicate = null) {
  * the doctor's slot is visible to later double-booking checks.
  */
 function createLinkedAppointment(request) {
-  const timePart = request.requested_time
-    ? (request.requested_time.includes(':') ? request.requested_time : '09:00:00')
-    : '09:00:00';
-  let scheduledDatetime = null;
-  if (request.requested_date) {
-    const combined = new Date(`${request.requested_date} ${timePart}`);
-    scheduledDatetime = !isNaN(combined.getTime()) ? combined.toISOString() : `${request.requested_date}T09:00:00.000Z`;
-  }
+  const scheduledDatetime = buildScheduledDatetime(
+    request.requested_date,
+    request.requested_time,
+  );
 
   const orgId = request.organization_id ? Number(request.organization_id) : null;
   const fallbackUser = orgId ? (dataStore.users.find((u) => u.organization_id === orgId)?.user_id || 101) : 101;
@@ -203,6 +210,9 @@ function create(payload, createdBy) {
     decided_at: null,
   };
   dataStore.preRequests.push(newRequest);
+  if (initialStatus === 'APPROVED' && !newRequest.appointment_id) {
+    createLinkedAppointment(newRequest);
+  }
 
   const patient = dataStore.patients.find(
     (p) => p.patient_id === newRequest.patient_id,
@@ -219,14 +229,23 @@ function create(payload, createdBy) {
 
 /**
  * Field-level update (doctor/date/time/department/ward_type/visit_type) —
- * PRE rescheduling or assigning a doctor. Does not change status. If a
- * linked appointment exists, its matching fields are synchronized too.
+ * PRE rescheduling, follow-up tagging, or bed-request prep. Does not change
+ * status. If a linked appointment exists, its matching fields are synchronized.
  */
 function updateFields(id, patch) {
   const request = findOne(id);
   if (!request) return null;
 
-  const allowedFields = ['doctor_id', 'requested_date', 'requested_time', 'department', 'ward_type', 'visit_type', 'note', 'document_urls'];
+  const allowedFields = [
+    'doctor_id',
+    'requested_date',
+    'requested_time',
+    'department',
+    'ward_type',
+    'visit_type',
+    'note',
+    'document_urls',
+  ];
   const updateData = {};
   for (const field of allowedFields) {
     if (patch[field] !== undefined) {
@@ -244,13 +263,17 @@ function updateFields(id, patch) {
     if (appointment) {
       if (updateData.requested_date) {
         appointment.appointment_date = updateData.requested_date;
-        const timePart = updateData.requested_time
-          ? (updateData.requested_time.includes(':') ? updateData.requested_time : '09:00:00')
-          : '09:00:00';
-        const combined = new Date(`${updateData.requested_date} ${timePart}`);
-        appointment.scheduled_datetime = !isNaN(combined.getTime()) ? combined.toISOString() : `${updateData.requested_date}T09:00:00.000Z`;
       }
-      if (updateData.requested_time) appointment.appointment_time = updateData.requested_time;
+      if (updateData.requested_time) {
+        appointment.appointment_time = updateData.requested_time;
+      }
+      if (updateData.requested_date || updateData.requested_time) {
+        appointment.scheduled_datetime =
+          buildScheduledDatetime(
+            appointment.appointment_date,
+            appointment.appointment_time,
+          ) || appointment.scheduled_datetime;
+      }
       if (updateData.doctor_id) appointment.doctor_id = Number(updateData.doctor_id);
       if (updateData.department) appointment.department = updateData.department;
       if (updateData.visit_type) appointment.visit_type = updateData.visit_type;
@@ -329,6 +352,16 @@ function transition(id, toStatus, actorRole, extra) {
     );
     if (appointment) {
       if (toStatus === 'APPROVED') {
+        // The approval payload may revise the requested slot. Persist that
+        // final schedule on the confirmed appointment returned to the patient.
+        appointment.appointment_date = request.requested_date || appointment.appointment_date;
+        appointment.appointment_time = request.requested_time || appointment.appointment_time;
+        appointment.scheduled_datetime = buildScheduledDatetime(
+          appointment.appointment_date,
+          appointment.appointment_time,
+        ) || appointment.scheduled_datetime;
+        appointment.doctor_id = request.doctor_id || appointment.doctor_id;
+        appointment.department = request.department || appointment.department;
         appointment.status = 'CONFIRMED';
       } else if (toStatus === 'REJECTED') {
         appointment.status = 'CANCELLED';

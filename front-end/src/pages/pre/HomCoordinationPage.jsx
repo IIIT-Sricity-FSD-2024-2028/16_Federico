@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import Badge from '../../components/ui/Badge.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
@@ -19,7 +20,8 @@ export default function HomCoordinationPage() {
   const [statusFilter, setStatusFilter] = useUiState('HomCoordinationPage.statusFilter', '');
   const [wardFilter, setWardFilter] = useUiState('HomCoordinationPage.wardFilter', '');
 
-  const { loading, error } = useLoader(loadPreBedCoordination);
+  const { loading, error, reload } = useLoader(loadPreBedCoordination);
+  usePolling(reload, 15000);
   const patientList = useAppSelector(selectPatients);
   const bedRequestList = useAppSelector(selectBedRequests);
   const wardList = useAppSelector(selectWards);

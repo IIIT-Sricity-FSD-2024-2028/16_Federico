@@ -20,8 +20,11 @@ function enrichAppointment(apt) {
   if (docId) {
     const doc = dataStore.doctors.find((d) => d.doctor_id === docId);
     if (doc) {
-      if (!apt.doctor_name) apt.doctor_name = doc.name;
-      if (!apt.department) apt.department = doc.specialization;
+      return {
+        ...apt,
+        doctor_name: doc.name,
+        department: apt.department || doc.specialization,
+      };
     }
   }
   return apt;

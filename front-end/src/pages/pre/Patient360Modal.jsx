@@ -89,11 +89,14 @@ export default function Patient360Modal({ patient, doctorsById, bedsById, onClos
                 <tbody>
                   {encounters.map((enc, i) => {
                     const doc = enc.doctor_id ? doctorsById[enc.doctor_id] : null;
+                    const scheduledParts = enc.scheduled_datetime ? String(enc.scheduled_datetime).split('T') : [];
+                    const encDate = enc.appointment_date || enc.requested_date || scheduledParts[0] || enc.created_at;
+                    const encTime = enc.appointment_time || enc.requested_time || (scheduledParts[1] ? scheduledParts[1].slice(0, 5) : '');
                     return (
                       <tr key={i}>
                         <td>
-                          {formatDate(enc.scheduled_datetime || enc.requested_date || enc.created_at)}{' '}
-                          <small>({to12Hour(enc.scheduled_datetime ? enc.scheduled_datetime.slice(11, 16) : enc.requested_time) || ''})</small>
+                          {formatDate(encDate)}{' '}
+                          <small>({to12Hour(encTime) || ''})</small>
                         </td>
                         <td>{enc.department || (doc ? doc.specialization : 'General')}</td>
                         <td>{doc ? doc.name : 'Attending Specialist'}</td>
@@ -147,7 +150,7 @@ export default function Patient360Modal({ patient, doctorsById, bedsById, onClos
         </div>
 
         <div className="emergency-modal-actions" style={{ justifyContent: 'flex-end' }}>
-          <Button variant="secondary" className="suggest" type="button" style={{ borderRadius: 'var(--radius-full, 9999px)', padding: '8px 20px' }} onClick={onClose}>
+          <Button variant="secondary" className="neutral-action" type="button" style={{ borderRadius: 'var(--radius-full, 9999px)', padding: '8px 20px' }} onClick={onClose}>
             Close
           </Button>
         </div>

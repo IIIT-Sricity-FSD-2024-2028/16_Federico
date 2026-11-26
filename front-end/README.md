@@ -89,7 +89,7 @@ working.
 |---|---|
 | `/PRE/` and `/PRE/index.html` | redirect to the dashboard |
 | `/PRE/pages/PRE.html` | Dashboard counters and approved patients |
-| `/PRE/pages/request.html` | Pending pre-requests: approve / suggest / reject |
+| `/PRE/pages/request.html` | Pending pre-requests: approve / reject |
 | `/PRE/pages/rejected.html` | Rejected requests |
 | `/PRE/pages/admitted.html` | Admitted inpatients |
 | `/PRE/pages/discharge.html` | Discharge requests and HOM approvals |

@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
@@ -36,7 +37,8 @@ export default function PatientRecordsPage() {
   const [bloodFilter, setBloodFilter] = useUiState('PatientRecordsPage.bloodFilter', '');
   const [detailId, setDetailId] = useUiState('PatientRecordsPage.detailId', null);
 
-  const { error } = useLoader(loadPrePatientRecords);
+  const { error, reload } = useLoader(loadPrePatientRecords);
+  usePolling(reload, 15000);
   const patients = useAppSelector(selectPatients);
   const insurances = useAppSelector((state) => state.patients.insuranceAll);
   const preRequests = useAppSelector(selectPreRequests);

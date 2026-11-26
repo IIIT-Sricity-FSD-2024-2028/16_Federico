@@ -150,8 +150,8 @@ const PUBLICLY_SETTABLE_STATUSES = new Set([
  *    permitted moves in preRequestService.TRANSITIONS. A session-less
  *    legacy x-role SUPER_USER call skips the actor check (same "admin can
  *    do anything" bypass every other resource already has).
- *  - status absent -> a field update (doctor/date/time/department), PRE
- *    only (rescheduling), never Patient.
+ *  - status absent -> a field update (doctor/date/time/department/visit_type/
+ *    ward_type), PRE/HOM/OPERATIONS only, never Patient.
  */
 function update(req, res) {
   const existing = preRequestService.findOne(+req.params.id);
@@ -210,21 +210,22 @@ function update(req, res) {
       if (doctorId) {
         const doctor = doctorService.findDoctorById(doctorId);
         if (!belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
-      }
-      const requestedDate = req.body.requested_date || existing.requested_date;
-      const requestedTime = req.body.requested_time || existing.requested_time;
-      const availability = doctorService.isDoctorAvailableAt(
-        doctorId,
-        requestedDate,
-        requestedTime,
-        existing.appointment_id || null,
-      );
-      if (!availability.available) {
-        return res.status(409).json({
-          message: availability.message,
-          error: 'Conflict',
-          statusCode: 409,
-        });
+
+        const requestedDate = req.body.requested_date || existing.requested_date;
+        const requestedTime = req.body.requested_time || existing.requested_time;
+        const availability = doctorService.isDoctorAvailableAt(
+          doctorId,
+          requestedDate,
+          requestedTime,
+          existing.appointment_id || null,
+        );
+        if (!availability.available) {
+          return res.status(409).json({
+            message: availability.message,
+            error: 'Conflict',
+            statusCode: 409,
+          });
+        }
       }
     }
 
@@ -256,7 +257,7 @@ function update(req, res) {
     return res.status(403).json(FORBIDDEN);
   }
 
-  sendResult(
+  return sendResult(
     res,
     preRequestService.updateFields(existing.pre_request_id, req.body),
     200,

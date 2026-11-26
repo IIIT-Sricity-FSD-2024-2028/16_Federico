@@ -235,8 +235,8 @@ export function openAppointmentSlip(record, profile = {}) {
   const tokenNo = `APT-${record.appointmentId || '001'}`;
   const docName = record.doctorName || 'Duty Doctor';
   const dept = record.department || 'General Medicine';
-  const slotDate = record.scheduledDate || record.date || '—';
-  const slotTime = record.scheduledTime || '10:00 AM';
+  const slotDate = record.scheduledDate || record.displayDate || record.date || '—';
+  const slotTime = record.scheduledTime || record.time || '10:00 AM';
   const notes = record.notes ? record.notes : 'General consultation and medical check-up.';
 
   const html = `

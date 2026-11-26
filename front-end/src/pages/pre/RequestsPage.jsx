@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import Button from '../../components/ui/Button.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
@@ -9,7 +10,6 @@ import SearchToolbar from '../../components/ui/SearchToolbar.jsx';
 import PageHeader from '../../components/layout/PageHeader.jsx';
 import { joinPreRequestsWithPatients, statusLabel, formatDate, to12Hour } from './preHelpers.js';
 import ApprovePopup from './ApprovePopup.jsx';
-import SuggestPopup from './SuggestPopup.jsx';
 import RejectPopup from './RejectPopup.jsx';
 import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
 import { loadPreRequests } from '../../store/pageLoaders.js';
@@ -23,7 +23,7 @@ import { selectDoctors } from '../../store/slices/doctorsSlice.js';
  * Note the filename pair: the page is request.html (singular), its script was
  * requests.js (plural). They belong together - DEC-12.
  *
- * The three popups were built with document.createElement + innerHTML and
+ * The action popups were built with document.createElement + innerHTML and
  * embedded onclick strings; they are controlled components here.
  */
 export default function RequestsPage() {
@@ -31,6 +31,7 @@ export default function RequestsPage() {
   const [popup, setPopup] = useUiState('RequestsPage.popup', null); // { kind, id }
 
   const { loading, error, reload } = useLoader(loadPreRequests);
+  usePolling(reload, 15000);
   const preRequestList = useAppSelector(selectPreRequests);
   const patientList = useAppSelector(selectPatients);
   const doctorList = useAppSelector(selectDoctors);
@@ -183,7 +184,6 @@ export default function RequestsPage() {
                   <td>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
                       <Button variant="primary" size="sm" className="approve" onClick={() => setPopup({ kind: 'approve', id: r.pre_request_id })}>Approve</Button>
-                      <Button variant="secondary" size="sm" className="suggest" onClick={() => setPopup({ kind: 'suggest', id: r.pre_request_id })}>Suggest</Button>
                       <Button variant="danger" size="sm" className="reject" onClick={() => setPopup({ kind: 'reject', id: r.pre_request_id })}>Reject</Button>
                     </div>
                   </td>
@@ -196,9 +196,6 @@ export default function RequestsPage() {
 
       {popup?.kind === 'approve' ? (
         <ApprovePopup request={activeRequest} doctors={doctors} onClose={() => setPopup(null)} onDone={reload} />
-      ) : null}
-      {popup?.kind === 'suggest' ? (
-        <SuggestPopup request={activeRequest} doctors={doctors} onClose={() => setPopup(null)} onDone={reload} />
       ) : null}
       {popup?.kind === 'reject' ? (
         <RejectPopup request={activeRequest} onClose={() => setPopup(null)} onDone={reload} />
