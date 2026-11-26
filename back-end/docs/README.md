@@ -55,12 +55,12 @@ The system comes pre-seeded with accounts for all platform and hospital roles:
 
 | Role / Portal | Name / Description | Email | Password | Primary Portal |
 |:---|:---|:---|:---|:---|
-| **Platform Super User** | Platform Owner | `super.platform@federico.com` | `Federico@Platform123` | `/platform/platform-dashboard.html` |
-| **Hospital Admin** | Hospital Owner / Admin | `owner.admin@citygen.com` | `Owner@123` | `/Admin/screen-01-dashboard.html` |
-| **HOM (Hospital Ops Manager)** | Operations Lead | `admin.hom@citygen.com` | `Hom@123` | `/HOM/screen-01-dashboard.html` |
-| **PRE (Patient Relations Exec)** | Intake & Front Desk | `rekha.pre@citygen.com` | `Pre@123` | `/PRE/pages/PRE.html` |
-| **FA (Finance Administrator)** | Billing & Cashier | `farah.fa@citygen.com` | `Fa@123` | `/FA/fa-dashboard.html` |
-| **Patient** | Arjun Kapoor | `arjun.k@hosp.com` | `Hamiz@123` | `/Patient/patient-dashboard.html` |
+| **Platform Super User** | Platform Owner | `super.platform@federico.com` | `Federico@Platform123` | `/platform` |
+| **Hospital Admin** | Hospital Owner / Admin | `owner.admin@citygen.com` | `Owner@123` | `/admin/dashboard` |
+| **HOM (Hospital Ops Manager)** | Operations Lead | `admin.hom@citygen.com` | `Hom@123` | `/hom/dashboard` |
+| **PRE (Patient Relations Exec)** | Intake & Front Desk | `rekha.pre@citygen.com` | `Pre@123` | `/pre/dashboard` |
+| **FA (Finance Administrator)** | Billing & Cashier | `farah.fa@citygen.com` | `Fa@123` | `/fa` |
+| **Patient** | Arjun Kapoor | `arjun.k@hosp.com` | `Hamiz@123` | `/patient/dashboard` |
 
 ---
 

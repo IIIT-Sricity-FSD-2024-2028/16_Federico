@@ -92,12 +92,12 @@ src/
 
 | Role | Email | Password | Primary Portal |
 | :--- | :--- | :--- | :--- |
-| **Platform Super User** | `super.platform@federico.com` | `Federico@Platform123` | `/platform/platform-dashboard.html` |
-| **Hospital Admin** | `owner.admin@citygen.com` | `Owner@123` | `/Admin/screen-01-dashboard.html` |
-| **Hospital Operations (HOM)** | `admin.hom@citygen.com` | `Hom@123` | `/HOM/screen-01-dashboard.html` |
-| **Patient Registration (PRE)** | `rekha.pre@citygen.com` | `Pre@123` | `/PRE/pages/PRE.html` |
-| **Finance Associate (FA)** | `farah.fa@citygen.com` | `Fa@123` | `/FA/fa-dashboard.html` |
-| **Patient** | `arjun.k@hosp.com` | `Hamiz@123` | `/Patient/patient-dashboard.html` |
+| **Platform Super User** | `super.platform@federico.com` | `Federico@Platform123` | `/platform` |
+| **Hospital Admin** | `owner.admin@citygen.com` | `Owner@123` | `/admin/dashboard` |
+| **Hospital Operations (HOM)** | `admin.hom@citygen.com` | `Hom@123` | `/hom/dashboard` |
+| **Patient Registration (PRE)** | `rekha.pre@citygen.com` | `Pre@123` | `/pre/dashboard` |
+| **Finance Associate (FA)** | `farah.fa@citygen.com` | `Fa@123` | `/fa` |
+| **Patient** | `arjun.k@hosp.com` | `Hamiz@123` | `/patient/dashboard` |
 
 ---
 

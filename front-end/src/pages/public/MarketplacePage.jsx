@@ -77,14 +77,14 @@ function OrgCard({ org }) {
       <div className="hospital-actions-row">
         <Link
           className="btn-hospital-primary"
-          to={`/signup/signup-page.html?org=${encodeURIComponent(org.organization_id)}`}
+          to={`/signup?org=${encodeURIComponent(org.organization_id)}`}
         >
           <span>Register as Patient</span>
           <ArrowRight size={14} />
         </Link>
         <Link
           className="btn-hospital-secondary"
-          to={`/login/login-page.html?org=${encodeURIComponent(org.organization_id)}`}
+          to={`/login?org=${encodeURIComponent(org.organization_id)}`}
         >
           <span>Patient Sign In</span>
         </Link>
@@ -118,7 +118,7 @@ export default function MarketplacePage() {
       {/* 2. Frosted Glass Top Navigation */}
       <header className="marketplace-topbar">
         <div className="marketplace-topbar-content">
-          <Link className="marketplace-brand" to="/landing/landing-page.html">
+          <Link className="marketplace-brand" to="/landing">
             <div className="brand-badge-icon">
               <span>F</span>
             </div>

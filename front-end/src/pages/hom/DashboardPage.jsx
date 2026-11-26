@@ -11,6 +11,7 @@ import EmptyState from '../../components/ui/EmptyState.jsx';
 import { statusLabel, formatDateTime, joinPreRequestsWithPatients } from './homHelpers.js';
 import { toast } from '../../components/feedback/feedback.js';
 import AssignBedModal from './AssignBedModal.jsx';
+import HomLoadBanner from './HomLoadBanner.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import dashboardCss from '../../styles/hom/dashboard.css?inline';
 import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
@@ -101,9 +102,10 @@ export default function HomDashboardPage() {
   usePageStyles(dashboardCss);
   useDocumentTitle('Dashboard | Federico Hospital HOM');
   const [selectedBedRequestId, setSelectedBedRequestId] = useUiState('DashboardPage.selectedBedRequestId', null);
+  const [approvingId, setApprovingId] = useUiState('DashboardPage.approvingId', null);
 
   const dispatch = useAppDispatch();
-  const { reload } = useLoader(loadHomDashboard);
+  const { loading, loaded, error, reload } = useLoader(loadHomDashboard);
   const arr = (v) => (Array.isArray(v) ? v : []);
   const d = {
     preRequests: arr(useAppSelector(selectPreRequests)),
@@ -119,9 +121,10 @@ export default function HomDashboardPage() {
 
   const totalBeds = d.beds.length || d.wards.reduce((sum, w) => sum + (w.total_beds || 0), 0);
   const occupied = d.beds.filter((b) => b.status === 'OCCUPIED').length;
+  const maintenance = d.beds.filter((b) => b.status === 'MAINTENANCE').length;
   const available = d.beds.length
     ? d.beds.filter((b) => b.status === 'AVAILABLE').length
-    : Math.max(0, totalBeds - occupied);
+    : Math.max(0, totalBeds - occupied - maintenance);
   const occupancyRate = totalBeds > 0 ? Math.round((occupied / totalBeds) * 100) : 0;
 
   const activeStatuses = ['ADMITTED', 'DISCHARGE_REQUESTED', 'DISCHARGE_APPROVED'];
@@ -148,15 +151,19 @@ export default function HomDashboardPage() {
 
   const approveDischarge = useCallback(
     async (preRequestId) => {
+      if (approvingId === preRequestId) return;
+      setApprovingId(preRequestId);
       try {
         await dispatch(updatePreRequest({ id: preRequestId, patch: { status: 'DISCHARGE_APPROVED' } })).unwrap();
+        toast('Discharge clearance approved successfully. PRE notified to finalize release.', 'success');
+        await reload();
       } catch (err) {
         toast(err.message || 'Unable to approve discharge.', 'error');
-        return;
+      } finally {
+        setApprovingId(null);
       }
-      await reload();
     },
-    [dispatch, reload],
+    [approvingId, dispatch, reload, setApprovingId],
   );
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -171,11 +178,24 @@ export default function HomDashboardPage() {
           subtitle={`${today} · Live operational overview`}
         />
 
+        <HomLoadBanner
+          error={error}
+          loading={loading}
+          loaded={loaded}
+          onRetry={reload}
+          loadingText="Loading operational overview..."
+          errorFallback="Failed to load dashboard data."
+        />
+
         <div className="metrics-grid">
           <StatCard
             label="Total Beds Managed"
             value={totalBeds}
-            sub={<Badge variant="neutral">{available + ' Available · ' + occupied + ' Occupied'}</Badge>}
+            sub={
+              <Badge variant="neutral">
+                {available + ' Available · ' + occupied + ' Occupied' + (maintenance > 0 ? ' · ' + maintenance + ' Maintenance' : '')}
+              </Badge>
+            }
             variant="default"
           />
           <StatCard
@@ -266,8 +286,13 @@ export default function HomDashboardPage() {
                           <td>{statusLabel(r.status)}</td>
                           <td>{r.hom_status || '-'}</td>
                           <td>
-                            <Button variant="primary" size="sm" onClick={() => approveDischarge(r.pre_request_id)}>
-                              Approve Discharge
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              disabled={approvingId === r.pre_request_id}
+                              onClick={() => approveDischarge(r.pre_request_id)}
+                            >
+                              {approvingId === r.pre_request_id ? 'Approving...' : 'Approve Discharge'}
                             </Button>
                           </td>
                         </tr>
@@ -295,7 +320,7 @@ export default function HomDashboardPage() {
               {sortedLogs.length === 0 ? (
                 <EmptyState
                   title="No activity recorded yet"
-                  description="Operational logs will appear here as admissions and bed assignments occur."
+                  message="Operational logs will appear here as admissions and bed assignments occur."
                 />
               ) : (
                 sortedLogs.slice(0, 12).map((log, i) => {

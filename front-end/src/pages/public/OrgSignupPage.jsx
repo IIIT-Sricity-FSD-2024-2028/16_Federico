@@ -497,13 +497,13 @@ export default function OrgSignupPage() {
   return (
     <>
       <header className="topbar">
-        <Link to="/landing/landing-page.html" className="brand">
+        <Link to="/landing" className="brand">
           <div className="brand-icon">F</div>
           <div className="brand-name">Federico Cloud</div>
         </Link>
         <div className="topbar-right">
-          <Link to="/signup/signup-page.html" className="md-btn md-btn-text">Register as Patient</Link>
-          <Link to="/login/login-page.html" className="md-btn md-btn-outlined">Sign In</Link>
+          <Link to="/signup" className="md-btn md-btn-text">Register as Patient</Link>
+          <Link to="/login" className="md-btn md-btn-outlined">Sign In</Link>
         </div>
       </header>
 
@@ -1135,10 +1135,10 @@ export default function OrgSignupPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 28 }}>
-                  <button type="button" className="md-btn md-btn-filled" id="btn-launch-admin" style={{ fontSize: '1.05rem', padding: '12px 28px' }} onClick={() => navigate('/Admin/screen-01-dashboard.html')}>
+                  <button type="button" className="md-btn md-btn-filled" id="btn-launch-admin" style={{ fontSize: '1.05rem', padding: '12px 28px' }} onClick={() => navigate('/admin/dashboard')}>
                     Enter Organization Admin Portal {'→'}
                   </button>
-                  <Link to="/marketplace/marketplace-page.html" className="md-btn md-btn-outlined">View in Marketplace</Link>
+                  <Link to="/marketplace" className="md-btn md-btn-outlined">View in Marketplace</Link>
                 </div>
               </div>
             </div>

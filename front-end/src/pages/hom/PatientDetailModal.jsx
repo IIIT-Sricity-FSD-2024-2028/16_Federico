@@ -15,6 +15,7 @@ import {
   formatDate,
   formatDateTime,
   formatCurrency,
+  matchBillingBundle,
 } from './homHelpers.js';
 import { useAppDispatch, useAppSelector, useUiState } from '../../store/hooks.js';
 import { orElse, soft } from '../../store/loaders.js';
@@ -28,43 +29,21 @@ import {
   selectServices,
 } from '../../store/slices/billingSlice.js';
 
-/** Picks the admission/ledger bundle that belongs to this patient-flow row. */
-function matchBundle(billList, row) {
-  let matchedBundle = null;
-  if (billList.length > 0) {
-    // Priority 1: Match by assigned bed
-    if (row.bed_id) {
-      matchedBundle = billList.find((b) => b.admission && Number(b.admission.bed_id) === Number(row.bed_id));
-    }
-    // Priority 2: Match by admission status
-    if (!matchedBundle && row.status) {
-      matchedBundle = billList.find(
-        (b) => b.admission && String(b.admission.status).toUpperCase() === String(row.status).toUpperCase(),
-      );
-    }
-    // Priority 3: Fallback to admission with ledger
-    if (!matchedBundle) {
-      matchedBundle = billList.find((b) => b.ledger) || billList[0] || null;
-    }
+/** Collects all official payment receipts belonging to the matched bundle. */
+function matchReceipts(receiptList, matchedBundle) {
+  if (!receiptList.length || !matchedBundle) return [];
+  if (matchedBundle.ledger?.ledger_id) {
+    const byLedger = receiptList.filter(
+      (r) => Number(r.ledger_id) === Number(matchedBundle.ledger.ledger_id),
+    );
+    if (byLedger.length) return byLedger;
   }
-  return matchedBundle;
-}
-
-/** Picks the official payment receipt for the matched bundle. */
-function matchReceipt(receiptList, matchedBundle, row) {
-  let matchedReceipt = null;
-  if (receiptList.length > 0) {
-    if (matchedBundle?.ledger?.ledger_id) {
-      matchedReceipt = receiptList.find((r) => Number(r.ledger_id) === Number(matchedBundle.ledger.ledger_id));
-    }
-    if (!matchedReceipt && matchedBundle?.admission?.admission_id) {
-      matchedReceipt = receiptList.find((r) => Number(r.admission_id) === Number(matchedBundle.admission.admission_id));
-    }
-    if (!matchedReceipt && row.status === 'DISCHARGED') {
-      matchedReceipt = receiptList[receiptList.length - 1] || receiptList[0] || null;
-    }
+  if (matchedBundle.admission?.admission_id) {
+    return receiptList.filter(
+      (r) => Number(r.admission_id) === Number(matchedBundle.admission.admission_id),
+    );
   }
-  return matchedReceipt;
+  return [];
 }
 
 /**
@@ -102,7 +81,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
   // 1. Accurately match the admission and ledger bundle for this patient flow row
   const billingBundle = useMemo(() => {
     const billList = Array.isArray(patientBills) ? patientBills : [];
-    return matchBundle(billList, row);
+    return matchBillingBundle(billList, row);
   }, [patientBills, row]);
 
   // 2. Itemized ledger entries: the bundle's own, else the fetched ones
@@ -114,32 +93,41 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
     return Array.isArray(fetched) ? fetched : [];
   }, [billingBundle, ledgerEntriesByLedger]);
 
-  // 3. Match the official payment receipt
-  const receipt = useMemo(
-    () => matchReceipt(Array.isArray(patientReceipts) ? patientReceipts : [], billingBundle, row),
-    [patientReceipts, billingBundle, row],
+  // 3. Match the official payment receipt(s) for this admission/ledger
+  const matchingReceipts = useMemo(
+    () => matchReceipts(Array.isArray(patientReceipts) ? patientReceipts : [], billingBundle),
+    [patientReceipts, billingBundle],
   );
+  const receipt = matchingReceipts.length ? matchingReceipts[matchingReceipts.length - 1] : null;
 
   // 4. Discharge summary, when the admission id is known
   const admissionId = billingBundle?.admission?.admission_id;
   const dischargeSummary = admissionId ? dischargeSummaries[admissionId] || null : null;
 
+  const patientId = row?.patient_id ?? null;
+  const rowBedId = row?.bed_id ?? null;
+  const rowStatus = row?.status ?? null;
+
   useEffect(() => {
-    if (!row) return;
+    if (!patientId) return;
     let cancelled = false;
 
     (async () => {
       setLoading(true);
       try {
         const [billsResult] = await Promise.all([
-          orElse(dispatch(fetchPatientBills(row.patient_id)), { bills: [] }),
-          soft(dispatch(fetchPatientReceipts(row.patient_id))),
+          orElse(dispatch(fetchPatientBills(patientId)), { bills: [] }),
+          soft(dispatch(fetchPatientReceipts(patientId))),
           soft(dispatch(fetchServices())),
         ]);
 
         if (cancelled) return;
 
-        const matched = matchBundle(Array.isArray(billsResult.bills) ? billsResult.bills : [], row);
+        const matched = matchBillingBundle(billsResult.bills, {
+          patient_id: patientId,
+          bed_id: rowBedId,
+          status: rowStatus,
+        });
 
         if (matched?.ledger?.ledger_id && (!matched.entries || matched.entries.length === 0)) {
           await soft(dispatch(fetchLedgerEntries(matched.ledger.ledger_id)));
@@ -159,15 +147,18 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
     return () => {
       cancelled = true;
     };
-  }, [row, dispatch, setLoading]);
+  }, [patientId, rowBedId, rowStatus, dispatch, setLoading]);
 
   if (!row) return null;
 
   const isDischarged = row.status === 'DISCHARGED';
+  const isPaidInFull = isDischarged || billingBundle?.ledger?.status === 'PAID';
   const grossTotal = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const deduction = dischargeSummary?.insurance_deduction ? Number(dischargeSummary.insurance_deduction) : 0;
   const netTotal = dischargeSummary?.final_amount !== undefined ? Number(dischargeSummary.final_amount) : grossTotal - deduction;
-  const paidAmount = receipt?.amount !== undefined ? Number(receipt.amount) : netTotal;
+  const paidAmount = matchingReceipts.length
+    ? matchingReceipts.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+    : netTotal;
 
   const receiptNumber = receipt
     ? `REC-${String(receipt.receipt_id).padStart(5, '0')}`
@@ -316,7 +307,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
             <Button variant="secondary" size="default" onClick={onClose}>
               Close
             </Button>
-            {tab === 'billing' && (receipt || isDischarged) && entries.length > 0 ? (
+            {tab === 'billing' && isPaidInFull && entries.length > 0 ? (
               <button
                 type="button"
                 className="btn btn-primary btn-default"
@@ -436,8 +427,8 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
               </div>
               <div className="pd-field">
                 <span className="pd-field-label">Financial Status</span>
-                <span className="pd-field-value" style={{ color: row.billsCleared || isDischarged ? '#166534' : 'inherit' }}>
-                  {isDischarged || receipt ? 'Paid & Settled' : row.billsCleared ? 'Bills Cleared' : 'Running Ledger'}
+                <span className="pd-field-value" style={{ color: row.billsCleared || isPaidInFull ? '#166534' : 'inherit' }}>
+                  {isPaidInFull ? 'Paid & Settled' : row.billsCleared ? 'Bills Cleared' : 'Running Ledger'}
                 </span>
               </div>
             </div>
@@ -460,7 +451,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
             <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--color-muted-fg, #64748b)', fontSize: 13.5 }}>
               Loading billing and receipt details...
             </div>
-          ) : isDischarged || receipt ? (
+          ) : isPaidInFull ? (
             <>
               {/* Official Receipt Header Banner */}
               <div className="pd-receipt-hero">

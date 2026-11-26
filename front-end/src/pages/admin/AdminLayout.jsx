@@ -12,10 +12,10 @@ import adminCss from '../../styles/admin/admin.css?inline';
  * old URL redirects there.
  */
 const LINKS = [
-  { href: '/Admin/screen-01-dashboard.html', label: 'Dashboard' },
-  { href: '/Admin/screen-02-departments.html', label: 'Departments & Wards' },
-  { href: '/Admin/screen-03-inventory.html', label: 'Inventory Catalog' },
-  { href: '/Admin/screen-05-people.html', label: 'Staff & Doctors' },
+  { href: '/admin/dashboard', label: 'Dashboard' },
+  { href: '/admin/departments', label: 'Departments & Wards' },
+  { href: '/admin/inventory', label: 'Inventory Catalog' },
+  { href: '/admin/people', label: 'Staff & Doctors' },
 ];
 
 export default function AdminLayout() {

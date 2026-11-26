@@ -12,7 +12,7 @@ import { formatDateTime } from './homHelpers.js';
  * with every label preserved.
  */
 export default function BedDetailModal({
-  bedId, data, patientForBed, onClose, onToggleMaintenance, onAssign, onViewInPatientFlow,
+  bedId, data, patientForBed, onClose, onToggleMaintenance, toggling = false, onAssign, onViewInPatientFlow,
 }) {
   if (bedId === null) return null;
 
@@ -24,7 +24,8 @@ export default function BedDetailModal({
   const doctorsById = {};
   (data.doctors || []).forEach((d) => (doctorsById[d.doctor_id] = d));
 
-  const isOccupied = bed.status === 'OCCUPIED' && linked;
+  const isOccupied = bed.status === 'OCCUPIED';
+  const hasOccupant = isOccupied && Boolean(linked);
   const isAvailable = bed.status === 'AVAILABLE';
 
   const compatibleRequests = (data.bedRequests || []).filter(
@@ -35,7 +36,9 @@ export default function BedDetailModal({
   let since;
   if (isOccupied) {
     badge = <Badge variant="error">OCCUPIED</Badge>;
-    since = 'Admitted: ' + formatDateTime(linked.request.decided_at || linked.request.created_at);
+    since = hasOccupant
+      ? 'Admitted: ' + formatDateTime(linked.request.decided_at || linked.request.created_at)
+      : 'Status: Occupied';
   } else if (isAvailable) {
     badge = <Badge variant="success">AVAILABLE {'·'} Not Occupied</Badge>;
     since = 'Status: Vacant & Clean';
@@ -44,7 +47,7 @@ export default function BedDetailModal({
     since = 'Status: Maintenance';
   }
 
-  const doctor = isOccupied && linked.request.doctor_id ? doctorsById[linked.request.doctor_id] : null;
+  const doctor = hasOccupant && linked.request.doctor_id ? doctorsById[linked.request.doctor_id] : null;
 
   return (
     <DialogShell
@@ -54,12 +57,21 @@ export default function BedDetailModal({
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, width: '100%' }}>
           {!isOccupied ? (
-            <button className="btn btn-secondary btn-default" id="detail-status-btn" onClick={() => onToggleMaintenance(bed.bed_id)}>
-              {bed.status === 'MAINTENANCE' ? 'Mark as Available' : 'Mark as Under Maintenance'}
+            <button
+              className="btn btn-secondary btn-default"
+              id="detail-status-btn"
+              onClick={() => onToggleMaintenance(bed.bed_id)}
+              disabled={toggling}
+            >
+              {toggling
+                ? 'Updating...'
+                : bed.status === 'MAINTENANCE'
+                  ? 'Mark as Available'
+                  : 'Mark as Under Maintenance'}
             </button>
           ) : null}
-          <button className="btn btn-secondary btn-default" onClick={onClose}>Close</button>
-          {isOccupied ? (
+          <button className="btn btn-secondary btn-default" onClick={onClose} disabled={toggling}>Close</button>
+          {hasOccupant ? (
             <button className="btn btn-primary btn-default" id="detail-action-btn" onClick={() => onViewInPatientFlow && onViewInPatientFlow(linked?.patient?.uhid)}>
               View in Patient Flow
             </button>
@@ -77,7 +89,7 @@ export default function BedDetailModal({
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }} id="detail-since">{since}</span>
         </div>
 
-        {isOccupied ? (
+        {hasOccupant ? (
           <div id="detail-patient-section" style={{ background: 'var(--neutral-bg)', padding: 16, borderRadius: 'var(--radius-base)' }}>
             <h3 className="h3" style={{ fontSize: 14, marginBottom: 12 }}>Current Inpatient Information</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -91,6 +103,13 @@ export default function BedDetailModal({
                 </div>
               </div>
             </div>
+          </div>
+        ) : isOccupied ? (
+          <div id="detail-patient-section" style={{ background: 'var(--neutral-bg)', padding: 16, borderRadius: 'var(--radius-base)' }}>
+            <h3 className="h3" style={{ fontSize: 14, marginBottom: 6 }}>Bed Occupied</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+              This bed is currently marked as occupied (no linked pre-request record found).
+            </p>
           </div>
         ) : isAvailable ? (
           <div id="detail-vacant-section" style={{ background: 'var(--status-success-bg, #e3f3e4)', padding: 16, borderRadius: 'var(--radius-base)', border: '1px solid rgba(46, 125, 50, 0.2)' }}>

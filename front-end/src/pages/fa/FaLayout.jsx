@@ -16,9 +16,9 @@ import layoutCss from '../../styles/fa/layout.css?inline';
 import componentsCss from '../../styles/fa/components.css?inline';
 
 const LINKS = [
-  { href: '/FA/fa-dashboard.html#/ledger', label: 'Ledger' },
-  { href: '/FA/fa-dashboard.html#/charges', label: 'Charges' },
-  { href: '/FA/fa-dashboard.html#/eod', label: 'EOD & Settlement' },
+  { href: '/fa#/ledger', label: 'Ledger' },
+  { href: '/fa#/charges', label: 'Charges' },
+  { href: '/fa#/eod', label: 'EOD & Settlement' },
 ];
 
 /**
@@ -56,7 +56,7 @@ export default function FaLayout() {
 
   async function onLogout() {
     await logout();
-    window.location.href = '/login/login-page.html';
+    window.location.href = '/login';
   }
 
   let view;

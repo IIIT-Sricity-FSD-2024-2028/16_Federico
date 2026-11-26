@@ -15,6 +15,7 @@ import { formatCurrency, formatDate } from './homHelpers.js';
 import { computeItemStatus, itemCost, serviceForItem, findPatientByUhid, validateUsageDetails } from './inventoryHelpers.js';
 import RestockModal from './RestockModal.jsx';
 import AdmittedPatientPicker from './AdmittedPatientPicker.jsx';
+import HomLoadBanner from './HomLoadBanner.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import inventoryCss from '../../styles/hom/inventory.css?inline';
 import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
@@ -45,12 +46,15 @@ export default function InventoryPage() {
 
   // Sidebar "Post Usage to Patient" form
   const [sidebarUhid, setSidebarUhid] = useUiState('InventoryPage.sidebarUhid', '');
+  const [sidebarAdmissionId, setSidebarAdmissionId] = useUiState('InventoryPage.sidebarAdmissionId', null);
   const [sidebarItemId, setSidebarItemId] = useUiState('InventoryPage.sidebarItemId', '');
   const [sidebarQty, setSidebarQty] = useUiState('InventoryPage.sidebarQty', 1);
   const [sidebarError, setSidebarError] = useUiState('InventoryPage.sidebarError', '');
+  const [postingUsage, setPostingUsage] = useUiState('InventoryPage.postingUsage', false);
+  const [receivingOrderId, setReceivingOrderId] = useUiState('InventoryPage.receivingOrderId', null);
 
   const dispatch = useAppDispatch();
-  const { reload, loaded } = useLoader(loadHomInventory);
+  const { loading, error, reload, loaded } = useLoader(loadHomInventory);
   const arr = (v) => (Array.isArray(v) ? v : []);
   const d = {
     items: arr(useAppSelector(selectInventoryItems)),
@@ -109,8 +113,9 @@ export default function InventoryPage() {
    * then forward the charge to Finance as a pending "leader". HOM never writes
    * a patient ledger directly - FA approves every charge.
    */
-  async function postUsage(uhid, itemId, qty) {
+  async function postUsage(uhid, itemId, qty, admissionId = null) {
     const patient = findPatientByUhid(uhid, d.patients);
+    if (!patient) throw new Error('Patient with UHID "' + uhid + '" was not found.');
     const item = d.items.find((i) => i.item_id === Number(itemId));
     if (!item) throw new Error('Selected item was not found.');
 
@@ -119,64 +124,100 @@ export default function InventoryPage() {
     ).unwrap();
 
     const service = serviceForItem(item, d.services);
-    if (service && patient) {
+    let billingStatus = 'none';
+    if (service) {
       const { bills } = await dispatch(fetchPatientBills(patient.patient_id))
         .unwrap()
         .catch(() => ({ bills: [] }));
-      const activeBundle = (Array.isArray(bills) ? bills : []).find(
-        (b) => b.admission && b.admission.status !== 'DISCHARGED',
-      );
+      const billList = Array.isArray(bills) ? bills : [];
+      const activeBundle =
+        (admissionId
+          ? billList.find(
+              (b) => b.admission && Number(b.admission.admission_id) === Number(admissionId) && b.admission.status !== 'DISCHARGED',
+            )
+          : null) ||
+        billList.find((b) => b.admission && b.admission.status === 'ADMITTED') ||
+        billList.find((b) => b.admission && b.admission.status !== 'DISCHARGED');
       if (activeBundle && activeBundle.admission) {
-        await dispatch(
-          createLeader({
-            admission_id: activeBundle.admission.admission_id,
-            service_id: service.service_id,
-            quantity: qty,
-          }),
-        )
-          .unwrap()
-          .catch((err) => {
-            console.warn('Could not forward supply charge to Finance:', err.message);
-          });
+        try {
+          await dispatch(
+            createLeader({
+              admission_id: activeBundle.admission.admission_id,
+              service_id: service.service_id,
+              quantity: qty,
+            }),
+          ).unwrap();
+          billingStatus = 'sent';
+        } catch (err) {
+          console.warn('Could not forward supply charge to Finance:', err.message);
+          billingStatus = 'failed';
+        }
+      } else {
+        billingStatus = 'no-active-admission';
       }
     }
 
-    const billedNote = service && patient ? ' — charge sent to Finance for approval' : '';
-    toast('Logged usage: ' + qty + 'x ' + item.item_name + ' for ' + patient.name + billedNote + '.', 'success');
+    if (billingStatus === 'failed') {
+      toast(
+        'Stock decremented (' + qty + 'x ' + item.item_name + '), but forwarding the charge to Finance failed.',
+        'warning',
+      );
+    } else if (billingStatus === 'no-active-admission') {
+      toast(
+        'Stock decremented (' + qty + 'x ' + item.item_name + '), but no active admission was found to bill.',
+        'warning',
+      );
+    } else {
+      const billedNote = billingStatus === 'sent' ? ' — charge sent to Finance for approval' : '';
+      toast('Logged usage: ' + qty + 'x ' + item.item_name + ' for ' + patient.name + billedNote + '.', 'success');
+    }
     await reload();
   }
 
   async function submitSidebarUsage() {
+    if (postingUsage) return;
     const itemId = Number(sidebarItemId);
     const qty = Number(sidebarQty);
-    const error = validateUsageDetails({ uhid: sidebarUhid.trim(), itemId, qty }, d);
-    if (error) {
-      setSidebarError(error);
+    const usageErr = validateUsageDetails({ uhid: sidebarUhid.trim(), itemId, qty }, d);
+    if (usageErr) {
+      setSidebarError(usageErr);
       return;
     }
     setSidebarError('');
+    setPostingUsage(true);
     try {
-      await postUsage(sidebarUhid.trim(), itemId, qty);
+      await postUsage(sidebarUhid.trim(), itemId, qty, sidebarAdmissionId);
+      setSidebarUhid('');
+      setSidebarAdmissionId(null);
+      setSidebarItemId('');
+      setSidebarQty(1);
     } catch (err) {
       setSidebarError(err.message || 'Unable to record supply usage.');
-      return;
+    } finally {
+      setPostingUsage(false);
     }
-    setSidebarUhid('');
-    setSidebarItemId('');
-    setSidebarQty(1);
   }
 
   async function receiveDelivery(order) {
+    if (receivingOrderId === order.request_id) return;
     const item = d.items.find((i) => i.item_id === order.item_id);
+    setReceivingOrderId(order.request_id);
     try {
       await dispatch(updatePurchaseRequest({ id: order.request_id, patch: { status: 'APPROVED' } })).unwrap();
       if (item) {
-        await dispatch(
-          updateInventoryItem({
-            id: item.item_id,
-            patch: { stock_quantity: (item.stock_quantity || 0) + (order.quantity_requested || 0) },
-          }),
-        ).unwrap();
+        try {
+          await dispatch(
+            updateInventoryItem({
+              id: item.item_id,
+              patch: { stock_quantity: (item.stock_quantity || 0) + (order.quantity_requested || 0) },
+            }),
+          ).unwrap();
+        } catch (stockErr) {
+          await dispatch(updatePurchaseRequest({ id: order.request_id, patch: { status: 'PENDING' } }))
+            .unwrap()
+            .catch(() => {});
+          throw stockErr;
+        }
       }
       toast(
         'Delivery received: +' + order.quantity_requested + ' units of ' + (item?.item_name || 'Item #' + order.item_id) + '. Stock updated.',
@@ -185,6 +226,8 @@ export default function InventoryPage() {
       await reload();
     } catch (err) {
       toast(err.message || 'Failed to receive delivery.', 'error');
+    } finally {
+      setReceivingOrderId(null);
     }
   }
 
@@ -224,6 +267,15 @@ export default function InventoryPage() {
           actions={
             <button className="btn btn-secondary btn-default" id="inventory-export" onClick={exportInventory}>Export CSV</button>
           }
+        />
+
+        <HomLoadBanner
+          error={error}
+          loading={loading}
+          loaded={loaded}
+          onRetry={reload}
+          loadingText="Loading inventory and purchase orders..."
+          errorFallback="Failed to load inventory data."
         />
 
         <div className="metrics-grid" id="metrics-container">
@@ -339,10 +391,11 @@ export default function InventoryPage() {
                             <Button
                               variant="primary"
                               size="sm"
+                              disabled={receivingOrderId === order.request_id}
                               onClick={() => receiveDelivery(order)}
                               title="Confirm delivery and add quantity to stock"
                             >
-                              Receive Delivery
+                              {receivingOrderId === order.request_id ? 'Receiving...' : 'Receive Delivery'}
                             </Button>
                           </div>
                         </div>
@@ -366,8 +419,10 @@ export default function InventoryPage() {
                     id="sidebar-uhid"
                     admittedPatients={admittedPatients}
                     selectedUhid={sidebarUhid}
+                    selectedAdmissionId={sidebarAdmissionId}
                     onSelect={(p) => {
                       setSidebarUhid(p ? p.uhid : '');
+                      setSidebarAdmissionId(p ? p.admission_id : null);
                       setSidebarError('');
                     }}
                     error={Boolean(sidebarError)}
@@ -441,9 +496,13 @@ export default function InventoryPage() {
                 className="btn btn-primary btn-default"
                 style={{ width: '100%', height: 42 }}
                 onClick={submitSidebarUsage}
-                disabled={Boolean(sidebarItem && sidebarItem.stock_quantity <= 0)}
+                disabled={postingUsage || Boolean(sidebarItem && sidebarItem.stock_quantity <= 0)}
               >
-                {sidebarItem && sidebarItem.stock_quantity <= 0 ? 'Item Out of Stock' : 'Post to Patient Ledger'}
+                {sidebarItem && sidebarItem.stock_quantity <= 0
+                  ? 'Item Out of Stock'
+                  : postingUsage
+                    ? 'Posting...'
+                    : 'Post to Patient Ledger'}
               </button>
             </div>
           </div>

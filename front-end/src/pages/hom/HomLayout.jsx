@@ -13,10 +13,10 @@ import globalCss from '../../styles/hom/global.css?inline';
  * Ledger tab in the Patient Flow detail modal.
  */
 const LINKS = [
-  { href: '/HOM/screen-01-dashboard.html', label: 'Dashboard' },
-  { href: '/HOM/screen-02-bed-management.html', label: 'Bed Management' },
-  { href: '/HOM/screen-03-patient-flow.html', label: 'Patient Flow' },
-  { href: '/HOM/screen-04-inventory.html', label: 'Inventory' },
+  { href: '/hom/dashboard', label: 'Dashboard' },
+  { href: '/hom/bed-management', label: 'Bed Management' },
+  { href: '/hom/patient-flow', label: 'Patient Flow' },
+  { href: '/hom/inventory', label: 'Inventory' },
 ];
 
 export default function HomLayout() {

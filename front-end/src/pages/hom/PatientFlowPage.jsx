@@ -15,6 +15,7 @@ import { toast } from '../../components/feedback/feedback.js';
 import { statusLabel, statusVariant, daysSince, formatDate, joinPreRequestsWithPatients } from './homHelpers.js';
 import PatientDetailModal from './PatientDetailModal.jsx';
 import DischargeModal from './DischargeModal.jsx';
+import HomLoadBanner from './HomLoadBanner.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import patientFlowCss from '../../styles/hom/patient-flow.css?inline';
 import { useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
@@ -38,7 +39,7 @@ export default function PatientFlowPage() {
   const [detail, setDetail] = useUiState('PatientFlowPage.detail', null); // { id, tab }
   const [dischargeId, setDischargeId] = useUiState('PatientFlowPage.dischargeId', null);
 
-  const { reload, loaded } = useLoader(loadHomPatientFlow);
+  const { loading, error, reload, loaded } = useLoader(loadHomPatientFlow);
   const preRequestList = useAppSelector(selectPreRequests);
   const patientList = useAppSelector(selectPatients);
   const doctorList = useAppSelector(selectDoctors);
@@ -58,11 +59,19 @@ export default function PatientFlowPage() {
     // can safely release the bed.
     const ledgerByAdmission = {};
     (Array.isArray(ledgerList) ? ledgerList : []).forEach((l) => (ledgerByAdmission[l.admission_id] = l));
+    const billsClearedByBed = {};
     const billsClearedByPatient = {};
     (Array.isArray(admissionList) ? admissionList : []).forEach((a) => {
-      const ledger = ledgerByAdmission[a.admission_id];
-      if (a.receipt_sent_to_hom || (ledger && ledger.status === 'PAID')) {
-        billsClearedByPatient[a.patient_id] = true;
+      // Focus on the patient's active admission so a historical paid admission does not falsely clear an unpaid current stay
+      if (a.status !== 'DISCHARGED') {
+        const ledger = ledgerByAdmission[a.admission_id];
+        if (a.receipt_sent_to_hom || (ledger && ledger.status === 'PAID')) {
+          if (a.bed_id) {
+            billsClearedByBed[`${a.patient_id}:${a.bed_id}`] = true;
+          } else {
+            billsClearedByPatient[a.patient_id] = true;
+          }
+        }
       }
     });
 
@@ -73,7 +82,9 @@ export default function PatientFlowPage() {
     ).map((r) => ({
       ...r,
       bedNumber: bedsById[r.bed_id]?.bed_number || '-',
-      billsCleared: Boolean(billsClearedByPatient[r.patient_id]),
+      billsCleared: r.bed_id
+        ? Boolean(billsClearedByBed[`${r.patient_id}:${r.bed_id}`])
+        : Boolean(billsClearedByPatient[r.patient_id]),
     }));
   }, [preRequestList, patientList, doctorList, bedList, admissionList, ledgerList]);
 
@@ -149,6 +160,15 @@ export default function PatientFlowPage() {
           actions={
             <button className="btn btn-secondary btn-default" id="patient-flow-export" onClick={exportCsv}>Export CSV</button>
           }
+        />
+
+        <HomLoadBanner
+          error={error}
+          loading={loading}
+          loaded={loaded}
+          onRetry={reload}
+          loadingText="Loading inpatient flow..."
+          errorFallback="Failed to load patient flow data."
         />
 
         <div className="card" style={{ padding: 24, marginBottom: 24 }}>
@@ -312,20 +332,24 @@ export default function PatientFlowPage() {
         </div>
       </main>
 
-      <PatientDetailModal
-        key={detail ? 'detail-' + detail.id + '-' + detail.tab : 'detail-closed'}
-        row={detail ? rows.find((r) => r.pre_request_id === detail.id) || null : null}
-        initialTab={detail?.tab}
-        onClose={() => setDetail(null)}
-        onOpenDischarge={(id) => { setDetail(null); setDischargeId(id); }}
-      />
+      {detail ? (
+        <PatientDetailModal
+          key={'detail-' + detail.id + '-' + detail.tab}
+          row={rows.find((r) => r.pre_request_id === detail.id) || null}
+          initialTab={detail.tab}
+          onClose={() => setDetail(null)}
+          onOpenDischarge={(id) => { setDetail(null); setDischargeId(id); }}
+        />
+      ) : null}
 
-      <DischargeModal
-        key={'discharge-' + (dischargeId ?? 'closed')}
-        row={rows.find((r) => r.pre_request_id === dischargeId) || null}
-        onClose={() => setDischargeId(null)}
-        onChanged={reload}
-      />
+      {dischargeId !== null ? (
+        <DischargeModal
+          key={'discharge-' + dischargeId}
+          row={rows.find((r) => r.pre_request_id === dischargeId) || null}
+          onClose={() => setDischargeId(null)}
+          onChanged={reload}
+        />
+      ) : null}
     </>
   );
 }

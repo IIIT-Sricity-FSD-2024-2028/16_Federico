@@ -50,6 +50,7 @@ function BedFirst({ bedId, data, onClose, onChanged }) {
   const dispatch = useAppDispatch();
   const [selectedRequestId, setSelectedRequestId] = useUiState('AssignBedModal.selectedRequestId', null);
   const [error, setError] = useUiState('AssignBedModal.error', '');
+  const [submitting, setSubmitting] = useUiState('AssignBedModal.submitting', false);
 
   const bed = (data.beds || []).find((b) => b.bed_id === bedId);
   if (!bed) return null;
@@ -64,18 +65,22 @@ function BedFirst({ bedId, data, onClose, onChanged }) {
   );
 
   async function confirm() {
+    if (submitting) return;
     if (!selectedRequestId) {
       setError('Please select a pending patient bed request before confirming.');
       return;
     }
+    setSubmitting(true);
+    setError('');
     try {
       await allocate(dispatch, selectedRequestId, bed.bed_id);
+      await onChanged();
+      onClose();
     } catch (err) {
       setError(err.message || 'Unable to allocate this bed.');
-      return;
+      setSubmitting(false);
+      await onChanged();
     }
-    onClose();
-    await onChanged();
   }
 
   return (
@@ -86,8 +91,10 @@ function BedFirst({ bedId, data, onClose, onChanged }) {
       subtitle={`Assigning Bed ${bed.bed_number}. Select an incoming patient request:`}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, width: '100%' }}>
-          <button className="btn btn-secondary btn-default" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary btn-default" onClick={confirm}>Confirm Admission</button>
+          <button className="btn btn-secondary btn-default" onClick={onClose} disabled={submitting}>Cancel</button>
+          <button className="btn btn-primary btn-default" onClick={confirm} disabled={submitting}>
+            {submitting ? 'Confirming...' : 'Confirm Admission'}
+          </button>
         </div>
       }
     >
@@ -144,6 +151,7 @@ function BedFirst({ bedId, data, onClose, onChanged }) {
 function RequestFirst({ bedRequestId, data, onClose, onChanged }) {
   const dispatch = useAppDispatch();
   const [selectedBedId, setSelectedBedId] = useUiState('AssignBedModal.selectedBedId', null);
+  const [submitting, setSubmitting] = useUiState('AssignBedModal.reqSubmitting', false);
 
   const request = (data.bedRequests || []).find((r) => r.bed_request_id === bedRequestId);
   if (!request) return null;
@@ -162,31 +170,35 @@ function RequestFirst({ bedRequestId, data, onClose, onChanged }) {
   );
 
   async function approve() {
+    if (submitting) return;
     if (!selectedBedId) {
       toast('Select a bed before approving.', 'warning');
       return;
     }
+    setSubmitting(true);
     try {
       await allocate(dispatch, bedRequestId, selectedBedId);
+      await onChanged();
+      onClose();
     } catch (err) {
       toast(err.message || 'Unable to allocate bed.', 'error');
+      setSubmitting(false);
       // The bed list may be stale (409 = someone else took it); refresh it.
       await onChanged();
-      return;
     }
-    onClose();
-    await onChanged();
   }
 
   async function reject() {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await dispatch(denyBedRequest(bedRequestId)).unwrap();
+      await onChanged();
+      onClose();
     } catch (err) {
       toast(err.message || 'Unable to deny this bed request.', 'error');
-      return;
+      setSubmitting(false);
     }
-    onClose();
-    await onChanged();
   }
 
   const field = (label, value) => (
@@ -203,11 +215,13 @@ function RequestFirst({ bedRequestId, data, onClose, onChanged }) {
       title={`Bed Request — ${patient.name || 'Patient'}`}
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-          <button className="btn btn-secondary btn-default" onClick={onClose}>Cancel</button>
+          <button className="btn btn-secondary btn-default" onClick={onClose} disabled={submitting}>Cancel</button>
           <div style={{ display: 'flex', gap: 12 }}>
-            <button className="btn btn-danger btn-default" data-flow="reject-request" onClick={reject}>Reject Request</button>
-            <button className="btn btn-primary btn-default" data-flow="approve-assign" id="btn-approve-admit" onClick={approve}>
-              Approve &amp; Assign Bed
+            <button className="btn btn-danger btn-default" data-flow="reject-request" onClick={reject} disabled={submitting}>
+              {submitting ? 'Working...' : 'Reject Request'}
+            </button>
+            <button className="btn btn-primary btn-default" data-flow="approve-assign" id="btn-approve-admit" onClick={approve} disabled={submitting}>
+              {submitting ? 'Assigning...' : 'Approve & Assign Bed'}
             </button>
           </div>
         </div>

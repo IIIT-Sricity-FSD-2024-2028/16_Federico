@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react';
  */
 export function usePolling(callback, intervalMs = 15000) {
   const savedRef = useRef(callback);
+  const inFlightRef = useRef(false);
 
   // Keep the latest callback without restarting the timer. Updated in an
   // effect, not during render, so render stays pure.
@@ -21,16 +22,23 @@ export function usePolling(callback, intervalMs = 15000) {
   }, [callback]);
 
   useEffect(() => {
+    const trigger = () => {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+      Promise.resolve(savedRef.current()).finally(() => {
+        inFlightRef.current = false;
+      });
+    };
+
     const id = setInterval(() => {
-      if (!document.hidden) savedRef.current();
+      if (!document.hidden) trigger();
     }, intervalMs);
 
-    const onFocus = () => savedRef.current();
-    window.addEventListener('focus', onFocus);
+    window.addEventListener('focus', trigger);
 
     return () => {
       clearInterval(id);
-      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('focus', trigger);
     };
   }, [intervalMs]);
 }

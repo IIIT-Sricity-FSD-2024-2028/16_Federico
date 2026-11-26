@@ -46,7 +46,7 @@ export default function HeroSection() {
           id="signup-btn"
           type="button"
           className="hero-btn-primary"
-          onClick={() => navigate('/signup/signup-page.html')}
+          onClick={() => navigate('/signup')}
         >
           <UserPlus size={18} />
           <span>Patient Registration</span>
@@ -57,7 +57,7 @@ export default function HeroSection() {
           id="org-signup-btn"
           type="button"
           className="hero-btn-secondary"
-          onClick={() => navigate('/signup/org-signup.html')}
+          onClick={() => navigate('/org-signup')}
         >
           <Building2 size={18} />
           <span>Hospital Onboarding</span>

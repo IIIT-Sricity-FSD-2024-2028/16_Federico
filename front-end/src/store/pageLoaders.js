@@ -72,49 +72,49 @@ export const loadAdminDoctors = createLoader('adminDoctors', async (_arg, { disp
 
 /* ------------------------------------ HOM ------------------------------------- */
 
-/** HOM dashboard (polled every 15s): seven reads, each tolerant of failure. */
+/** HOM dashboard (polled every 15s): core bed/request/patient reads must succeed; log & doctors are optional. */
 export const loadHomDashboard = createLoader('homDashboard', async (_arg, { dispatch }) => {
   await Promise.all([
-    soft(dispatch(fetchPreRequests())),
-    soft(dispatch(fetchPatients())),
-    soft(dispatch(fetchWards())),
-    soft(dispatch(fetchBeds())),
-    soft(dispatch(fetchBedRequests())),
+    must(dispatch(fetchPreRequests())),
+    must(dispatch(fetchPatients())),
+    must(dispatch(fetchWards())),
+    must(dispatch(fetchBeds())),
+    must(dispatch(fetchBedRequests())),
     soft(dispatch(fetchActivityLog())),
     soft(dispatch(fetchDoctors())),
   ]);
 });
 
-/** HOM bed management (polled every 15s): six reads, each tolerant of failure. */
+/** HOM bed management (polled every 15s): core ward/bed/request/patient reads must succeed. */
 export const loadHomBeds = createLoader('homBeds', async (_arg, { dispatch }) => {
   await Promise.all([
-    soft(dispatch(fetchWards())),
-    soft(dispatch(fetchBeds())),
-    soft(dispatch(fetchBedRequests())),
-    soft(dispatch(fetchPatients())),
+    must(dispatch(fetchWards())),
+    must(dispatch(fetchBeds())),
+    must(dispatch(fetchBedRequests())),
+    must(dispatch(fetchPatients())),
     soft(dispatch(fetchPreRequests())),
     soft(dispatch(fetchDoctors())),
   ]);
 });
 
-/** HOM patient flow (polled every 15s): six reads, each tolerant of failure. */
+/** HOM patient flow (polled every 15s): pre-requests, patients and beds must succeed; billing/admissions are optional. */
 export const loadHomPatientFlow = createLoader('homPatientFlow', async (_arg, { dispatch }) => {
   await Promise.all([
-    soft(dispatch(fetchPreRequests())),
-    soft(dispatch(fetchPatients())),
+    must(dispatch(fetchPreRequests())),
+    must(dispatch(fetchPatients())),
     soft(dispatch(fetchDoctors())),
-    soft(dispatch(fetchBeds())),
+    must(dispatch(fetchBeds())),
     soft(dispatch(fetchAdmissions())),
     soft(dispatch(fetchLedgers())),
   ]);
 });
 
-/** HOM inventory (polled every 15s): six reads, each tolerant of failure. */
+/** HOM inventory (polled every 15s): items, purchase requests and patients must succeed. */
 export const loadHomInventory = createLoader('homInventory', async (_arg, { dispatch }) => {
   await Promise.all([
-    soft(dispatch(fetchInventoryItems())),
-    soft(dispatch(fetchPurchaseRequests())),
-    soft(dispatch(fetchPatients())),
+    must(dispatch(fetchInventoryItems())),
+    must(dispatch(fetchPurchaseRequests())),
+    must(dispatch(fetchPatients())),
     soft(dispatch(fetchServices())),
     soft(dispatch(fetchAdmissions())),
     soft(dispatch(fetchBeds())),

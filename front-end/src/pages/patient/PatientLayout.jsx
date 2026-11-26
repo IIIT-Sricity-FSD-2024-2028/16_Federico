@@ -10,11 +10,11 @@ import { refreshPatientPortal } from '../../store/slices/patientsSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
 import AppNavbar from '../../components/layout/AppNavbar.jsx';
 
-const DASHBOARD = '/Patient/patient-dashboard.html';
-const BOOK = '/Patient/patient-book-appointment.html';
-const BILLING = '/Patient/patient-billing.html';
-const DOCUMENTS = '/Patient/documents';
-const PROFILE = '/Patient/patient-profile.html';
+const DASHBOARD = '/patient/dashboard';
+const BOOK = '/patient/book-appointment';
+const BILLING = '/patient/billing';
+const DOCUMENTS = '/patient/documents';
+const PROFILE = '/patient/profile';
 
 const LINKS = [
   { href: DASHBOARD, label: 'Dashboard' },
@@ -33,7 +33,7 @@ function TopBar() {
     toast('Logging out...', 'success');
     setTimeout(() => {
       logout();
-      navigate('/landing/landing-page.html');
+      navigate('/landing');
     }, 500);
   }
 

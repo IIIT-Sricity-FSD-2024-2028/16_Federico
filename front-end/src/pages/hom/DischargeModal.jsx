@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import DialogShell from '../../components/layout/DialogShell.jsx';
 import { toast } from '../../components/feedback/feedback.js';
-import { daysSince, formatCurrency } from './homHelpers.js';
+import { daysSince, formatCurrency, matchBillingBundle } from './homHelpers.js';
 import { useAppDispatch, useUiState } from '../../store/hooks.js';
 import { fetchLedgerEntries, fetchPatientBills } from '../../store/slices/billingSlice.js';
 import { updatePreRequest } from '../../store/slices/preRequestsSlice.js';
@@ -20,21 +20,28 @@ export default function DischargeModal({ row, onClose, onChanged }) {
   const dispatch = useAppDispatch();
   const [total, setTotal] = useUiState('DischargeModal.total', null); // null = calculating
   const [error, setError] = useUiState('DischargeModal.error', '');
+  const [submitting, setSubmitting] = useUiState('DischargeModal.submitting', false);
+
+  const patientId = row?.patient_id ?? null;
+  const rowBedId = row?.bed_id ?? null;
+  const rowStatus = row?.status ?? null;
 
   useEffect(() => {
-    if (!row) return;
+    if (!patientId) return;
     let cancelled = false;
 
     (async () => {
       let bundle = null;
       try {
-        const { bills } = await dispatch(fetchPatientBills(row.patient_id)).unwrap();
-        bundle = bills.find((b) => b.ledger) || bills[0] || null;
+        const { bills } = await dispatch(fetchPatientBills(patientId)).unwrap();
+        bundle = matchBillingBundle(bills, { patient_id: patientId, bed_id: rowBedId, status: rowStatus });
       } catch {
         bundle = null;
       }
       if (cancelled) return;
-      if (bundle && bundle.ledger) {
+      if (Array.isArray(bundle?.entries) && bundle.entries.length > 0) {
+        setTotal(bundle.entries.reduce((sum, e) => sum + Number(e.amount || 0), 0));
+      } else if (bundle && bundle.ledger) {
         const { entries } = await dispatch(fetchLedgerEntries(bundle.ledger.ledger_id)).unwrap().catch(() => ({ entries: [] }));
         if (cancelled) return;
         setTotal((Array.isArray(entries) ? entries : []).reduce((sum, e) => sum + Number(e.amount || 0), 0));
@@ -44,25 +51,27 @@ export default function DischargeModal({ row, onClose, onChanged }) {
     })();
 
     return () => { cancelled = true; };
-  }, [row, dispatch, setTotal]);
+  }, [patientId, rowBedId, rowStatus, dispatch, setTotal]);
 
   if (!row) return null;
 
   async function confirm() {
+    if (submitting) return;
     if (row.status !== 'DISCHARGE_REQUESTED') {
       setError('This patient is not awaiting a HOM discharge clearance approval.');
       return;
     }
     setError('');
+    setSubmitting(true);
     try {
       await dispatch(updatePreRequest({ id: row.pre_request_id, patch: { status: 'DISCHARGE_APPROVED' } })).unwrap();
       toast('Discharge clearance approved successfully. PRE notified to finalize release.', 'success');
+      await onChanged();
+      onClose();
     } catch (err) {
       setError(err.message || 'Unable to approve discharge clearance.');
-      return;
+      setSubmitting(false);
     }
-    onClose();
-    await onChanged();
   }
 
   const field = (label, value) => (
@@ -80,8 +89,10 @@ export default function DischargeModal({ row, onClose, onChanged }) {
       subtitle="Confirm clearance to approve the patient release request and notify PRE to finalize discharge."
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-          <button className="btn btn-secondary btn-default" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary btn-default" onClick={confirm}>Confirm Clearance</button>
+          <button className="btn btn-secondary btn-default" onClick={onClose} disabled={submitting}>Cancel</button>
+          <button className="btn btn-primary btn-default" onClick={confirm} disabled={submitting}>
+            {submitting ? 'Approving...' : 'Confirm Clearance'}
+          </button>
         </div>
       }
     >

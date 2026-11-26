@@ -72,13 +72,13 @@ export default function AppNavbar({
         (!location.hash && hashPart === '/ledger');
       return pathMatches && hashMatches;
     }
-    if (item.href === '/PRE/pages/PRE.html') {
+    if (item.href === '/pre/dashboard') {
       return (
-        location.pathname === '/PRE/pages/PRE.html' ||
-        location.pathname === '/PRE/pages/request.html' ||
-        location.pathname === '/PRE/pages/admitted.html' ||
-        location.pathname === '/PRE/pages/discharge.html' ||
-        location.pathname === '/PRE/pages/rejected.html'
+        location.pathname === '/pre/dashboard' ||
+        location.pathname === '/pre/requests' ||
+        location.pathname === '/pre/admitted' ||
+        location.pathname === '/pre/discharge' ||
+        location.pathname === '/pre/rejected'
       );
     }
     return location.pathname === target;
