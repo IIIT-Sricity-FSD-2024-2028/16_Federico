@@ -1,10 +1,9 @@
 'use strict';
 
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import App from './App.jsx';
 import RequireModule, { RequirePlatformUser } from './auth/RequireModule.jsx';
-import { LOGIN_PATH } from './auth/actorHome.js';
 
 
 
@@ -69,12 +68,6 @@ function guarded(moduleName, element) {
   );
 }
 
-/** A <Navigate> that carries the current ?query along (e.g. ?uhid=). */
-function RedirectKeepingQuery({ to }) {
-  const { search } = useLocation();
-  return <Navigate to={to + search} replace />;
-}
-
 function NotFound() {
   return (
     <main style={{ padding: 24 }}>
@@ -87,21 +80,18 @@ const router = createBrowserRouter([
   {
     element: <App />,
     children: [
-      { path: '/', element: <Navigate to="/landing/landing-page.html" replace /> },
+      { path: '/', element: <Navigate to="/landing" replace /> },
 
       // ---- Public ----
-      { path: '/landing/landing-page.html', element: L(<LandingPage />) },
-      { path: '/login/login-page.html', element: L(<LoginPage />) },
-      { path: '/signup/signup-page.html', element: L(<SignupPage />) },
-      { path: '/signup/org-signup.html', element: L(<OrgSignupPage />) },
-      { path: '/marketplace/marketplace-page.html', element: L(<MarketplacePage />) },
+      { path: '/landing', element: L(<LandingPage />) },
+      { path: '/login', element: L(<LoginPage />) },
+      { path: '/signup', element: L(<SignupPage />) },
+      { path: '/org-signup', element: L(<OrgSignupPage />) },
+      { path: '/marketplace', element: L(<MarketplacePage />) },
 
       // ---- Platform Super User (its own auth realm) ----
-      // Platform staff sign in on the unified login page (name.platform@federico.com);
-      // the old console login URL still resolves for bookmarks.
-      { path: '/platform/platform-login.html', element: <Navigate to={LOGIN_PATH} replace /> },
       {
-        path: '/platform/platform-dashboard.html',
+        path: '/platform',
         element: (
           <RequirePlatformUser>
             <Suspense fallback={<Loading />}>
@@ -112,72 +102,63 @@ const router = createBrowserRouter([
       },
 
       // ---- HOM ----
-      { path: '/HOM', element: <Navigate to="/HOM/screen-01-dashboard.html" replace /> },
-      { path: '/HOM/index.html', element: <Navigate to="/HOM/screen-01-dashboard.html" replace /> },
+      { path: '/hom', element: <Navigate to="/hom/dashboard" replace /> },
       {
         element: guarded('HOM', <HomLayout />),
         children: [
-          { path: '/HOM/screen-01-dashboard.html', element: L(<HomDashboardPage />) },
-          { path: '/HOM/screen-02-bed-management.html', element: L(<HomBedManagementPage />) },
-          { path: '/HOM/screen-03-patient-flow.html', element: L(<HomPatientFlowPage />) },
-          { path: '/HOM/screen-04-inventory.html', element: L(<HomInventoryPage />) },
+          { path: '/hom/dashboard', element: L(<HomDashboardPage />) },
+          { path: '/hom/bed-management', element: L(<HomBedManagementPage />) },
+          { path: '/hom/patient-flow', element: L(<HomPatientFlowPage />) },
+          { path: '/hom/inventory', element: L(<HomInventoryPage />) },
         ],
       },
-      // HOM billing moved to FA; old links land on Patient Flow, where each
-      // patient's detail modal has the read-only Billing Ledger tab.
-      { path: '/HOM/screen-05-billing.html', element: <RedirectKeepingQuery to="/HOM/screen-03-patient-flow.html" /> },
 
       // ---- PRE ----
-      { path: '/PRE', element: <Navigate to="/PRE/pages/PRE.html" replace /> },
-      { path: '/PRE/index.html', element: <Navigate to="/PRE/pages/PRE.html" replace /> },
+      { path: '/pre', element: <Navigate to="/pre/dashboard" replace /> },
       {
         element: guarded('PRE', <PreLayout />),
         children: [
-          { path: '/PRE/pages/PRE.html', element: L(<PreDashboardPage />) },
-          { path: '/PRE/pages/request.html', element: L(<PreRequestsPage />) },
-          { path: '/PRE/pages/admitted.html', element: L(<PreAdmittedPage />) },
-          { path: '/PRE/pages/bed-coordination.html', element: L(<PreHomCoordinationPage />) },
-          { path: '/PRE/pages/hom.html', element: <Navigate to="/PRE/pages/bed-coordination.html" replace /> },
-          { path: '/PRE/pages/discharge.html', element: L(<PreDischargePage />) },
-          { path: '/PRE/pages/rejected.html', element: L(<PreRejectedPage />) },
-          { path: '/PRE/pages/patient-records.html', element: L(<PrePatientRecordsPage />) },
-          { path: '/PRE/pages/doctor.html', element: L(<PreDoctorRosterPage />) },
+          { path: '/pre/dashboard', element: L(<PreDashboardPage />) },
+          { path: '/pre/requests', element: L(<PreRequestsPage />) },
+          { path: '/pre/admitted', element: L(<PreAdmittedPage />) },
+          { path: '/pre/bed-coordination', element: L(<PreHomCoordinationPage />) },
+          { path: '/pre/discharge', element: L(<PreDischargePage />) },
+          { path: '/pre/rejected', element: L(<PreRejectedPage />) },
+          { path: '/pre/patient-records', element: L(<PrePatientRecordsPage />) },
+          { path: '/pre/doctors', element: L(<PreDoctorRosterPage />) },
         ],
       },
 
       // ---- Patient ----
+      { path: '/patient', element: <Navigate to="/patient/dashboard" replace /> },
       {
         element: guarded('PATIENT', <PatientLayout />),
         children: [
-          { path: '/Patient/patient-dashboard.html', element: L(<PatientDashboardPage />) },
+          { path: '/patient/dashboard', element: L(<PatientDashboardPage />) },
           {
-            path: '/Patient/patient-book-appointment.html',
+            path: '/patient/book-appointment',
             element: L(<PatientBookAppointmentPage />),
           },
-          { path: '/Patient/patient-billing.html', element: L(<PatientBillingPage />) },
-          { path: '/Patient/documents', element: L(<PatientDocumentsPage />) },
-          { path: '/Patient/patient-documents.html', element: L(<PatientDocumentsPage />) },
-          { path: '/Patient/patient-profile.html', element: L(<PatientProfilePage />) },
+          { path: '/patient/billing', element: L(<PatientBillingPage />) },
+          { path: '/patient/documents', element: L(<PatientDocumentsPage />) },
+          { path: '/patient/profile', element: L(<PatientProfilePage />) },
         ],
       },
 
-      // ---- FA (one page, six hash views - DEC-2) ----
-      { path: '/FA', element: <Navigate to="/FA/fa-dashboard.html" replace /> },
-      { path: '/FA/index.html', element: <Navigate to="/FA/fa-dashboard.html" replace /> },
-      { path: '/FA/fa-dashboard.html', element: guarded('FA', <FaLayout />) },
+      // ---- FA (one page, hash views via useHashRoute) ----
+      { path: '/fa', element: guarded('FA', <FaLayout />) },
 
       // ---- Admin ----
+      { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
       {
         element: guarded('ADMIN', <AdminLayout />),
         children: [
-          { path: '/Admin/screen-01-dashboard.html', element: L(<AdminDashboardPage />) },
-          { path: '/Admin/screen-02-departments.html', element: L(<AdminDepartmentsPage />) },
-          { path: '/Admin/screen-03-inventory.html', element: L(<AdminInventoryCatalogPage />) },
-          { path: '/Admin/screen-05-people.html', element: L(<AdminPeoplePage />) },
+          { path: '/admin/dashboard', element: L(<AdminDashboardPage />) },
+          { path: '/admin/departments', element: L(<AdminDepartmentsPage />) },
+          { path: '/admin/inventory', element: L(<AdminInventoryCatalogPage />) },
+          { path: '/admin/people', element: L(<AdminPeoplePage />) },
         ],
       },
-      // The custom-RBAC screen was folded into People.
-      { path: '/Admin/screen-04-admin.html', element: <Navigate to="/Admin/screen-05-people.html" replace /> },
 
       { path: '*', element: <NotFound /> },
     ],

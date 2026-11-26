@@ -254,7 +254,7 @@ export default function BookAppointmentPage() {
       toast('Appointment request submitted! Reference #' + newRequestId, 'success');
 
       setTimeout(() => {
-        navigate('/Patient/patient-dashboard.html');
+        navigate('/patient/dashboard');
       }, 1500);
     } catch (err) {
       setSubmitting(false);
@@ -286,7 +286,7 @@ export default function BookAppointmentPage() {
           type="button"
           className="breadcrumb-link"
           id="breadcrumb-home"
-          onClick={() => navigate('/Patient/patient-dashboard.html')}
+          onClick={() => navigate('/patient/dashboard')}
         >
           Dashboard
         </button>

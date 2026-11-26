@@ -264,7 +264,7 @@ export default function BedManagementPage() {
           setAssignBedId(id);
         }}
         onViewInPatientFlow={(uhid) =>
-          navigate('/HOM/screen-03-patient-flow.html' + (uhid ? `?uhid=${encodeURIComponent(uhid)}` : ''))
+          navigate('/hom/patient-flow' + (uhid ? `?uhid=${encodeURIComponent(uhid)}` : ''))
         }
       />
     </>

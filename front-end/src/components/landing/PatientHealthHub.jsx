@@ -203,7 +203,7 @@ export default function PatientHealthHub() {
                   <button
                     type="button"
                     className="hero-btn-primary"
-                    onClick={() => navigate('/signup/signup-page.html')}
+                    onClick={() => navigate('/signup')}
                   >
                     <span>Register &amp; Book Appointment</span>
                     <ArrowRight size={16} className="btn-arrow" />
@@ -211,7 +211,7 @@ export default function PatientHealthHub() {
                   <button
                     type="button"
                     className="hero-btn-secondary"
-                    onClick={() => navigate('/marketplace/marketplace-page.html')}
+                    onClick={() => navigate('/marketplace')}
                   >
                     <span>Browse Hospital Specialists</span>
                   </button>
@@ -269,7 +269,7 @@ export default function PatientHealthHub() {
                   <button
                     type="button"
                     className="hero-btn-primary"
-                    onClick={() => navigate('/signup/signup-page.html')}
+                    onClick={() => navigate('/signup')}
                   >
                     <span>Create Express UHID Pass</span>
                     <ArrowRight size={16} className="btn-arrow" />
@@ -277,7 +277,7 @@ export default function PatientHealthHub() {
                   <button
                     type="button"
                     className="hero-btn-secondary"
-                    onClick={() => navigate('/login/login-page.html')}
+                    onClick={() => navigate('/login')}
                   >
                     <span>Sign In to Existing Profile</span>
                   </button>
@@ -342,7 +342,7 @@ export default function PatientHealthHub() {
                   <button
                     type="button"
                     className="hero-btn-secondary"
-                    onClick={() => navigate('/marketplace/marketplace-page.html')}
+                    onClick={() => navigate('/marketplace')}
                   >
                     <span>View Emergency Bay Locations</span>
                   </button>

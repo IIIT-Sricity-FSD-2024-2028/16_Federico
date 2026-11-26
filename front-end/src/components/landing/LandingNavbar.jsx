@@ -66,7 +66,7 @@ export default function LandingNavbar() {
             id="marketplace-btn"
             type="button"
             className="nav-btn-secondary"
-            onClick={() => navigate('/marketplace/marketplace-page.html')}
+            onClick={() => navigate('/marketplace')}
           >
             <Hospital size={15} />
             <span>Hospitals</span>
@@ -76,7 +76,7 @@ export default function LandingNavbar() {
             id="login-btn"
             type="button"
             className="nav-btn-primary"
-            onClick={() => navigate('/login/login-page.html')}
+            onClick={() => navigate('/login')}
           >
             <span>Sign In</span>
             <ArrowRight size={15} />
@@ -114,7 +114,7 @@ export default function LandingNavbar() {
               className="drawer-btn-secondary"
               onClick={() => {
                 setMobileMenuOpen(false);
-                navigate('/marketplace/marketplace-page.html');
+                navigate('/marketplace');
               }}
             >
               <Hospital size={16} /> Browse Hospitals
@@ -124,7 +124,7 @@ export default function LandingNavbar() {
               className="drawer-btn-primary"
               onClick={() => {
                 setMobileMenuOpen(false);
-                navigate('/login/login-page.html');
+                navigate('/login');
               }}
             >
               Sign In to Portal <ArrowRight size={16} />

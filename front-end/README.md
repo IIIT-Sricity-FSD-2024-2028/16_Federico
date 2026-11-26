@@ -34,11 +34,8 @@ the old `shared/api-client.js` used.
 
 ### Deploying
 
-Routes keep their legacy `.html` suffixes, and Vite's built-in SPA fallback
-skips any path whose last segment contains a dot. `vite.config.js` adds a
-middleware that rewrites navigation requests (`Accept: text/html`) to
-`/index.html`, and **any production host needs the equivalent rewrite** or every
-deep link 404s. For example, with nginx:
+Any production host needs an SPA history fallback rewrite to `/index.html` so
+deep links and page refreshes resolve to the React app. For example, with nginx:
 
 ```nginx
 location / {
@@ -50,87 +47,82 @@ location / {
 
 ## Routes
 
-Every URL is identical to the one the old multi-page app served, including the
-`.html` suffix and the FA hash routes, so existing links and bookmarks keep
-working.
+Every portal uses clean, extensionless SPA routes (FA keeps its `#/ledger`,
+`#/charges`, and `#/eod` hash views under `/fa`).
 
 ### Public
 
 | URL | Page |
 |---|---|
-| `/` | redirects to the landing page |
-| `/landing/landing-page.html` | Marketing landing page |
-| `/login/login-page.html` | Staff and patient sign-in (`?org=<id>` preselects a hospital) |
-| `/signup/signup-page.html` | Patient self-registration (`?org=<id>`) |
-| `/signup/org-signup.html` | Four-step hospital-chain onboarding |
-| `/marketplace/marketplace-page.html` | Public hospital directory |
+| `/` | redirects to `/landing` |
+| `/landing` | Marketing landing page |
+| `/login` | Staff and patient sign-in (`?org=<id>` preselects a hospital) |
+| `/signup` | Patient self-registration (`?org=<id>`) |
+| `/org-signup` | Four-step hospital-chain onboarding |
+| `/marketplace` | Public hospital directory |
 
 ### Platform Super User
 
 | URL | Page |
 |---|---|
-| `/platform/platform-login.html` | Redirects to the unified sign-in page (platform staff sign in as `name.platform@federico.com`) |
-| `/platform/platform-dashboard.html` | Tenants, provisioning, plan rates |
+| `/platform` | Tenants, provisioning, plan rates |
 
 ### HOM — Hospital Operations Manager
 
 | URL | Page |
 |---|---|
-| `/HOM/` and `/HOM/index.html` | redirect to the dashboard |
-| `/HOM/screen-01-dashboard.html` | KPIs, bed requests, discharge queue |
-| `/HOM/screen-02-bed-management.html` | Ward and bed matrix |
-| `/HOM/screen-03-patient-flow.html` | Inpatient flow and discharge clearance (`?uhid=`) |
-| `/HOM/screen-04-inventory.html` | Stock, usage logging, restock orders |
-| `/HOM/screen-05-billing.html` | Ledgers and service posting (`?uhid=`) |
+| `/hom` | redirects to `/hom/dashboard` |
+| `/hom/dashboard` | KPIs, bed requests, discharge queue |
+| `/hom/bed-management` | Ward and bed matrix |
+| `/hom/patient-flow` | Inpatient flow and discharge clearance (`?uhid=`) |
+| `/hom/inventory` | Stock, usage logging, restock orders |
 
 ### PRE — Patient Relational Executive
 
 | URL | Page |
 |---|---|
-| `/PRE/` and `/PRE/index.html` | redirect to the dashboard |
-| `/PRE/pages/PRE.html` | Dashboard counters and approved patients |
-| `/PRE/pages/request.html` | Pending pre-requests: approve / reject |
-| `/PRE/pages/rejected.html` | Rejected requests |
-| `/PRE/pages/admitted.html` | Admitted inpatients |
-| `/PRE/pages/discharge.html` | Discharge requests and HOM approvals |
-| `/PRE/pages/emergency.html` | Emergency triage and walk-in registration |
-| `/PRE/pages/patient-records.html` | Patient directory and Patient 360 |
-| `/PRE/pages/doctor.html` | Doctor roster |
-| `/PRE/pages/bed-coordination.html` | Bed allocation and operations coordination (legacy `/PRE/pages/hom.html` redirects here) |
+| `/pre` | redirects to `/pre/dashboard` |
+| `/pre/dashboard` | Dashboard counters and approved patients |
+| `/pre/requests` | Pending pre-requests: approve / reject |
+| `/pre/rejected` | Rejected requests |
+| `/pre/admitted` | Admitted inpatients |
+| `/pre/discharge` | Discharge requests and HOM approvals |
+| `/pre/patient-records` | Patient directory and Patient 360 |
+| `/pre/doctors` | Doctor roster |
+| `/pre/bed-coordination` | Bed allocation and operations coordination |
 
 ### Patient
 
 | URL | Page |
 |---|---|
-| `/Patient/patient-dashboard.html` | Appointments, visits, PRE updates, bills, documents |
-| `/Patient/patient-book-appointment.html` | OPD booking with slot capacity |
-| `/Patient/patient-billing.html` | Invoices, receipts, discharge summaries, EOD bills |
-| `/Patient/patient-profile.html` | Personal, contact, password and insurance sections |
+| `/patient` | redirects to `/patient/dashboard` |
+| `/patient/dashboard` | Appointments, visits, PRE updates, bills, documents |
+| `/patient/book-appointment` | OPD booking with slot capacity |
+| `/patient/billing` | Invoices, receipts, discharge summaries, EOD bills |
+| `/patient/documents` | Uploaded documents and medical records |
+| `/patient/profile` | Personal, contact, password and insurance sections |
 
 ### FA — Finance Associate
 
-One page with six hash views:
+One page with hash views:
 
 | URL | View |
 |---|---|
-| `/FA/fa-dashboard.html#/dashboard` | Billing queue and recent receipts |
-| `/FA/fa-dashboard.html#/charges` | HOM-submitted charges awaiting approval |
-| `/FA/fa-dashboard.html#/ledger` | Patient ledger and manual charges |
-| `/FA/fa-dashboard.html#/eod` | End-of-day bill dispatch |
-| `/FA/fa-dashboard.html#/discharge` | Final settlement and discharge summary |
-| `/FA/fa-dashboard.html#/receipts` | Receipt search and printing |
+| `/fa#/ledger` | Patient ledger and manual charges |
+| `/fa#/charges` | HOM-submitted charges awaiting approval |
+| `/fa#/eod` | End-of-day bill dispatch and settlement |
 
-`#/ledger/42`, `#/eod/42` and `#/discharge/42` open that admission directly.
+`#/ledger/42` and `#/eod/42` open that admission directly.
 
 ### Admin
 
 | URL | Page |
 |---|---|
-| `/Admin/screen-01-dashboard.html` | Organization analytics |
-| `/Admin/screen-02-departments.html` | Wards and beds |
-| `/Admin/screen-03-inventory.html` | Inventory catalog |
-| `/Admin/screen-04-admin.html` | Roles, permissions, branding |
-| `/Admin/screen-05-people.html` | Staff logins and doctors |
+| `/admin` | redirects to `/admin/dashboard` |
+| `/admin/dashboard` | Organization analytics |
+| `/admin/departments` | Wards and beds |
+| `/admin/inventory` | Inventory catalog |
+| `/admin/people` | Staff logins, roles, and doctors |
 
 ---
 

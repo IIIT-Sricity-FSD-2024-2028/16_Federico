@@ -12,10 +12,10 @@ import componentsCss from '../../styles/pre/components.css?inline';
  * The PRE layout, now powered by the universal shared AppNavbar.
  */
 const LINKS = [
-  { href: '/PRE/pages/PRE.html', label: 'Dashboard' },
-  { href: '/PRE/pages/patient-records.html', label: 'Patient record', module: 'PATIENT' },
-  { href: '/PRE/pages/doctor.html', label: 'Doctor availability', module: 'DOCTOR' },
-  { href: '/PRE/pages/bed-coordination.html', label: 'Bed Coordination', module: 'ADMISSIONS' },
+  { href: '/pre/dashboard', label: 'Dashboard' },
+  { href: '/pre/patient-records', label: 'Patient record', module: 'PATIENT' },
+  { href: '/pre/doctors', label: 'Doctor availability', module: 'DOCTOR' },
+  { href: '/pre/bed-coordination', label: 'Bed Coordination', module: 'ADMISSIONS' },
 ];
 
 export default function PreLayout() {

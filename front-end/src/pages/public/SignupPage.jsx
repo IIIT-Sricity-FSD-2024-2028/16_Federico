@@ -172,7 +172,7 @@ export default function SignupPage() {
 
       setCreated(true);
       showToast('Account created. Your UHID is ' + result.patient.uhid + '.', 'success');
-      setTimeout(() => navigate('/Patient/patient-dashboard.html'), 1400);
+      setTimeout(() => navigate('/patient/dashboard'), 1400);
     } catch (err) {
       setSubmitting(false);
       showToast(
@@ -187,14 +187,14 @@ export default function SignupPage() {
   return (
     <>
       <header className="topbar">
-        <Link to="/landing/landing-page.html" className="brand" title="Back to Home">
+        <Link to="/landing" className="brand" title="Back to Home">
           <div className="brand-icon">F</div>
           <div className="brand-name">Federico Cloud</div>
         </Link>
         <button
           className="login-shortcut"
           type="button"
-          onClick={() => navigate('/login/login-page.html')}
+          onClick={() => navigate('/login')}
         >
           Already have an account? Login
         </button>
@@ -229,7 +229,7 @@ export default function SignupPage() {
                     )}
                   </select>
                   <span className="field-hint">
-                    Not sure which one? <Link to="/marketplace/marketplace-page.html">Browse hospitals</Link>.
+                    Not sure which one? <Link to="/marketplace">Browse hospitals</Link>.
                   </span>
                 </div>
               </div>

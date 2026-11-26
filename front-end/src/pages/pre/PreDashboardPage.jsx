@@ -83,10 +83,10 @@ export default function PreDashboardPage() {
       />
 
       <div className="cards" style={{ padding: '0 0 24px 0', margin: 0 }}>
-        <StatCard to="/PRE/pages/request.html" label="Pending Requests" value={counters.pending + ' Requests'} variant="warning" />
-        <StatCard to="/PRE/pages/rejected.html" label="Rejected Requests" value={counters.rejected + ' Requests'} variant="error" />
-        <StatCard to="/PRE/pages/admitted.html" label="Admitted Patients" value={counters.admitted + ' Patients'} variant="info" />
-        <StatCard to="/PRE/pages/discharge.html" label="Discharge Approvals" value={counters.discharge + ' In Queue'} variant="primary" />
+        <StatCard to="/pre/requests" label="Pending Requests" value={counters.pending + ' Requests'} variant="warning" />
+        <StatCard to="/pre/rejected" label="Rejected Requests" value={counters.rejected + ' Requests'} variant="error" />
+        <StatCard to="/pre/admitted" label="Admitted Patients" value={counters.admitted + ' Patients'} variant="info" />
+        <StatCard to="/pre/discharge" label="Discharge Approvals" value={counters.discharge + ' In Queue'} variant="primary" />
       </div>
 
       <div className="table-container" style={{ margin: 0 }}>

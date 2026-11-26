@@ -251,7 +251,7 @@ export default function LoginPage() {
       {/* Top Header */}
       <header className="login-header">
         <div className="login-header-inner">
-          <Link to="/landing/landing-page.html" className="landing-brand" title="Back to Home">
+          <Link to="/landing" className="landing-brand" title="Back to Home">
             <div className="brand-emblem">
               <span className="brand-letter">F</span>
             </div>
@@ -260,7 +260,7 @@ export default function LoginPage() {
               <span className="brand-tagline">Clinical Cloud</span>
             </div>
           </Link>
-          <Link to="/landing/landing-page.html" className="header-back-link">
+          <Link to="/landing" className="header-back-link">
             Back to Home
           </Link>
         </div>
@@ -417,7 +417,7 @@ export default function LoginPage() {
 
             <div className="login-box-footer">
               <span>New patient? </span>
-              <Link to="/signup/signup-page.html" className="footer-link">
+              <Link to="/signup" className="footer-link">
                 Register here
               </Link>
             </div>

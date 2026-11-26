@@ -151,7 +151,7 @@ export default function DashboardPage() {
                     : `${unpaid.length} bill${unpaid.length !== 1 ? 's' : ''} due`
               }
               variant={overdueCount > 0 ? 'error' : unpaid.length > 0 ? 'warning' : 'success'}
-              to="/Patient/patient-billing.html"
+              to="/patient/billing"
             />
             <StatCard
               label="Last Visit"
@@ -181,7 +181,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   className="btn-book-shortcut"
-                  onClick={() => navigate('/Patient/patient-book-appointment.html')}
+                  onClick={() => navigate('/patient/book-appointment')}
                 >
                   + Book Appointment
                 </button>
@@ -231,7 +231,7 @@ export default function DashboardPage() {
                 type="button"
                 className="view-all-link"
                 id="toggle-visits"
-                onClick={() => navigate('/Patient/documents')}
+                onClick={() => navigate('/patient/documents')}
               >
                 View Admission Certificates →
               </button>
