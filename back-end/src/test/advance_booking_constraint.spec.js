@@ -327,5 +327,54 @@ describe('Patient Appointment Advance Booking Constraint Suite', () => {
         }
       }
     });
+
+    it('allows PRE field-only updates (Follow-Up / Admit / reschedule) and blocks Patient from field-only updates', async () => {
+      const targetDate = getNextWeekday(TODAY, 5);
+      const revisedDate = getNextWeekday(TODAY, 6);
+      let preRequestId;
+
+      try {
+        const createRes = await request(app)
+          .post('/pre-requests')
+          .set('Authorization', `Bearer ${patientSession}`)
+          .send({
+            patient_id: testPatient.patient_id,
+            doctor_id: 401,
+            department: 'General Medicine',
+            visit_type: 'Consultation',
+            requested_date: targetDate,
+            requested_time: '10:00 AM',
+          });
+        expect(createRes.status).toBe(201);
+        preRequestId = createRes.body.pre_request_id;
+
+        const followUpRes = await request(app)
+          .put(`/pre-requests/${preRequestId}`)
+          .set('Authorization', `Bearer ${preTok}`)
+          .send({ visit_type: 'Follow-Up' });
+        expect(followUpRes.status).toBe(200);
+        expect(followUpRes.body.visit_type).toBe('Follow-Up');
+
+        const admitPrepRes = await request(app)
+          .put(`/pre-requests/${preRequestId}`)
+          .set('Authorization', `Bearer ${preTok}`)
+          .send({ visit_type: 'Admit', ward_type: 'General Ward', requested_date: revisedDate, requested_time: '11:30 AM' });
+        expect(admitPrepRes.status).toBe(200);
+        expect(admitPrepRes.body.visit_type).toBe('Admit');
+        expect(admitPrepRes.body.ward_type).toBe('General Ward');
+        expect(admitPrepRes.body.requested_date).toBe(revisedDate);
+        expect(admitPrepRes.body.requested_time).toBe('11:30 AM');
+
+        const patientRes = await request(app)
+          .put(`/pre-requests/${preRequestId}`)
+          .set('Authorization', `Bearer ${patientSession}`)
+          .send({ requested_date: targetDate });
+        expect(patientRes.status).toBe(403);
+      } finally {
+        if (preRequestId) {
+          dataStore.preRequests = dataStore.preRequests.filter((item) => item.pre_request_id !== preRequestId);
+        }
+      }
+    });
   });
 });

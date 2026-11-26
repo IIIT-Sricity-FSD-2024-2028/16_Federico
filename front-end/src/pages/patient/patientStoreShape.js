@@ -213,11 +213,15 @@ export function buildAppointments(preRequests = [], doctorsById = {}, rawAppoint
     if (pr.appointment_id && seenMap.has('APT-' + pr.appointment_id)) {
       const existing = items.find((i) => i.id === 'APT-' + pr.appointment_id);
       if (existing) {
+        existing.preRequestId = pr.pre_request_id;
         if (pr.reject_reason) existing.rejectReason = pr.reject_reason;
         if (pr.hom_status) existing.homStatus = pr.hom_status;
         if (pr.note) existing.note = pr.note;
         if (Array.isArray(pr.document_urls) && pr.document_urls.length) {
           existing.document_urls = pr.document_urls;
+        }
+        if (pr.department && !existing.department) {
+          existing.department = pr.department;
         }
         if (!existing.doctorName && pr.doctor_id && doctorsById[pr.doctor_id]) {
           existing.doctorName = doctorsById[pr.doctor_id].name;
@@ -651,10 +655,14 @@ export function buildPatientDocuments(source = {}, _session = {}) {
   const appointmentSlips = [];
   rawAppointments.forEach((apt) => {
     if (!apt || !apt.appointment_id) return;
+    if (String(apt.status || '').toUpperCase() === 'CANCELLED') return;
     const docId = apt.doctor_id || (apt.availability ? apt.availability.doctor_id : null);
     const doctor = docId ? doctorsById[docId] : null;
-    const rawDate = apt.scheduled_datetime || apt.appointment_date || apt.created_at || Date.now();
+    const rawDate = apt.appointment_date || apt.scheduled_datetime || apt.created_at || Date.now();
     const ts = new Date(rawDate).getTime() || Date.now();
+    const scheduledParts = apt.scheduled_datetime ? String(apt.scheduled_datetime).split('T') : [];
+    const fallbackDate = scheduledParts[0] || '';
+    const fallbackTime = scheduledParts[1] ? scheduledParts[1].slice(0, 5) : '10:00 AM';
 
     appointmentSlips.push({
       id: 'APT-SLIP-' + apt.appointment_id,
@@ -665,8 +673,8 @@ export function buildPatientDocuments(source = {}, _session = {}) {
       date: formatShortDate(ts),
       createdAt: ts,
       doctorName: doctor ? doctor.name : apt.doctor_name || 'Duty Doctor',
-      scheduledDate: formatAppointmentDate(apt.appointment_date || apt.scheduled_datetime, apt.created_at),
-      scheduledTime: formatTimeString(apt.appointment_time || apt.scheduled_datetime || '10:00 AM'),
+      scheduledDate: formatAppointmentDate(apt.appointment_date || fallbackDate, apt.created_at),
+      scheduledTime: formatTimeString(apt.appointment_time || fallbackTime),
       visitType: apt.visit_type || 'Consultation',
       notes: apt.note || '',
       status: 'Confirmed Consultation',

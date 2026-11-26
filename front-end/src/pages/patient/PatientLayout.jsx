@@ -1,9 +1,10 @@
 'use strict';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { usePatientStore } from './usePatientStore.js';
 import { useSession } from '../../auth/useSession.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import { useAppDispatch } from '../../store/hooks.js';
 import { refreshPatientPortal } from '../../store/slices/patientsSlice.js';
 import { toast } from '../../components/feedback/feedback.js';
@@ -60,12 +61,17 @@ export default function PatientLayout() {
   const dispatch = useAppDispatch();
   const { session } = useSession();
   const patientId = session?.patientId;
+  const refreshPortal = useCallback(() => {
+    if (patientId) dispatch(refreshPatientPortal());
+  }, [dispatch, patientId]);
 
   // Loads the portal into state.patients.portal for the signed-in patient, and
   // again whenever the session changes (the old provider's refresh effect).
   useEffect(() => {
     dispatch(refreshPatientPortal());
   }, [dispatch, patientId, session]);
+
+  usePolling(refreshPortal, 15000);
 
   return (
     <>

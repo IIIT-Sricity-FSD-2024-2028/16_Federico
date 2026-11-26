@@ -773,6 +773,62 @@ describe('Frontend Shared & Patient Helpers', () => {
       });
     });
 
+    it('formats scheduledTime from scheduled_datetime without parsing the year when appointment_time is absent, and skips CANCELLED slips', () => {
+      const { shapePatientStoreData } = window.PatientStoreShape;
+      const shaped = shapePatientStoreData({
+        appointments: [
+          {
+            appointment_id: 601,
+            scheduled_datetime: '2026-08-19T12:00:00',
+            status: 'CONFIRMED',
+          },
+          {
+            appointment_id: 602,
+            appointment_date: '2026-08-20',
+            appointment_time: '11:00 AM',
+            status: 'CANCELLED',
+          },
+        ],
+        preRequests: [],
+      }, {});
+
+      expect(shaped.patientDocuments.appointments).toHaveLength(1);
+      expect(shaped.patientDocuments.appointments[0]).toMatchObject({
+        appointmentId: 601,
+        scheduledDate: '19-08-2026',
+        scheduledTime: '12:00 PM',
+      });
+    });
+
+    it('openAppointmentSlip uses DashboardPage displayDate and time fields instead of defaulting to 10:00 AM', () => {
+      let capturedHtml = '';
+      const docCopy = loadEsmModule(`${PATIENT}/patientDocumentCopy.js`, {
+        escapeHtml: window.Formatters.escapeHtml,
+        openPrintWindow: (html) => {
+          capturedHtml = html;
+          return {};
+        },
+        formatDDMMYYYY: window.PatientStoreShape.formatDDMMYYYY,
+      });
+
+      const opened = docCopy.openAppointmentSlip(
+        {
+          appointmentId: 612,
+          department: 'Cardiology',
+          doctorName: 'Dr. Arjun Mehta',
+          displayDate: '27-11-2026',
+          date: '2026-11-27',
+          time: '11:45 AM',
+        },
+        { name: 'Arjun Kapoor', uhid: 'UHID-882100', hospitalName: 'City General Hospital' },
+      );
+
+      expect(opened).toBe(true);
+      expect(capturedHtml).toContain('27-11-2026');
+      expect(capturedHtml).toContain('11:45 AM');
+      expect(capturedHtml).not.toContain('10:00 AM');
+    });
+
     it('buildProfile supports valid_till alias for insurance validTo', () => {
       const { buildProfile } = window.PatientStoreShape;
       const profile = buildProfile(

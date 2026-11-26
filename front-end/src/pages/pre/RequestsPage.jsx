@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import Button from '../../components/ui/Button.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
@@ -30,6 +31,7 @@ export default function RequestsPage() {
   const [popup, setPopup] = useUiState('RequestsPage.popup', null); // { kind, id }
 
   const { loading, error, reload } = useLoader(loadPreRequests);
+  usePolling(reload, 15000);
   const preRequestList = useAppSelector(selectPreRequests);
   const patientList = useAppSelector(selectPatients);
   const doctorList = useAppSelector(selectDoctors);

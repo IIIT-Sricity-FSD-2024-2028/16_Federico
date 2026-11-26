@@ -107,13 +107,16 @@ function update(id, patch) {
   // If there's an associated preRequest, sync requested_date and requested_time as well!
   const preRequest = dataStore.preRequests.find((pr) => Number(pr.appointment_id) === numId);
   if (preRequest) {
-    if (patch.scheduled_datetime) {
-      const parts = String(patch.scheduled_datetime).split('T');
-      preRequest.requested_date = parts[0];
-      preRequest.requested_time = parts[1] ? parts[1].slice(0, 5) : '09:00 AM';
-    } else {
-      if (patch.appointment_date) preRequest.requested_date = patch.appointment_date;
-      if (patch.appointment_time) preRequest.requested_time = patch.appointment_time;
+    const scheduledParts = patch.scheduled_datetime ? String(patch.scheduled_datetime).split('T') : [];
+    if (patch.appointment_date) {
+      preRequest.requested_date = patch.appointment_date;
+    } else if (scheduledParts[0]) {
+      preRequest.requested_date = scheduledParts[0];
+    }
+    if (patch.appointment_time) {
+      preRequest.requested_time = patch.appointment_time;
+    } else if (scheduledParts[1]) {
+      preRequest.requested_time = scheduledParts[1].slice(0, 5);
     }
     if (patch.doctor_id) preRequest.doctor_id = Number(patch.doctor_id);
     if (patch.department) preRequest.department = patch.department;

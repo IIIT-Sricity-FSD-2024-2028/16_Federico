@@ -12,7 +12,7 @@ import { fetchDoctorAvailability } from '../../store/slices/doctorsSlice.js';
 import { fetchAppointments } from '../../store/slices/appointmentsSlice.js';
 import { updatePreRequest } from '../../store/slices/preRequestsSlice.js';
 
-async function checkDoctorAvailability(dispatch, doctorId, date, time24) {
+async function checkDoctorAvailability(dispatch, doctorId, date, time24, excludeAppointmentId = null) {
   const [slots, allAppointments] = await Promise.all([
     dispatch(fetchDoctorAvailability(doctorId)).unwrap(),
     dispatch(fetchAppointments()).unwrap(),
@@ -23,7 +23,8 @@ async function checkDoctorAvailability(dispatch, doctorId, date, time24) {
 
   function toMinutes(t) {
     if (!t) return null;
-    const parts = String(t).trim().split(':');
+    const clean = to24Hour(t) || String(t).trim();
+    const parts = clean.split(':');
     const hours = parseInt(parts[0], 10);
     const minutes = parseInt(parts[1] || '0', 10);
     if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
@@ -46,18 +47,17 @@ async function checkDoctorAvailability(dispatch, doctorId, date, time24) {
   }
 
   const docId = Number(doctorId);
+  const excludeId = excludeAppointmentId != null ? Number(excludeAppointmentId) : null;
   const conflict = (allAppointments || []).some((appt) => {
+    if (excludeId !== null && Number(appt.appointment_id) === excludeId) return false;
     if (Number(appt.doctor_id) !== docId) return false;
     if (appt.status === 'CANCELLED' || appt.status === 'COMPLETED') return false;
 
-    const apptDate = appt.scheduled_datetime
-      ? appt.scheduled_datetime.slice(0, 10)
-      : (appt.appointment_date || '').slice(0, 10);
+    const scheduledParts = appt.scheduled_datetime ? String(appt.scheduled_datetime).split('T') : [];
+    const apptDate = (appt.appointment_date || scheduledParts[0] || '').slice(0, 10);
     if (apptDate !== date) return false;
 
-    const rawTime = appt.scheduled_datetime
-      ? appt.scheduled_datetime.slice(11, 16)
-      : (appt.appointment_time || '').slice(0, 5);
+    const rawTime = appt.appointment_time || (scheduledParts[1] ? scheduledParts[1].slice(0, 5) : '');
     const apptMins = toMinutes(rawTime);
     return apptMins !== null && reqMins !== null && Math.abs(apptMins - reqMins) < 30;
   });
@@ -137,7 +137,13 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
     setChecking(true);
     let checkResult;
     try {
-      checkResult = await checkDoctorAvailability(dispatch, doctorId, date, time24);
+      checkResult = await checkDoctorAvailability(
+        dispatch,
+        doctorId,
+        date,
+        time24,
+        request.appointment_id || null,
+      );
     } catch (err) {
       checkResult = {
         available: false,
@@ -194,7 +200,11 @@ export default function ApprovePopup({ request, doctors, onClose, onDone }) {
   }
 
   const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-  const minuteOptions = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+  const baseMinutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+  const minuteOptions =
+    init.minute && /^\d{2}$/.test(init.minute) && !baseMinutes.includes(init.minute)
+      ? [...baseMinutes, init.minute].sort()
+      : baseMinutes;
 
   const dialogFooter = (
     <div className="approve-footer-actions">

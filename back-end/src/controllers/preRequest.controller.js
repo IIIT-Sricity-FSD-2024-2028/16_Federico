@@ -144,10 +144,14 @@ const PUBLICLY_SETTABLE_STATUSES = new Set([
 ]);
 
 /**
- * PUT /pre-requests/:id — a state transition. Validated against the actor's
+ * PUT /pre-requests/:id — two distinct kinds of update, split by whether
+ * `status` is present in the body:
+ *  - status present -> a state transition. Validated against the actor's
  *    permitted moves in preRequestService.TRANSITIONS. A session-less
  *    legacy x-role SUPER_USER call skips the actor check (same "admin can
  *    do anything" bypass every other resource already has).
+ *  - status absent -> a field update (doctor/date/time/department/visit_type/
+ *    ward_type), PRE/HOM/OPERATIONS only, never Patient.
  */
 function update(req, res) {
   const existing = preRequestService.findOne(+req.params.id);
@@ -165,82 +169,97 @@ function update(req, res) {
   }
 
   const requestedStatus = req.body.status;
-  if (requestedStatus === 'ADMITTED') return res.status(403).json(FORBIDDEN);
 
-  if (req.session && req.session.role === 'Patient') {
-    const requestedFields = Object.keys(req.body);
-    const onlyAllowedFields = requestedFields.every((field) =>
-      ['status', 'reject_reason'].includes(field),
+  if (requestedStatus !== undefined) {
+    if (requestedStatus === 'ADMITTED') return res.status(403).json(FORBIDDEN);
+
+    if (req.session && req.session.role === 'Patient') {
+      const requestedFields = Object.keys(req.body);
+      const onlyAllowedFields = requestedFields.every((field) =>
+        ['status', 'reject_reason'].includes(field),
+      );
+      if (!onlyAllowedFields) return res.status(403).json(FORBIDDEN);
+    }
+
+    if (!PUBLICLY_SETTABLE_STATUSES.has(requestedStatus))
+      return res.status(403).json(FORBIDDEN);
+
+    if (requestedStatus === 'DISCHARGED') {
+      const blockReason = dischargeBlockReason(existing.patient_id);
+      if (blockReason) {
+        return res
+          .status(409)
+          .json({ message: blockReason, error: 'Conflict', statusCode: 409 });
+      }
+    }
+
+    if (requestedStatus === 'APPROVED') {
+      const scheduleError = preRequestService.getApprovalScheduleError(
+        req.body.requested_date || existing.requested_date,
+        req.body.requested_time || existing.requested_time,
+      );
+      if (scheduleError) {
+        return res.status(409).json({
+          message: scheduleError,
+          error: 'Conflict',
+          statusCode: 409,
+        });
+      }
+
+      const doctorId = req.body.doctor_id || existing.doctor_id;
+      if (doctorId) {
+        const doctor = doctorService.findDoctorById(doctorId);
+        if (!belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
+
+        const requestedDate = req.body.requested_date || existing.requested_date;
+        const requestedTime = req.body.requested_time || existing.requested_time;
+        const availability = doctorService.isDoctorAvailableAt(
+          doctorId,
+          requestedDate,
+          requestedTime,
+          existing.appointment_id || null,
+        );
+        if (!availability.available) {
+          return res.status(409).json({
+            message: availability.message,
+            error: 'Conflict',
+            statusCode: 409,
+          });
+        }
+      }
+    }
+
+    if (
+      !req.session ||
+      !preRequestService.canTransition(
+        existing.status,
+        requestedStatus,
+        req.session.role,
+      )
+    ) {
+      return res.status(403).json(FORBIDDEN);
+    }
+
+    return sendResult(
+      res,
+      preRequestService.transition(
+        existing.pre_request_id,
+        requestedStatus,
+        req.session?.role,
+        req.body,
+      ),
+      200,
     );
-    if (!onlyAllowedFields) return res.status(403).json(FORBIDDEN);
   }
 
-  if (!PUBLICLY_SETTABLE_STATUSES.has(requestedStatus))
-    return res.status(403).json(FORBIDDEN);
-
-  if (requestedStatus === 'DISCHARGED') {
-    const blockReason = dischargeBlockReason(existing.patient_id);
-    if (blockReason) {
-      return res
-        .status(409)
-        .json({ message: blockReason, error: 'Conflict', statusCode: 409 });
-    }
-  }
-
-  if (requestedStatus === 'APPROVED') {
-    const scheduleError = preRequestService.getApprovalScheduleError(
-      req.body.requested_date || existing.requested_date,
-      req.body.requested_time || existing.requested_time,
-    );
-    if (scheduleError) {
-      return res.status(409).json({
-        message: scheduleError,
-        error: 'Conflict',
-        statusCode: 409,
-      });
-    }
-
-    const doctorId = req.body.doctor_id || existing.doctor_id;
-    if (doctorId) {
-      const doctor = doctorService.findDoctorById(doctorId);
-      if (!belongsToOrg(doctor, req)) return res.status(404).json({ message: 'Doctor not found in this organization', error: 'Not Found', statusCode: 404 });
-    }
-    const requestedDate = req.body.requested_date || existing.requested_date;
-    const requestedTime = req.body.requested_time || existing.requested_time;
-    const availability = doctorService.isDoctorAvailableAt(
-      doctorId,
-      requestedDate,
-      requestedTime,
-      existing.appointment_id || null,
-    );
-    if (!availability.available) {
-      return res.status(409).json({
-        message: availability.message,
-        error: 'Conflict',
-        statusCode: 409,
-      });
-    }
-  }
-
-  if (
-    !req.session ||
-    !preRequestService.canTransition(
-      existing.status,
-      requestedStatus,
-      req.session.role,
-    )
-  ) {
+  const actor = req.session?.actor || req.session?.role;
+  if (req.session && actor !== 'PRE' && actor !== 'HOM' && actor !== 'OPERATIONS') {
     return res.status(403).json(FORBIDDEN);
   }
 
   return sendResult(
     res,
-    preRequestService.transition(
-      existing.pre_request_id,
-      requestedStatus,
-      req.session?.role,
-      req.body,
-    ),
+    preRequestService.updateFields(existing.pre_request_id, req.body),
     200,
   );
 }

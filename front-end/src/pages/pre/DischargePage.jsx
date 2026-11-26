@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import { toast } from '../../components/feedback/feedback.js';
 import Button from '../../components/ui/Button.jsx';
 import Badge from '../../components/ui/Badge.jsx';
@@ -28,6 +29,7 @@ export default function DischargePage() {
 
   const dispatch = useAppDispatch();
   const { loading, error, reload } = useLoader(loadPreDischarge);
+  usePolling(reload, 15000);
   const preRequestList = useAppSelector(selectPreRequests);
   const patientList = useAppSelector(selectPatients);
   const doctorList = useAppSelector(selectDoctors);

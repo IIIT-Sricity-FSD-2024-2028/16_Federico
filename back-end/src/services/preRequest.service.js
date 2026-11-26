@@ -210,6 +210,9 @@ function create(payload, createdBy) {
     decided_at: null,
   };
   dataStore.preRequests.push(newRequest);
+  if (initialStatus === 'APPROVED' && !newRequest.appointment_id) {
+    createLinkedAppointment(newRequest);
+  }
 
   const patient = dataStore.patients.find(
     (p) => p.patient_id === newRequest.patient_id,
@@ -222,6 +225,62 @@ function create(payload, createdBy) {
   );
 
   return newRequest;
+}
+
+/**
+ * Field-level update (doctor/date/time/department/ward_type/visit_type) —
+ * PRE rescheduling, follow-up tagging, or bed-request prep. Does not change
+ * status. If a linked appointment exists, its matching fields are synchronized.
+ */
+function updateFields(id, patch) {
+  const request = findOne(id);
+  if (!request) return null;
+
+  const allowedFields = [
+    'doctor_id',
+    'requested_date',
+    'requested_time',
+    'department',
+    'ward_type',
+    'visit_type',
+    'note',
+    'document_urls',
+  ];
+  const updateData = {};
+  for (const field of allowedFields) {
+    if (patch[field] !== undefined) {
+      updateData[field] = patch[field];
+    }
+  }
+  Object.assign(request, updateData);
+  request.updated_at = new Date().toISOString();
+
+  // Synchronize with linked appointment if present
+  if (request.appointment_id) {
+    const appointment = dataStore.appointments.find(
+      (a) => a.appointment_id === request.appointment_id,
+    );
+    if (appointment) {
+      if (updateData.requested_date) {
+        appointment.appointment_date = updateData.requested_date;
+      }
+      if (updateData.requested_time) {
+        appointment.appointment_time = updateData.requested_time;
+      }
+      if (updateData.requested_date || updateData.requested_time) {
+        appointment.scheduled_datetime =
+          buildScheduledDatetime(
+            appointment.appointment_date,
+            appointment.appointment_time,
+          ) || appointment.scheduled_datetime;
+      }
+      if (updateData.doctor_id) appointment.doctor_id = Number(updateData.doctor_id);
+      if (updateData.department) appointment.department = updateData.department;
+      if (updateData.visit_type) appointment.visit_type = updateData.visit_type;
+    }
+  }
+
+  return request;
 }
 
 /**
@@ -544,6 +603,7 @@ module.exports = {
   findAll,
   findOne,
   create,
+  updateFields,
   transition,
   rejectAdmissionRequest,
   checkIn,

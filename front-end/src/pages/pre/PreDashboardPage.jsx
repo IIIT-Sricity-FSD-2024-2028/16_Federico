@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { usePolling } from '../../hooks/usePolling.js';
 import { toast } from '../../components/feedback/feedback.js';
 import StatCard from '../../components/ui/StatCard.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -30,6 +31,7 @@ export default function PreDashboardPage() {
 
   const dispatch = useAppDispatch();
   const { reload, error } = useLoader(loadPreDashboard);
+  usePolling(reload, 15000);
   const all = useAppSelector(selectPreRequests);
   const patients = useAppSelector(selectPatients);
   const doctors = useAppSelector(selectDoctors);
