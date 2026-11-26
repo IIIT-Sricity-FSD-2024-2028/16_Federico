@@ -78,5 +78,33 @@ export function bedStyle(status) {
   return BED_STYLES[status] || { bg: '#ffffff', border: '#E2E8F0', text: '#1E293B', label: status || 'Unknown' };
 }
 
+/**
+ * Picks the admission/ledger bundle that belongs to a patient-flow row,
+ * avoiding false matches against historical discharged admissions when the
+ * patient has an active stay (even if reassigned to the same bed).
+ */
+export function matchBillingBundle(billList, row) {
+  const list = Array.isArray(billList) ? billList : [];
+  if (!list.length) return null;
+
+  const isDischargedRow = String(row?.status || '').toUpperCase() === 'DISCHARGED';
+  const pool = isDischargedRow
+    ? list.filter((b) => b.admission && b.admission.status === 'DISCHARGED')
+    : list.filter((b) => b.admission && b.admission.status !== 'DISCHARGED');
+  const candidates = pool.length ? pool : list;
+
+  if (row?.bed_id) {
+    const byBed = candidates.filter((b) => b.admission && Number(b.admission.bed_id) === Number(row.bed_id));
+    if (byBed.length) return byBed[byBed.length - 1];
+  }
+  if (row?.status) {
+    const byStatus = candidates.find(
+      (b) => b.admission && String(b.admission.status).toUpperCase() === String(row.status).toUpperCase(),
+    );
+    if (byStatus) return byStatus;
+  }
+  return candidates.find((b) => b.ledger) || candidates[candidates.length - 1] || list[0] || null;
+}
+
 export { escapeHtml, formatCurrency, formatDate, formatAge, formatDateTime };
 

@@ -15,6 +15,7 @@ import {
   formatDate,
   formatDateTime,
   formatCurrency,
+  matchBillingBundle,
 } from './homHelpers.js';
 import { useAppDispatch, useAppSelector, useUiState } from '../../store/hooks.js';
 import { orElse, soft } from '../../store/loaders.js';
@@ -27,28 +28,6 @@ import {
   fetchServices,
   selectServices,
 } from '../../store/slices/billingSlice.js';
-
-/** Picks the admission/ledger bundle that belongs to this patient-flow row. */
-function matchBundle(billList, row) {
-  let matchedBundle = null;
-  if (billList.length > 0) {
-    // Priority 1: Match by assigned bed
-    if (row.bed_id) {
-      matchedBundle = billList.find((b) => b.admission && Number(b.admission.bed_id) === Number(row.bed_id));
-    }
-    // Priority 2: Match by admission status
-    if (!matchedBundle && row.status) {
-      matchedBundle = billList.find(
-        (b) => b.admission && String(b.admission.status).toUpperCase() === String(row.status).toUpperCase(),
-      );
-    }
-    // Priority 3: Fallback to admission with ledger
-    if (!matchedBundle) {
-      matchedBundle = billList.find((b) => b.ledger) || billList[0] || null;
-    }
-  }
-  return matchedBundle;
-}
 
 /** Picks the official payment receipt for the matched bundle. */
 function matchReceipt(receiptList, matchedBundle, row) {
@@ -102,7 +81,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
   // 1. Accurately match the admission and ledger bundle for this patient flow row
   const billingBundle = useMemo(() => {
     const billList = Array.isArray(patientBills) ? patientBills : [];
-    return matchBundle(billList, row);
+    return matchBillingBundle(billList, row);
   }, [patientBills, row]);
 
   // 2. Itemized ledger entries: the bundle's own, else the fetched ones
@@ -124,22 +103,30 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
   const admissionId = billingBundle?.admission?.admission_id;
   const dischargeSummary = admissionId ? dischargeSummaries[admissionId] || null : null;
 
+  const patientId = row?.patient_id ?? null;
+  const rowBedId = row?.bed_id ?? null;
+  const rowStatus = row?.status ?? null;
+
   useEffect(() => {
-    if (!row) return;
+    if (!patientId) return;
     let cancelled = false;
 
     (async () => {
       setLoading(true);
       try {
         const [billsResult] = await Promise.all([
-          orElse(dispatch(fetchPatientBills(row.patient_id)), { bills: [] }),
-          soft(dispatch(fetchPatientReceipts(row.patient_id))),
+          orElse(dispatch(fetchPatientBills(patientId)), { bills: [] }),
+          soft(dispatch(fetchPatientReceipts(patientId))),
           soft(dispatch(fetchServices())),
         ]);
 
         if (cancelled) return;
 
-        const matched = matchBundle(Array.isArray(billsResult.bills) ? billsResult.bills : [], row);
+        const matched = matchBillingBundle(billsResult.bills, {
+          patient_id: patientId,
+          bed_id: rowBedId,
+          status: rowStatus,
+        });
 
         if (matched?.ledger?.ledger_id && (!matched.entries || matched.entries.length === 0)) {
           await soft(dispatch(fetchLedgerEntries(matched.ledger.ledger_id)));
@@ -159,7 +146,7 @@ export default function PatientDetailModal({ row, initialTab = 'overview', onClo
     return () => {
       cancelled = true;
     };
-  }, [row, dispatch, setLoading]);
+  }, [patientId, rowBedId, rowStatus, dispatch, setLoading]);
 
   if (!row) return null;
 

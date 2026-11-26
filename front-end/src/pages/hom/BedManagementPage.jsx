@@ -12,6 +12,7 @@ import { bedStyle } from './homHelpers.js';
 import { toast } from '../../components/feedback/feedback.js';
 import AssignBedModal from './AssignBedModal.jsx';
 import BedDetailModal from './BedDetailModal.jsx';
+import HomLoadBanner from './HomLoadBanner.jsx';
 import { usePageStyles } from '../../hooks/usePageStyles.js';
 import bedManagementCss from '../../styles/hom/bed-management.css?inline';
 import { useAppDispatch, useAppSelector, useLoader, useUiState } from '../../store/hooks.js';
@@ -33,8 +34,9 @@ export default function BedManagementPage() {
   const [search, setSearch] = useUiState('BedManagementPage.search', '');
   const [assignBedId, setAssignBedId] = useUiState('BedManagementPage.assignBedId', null);
   const [detailBedId, setDetailBedId] = useUiState('BedManagementPage.detailBedId', null);
+  const [togglingBedId, setTogglingBedId] = useUiState('BedManagementPage.togglingBedId', null);
 
-  const { reload } = useLoader(loadHomBeds);
+  const { loading, loaded, error, reload } = useLoader(loadHomBeds);
   const arr = (v) => (Array.isArray(v) ? v : []);
   const d = {
     wards: arr(useAppSelector(selectWards)),
@@ -87,16 +89,20 @@ export default function BedManagementPage() {
   const visibleWards = d.wards.filter((w) => activeTab === 'all' || String(w.ward_id) === activeTab);
 
   async function toggleMaintenance(bedId) {
+    if (togglingBedId === bedId) return;
     const bed = d.beds.find((b) => b.bed_id === bedId);
     if (!bed) return;
     const targetStatus = bed.status === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE';
+    setTogglingBedId(bedId);
     try {
       await dispatch(updateBedStatus({ bedId, status: targetStatus })).unwrap();
       toast('Bed ' + bed.bed_number + ' status updated to ' + targetStatus + '.', 'success');
-      setDetailBedId(null);
       await reload();
+      setDetailBedId(null);
     } catch (err) {
       toast(err.message || 'Failed to update bed status', 'error');
+    } finally {
+      setTogglingBedId(null);
     }
   }
 
@@ -164,6 +170,15 @@ export default function BedManagementPage() {
           }
         />
 
+        <HomLoadBanner
+          error={error}
+          loading={loading}
+          loaded={loaded}
+          onRetry={reload}
+          loadingText="Loading wards and beds..."
+          errorFallback="Failed to load bed management data."
+        />
+
         <div className="filter-bar" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'stretch' }}>
           <div className="pill-group" id="ward-filters" style={{ flexWrap: 'wrap' }}>
             {tabs.map((t) => (
@@ -219,7 +234,7 @@ export default function BedManagementPage() {
         </div>
 
         <div id="wards-container">
-          {renderedAny ? (
+          {!loaded && loading ? null : renderedAny ? (
             wardSections
           ) : (
             <EmptyState
@@ -243,6 +258,7 @@ export default function BedManagementPage() {
         patientForBed={patientForBed}
         onClose={() => setDetailBedId(null)}
         onToggleMaintenance={toggleMaintenance}
+        toggling={togglingBedId === detailBedId}
         onAssign={(id) => {
           setDetailBedId(null);
           setAssignBedId(id);

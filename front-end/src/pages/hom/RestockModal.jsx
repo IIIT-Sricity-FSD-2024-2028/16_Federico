@@ -41,12 +41,14 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
   const [invoiceFileName, setInvoiceFileName] = useUiState('RestockModal.invoiceFileName', null);
   const [invoiceStatus, setInvoiceStatus] = useUiState('RestockModal.invoiceStatus', '');
   const [error, setError] = useUiState('RestockModal.error', '');
+  const [submitting, setSubmitting] = useUiState('RestockModal.submitting', false);
 
   const item = data.items.find((i) => i.item_id === Number(itemId));
   const cost = itemCost(item, data.services);
   const quantityNum = Math.max(0, Number(qty) || 0);
 
   async function submit() {
+    if (submitting) return;
     const item_id = Number(itemId);
     const quantity = Number(qty);
     const supplierName = supplier.trim();
@@ -70,6 +72,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
       return;
     }
     setError('');
+    setSubmitting(true);
 
     let invoiceUrl = null;
     if (invoiceFileRef.current) {
@@ -81,6 +84,7 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
       } catch (err) {
         setError(err.message || 'Unable to upload the invoice file.');
         setInvoiceStatus('');
+        setSubmitting(false);
         return;
       }
     }
@@ -99,13 +103,12 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
         }),
       ).unwrap();
       toast('Purchase Order submitted for ' + quantity + 'x ' + selected.item_name + '.', 'success');
+      await onChanged();
+      onClose();
     } catch (err) {
       setError(err.message || 'Unable to submit purchase order.');
-      return;
+      setSubmitting(false);
     }
-
-    onClose();
-    await onChanged();
   }
 
   return (
@@ -117,11 +120,11 @@ function RestockForm({ initialItemId, data, onClose, onChanged }) {
       size="md"
       footer={
         <div className="restock-footer">
-          <button type="button" className="restock-btn-cancel" onClick={onClose}>
+          <button type="button" className="restock-btn-cancel" onClick={onClose} disabled={submitting}>
             Cancel
           </button>
-          <button type="button" className="restock-btn-submit" onClick={submit}>
-            Submit PO Request
+          <button type="button" className="restock-btn-submit" onClick={submit} disabled={submitting}>
+            {submitting ? 'Submitting...' : 'Submit PO Request'}
           </button>
         </div>
       }
