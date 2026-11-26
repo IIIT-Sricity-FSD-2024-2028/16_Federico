@@ -744,6 +744,35 @@ describe('Frontend Shared & Patient Helpers', () => {
       expect(sorted[1].time).toBe('02:30 PM');
     });
 
+    it('shows the approved appointment date and time in appointment rows and slips', () => {
+      const { shapePatientStoreData } = window.PatientStoreShape;
+      const shaped = shapePatientStoreData({
+        appointments: [{
+          appointment_id: 44,
+          appointment_date: '2026-12-10',
+          appointment_time: '11:00 AM',
+          scheduled_datetime: '2026-12-10T05:30:00.000Z',
+          status: 'CONFIRMED',
+        }],
+        preRequests: [{
+          pre_request_id: 8,
+          appointment_id: 44,
+          requested_date: '2026-12-09',
+          requested_time: '09:00 AM',
+          status: 'APPROVED',
+        }],
+      }, {});
+
+      expect(shaped.appointments[0]).toMatchObject({
+        date: '2026-12-10',
+        time: '11:00 AM',
+      });
+      expect(shaped.patientDocuments.appointments[0]).toMatchObject({
+        scheduledDate: '10-12-2026',
+        scheduledTime: '11:00 AM',
+      });
+    });
+
     it('buildProfile supports valid_till alias for insurance validTo', () => {
       const { buildProfile } = window.PatientStoreShape;
       const profile = buildProfile(

@@ -128,7 +128,7 @@ function BedRequestForm({ request, wards, onClose, onSubmitted }) {
             </div>
 
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <Button variant="secondary" className="suggest" type="button" onClick={onClose} style={{ height: 44, padding: '0 20px', fontSize: 12, fontWeight: 600 }}>
+              <Button variant="secondary" className="neutral-action" type="button" onClick={onClose} style={{ height: 44, padding: '0 20px', fontSize: 12, fontWeight: 600 }}>
                 Cancel
               </Button>
               <Button variant="primary" className="green" type="button" onClick={dispatchBedRequest} disabled={submitting} style={{ height: 44, padding: '0 24px', fontSize: 12, fontWeight: 600 }}>

@@ -154,7 +154,7 @@ export default function PreDashboardPage() {
                         <Badge variant="warning">Awaiting HOM Bed</Badge>
                       ) : (
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <Button variant="secondary" size="sm" className="suggest" onClick={() => completeFollowUp(r.pre_request_id)}>
+                          <Button variant="secondary" size="sm" className="neutral-action" onClick={() => completeFollowUp(r.pre_request_id)}>
                             Follow Up
                           </Button>
                           <Button variant="primary" size="sm" className="approve" onClick={() => setBedRequestId(r.pre_request_id)}>

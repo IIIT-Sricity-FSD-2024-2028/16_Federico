@@ -147,7 +147,7 @@ export default function Patient360Modal({ patient, doctorsById, bedsById, onClos
         </div>
 
         <div className="emergency-modal-actions" style={{ justifyContent: 'flex-end' }}>
-          <Button variant="secondary" className="suggest" type="button" style={{ borderRadius: 'var(--radius-full, 9999px)', padding: '8px 20px' }} onClick={onClose}>
+          <Button variant="secondary" className="neutral-action" type="button" style={{ borderRadius: 'var(--radius-full, 9999px)', padding: '8px 20px' }} onClick={onClose}>
             Close
           </Button>
         </div>

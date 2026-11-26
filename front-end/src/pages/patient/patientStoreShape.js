@@ -171,13 +171,10 @@ export function buildAppointments(preRequests = [], doctorsById = {}, rawAppoint
   rawAppointments.forEach((apt) => {
     let date = '';
     let time = '--';
-    if (apt.scheduled_datetime) {
-      const parts = String(apt.scheduled_datetime).split('T');
-      date = parts[0] || '';
-      time = parts[1] ? parts[1].slice(0, 5) : '--';
-    } else if (apt.appointment_date) {
-      date = apt.appointment_date;
-      time = apt.appointment_time || '--';
+    if (apt.appointment_date || apt.scheduled_datetime) {
+      const parts = String(apt.scheduled_datetime || '').split('T');
+      date = apt.appointment_date || parts[0] || '';
+      time = apt.appointment_time || (parts[1] ? parts[1].slice(0, 5) : '--');
     } else if (apt.created_at) {
       date = String(apt.created_at).split('T')[0] || '';
     }
@@ -668,15 +665,8 @@ export function buildPatientDocuments(source = {}, _session = {}) {
       date: formatShortDate(ts),
       createdAt: ts,
       doctorName: doctor ? doctor.name : apt.doctor_name || 'Duty Doctor',
-      scheduledDate: formatAppointmentDate(
-        apt.scheduled_datetime ? String(apt.scheduled_datetime).split('T')[0] : apt.appointment_date,
-        apt.created_at,
-      ),
-      scheduledTime: formatTimeString(
-        apt.scheduled_datetime
-          ? String(apt.scheduled_datetime).split('T')[1]
-          : apt.appointment_time || '10:00 AM',
-      ),
+      scheduledDate: formatAppointmentDate(apt.appointment_date || apt.scheduled_datetime, apt.created_at),
+      scheduledTime: formatTimeString(apt.appointment_time || apt.scheduled_datetime || '10:00 AM'),
       visitType: apt.visit_type || 'Consultation',
       notes: apt.note || '',
       status: 'Confirmed Consultation',
